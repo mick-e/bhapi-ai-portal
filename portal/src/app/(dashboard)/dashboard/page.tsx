@@ -8,11 +8,52 @@ import {
   TrendingUp,
   TrendingDown,
   ArrowRight,
+  Loader2,
+  RefreshCw,
 } from "lucide-react";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { useDashboardSummary } from "@/hooks/use-dashboard";
+import type { Alert, CaptureEvent } from "@/types";
 
 export default function DashboardPage() {
+  const { data, isLoading, isError, error, refetch } = useDashboardSummary();
+
+  if (isLoading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-3 text-sm text-gray-500">Loading dashboard...</span>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex h-64 flex-col items-center justify-center text-center">
+        <AlertTriangle className="h-10 w-10 text-amber-500" />
+        <p className="mt-3 text-sm font-medium text-gray-900">
+          Failed to load dashboard
+        </p>
+        <p className="mt-1 text-sm text-gray-500">
+          {(error as Error)?.message || "Something went wrong"}
+        </p>
+        <Button
+          variant="secondary"
+          size="sm"
+          className="mt-4"
+          onClick={() => refetch()}
+        >
+          <RefreshCw className="h-4 w-4" />
+          Try again
+        </Button>
+      </div>
+    );
+  }
+
+  const summary = data!;
+
   return (
     <div>
       <div className="mb-8">
@@ -26,31 +67,47 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <SummaryCard
           title="Active Members"
-          value="12"
-          subtitle="of 15 total"
+          value={String(summary.active_members)}
+          subtitle={`of ${summary.total_members} total`}
           icon={<Users className="h-5 w-5 text-primary" />}
-          trend={{ direction: "up", label: "+2 this week" }}
+          trend={{
+            direction: "up",
+            label: `${summary.total_members} registered`,
+          }}
         />
         <SummaryCard
           title="AI Interactions"
-          value="342"
+          value={String(summary.interactions_today)}
           subtitle="today"
           icon={<Activity className="h-5 w-5 text-green-600" />}
-          trend={{ direction: "up", label: "+18% vs yesterday" }}
+          trend={{
+            direction: "up",
+            label: summary.interactions_trend || "tracking",
+          }}
         />
         <SummaryCard
           title="Active Alerts"
-          value="3"
-          subtitle="1 critical"
+          value={String(summary.alert_summary.unread_count)}
+          subtitle={
+            summary.alert_summary.critical_count > 0
+              ? `${summary.alert_summary.critical_count} critical`
+              : "none critical"
+          }
           icon={<AlertTriangle className="h-5 w-5 text-amber-500" />}
-          trend={{ direction: "down", label: "-5 since yesterday" }}
+          trend={{
+            direction: summary.risk_summary.trend === "increasing" ? "up" : "down",
+            label: `risk ${summary.risk_summary.trend}`,
+          }}
         />
         <SummaryCard
           title="Spend Today"
-          value="$4.82"
-          subtitle="$150 budget"
+          value={`$${summary.spend_summary.today_usd.toFixed(2)}`}
+          subtitle={`$${summary.spend_summary.budget_usd.toFixed(0)} budget`}
           icon={<CreditCard className="h-5 w-5 text-accent" />}
-          trend={{ direction: "up", label: "3.2% of budget" }}
+          trend={{
+            direction: "up",
+            label: `${summary.spend_summary.budget_used_percentage.toFixed(1)}% of budget`,
+          }}
         />
       </div>
 
@@ -70,38 +127,18 @@ export default function DashboardPage() {
             </Link>
           }
         >
-          <div className="space-y-4">
-            <ActivityItem
-              name="Sarah"
-              action="ChatGPT conversation"
-              time="2 min ago"
-              risk="low"
-            />
-            <ActivityItem
-              name="Tom"
-              action="Claude code generation"
-              time="15 min ago"
-              risk="low"
-            />
-            <ActivityItem
-              name="Emma"
-              action="Gemini image analysis"
-              time="32 min ago"
-              risk="medium"
-            />
-            <ActivityItem
-              name="James"
-              action="ChatGPT conversation"
-              time="1 hour ago"
-              risk="high"
-            />
-            <ActivityItem
-              name="Lucy"
-              action="Claude writing assistance"
-              time="2 hours ago"
-              risk="low"
-            />
-          </div>
+          {summary.recent_activity.length === 0 ? (
+            <div className="py-6 text-center">
+              <Activity className="mx-auto h-8 w-8 text-gray-300" />
+              <p className="mt-2 text-sm text-gray-500">No recent activity</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {summary.recent_activity.slice(0, 5).map((event) => (
+                <ActivityItem key={event.id} event={event} />
+              ))}
+            </div>
+          )}
         </Card>
 
         {/* Alert Summary */}
@@ -118,26 +155,18 @@ export default function DashboardPage() {
             </Link>
           }
         >
-          <div className="space-y-4">
-            <AlertItem
-              severity="critical"
-              title="Unsafe content detected"
-              description="James attempted to generate restricted content via ChatGPT"
-              time="1 hour ago"
-            />
-            <AlertItem
-              severity="warning"
-              title="Spend threshold reached"
-              description="Tom has used 80% of daily API budget"
-              time="3 hours ago"
-            />
-            <AlertItem
-              severity="info"
-              title="New member joined"
-              description="Alex accepted the group invitation"
-              time="5 hours ago"
-            />
-          </div>
+          {summary.alert_summary.recent.length === 0 ? (
+            <div className="py-6 text-center">
+              <AlertTriangle className="mx-auto h-8 w-8 text-gray-300" />
+              <p className="mt-2 text-sm text-gray-500">No active alerts</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {summary.alert_summary.recent.slice(0, 3).map((alert) => (
+                <AlertItem key={alert.id} alert={alert} />
+              ))}
+            </div>
+          )}
         </Card>
       </div>
 
@@ -159,26 +188,40 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
             <div>
               <p className="text-sm text-gray-500">This month</p>
-              <p className="mt-1 text-2xl font-bold text-gray-900">$42.18</p>
+              <p className="mt-1 text-2xl font-bold text-gray-900">
+                ${summary.spend_summary.month_usd.toFixed(2)}
+              </p>
               <p className="mt-1 text-xs text-gray-400">
-                of $150.00 budget
+                of ${summary.spend_summary.budget_usd.toFixed(2)} budget
               </p>
               <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-gray-100">
                 <div
-                  className="h-full rounded-full bg-primary"
-                  style={{ width: "28%" }}
+                  className="h-full rounded-full bg-primary transition-all"
+                  style={{
+                    width: `${Math.min(summary.spend_summary.budget_used_percentage, 100)}%`,
+                  }}
                 />
               </div>
             </div>
             <div>
               <p className="text-sm text-gray-500">Top provider</p>
-              <p className="mt-1 text-2xl font-bold text-gray-900">OpenAI</p>
-              <p className="mt-1 text-xs text-gray-400">$28.45 (67%)</p>
+              <p className="mt-1 text-2xl font-bold text-gray-900">
+                {summary.spend_summary.top_provider || "N/A"}
+              </p>
+              <p className="mt-1 text-xs text-gray-400">
+                ${summary.spend_summary.top_provider_cost_usd.toFixed(2)} (
+                {summary.spend_summary.top_provider_percentage.toFixed(0)}%)
+              </p>
             </div>
             <div>
               <p className="text-sm text-gray-500">Top user</p>
-              <p className="mt-1 text-2xl font-bold text-gray-900">Tom</p>
-              <p className="mt-1 text-xs text-gray-400">$15.20 (36%)</p>
+              <p className="mt-1 text-2xl font-bold text-gray-900">
+                {summary.spend_summary.top_member || "N/A"}
+              </p>
+              <p className="mt-1 text-xs text-gray-400">
+                ${summary.spend_summary.top_member_cost_usd.toFixed(2)} (
+                {summary.spend_summary.top_member_percentage.toFixed(0)}%)
+              </p>
             </div>
           </div>
         </Card>
@@ -186,6 +229,8 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+// ─── Sub-components ─────────────────────────────────────────────────────────
 
 function SummaryCard({
   title,
@@ -224,74 +269,84 @@ function SummaryCard({
   );
 }
 
-function ActivityItem({
-  name,
-  action,
-  time,
-  risk,
-}: {
-  name: string;
-  action: string;
-  time: string;
-  risk: "low" | "medium" | "high";
-}) {
+function ActivityItem({ event }: { event: CaptureEvent }) {
   const riskColors = {
     low: "bg-green-100 text-green-700",
     medium: "bg-amber-100 text-amber-700",
     high: "bg-red-100 text-red-700",
+    critical: "bg-red-200 text-red-800",
   };
+
+  const timeLabel = formatRelativeTime(event.timestamp);
 
   return (
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-100 text-xs font-semibold text-primary">
-          {name.charAt(0)}
+          {event.member_name.charAt(0)}
         </div>
         <div>
-          <p className="text-sm font-medium text-gray-900">{name}</p>
-          <p className="text-xs text-gray-500">{action}</p>
+          <p className="text-sm font-medium text-gray-900">
+            {event.member_name}
+          </p>
+          <p className="text-xs text-gray-500">
+            {event.provider} / {event.model}
+          </p>
         </div>
       </div>
       <div className="flex items-center gap-3">
         <span
-          className={`rounded-full px-2 py-0.5 text-xs font-medium ${riskColors[risk]}`}
+          className={`rounded-full px-2 py-0.5 text-xs font-medium ${riskColors[event.risk_level]}`}
         >
-          {risk}
+          {event.risk_level}
         </span>
-        <span className="text-xs text-gray-400">{time}</span>
+        <span className="text-xs text-gray-400">{timeLabel}</span>
       </div>
     </div>
   );
 }
 
-function AlertItem({
-  severity,
-  title,
-  description,
-  time,
-}: {
-  severity: "critical" | "warning" | "info";
-  title: string;
-  description: string;
-  time: string;
-}) {
-  const severityStyles = {
+function AlertItem({ alert }: { alert: Alert }) {
+  const severityStyles: Record<string, string> = {
     critical: "border-l-red-500 bg-red-50",
+    error: "border-l-red-500 bg-red-50",
     warning: "border-l-amber-500 bg-amber-50",
     info: "border-l-blue-500 bg-blue-50",
   };
 
+  const style = severityStyles[alert.severity] || severityStyles.info;
+  const timeLabel = formatRelativeTime(alert.created_at);
+
   return (
-    <div
-      className={`rounded-r-lg border-l-4 p-3 ${severityStyles[severity]}`}
-    >
+    <div className={`rounded-r-lg border-l-4 p-3 ${style}`}>
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm font-semibold text-gray-900">{title}</p>
-          <p className="mt-0.5 text-xs text-gray-600">{description}</p>
+          <p className="text-sm font-semibold text-gray-900">{alert.title}</p>
+          <p className="mt-0.5 text-xs text-gray-600">{alert.message}</p>
         </div>
-        <span className="flex-shrink-0 text-xs text-gray-400">{time}</span>
+        <span className="flex-shrink-0 text-xs text-gray-400">{timeLabel}</span>
       </div>
     </div>
   );
+}
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+function formatRelativeTime(timestamp: string): string {
+  try {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60_000);
+    const diffHours = Math.floor(diffMs / 3_600_000);
+    const diffDays = Math.floor(diffMs / 86_400_000);
+
+    if (diffMins < 1) return "just now";
+    if (diffMins < 60) return `${diffMins} min ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
+    return date.toLocaleDateString();
+  } catch {
+    return timestamp;
+  }
 }

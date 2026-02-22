@@ -1,4 +1,26 @@
-import type { ApiError } from "@/types";
+import type {
+  ApiError,
+  DashboardData,
+  GroupMember,
+  InviteMemberRequest,
+  UpdateMemberRequest,
+  CaptureEvent,
+  RiskEvent,
+  AcknowledgeRiskRequest,
+  Alert,
+  SpendSummary,
+  SpendRecord,
+  Report,
+  CreateReportRequest,
+  ReportScheduleConfig,
+  GroupSettings,
+  UpdateGroupSettingsRequest,
+  UpdateProfileRequest,
+  User,
+  PaginatedResponse,
+} from "@/types";
+
+// ─── Base Client ────────────────────────────────────────────────────────────
 
 const BASE_URL = typeof window !== "undefined" ? "" : "http://localhost:8000";
 
@@ -87,5 +109,226 @@ export const api = {
 
   delete<T>(path: string): Promise<T> {
     return apiFetch<T>(path, { method: "DELETE" });
+  },
+};
+
+// ─── Helper: build query string ─────────────────────────────────────────────
+
+function qs(params: Record<string, string | number | boolean | undefined>): string {
+  const entries = Object.entries(params).filter(
+    ([, v]) => v !== undefined && v !== ""
+  );
+  if (entries.length === 0) return "";
+  return "?" + entries.map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`).join("&");
+}
+
+// ─── Dashboard ──────────────────────────────────────────────────────────────
+
+export const dashboardApi = {
+  getSummary(): Promise<DashboardData> {
+    return api.get<DashboardData>("/api/v1/portal/dashboard");
+  },
+};
+
+// ─── Members ────────────────────────────────────────────────────────────────
+
+export const membersApi = {
+  list(groupId: string, params?: { page?: number; page_size?: number; search?: string }): Promise<PaginatedResponse<GroupMember>> {
+    const query = qs({
+      page: params?.page,
+      page_size: params?.page_size,
+      search: params?.search,
+    });
+    return api.get<PaginatedResponse<GroupMember>>(`/api/v1/groups/${groupId}/members${query}`);
+  },
+
+  get(groupId: string, memberId: string): Promise<GroupMember> {
+    return api.get<GroupMember>(`/api/v1/groups/${groupId}/members/${memberId}`);
+  },
+
+  invite(groupId: string, data: InviteMemberRequest): Promise<GroupMember> {
+    return api.post<GroupMember>(`/api/v1/groups/${groupId}/members`, data);
+  },
+
+  update(groupId: string, memberId: string, data: UpdateMemberRequest): Promise<GroupMember> {
+    return api.patch<GroupMember>(`/api/v1/groups/${groupId}/members/${memberId}`, data);
+  },
+
+  remove(groupId: string, memberId: string): Promise<void> {
+    return api.delete<void>(`/api/v1/groups/${groupId}/members/${memberId}`);
+  },
+};
+
+// ─── Activity / Capture Events ──────────────────────────────────────────────
+
+export const activityApi = {
+  list(params?: {
+    page?: number;
+    page_size?: number;
+    member_id?: string;
+    risk_level?: string;
+    provider?: string;
+    event_type?: string;
+    search?: string;
+  }): Promise<PaginatedResponse<CaptureEvent>> {
+    const query = qs({
+      page: params?.page,
+      page_size: params?.page_size,
+      member_id: params?.member_id,
+      risk_level: params?.risk_level,
+      provider: params?.provider,
+      event_type: params?.event_type,
+      search: params?.search,
+    });
+    return api.get<PaginatedResponse<CaptureEvent>>(`/api/v1/capture/events${query}`);
+  },
+
+  get(eventId: string): Promise<CaptureEvent> {
+    return api.get<CaptureEvent>(`/api/v1/capture/events/${eventId}`);
+  },
+};
+
+// ─── Risk Events ────────────────────────────────────────────────────────────
+
+export const riskApi = {
+  list(params?: {
+    page?: number;
+    page_size?: number;
+    severity?: string;
+    category?: string;
+    resolved?: boolean;
+    member_id?: string;
+  }): Promise<PaginatedResponse<RiskEvent>> {
+    const query = qs({
+      page: params?.page,
+      page_size: params?.page_size,
+      severity: params?.severity,
+      category: params?.category,
+      resolved: params?.resolved,
+      member_id: params?.member_id,
+    });
+    return api.get<PaginatedResponse<RiskEvent>>(`/api/v1/risk/events${query}`);
+  },
+
+  acknowledge(data: AcknowledgeRiskRequest): Promise<RiskEvent> {
+    return api.post<RiskEvent>("/api/v1/risk/acknowledge", data);
+  },
+};
+
+// ─── Alerts ─────────────────────────────────────────────────────────────────
+
+export const alertsApi = {
+  list(params?: {
+    page?: number;
+    page_size?: number;
+    severity?: string;
+    type?: string;
+    read?: boolean;
+  }): Promise<PaginatedResponse<Alert>> {
+    const query = qs({
+      page: params?.page,
+      page_size: params?.page_size,
+      severity: params?.severity,
+      type: params?.type,
+      read: params?.read,
+    });
+    return api.get<PaginatedResponse<Alert>>(`/api/v1/alerts${query}`);
+  },
+
+  markRead(alertId: string): Promise<Alert> {
+    return api.patch<Alert>(`/api/v1/alerts/${alertId}`, { read: true });
+  },
+
+  markActioned(alertId: string): Promise<Alert> {
+    return api.patch<Alert>(`/api/v1/alerts/${alertId}`, { actioned: true, read: true });
+  },
+
+  markAllRead(): Promise<void> {
+    return api.post<void>("/api/v1/alerts/mark-all-read");
+  },
+};
+
+// ─── Spend / Billing ────────────────────────────────────────────────────────
+
+export const spendApi = {
+  getSummary(period?: "day" | "week" | "month"): Promise<SpendSummary> {
+    const query = qs({ period });
+    return api.get<SpendSummary>(`/api/v1/billing/spend${query}`);
+  },
+
+  getRecords(params?: {
+    page?: number;
+    page_size?: number;
+    member_id?: string;
+    provider?: string;
+  }): Promise<PaginatedResponse<SpendRecord>> {
+    const query = qs({
+      page: params?.page,
+      page_size: params?.page_size,
+      member_id: params?.member_id,
+      provider: params?.provider,
+    });
+    return api.get<PaginatedResponse<SpendRecord>>(`/api/v1/billing/spend/records${query}`);
+  },
+};
+
+// ─── Reports ────────────────────────────────────────────────────────────────
+
+export const reportsApi = {
+  list(params?: {
+    page?: number;
+    page_size?: number;
+    type?: string;
+    status?: string;
+  }): Promise<PaginatedResponse<Report>> {
+    const query = qs({
+      page: params?.page,
+      page_size: params?.page_size,
+      type: params?.type,
+      status: params?.status,
+    });
+    return api.get<PaginatedResponse<Report>>(`/api/v1/reports${query}`);
+  },
+
+  create(data: CreateReportRequest): Promise<Report> {
+    return api.post<Report>("/api/v1/reports", data);
+  },
+
+  download(reportId: string): Promise<Blob> {
+    const token = getAuthToken();
+    const headers: Record<string, string> = {};
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+
+    return fetch(`${BASE_URL}/api/v1/reports/${reportId}/download`, {
+      headers,
+      credentials: "include",
+    }).then((res) => {
+      if (!res.ok) throw new ApiRequestError(res.status, "Failed to download report");
+      return res.blob();
+    });
+  },
+
+  getSchedules(): Promise<ReportScheduleConfig[]> {
+    return api.get<ReportScheduleConfig[]>("/api/v1/reports/schedules");
+  },
+
+  updateSchedule(data: ReportScheduleConfig): Promise<ReportScheduleConfig> {
+    return api.put<ReportScheduleConfig>("/api/v1/reports/schedules", data);
+  },
+};
+
+// ─── Settings ───────────────────────────────────────────────────────────────
+
+export const settingsApi = {
+  getGroupSettings(): Promise<GroupSettings> {
+    return api.get<GroupSettings>("/api/v1/portal/settings");
+  },
+
+  updateGroupSettings(data: UpdateGroupSettingsRequest): Promise<GroupSettings> {
+    return api.patch<GroupSettings>("/api/v1/portal/settings", data);
+  },
+
+  updateProfile(data: UpdateProfileRequest): Promise<User> {
+    return api.patch<User>("/api/v1/auth/me", data);
   },
 };

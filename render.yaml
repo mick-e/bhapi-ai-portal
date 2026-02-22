@@ -1,0 +1,52 @@
+# Render Blueprint — Bhapi AI Portal
+# Deploy: connect GitHub repo, Render auto-detects this file.
+# Docs: https://docs.render.com/blueprint-spec
+
+services:
+  # Core API (FastAPI backend + Next.js frontend)
+  - type: web
+    name: bhapi-core-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    region: frankfurt
+    healthCheckPath: /health/live
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: bhapi-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: bhapi-redis
+          type: redis
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: SENDGRID_API_KEY
+        sync: false
+      - key: GCP_PROJECT_ID
+        sync: false
+
+databases:
+  - name: bhapi-db
+    plan: starter
+    region: frankfurt
+    postgresMajorVersion: "16"
+    databaseName: bhapi
+    user: bhapi
+
+  # Note: Render Redis requires paid plan.
+  # For MVP, set REDIS_URL="" to use graceful degradation (no Redis).
+  # Uncomment below when ready:
+  # - name: bhapi-redis
+  #   type: redis
+  #   plan: starter
+  #   region: frankfurt
+  #   maxmemoryPolicy: allkeys-lru

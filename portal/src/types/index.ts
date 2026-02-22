@@ -1,3 +1,5 @@
+// ─── Core Entities ───────────────────────────────────────────────────────────
+
 export interface User {
   id: string;
   email: string;
@@ -31,8 +33,14 @@ export interface GroupMember {
   status: "active" | "invited" | "suspended";
   safety_profile?: string;
   avatar_url?: string;
+  last_active?: string;
+  risk_level?: "low" | "medium" | "high";
   joined_at: string;
 }
+
+// ─── Capture Events ─────────────────────────────────────────────────────────
+
+export type EventType = "chat" | "code" | "image" | "document";
 
 export interface CaptureEvent {
   id: string;
@@ -41,6 +49,7 @@ export interface CaptureEvent {
   member_name: string;
   provider: string;
   model: string;
+  event_type: EventType;
   prompt_preview: string;
   response_preview: string;
   token_count: number;
@@ -50,6 +59,10 @@ export interface CaptureEvent {
   timestamp: string;
 }
 
+// ─── Risk Events ────────────────────────────────────────────────────────────
+
+export type RiskSeverity = "low" | "medium" | "high" | "critical";
+
 export interface RiskEvent {
   id: string;
   capture_event_id: string;
@@ -57,20 +70,29 @@ export interface RiskEvent {
   member_id: string;
   member_name: string;
   category: string;
-  severity: "low" | "medium" | "high" | "critical";
+  severity: RiskSeverity;
   description: string;
   auto_action?: string;
   resolved: boolean;
+  acknowledged: boolean;
+  acknowledged_by?: string;
+  acknowledged_at?: string;
   timestamp: string;
 }
+
+// ─── Alerts ─────────────────────────────────────────────────────────────────
+
+export type AlertType = "risk" | "spend" | "member" | "system";
+export type AlertSeverity = "info" | "warning" | "error" | "critical";
 
 export interface Alert {
   id: string;
   group_id: string;
-  type: "risk" | "spend" | "member" | "system";
-  severity: "info" | "warning" | "error" | "critical";
+  type: AlertType;
+  severity: AlertSeverity;
   title: string;
   message: string;
+  member_name?: string;
   read: boolean;
   actioned: boolean;
   related_member_id?: string;
@@ -78,40 +100,161 @@ export interface Alert {
   created_at: string;
 }
 
+// ─── Spend ──────────────────────────────────────────────────────────────────
+
+export interface SpendRecord {
+  id: string;
+  group_id: string;
+  member_id: string;
+  member_name: string;
+  provider: string;
+  model: string;
+  token_count: number;
+  cost_usd: number;
+  timestamp: string;
+}
+
+export interface ProviderBreakdown {
+  provider: string;
+  cost_usd: number;
+  request_count: number;
+  percentage: number;
+}
+
+export interface MemberSpendBreakdown {
+  member_id: string;
+  member_name: string;
+  cost_usd: number;
+  limit_usd: number;
+}
+
 export interface SpendSummary {
   group_id: string;
   period: "day" | "week" | "month";
+  period_label: string;
   total_cost_usd: number;
   budget_usd: number;
   budget_remaining_usd: number;
-  member_breakdown: {
-    member_id: string;
-    member_name: string;
-    cost_usd: number;
-  }[];
-  provider_breakdown: {
-    provider: string;
-    cost_usd: number;
-    request_count: number;
-  }[];
+  budget_used_percentage: number;
+  avg_daily_cost_usd: number;
+  active_spenders: number;
+  total_members: number;
+  over_budget_count: number;
+  member_breakdown: MemberSpendBreakdown[];
+  provider_breakdown: ProviderBreakdown[];
+  records: SpendRecord[];
 }
+
+// ─── Reports ────────────────────────────────────────────────────────────────
+
+export type ReportType = "safety" | "spend" | "activity" | "compliance";
+export type ReportStatus = "ready" | "generating" | "failed";
+export type ReportFormat = "pdf" | "csv";
+export type ReportSchedule = "none" | "daily" | "weekly" | "monthly";
+
+export interface Report {
+  id: string;
+  group_id: string;
+  title: string;
+  description: string;
+  type: ReportType;
+  status: ReportStatus;
+  format: ReportFormat;
+  period_start: string;
+  period_end: string;
+  download_url?: string;
+  generated_at?: string;
+  created_at: string;
+}
+
+export interface ReportScheduleConfig {
+  type: ReportType;
+  schedule: ReportSchedule;
+  format: ReportFormat;
+  recipients: string[];
+}
+
+export interface CreateReportRequest {
+  type: ReportType;
+  format: ReportFormat;
+  period_start: string;
+  period_end: string;
+}
+
+// ─── Dashboard ──────────────────────────────────────────────────────────────
 
 export interface DashboardData {
   active_members: number;
   total_members: number;
+  interactions_today: number;
+  interactions_trend: string;
   recent_activity: CaptureEvent[];
   alert_summary: {
     unread_count: number;
     critical_count: number;
     recent: Alert[];
   };
-  spend_summary: SpendSummary;
+  spend_summary: {
+    today_usd: number;
+    month_usd: number;
+    budget_usd: number;
+    budget_used_percentage: number;
+    top_provider: string;
+    top_provider_cost_usd: number;
+    top_provider_percentage: number;
+    top_member: string;
+    top_member_cost_usd: number;
+    top_member_percentage: number;
+  };
   risk_summary: {
     total_events_today: number;
     high_severity_count: number;
     trend: "increasing" | "stable" | "decreasing";
   };
 }
+
+// ─── Settings ───────────────────────────────────────────────────────────────
+
+export type SafetyLevel = "strict" | "moderate" | "permissive";
+
+export interface GroupSettings {
+  group_id: string;
+  group_name: string;
+  account_type: "family" | "school" | "club";
+  safety_level: SafetyLevel;
+  auto_block_critical: boolean;
+  prompt_logging: boolean;
+  pii_detection: boolean;
+  notifications: NotificationPreferences;
+  monthly_budget_usd: number;
+  plan: "free" | "starter" | "pro" | "enterprise";
+}
+
+export interface NotificationPreferences {
+  critical_safety: boolean;
+  risk_warnings: boolean;
+  spend_alerts: boolean;
+  member_updates: boolean;
+  weekly_digest: boolean;
+  report_notifications: boolean;
+}
+
+export interface UpdateGroupSettingsRequest {
+  group_name?: string;
+  safety_level?: SafetyLevel;
+  auto_block_critical?: boolean;
+  prompt_logging?: boolean;
+  pii_detection?: boolean;
+  notifications?: Partial<NotificationPreferences>;
+  monthly_budget_usd?: number;
+}
+
+export interface UpdateProfileRequest {
+  display_name?: string;
+  email?: string;
+}
+
+// ─── Auth ───────────────────────────────────────────────────────────────────
 
 export interface AuthResponse {
   access_token: string;
@@ -122,4 +265,39 @@ export interface AuthResponse {
 export interface ApiError {
   detail: string;
   status_code: number;
+}
+
+// ─── Pagination ─────────────────────────────────────────────────────────────
+
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+export interface PaginationParams {
+  page?: number;
+  page_size?: number;
+}
+
+// ─── Invitation ─────────────────────────────────────────────────────────────
+
+export interface InviteMemberRequest {
+  email: string;
+  role: "admin" | "member" | "viewer";
+}
+
+export interface UpdateMemberRequest {
+  role?: "admin" | "member" | "viewer";
+  status?: "active" | "suspended";
+  safety_profile?: string;
+}
+
+// ─── Risk Acknowledge ───────────────────────────────────────────────────────
+
+export interface AcknowledgeRiskRequest {
+  event_id: string;
+  notes?: string;
 }

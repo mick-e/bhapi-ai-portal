@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4F46E5"/>
+      <stop offset="100%" stop-color="#7C3AED"/>
+    </linearGradient>
+    <linearGradient id="shieldInner" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366F1"/>
+      <stop offset="100%" stop-color="#8B5CF6"/>
+    </linearGradient>
+    <!-- Subtle shadow filter -->
+    <filter id="shadow" x="-10%" y="-10%" width="130%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#1e1b4b" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Shield body -->
+  <path d="M64 8 L112 28 L112 60 C112 90 92 112 64 122 C36 112 16 90 16 60 L16 28 Z"
+        fill="url(#shieldGrad)" filter="url(#shadow)"/>
+
+  <!-- Inner shield highlight -->
+  <path d="M64 16 L104 33 L104 60 C104 85.5 87 105 64 114 C41 105 24 85.5 24 60 L24 33 Z"
+        fill="url(#shieldInner)" opacity="0.4"/>
+
+  <!-- Inner border ring -->
+  <path d="M64 22 L100 37 L100 60 C100 83 85 100 64 109 C43 100 28 83 28 60 L28 37 Z"
+        fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="1.5"/>
+
+  <!-- Letter B -->
+  <text x="64" y="82" text-anchor="middle"
+        font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif"
+        font-size="56" font-weight="700"
+        fill="#ffffff" letter-spacing="-1">B</text>
+
+  <!-- Small safety checkmark at bottom-right of shield -->
+  <circle cx="96" cy="98" r="14" fill="#10B981"/>
+  <circle cx="96" cy="98" r="12" fill="none" stroke="#ffffff" stroke-width="1.5" opacity="0.3"/>
+  <polyline points="89,98 94,103 104,93" fill="none" stroke="#ffffff" stroke-width="3"
+            stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

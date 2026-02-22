@@ -8,78 +8,119 @@ import {
   MoreVertical,
   Shield,
   Mail,
+  Loader2,
+  AlertTriangle,
+  RefreshCw,
+  Trash2,
+  UserCog,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
-
-interface MemberRow {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  status: "active" | "invited" | "suspended";
-  lastActive: string;
-  riskLevel: "low" | "medium" | "high";
-}
-
-const placeholderMembers: MemberRow[] = [
-  {
-    id: "1",
-    name: "Sarah Johnson",
-    email: "sarah@example.com",
-    role: "Member",
-    status: "active",
-    lastActive: "2 min ago",
-    riskLevel: "low",
-  },
-  {
-    id: "2",
-    name: "Tom Wilson",
-    email: "tom@example.com",
-    role: "Member",
-    status: "active",
-    lastActive: "15 min ago",
-    riskLevel: "medium",
-  },
-  {
-    id: "3",
-    name: "Emma Davis",
-    email: "emma@example.com",
-    role: "Admin",
-    status: "active",
-    lastActive: "1 hour ago",
-    riskLevel: "low",
-  },
-  {
-    id: "4",
-    name: "James Brown",
-    email: "james@example.com",
-    role: "Member",
-    status: "active",
-    lastActive: "3 hours ago",
-    riskLevel: "high",
-  },
-  {
-    id: "5",
-    name: "Alex Chen",
-    email: "alex@example.com",
-    role: "Member",
-    status: "invited",
-    lastActive: "Never",
-    riskLevel: "low",
-  },
-];
+import {
+  useMembers,
+  useInviteMember,
+  useUpdateMember,
+  useRemoveMember,
+} from "@/hooks/use-members";
+// Types are inferred from React Query hooks
 
 export default function MembersPage() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [page, setPage] = useState(1);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
 
-  const filteredMembers = placeholderMembers.filter(
-    (m) =>
-      m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      m.email.toLowerCase().includes(searchQuery.toLowerCase())
+  // Invite form state
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState<"admin" | "member" | "viewer">(
+    "member"
   );
+
+  const pageSize = 20;
+  const {
+    data: membersData,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useMembers({ page, page_size: pageSize, search: searchQuery || undefined });
+
+  const inviteMutation = useInviteMember();
+  const updateMutation = useUpdateMember();
+  const removeMutation = useRemoveMember();
+
+  const members = membersData?.items ?? [];
+  const totalPages = membersData?.total_pages ?? 1;
+  const totalMembers = membersData?.total ?? 0;
+
+  const activeCount = members.filter((m) => m.status === "active").length;
+  const invitedCount = members.filter((m) => m.status === "invited").length;
+
+  function handleInvite() {
+    if (!inviteEmail) return;
+    inviteMutation.mutate(
+      { email: inviteEmail, role: inviteRole },
+      {
+        onSuccess: () => {
+          setShowInviteModal(false);
+          setInviteEmail("");
+          setInviteRole("member");
+        },
+      }
+    );
+  }
+
+  function handleSuspend(memberId: string) {
+    updateMutation.mutate({ memberId, data: { status: "suspended" } });
+    setMenuOpenId(null);
+  }
+
+  function handleActivate(memberId: string) {
+    updateMutation.mutate({ memberId, data: { status: "active" } });
+    setMenuOpenId(null);
+  }
+
+  function handleRemove(memberId: string) {
+    if (window.confirm("Are you sure you want to remove this member?")) {
+      removeMutation.mutate(memberId);
+    }
+    setMenuOpenId(null);
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-3 text-sm text-gray-500">Loading members...</span>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex h-64 flex-col items-center justify-center text-center">
+        <AlertTriangle className="h-10 w-10 text-amber-500" />
+        <p className="mt-3 text-sm font-medium text-gray-900">
+          Failed to load members
+        </p>
+        <p className="mt-1 text-sm text-gray-500">
+          {(error as Error)?.message || "Something went wrong"}
+        </p>
+        <Button
+          variant="secondary"
+          size="sm"
+          className="mt-4"
+          onClick={() => refetch()}
+        >
+          <RefreshCw className="h-4 w-4" />
+          Try again
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -104,9 +145,7 @@ export default function MembersPage() {
               <Users className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">
-                {placeholderMembers.filter((m) => m.status === "active").length}
-              </p>
+              <p className="text-2xl font-bold text-gray-900">{activeCount}</p>
               <p className="text-sm text-gray-500">Active members</p>
             </div>
           </div>
@@ -117,12 +156,7 @@ export default function MembersPage() {
               <Mail className="h-5 w-5 text-amber-500" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">
-                {
-                  placeholderMembers.filter((m) => m.status === "invited")
-                    .length
-                }
-              </p>
+              <p className="text-2xl font-bold text-gray-900">{invitedCount}</p>
               <p className="text-sm text-gray-500">Pending invites</p>
             </div>
           </div>
@@ -133,9 +167,7 @@ export default function MembersPage() {
               <Shield className="h-5 w-5 text-green-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">
-                {placeholderMembers.length}
-              </p>
+              <p className="text-2xl font-bold text-gray-900">{totalMembers}</p>
               <p className="text-sm text-gray-500">Total members</p>
             </div>
           </div>
@@ -150,7 +182,10 @@ export default function MembersPage() {
             type="text"
             placeholder="Search members..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setPage(1);
+            }}
             className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
         </div>
@@ -183,44 +218,134 @@ export default function MembersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 bg-white">
-              {filteredMembers.map((member) => (
+              {members.map((member) => (
                 <tr key={member.id} className="hover:bg-gray-50">
                   <td className="whitespace-nowrap px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-100 text-xs font-semibold text-primary">
-                        {member.name.charAt(0)}
+                        {member.display_name.charAt(0).toUpperCase()}
                       </div>
                       <div>
                         <p className="text-sm font-medium text-gray-900">
-                          {member.name}
+                          {member.display_name}
                         </p>
                         <p className="text-xs text-gray-500">{member.email}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-600">
+                  <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-600 capitalize">
                     {member.role}
                   </td>
                   <td className="whitespace-nowrap px-6 py-4">
                     <StatusBadge status={member.status} />
                   </td>
                   <td className="whitespace-nowrap px-6 py-4">
-                    <RiskBadge level={member.riskLevel} />
+                    <RiskBadge level={member.risk_level || "low"} />
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                    {member.lastActive}
+                    {member.last_active
+                      ? formatRelativeTime(member.last_active)
+                      : "Never"}
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-right">
-                    <button className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
-                      <MoreVertical className="h-4 w-4" />
-                    </button>
+                    <div className="relative inline-block">
+                      <button
+                        onClick={() =>
+                          setMenuOpenId(
+                            menuOpenId === member.id ? null : member.id
+                          )
+                        }
+                        className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                      >
+                        <MoreVertical className="h-4 w-4" />
+                      </button>
+                      {menuOpenId === member.id && (
+                        <>
+                          <div
+                            className="fixed inset-0 z-10"
+                            onClick={() => setMenuOpenId(null)}
+                          />
+                          <div className="absolute right-0 z-20 mt-1 w-44 rounded-lg bg-white py-1 shadow-lg ring-1 ring-gray-200">
+                            {member.status === "active" && (
+                              <button
+                                onClick={() => handleSuspend(member.id)}
+                                className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                              >
+                                <UserCog className="h-4 w-4" />
+                                Suspend
+                              </button>
+                            )}
+                            {member.status === "suspended" && (
+                              <button
+                                onClick={() => handleActivate(member.id)}
+                                className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                              >
+                                <UserCog className="h-4 w-4" />
+                                Reactivate
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleRemove(member.id)}
+                              className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              Remove
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
+              {members.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center">
+                    <Users className="mx-auto h-10 w-10 text-gray-300" />
+                    <p className="mt-3 text-sm text-gray-500">
+                      {searchQuery
+                        ? "No members match your search"
+                        : "No members yet. Invite someone to get started."}
+                    </p>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
       </Card>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="mt-4 flex items-center justify-between">
+          <p className="text-sm text-gray-500">
+            Showing {members.length} of {totalMembers} members
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Previous
+            </Button>
+            <span className="text-sm text-gray-600">
+              Page {page} of {totalPages}
+            </span>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Invite Modal */}
       {showInviteModal && (
@@ -237,17 +362,33 @@ export default function MembersPage() {
               <p className="mt-1 text-sm text-gray-500">
                 Send an invitation to join your group
               </p>
+              {inviteMutation.isError && (
+                <div className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
+                  {(inviteMutation.error as Error)?.message ||
+                    "Failed to send invite"}
+                </div>
+              )}
               <div className="mt-4 space-y-4">
                 <Input
                   label="Email address"
                   type="email"
                   placeholder="member@example.com"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
                 />
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-gray-700">
                     Role
                   </label>
-                  <select className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
+                  <select
+                    value={inviteRole}
+                    onChange={(e) =>
+                      setInviteRole(
+                        e.target.value as "admin" | "member" | "viewer"
+                      )
+                    }
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  >
                     <option value="member">Member</option>
                     <option value="admin">Admin</option>
                     <option value="viewer">Viewer</option>
@@ -257,11 +398,19 @@ export default function MembersPage() {
               <div className="mt-6 flex justify-end gap-3">
                 <Button
                   variant="secondary"
-                  onClick={() => setShowInviteModal(false)}
+                  onClick={() => {
+                    setShowInviteModal(false);
+                    setInviteEmail("");
+                    inviteMutation.reset();
+                  }}
                 >
                   Cancel
                 </Button>
-                <Button onClick={() => setShowInviteModal(false)}>
+                <Button
+                  onClick={handleInvite}
+                  isLoading={inviteMutation.isPending}
+                  disabled={!inviteEmail}
+                >
                   Send Invite
                 </Button>
               </div>
@@ -273,7 +422,13 @@ export default function MembersPage() {
   );
 }
 
-function StatusBadge({ status }: { status: "active" | "invited" | "suspended" }) {
+// ─── Sub-components ─────────────────────────────────────────────────────────
+
+function StatusBadge({
+  status,
+}: {
+  status: "active" | "invited" | "suspended";
+}) {
   const styles = {
     active: "bg-green-100 text-green-700",
     invited: "bg-amber-100 text-amber-700",
@@ -303,4 +458,27 @@ function RiskBadge({ level }: { level: "low" | "medium" | "high" }) {
       {level}
     </span>
   );
+}
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+function formatRelativeTime(timestamp: string): string {
+  try {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60_000);
+    const diffHours = Math.floor(diffMs / 3_600_000);
+    const diffDays = Math.floor(diffMs / 86_400_000);
+
+    if (diffMins < 1) return "just now";
+    if (diffMins < 60) return `${diffMins} min ago`;
+    if (diffHours < 24)
+      return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
+    if (diffDays < 7)
+      return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
+    return date.toLocaleDateString();
+  } catch {
+    return timestamp;
+  }
 }

@@ -18,6 +18,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { useAlerts } from "@/hooks/use-alerts";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -38,6 +39,10 @@ export default function DashboardLayout({
   const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+
+  // Fetch unread alert count for the notification badge
+  const { data: alertsData } = useAlerts({ read: false, page_size: 1 });
+  const unreadCount = alertsData?.total ?? 0;
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -76,7 +81,9 @@ export default function DashboardLayout({
         <nav className="flex-1 overflow-y-auto px-3 py-4">
           <ul className="space-y-1">
             {navItems.map((item) => {
-              const isActive = pathname === item.href;
+              const isActive =
+                pathname === item.href ||
+                (item.href !== "/dashboard" && pathname.startsWith(item.href));
               const Icon = item.icon;
               return (
                 <li key={item.href}>
@@ -94,7 +101,12 @@ export default function DashboardLayout({
                     `}
                   >
                     <Icon className="h-5 w-5 flex-shrink-0" />
-                    {item.label}
+                    <span className="flex-1">{item.label}</span>
+                    {item.href === "/alerts" && unreadCount > 0 && (
+                      <span className="flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">
+                        {unreadCount > 99 ? "99+" : unreadCount}
+                      </span>
+                    )}
                   </Link>
                 </li>
               );
@@ -126,15 +138,26 @@ export default function DashboardLayout({
           </button>
 
           <div className="hidden lg:block">
-            {/* Breadcrumb area - can be enhanced later */}
+            <p className="text-sm text-gray-500">
+              {user?.account_type
+                ? `${user.account_type.charAt(0).toUpperCase() + user.account_type.slice(1)} account`
+                : ""}
+            </p>
           </div>
 
           <div className="flex items-center gap-4">
             {/* Notifications */}
-            <button className="relative rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors">
+            <Link
+              href="/alerts"
+              className="relative rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+            >
               <Bell className="h-5 w-5" />
-              <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500" />
-            </button>
+              {unreadCount > 0 && (
+                <span className="absolute right-1 top-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+            </Link>
 
             {/* Profile menu */}
             <div className="relative">
