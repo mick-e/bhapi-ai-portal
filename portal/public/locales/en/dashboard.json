@@ -1,0 +1,37 @@
+{
+  "title": "Dashboard",
+  "subtitle": "Overview of your group's AI activity and safety",
+  "cards": {
+    "active_members": "Active Members",
+    "ai_interactions": "AI Interactions",
+    "active_alerts": "Active Alerts",
+    "spend_today": "Spend Today",
+    "of_total": "of {total} total",
+    "today": "today",
+    "critical_count": "{count} critical"
+  },
+  "recent_activity": {
+    "title": "Recent Activity",
+    "description": "Latest AI interactions across your group",
+    "view_all": "View all activity"
+  },
+  "alert_summary": {
+    "title": "Alert Summary",
+    "description": "Safety alerts requiring attention",
+    "view_all": "View all alerts"
+  },
+  "spend_summary": {
+    "title": "Spend Summary",
+    "description": "API costs for the current billing period",
+    "this_month": "This month",
+    "of_budget": "of {budget} budget",
+    "top_provider": "Top provider",
+    "top_user": "Top user",
+    "view_details": "View spend details"
+  },
+  "trends": {
+    "increasing": "Increasing",
+    "stable": "Stable",
+    "decreasing": "Decreasing"
+  }
+}

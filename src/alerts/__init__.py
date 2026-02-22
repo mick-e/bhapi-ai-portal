@@ -1,0 +1,1 @@
+"""Alert & notification service module."""

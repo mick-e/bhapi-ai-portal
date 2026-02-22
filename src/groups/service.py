@@ -1,0 +1,270 @@
+"""Groups service — business logic for group management."""
+
+import secrets
+from datetime import datetime, timedelta, timezone
+from uuid import UUID, uuid4
+
+import structlog
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.constants import MAX_GROUP_MEMBERS, MAX_GROUPS_PER_USER
+from src.exceptions import ConflictError, ForbiddenError, NotFoundError, ValidationError
+from src.groups.consent import requires_consent
+from src.groups.models import Group, GroupMember, Invitation
+from src.groups.schemas import GroupCreate, GroupResponse, InvitationCreate, MemberAdd
+
+logger = structlog.get_logger()
+
+
+async def create_group(db: AsyncSession, user_id: UUID, data: GroupCreate) -> Group:
+    """Create a new group."""
+    # Check group limit per user
+    result = await db.execute(
+        select(func.count(Group.id)).where(Group.owner_id == user_id)
+    )
+    count = result.scalar() or 0
+    if count >= MAX_GROUPS_PER_USER:
+        raise ValidationError(f"Maximum {MAX_GROUPS_PER_USER} groups per user")
+
+    group = Group(
+        id=uuid4(),
+        name=data.name,
+        type=data.type,
+        owner_id=user_id,
+        settings=data.settings or {},
+    )
+    db.add(group)
+
+    # Add owner as admin member
+    role = "parent" if data.type == "family" else f"{data.type}_admin"
+    member = GroupMember(
+        id=uuid4(),
+        group_id=group.id,
+        user_id=user_id,
+        role=role,
+        display_name="Owner",
+    )
+    db.add(member)
+    await db.flush()
+    await db.refresh(group)
+
+    logger.info("group_created", group_id=str(group.id), type=data.type)
+    return group
+
+
+async def get_group(db: AsyncSession, group_id: UUID, user_id: UUID) -> Group:
+    """Get a group by ID. Verifies user is a member."""
+    result = await db.execute(select(Group).where(Group.id == group_id))
+    group = result.scalar_one_or_none()
+    if not group:
+        raise NotFoundError("Group", str(group_id))
+
+    # Verify membership
+    member_result = await db.execute(
+        select(GroupMember).where(
+            GroupMember.group_id == group_id,
+            GroupMember.user_id == user_id,
+        )
+    )
+    if not member_result.scalar_one_or_none():
+        raise ForbiddenError("You are not a member of this group")
+
+    return group
+
+
+async def list_user_groups(db: AsyncSession, user_id: UUID) -> list[Group]:
+    """List all groups a user belongs to."""
+    result = await db.execute(
+        select(Group)
+        .join(GroupMember, GroupMember.group_id == Group.id)
+        .where(GroupMember.user_id == user_id)
+    )
+    return list(result.scalars().all())
+
+
+async def update_group(db: AsyncSession, group_id: UUID, user_id: UUID, name: str | None = None, settings: dict | None = None) -> Group:
+    """Update group settings. Requires admin role."""
+    group = await get_group(db, group_id, user_id)
+    await _require_admin(db, group_id, user_id)
+
+    if name is not None:
+        group.name = name
+    if settings is not None:
+        group.settings = settings
+
+    await db.flush()
+    await db.refresh(group)
+    return group
+
+
+async def delete_group(db: AsyncSession, group_id: UUID, user_id: UUID) -> None:
+    """Soft-delete a group. Owner only."""
+    group = await get_group(db, group_id, user_id)
+    if group.owner_id != user_id:
+        raise ForbiddenError("Only the group owner can delete the group")
+    group.soft_delete()
+    await db.flush()
+    logger.info("group_deleted", group_id=str(group_id))
+
+
+async def add_member(db: AsyncSession, group_id: UUID, user_id: UUID, data: MemberAdd) -> GroupMember:
+    """Add a member to a group. Requires admin role."""
+    await _require_admin(db, group_id, user_id)
+
+    # Check member count
+    result = await db.execute(
+        select(func.count(GroupMember.id)).where(GroupMember.group_id == group_id)
+    )
+    count = result.scalar() or 0
+    if count >= MAX_GROUP_MEMBERS:
+        raise ValidationError(f"Maximum {MAX_GROUP_MEMBERS} members per group")
+
+    member = GroupMember(
+        id=uuid4(),
+        group_id=group_id,
+        user_id=data.user_id,
+        role=data.role,
+        display_name=data.display_name,
+        date_of_birth=data.date_of_birth,
+    )
+    db.add(member)
+    await db.flush()
+    await db.refresh(member)
+
+    logger.info("member_added", group_id=str(group_id), member_id=str(member.id))
+    return member
+
+
+async def remove_member(db: AsyncSession, group_id: UUID, member_id: UUID, user_id: UUID) -> None:
+    """Remove a member from a group. Requires admin role."""
+    await _require_admin(db, group_id, user_id)
+
+    result = await db.execute(
+        select(GroupMember).where(GroupMember.id == member_id, GroupMember.group_id == group_id)
+    )
+    member = result.scalar_one_or_none()
+    if not member:
+        raise NotFoundError("Member", str(member_id))
+
+    await db.delete(member)
+    await db.flush()
+    logger.info("member_removed", group_id=str(group_id), member_id=str(member_id))
+
+
+async def change_member_role(db: AsyncSession, group_id: UUID, member_id: UUID, user_id: UUID, new_role: str) -> GroupMember:
+    """Change a member's role. Requires admin role."""
+    await _require_admin(db, group_id, user_id)
+
+    result = await db.execute(
+        select(GroupMember).where(GroupMember.id == member_id, GroupMember.group_id == group_id)
+    )
+    member = result.scalar_one_or_none()
+    if not member:
+        raise NotFoundError("Member", str(member_id))
+
+    member.role = new_role
+    await db.flush()
+    await db.refresh(member)
+    return member
+
+
+async def create_invitation(
+    db: AsyncSession, group_id: UUID, user_id: UUID, data: InvitationCreate
+) -> Invitation:
+    """Create a group invitation. Requires admin role."""
+    await _require_admin(db, group_id, user_id)
+
+    token = secrets.token_urlsafe(32)
+    consent_needed = False  # Will be determined when invitation is accepted
+
+    invitation = Invitation(
+        id=uuid4(),
+        group_id=group_id,
+        invited_by=user_id,
+        email=data.email,
+        role=data.role,
+        token=token,
+        status="pending",
+        consent_required=consent_needed,
+        expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+    )
+    db.add(invitation)
+    await db.flush()
+    await db.refresh(invitation)
+
+    logger.info("invitation_created", group_id=str(group_id), email=data.email)
+    return invitation
+
+
+async def accept_invitation(db: AsyncSession, token: str, user_id: UUID) -> GroupMember:
+    """Accept a group invitation."""
+    result = await db.execute(select(Invitation).where(Invitation.token == token))
+    invitation = result.scalar_one_or_none()
+
+    if not invitation:
+        raise NotFoundError("Invitation")
+    if invitation.status != "pending":
+        raise ValidationError("Invitation is no longer valid")
+    if invitation.expires_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
+        invitation.status = "expired"
+        await db.flush()
+        raise ValidationError("Invitation has expired")
+
+    # Create member
+    member = GroupMember(
+        id=uuid4(),
+        group_id=invitation.group_id,
+        user_id=user_id,
+        role=invitation.role,
+        display_name=invitation.email.split("@")[0],
+    )
+    db.add(member)
+
+    invitation.status = "accepted"
+    await db.flush()
+    await db.refresh(member)
+
+    logger.info("invitation_accepted", group_id=str(invitation.group_id))
+    return member
+
+
+async def list_members(db: AsyncSession, group_id: UUID, user_id: UUID) -> list[GroupMember]:
+    """List all members of a group."""
+    await get_group(db, group_id, user_id)  # Verify access
+    result = await db.execute(
+        select(GroupMember).where(GroupMember.group_id == group_id)
+    )
+    return list(result.scalars().all())
+
+
+async def _require_admin(db: AsyncSession, group_id: UUID, user_id: UUID) -> GroupMember:
+    """Require that the user has admin role in the group."""
+    result = await db.execute(
+        select(GroupMember).where(
+            GroupMember.group_id == group_id,
+            GroupMember.user_id == user_id,
+        )
+    )
+    member = result.scalar_one_or_none()
+    if not member:
+        raise ForbiddenError("You are not a member of this group")
+
+    admin_roles = {"parent", "school_admin", "club_admin"}
+    if member.role not in admin_roles:
+        raise ForbiddenError("Admin role required for this action")
+
+    return member
+
+
+def group_to_response(group: Group) -> GroupResponse:
+    """Convert Group model to GroupResponse schema."""
+    return GroupResponse(
+        id=group.id,
+        name=group.name,
+        type=group.type,
+        owner_id=group.owner_id,
+        settings=group.settings,
+        created_at=group.created_at,
+        member_count=len(group.members) if group.members else 0,
+    )

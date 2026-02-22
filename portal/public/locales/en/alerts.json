@@ -1,0 +1,37 @@
+{
+  "title": "Alerts",
+  "subtitle_unread": "{count} unread alert",
+  "subtitle_unread_plural": "{count} unread alerts",
+  "subtitle_caught_up": "All caught up",
+  "mark_all_read": "Mark all read",
+  "acknowledge": "Acknowledge",
+  "severity": {
+    "info": "Info",
+    "warning": "Warning",
+    "error": "Error",
+    "critical": "Critical"
+  },
+  "types": {
+    "risk": "Risk",
+    "spend": "Spend",
+    "member": "Member",
+    "system": "System"
+  },
+  "filters": {
+    "all_severities": "All severities",
+    "all_types": "All types"
+  },
+  "labels": {
+    "member": "Member",
+    "no_alerts": "No alerts match your filters",
+    "unread_indicator": "Unread"
+  },
+  "templates": {
+    "unsafe_content": "Unsafe content detected",
+    "budget_threshold": "Budget threshold reached",
+    "budget_exceeded": "Budget exceeded",
+    "new_member": "New member joined",
+    "elevated_risk": "Elevated risk pattern",
+    "report_ready": "Weekly safety report ready"
+  }
+}

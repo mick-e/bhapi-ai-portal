@@ -1,0 +1,70 @@
+{
+  "app_name": "Bhapi AI Portal",
+  "nav": {
+    "dashboard": "Dashboard",
+    "members": "Members",
+    "activity": "Activity",
+    "alerts": "Alerts",
+    "spend": "Spend",
+    "reports": "Reports",
+    "settings": "Settings"
+  },
+  "buttons": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "confirm": "Confirm",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "submit": "Submit",
+    "download": "Download",
+    "export": "Export",
+    "invite": "Invite",
+    "revoke": "Revoke",
+    "upgrade": "Upgrade",
+    "sign_in": "Sign In",
+    "sign_out": "Sign Out",
+    "sign_up": "Sign Up",
+    "get_started": "Get Started",
+    "learn_more": "Learn More"
+  },
+  "labels": {
+    "email": "Email address",
+    "password": "Password",
+    "name": "Name",
+    "display_name": "Display name",
+    "role": "Role",
+    "status": "Status",
+    "type": "Type",
+    "date": "Date",
+    "actions": "Actions",
+    "search": "Search",
+    "filter": "Filter",
+    "loading": "Loading...",
+    "no_results": "No results found",
+    "error": "An error occurred"
+  },
+  "roles": {
+    "owner": "Owner",
+    "admin": "Admin",
+    "member": "Member",
+    "viewer": "Viewer"
+  },
+  "account_types": {
+    "family": "Family",
+    "school": "School",
+    "club": "Club"
+  },
+  "risk_levels": {
+    "low": "Low",
+    "medium": "Medium",
+    "high": "High",
+    "critical": "Critical"
+  },
+  "footer": {
+    "copyright": "All rights reserved."
+  }
+}

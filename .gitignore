@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+venv/
+env/
+*.egg-info/
+*.egg
+dist/
+build/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+keys/
+
+# Testing
+.coverage
+.pytest_cache/
+htmlcov/
+test_results.xml
+
+# Docker
+.docker/
+
+# Logs
+*.log
+logs/
+
+# Node/Frontend
+node_modules/
+portal/.next/
+portal/out/
+
+# Database
+*.db
+*.sqlite3
+
+# Generated
+*.pdf
+*.csv
+*.b64
+
+# OS
+.DS_Store
+Thumbs.db

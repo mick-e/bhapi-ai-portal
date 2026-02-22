@@ -1,0 +1,83 @@
+"""Groups Pydantic schemas."""
+
+from datetime import datetime
+from uuid import UUID
+
+from pydantic import EmailStr, Field
+
+from src.schemas import BaseSchema
+
+
+class GroupCreate(BaseSchema):
+    """Create group request."""
+
+    name: str = Field(min_length=1, max_length=255)
+    type: str = Field(pattern="^(family|school|club)$")
+    settings: dict | None = None
+
+
+class GroupResponse(BaseSchema):
+    """Group response."""
+
+    id: UUID
+    name: str
+    type: str
+    owner_id: UUID
+    settings: dict | None
+    created_at: datetime
+    member_count: int = 0
+
+
+class GroupUpdate(BaseSchema):
+    """Update group request."""
+
+    name: str | None = Field(None, min_length=1, max_length=255)
+    settings: dict | None = None
+
+
+class MemberAdd(BaseSchema):
+    """Add member to group."""
+
+    display_name: str = Field(min_length=1, max_length=255)
+    role: str = Field(pattern="^(parent|member|school_admin|club_admin)$")
+    date_of_birth: datetime | None = None
+    user_id: UUID | None = None
+
+
+class MemberResponse(BaseSchema):
+    """Group member response."""
+
+    id: UUID
+    group_id: UUID
+    user_id: UUID | None
+    role: str
+    display_name: str
+    date_of_birth: datetime | None
+    created_at: datetime
+
+
+class InvitationCreate(BaseSchema):
+    """Create invitation request."""
+
+    email: EmailStr
+    role: str = Field(pattern="^(parent|member|school_admin|club_admin)$")
+
+
+class InvitationResponse(BaseSchema):
+    """Invitation response."""
+
+    id: UUID
+    group_id: UUID
+    email: str
+    role: str
+    token: str
+    status: str
+    consent_required: bool
+    expires_at: datetime
+    created_at: datetime
+
+
+class RoleChange(BaseSchema):
+    """Change member role."""
+
+    role: str = Field(pattern="^(parent|member|school_admin|club_admin)$")
