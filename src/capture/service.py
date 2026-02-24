@@ -5,12 +5,14 @@ from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
 import structlog
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.capture.models import CaptureEvent, DeviceRegistration
-from src.capture.schemas import DeviceRegisterRequest, EventPayload
+from src.capture.schemas import DeviceRegisterRequest, EnrichedEventResponse, EventPayload
 from src.exceptions import NotFoundError, ValidationError
+from src.groups.models import GroupMember
+from src.risk.models import RiskEvent
 
 logger = structlog.get_logger()
 
@@ -22,8 +24,18 @@ async def ingest_event(
 ) -> CaptureEvent:
     """Validate, normalise, and store a capture event.
 
+    Blocks events for members who require consent but haven't received it.
     In production, this also publishes to Pub/Sub raw_events topic.
     """
+    # Check consent before accepting events
+    from src.groups.service import check_member_consent
+    has_consent = await check_member_consent(db, payload.group_id, payload.member_id)
+    if not has_consent:
+        raise ValidationError(
+            "Capture blocked: guardian consent required for this member. "
+            "Record consent before monitoring can begin."
+        )
+
     event = CaptureEvent(
         id=uuid4(),
         group_id=payload.group_id,
@@ -32,6 +44,7 @@ async def ingest_event(
         session_id=payload.session_id,
         event_type=payload.event_type,
         timestamp=payload.timestamp,
+        content=payload.content,
         event_metadata=payload.metadata,
         risk_processed=False,
         source_channel=source_channel,
@@ -48,7 +61,15 @@ async def ingest_event(
         source=source_channel,
     )
 
-    # TODO: Publish to Pub/Sub raw_events topic for risk pipeline processing
+    # Run risk pipeline inline if content is present
+    if payload.content:
+        try:
+            from src.risk.pipeline import process_capture_event
+            await process_capture_event(db, event)
+        except Exception as exc:
+            logger.error("inline_risk_pipeline_error", event_id=str(event.id), error=str(exc))
+            # Continue — the batch worker will pick this up later
+
     return event
 
 
@@ -70,6 +91,108 @@ async def list_events(
 
     result = await db.execute(query)
     return list(result.scalars().all())
+
+
+async def list_events_enriched(
+    db: AsyncSession,
+    group_id: UUID,
+    member_id: UUID | None = None,
+    platform: str | None = None,
+    risk_level: str | None = None,
+    event_type: str | None = None,
+    search: str | None = None,
+    page: int = 1,
+    page_size: int = 20,
+) -> dict:
+    """List capture events enriched with member name and risk level, with pagination."""
+    # Build base query
+    query = select(CaptureEvent).where(CaptureEvent.group_id == group_id)
+    count_query = select(func.count(CaptureEvent.id)).where(CaptureEvent.group_id == group_id)
+
+    if member_id:
+        query = query.where(CaptureEvent.member_id == member_id)
+        count_query = count_query.where(CaptureEvent.member_id == member_id)
+    if platform:
+        query = query.where(CaptureEvent.platform == platform)
+        count_query = count_query.where(CaptureEvent.platform == platform)
+    if event_type:
+        query = query.where(CaptureEvent.event_type == event_type)
+        count_query = count_query.where(CaptureEvent.event_type == event_type)
+    if search:
+        pattern = f"%{search}%"
+        query = query.where(CaptureEvent.content.ilike(pattern))
+        count_query = count_query.where(CaptureEvent.content.ilike(pattern))
+
+    # Get total count
+    total_result = await db.execute(count_query)
+    total = total_result.scalar() or 0
+
+    # Fetch page
+    offset = (page - 1) * page_size
+    query = query.order_by(CaptureEvent.timestamp.desc()).offset(offset).limit(page_size)
+    result = await db.execute(query)
+    events = list(result.scalars().all())
+
+    if not events:
+        return {
+            "items": [],
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "total_pages": max(1, (total + page_size - 1) // page_size),
+        }
+
+    # Build member name lookup
+    member_ids = list({e.member_id for e in events})
+    member_result = await db.execute(
+        select(GroupMember).where(GroupMember.id.in_(member_ids))
+    )
+    members = {m.id: m.display_name for m in member_result.scalars().all()}
+
+    # Build risk level lookup (highest severity risk event per capture event)
+    event_ids = [e.id for e in events]
+    risk_result = await db.execute(
+        select(RiskEvent.capture_event_id, RiskEvent.severity)
+        .where(RiskEvent.capture_event_id.in_(event_ids))
+    )
+    # Pick highest severity per capture event
+    severity_order = {"critical": 4, "high": 3, "medium": 2, "low": 1}
+    risk_map: dict[UUID, str] = {}
+    for row in risk_result.all():
+        cev_id, sev = row[0], row[1]
+        if cev_id not in risk_map or severity_order.get(sev, 0) > severity_order.get(risk_map[cev_id], 0):
+            risk_map[cev_id] = sev
+
+    # Build enriched items
+    enriched_items = []
+    for e in events:
+        r_level = risk_map.get(e.id, "low")
+        enriched_items.append(EnrichedEventResponse(
+            id=e.id,
+            group_id=e.group_id,
+            member_id=e.member_id,
+            member_name=members.get(e.member_id, "Unknown"),
+            provider=e.platform,
+            model="",
+            event_type=e.event_type,
+            prompt_preview=(e.content or "")[:200],
+            risk_level=r_level,
+            flagged=r_level in ("high", "critical"),
+            timestamp=e.timestamp,
+        ))
+
+    # Filter by risk level if requested (post-filter since it requires risk lookup)
+    if risk_level:
+        enriched_items = [i for i in enriched_items if i.risk_level == risk_level]
+
+    total_pages = max(1, (total + page_size - 1) // page_size)
+    return {
+        "items": enriched_items,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": total_pages,
+    }
 
 
 async def register_device(

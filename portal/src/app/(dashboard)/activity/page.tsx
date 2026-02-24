@@ -119,6 +119,7 @@ export default function ActivityPage() {
               setSearchQuery(e.target.value);
               setPage(1);
             }}
+            aria-label="Search activity"
             className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
         </div>
@@ -130,6 +131,7 @@ export default function ActivityPage() {
               setFilterRisk(e.target.value);
               setPage(1);
             }}
+            aria-label="Filter by risk level"
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           >
             <option value="all">All risk levels</option>
@@ -144,6 +146,7 @@ export default function ActivityPage() {
               setFilterProvider(e.target.value);
               setPage(1);
             }}
+            aria-label="Filter by provider"
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           >
             <option value="all">All providers</option>
@@ -159,6 +162,7 @@ export default function ActivityPage() {
               setFilterType(e.target.value);
               setPage(1);
             }}
+            aria-label="Filter by event type"
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           >
             <option value="all">All types</option>

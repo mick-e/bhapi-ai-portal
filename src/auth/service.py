@@ -1,13 +1,14 @@
 """Auth service — business logic for authentication."""
 
 import hashlib
+import secrets
 from datetime import datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
 import bcrypt
 import structlog
 from jose import jwt
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.models import Session, User
@@ -17,6 +18,11 @@ from src.exceptions import ConflictError, NotFoundError, UnauthorizedError, Vali
 
 logger = structlog.get_logger()
 settings = get_settings()
+
+# Rate limit tracking for password reset: {email: [timestamps]}
+_reset_rate_tracker: dict[str, list[float]] = {}
+_RESET_RATE_LIMIT = 5
+_RESET_RATE_WINDOW = 3600  # 1 hour
 
 
 def hash_password(password: str) -> str:
@@ -159,3 +165,166 @@ def user_to_profile(user: User) -> UserProfile:
         mfa_enabled=user.mfa_enabled,
         created_at=user.created_at,
     )
+
+
+# ---------------------------------------------------------------------------
+# Email verification
+# ---------------------------------------------------------------------------
+
+def create_email_verification_token(user_id: UUID) -> str:
+    """Create a JWT token for email verification (24h expiry)."""
+    return create_access_token(
+        {"sub": str(user_id), "type": "email_verification"},
+        expires_delta=timedelta(hours=24),
+    )
+
+
+def verify_email_token(token: str) -> UUID:
+    """Decode an email verification token. Returns user_id.
+
+    Raises UnauthorizedError if token is invalid or expired.
+    """
+    payload = decode_token(token)
+    if payload.get("type") != "email_verification":
+        raise UnauthorizedError("Invalid verification token")
+    try:
+        return UUID(payload["sub"])
+    except (KeyError, ValueError):
+        raise UnauthorizedError("Invalid verification token")
+
+
+async def confirm_email(db: AsyncSession, token: str) -> User:
+    """Verify a user's email address using a verification token."""
+    user_id = verify_email_token(token)
+    user = await get_user_by_id(db, user_id)
+    if user.email_verified:
+        return user  # Already verified, no-op
+
+    user.email_verified = True
+    await db.flush()
+    await db.refresh(user)
+
+    logger.info("email_verified", user_id=str(user_id))
+    return user
+
+
+async def send_verification_email(user: User) -> bool:
+    """Send an email verification link to a user."""
+    from src.email import templates
+    from src.email.service import send_email
+
+    token = create_email_verification_token(user.id)
+    verification_url = f"https://bhapi.ai/verify-email?token={token}"
+
+    subject, html, plain = templates.email_verification(
+        display_name=user.display_name,
+        verification_url=verification_url,
+    )
+
+    return await send_email(
+        to_email=user.email,
+        subject=subject,
+        html_content=html,
+        plain_content=plain,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Password reset
+# ---------------------------------------------------------------------------
+
+def _check_reset_rate_limit(email: str) -> bool:
+    """Check if email has exceeded reset rate limit (5/hour). Returns True if OK."""
+    import time
+    now = time.time()
+
+    if email not in _reset_rate_tracker:
+        _reset_rate_tracker[email] = []
+
+    # Prune old entries
+    _reset_rate_tracker[email] = [
+        t for t in _reset_rate_tracker[email] if now - t < _RESET_RATE_WINDOW
+    ]
+
+    if len(_reset_rate_tracker[email]) >= _RESET_RATE_LIMIT:
+        return False
+
+    _reset_rate_tracker[email].append(now)
+    return True
+
+
+def create_password_reset_token(user_id: UUID) -> str:
+    """Create a JWT token for password reset (1h expiry)."""
+    return create_access_token(
+        {"sub": str(user_id), "type": "password_reset"},
+        expires_delta=timedelta(hours=1),
+    )
+
+
+def verify_reset_token(token: str) -> UUID:
+    """Decode a password reset token. Returns user_id.
+
+    Raises UnauthorizedError if token is invalid or expired.
+    """
+    payload = decode_token(token)
+    if payload.get("type") != "password_reset":
+        raise UnauthorizedError("Invalid reset token")
+    try:
+        return UUID(payload["sub"])
+    except (KeyError, ValueError):
+        raise UnauthorizedError("Invalid reset token")
+
+
+async def request_password_reset(db: AsyncSession, email: str) -> bool:
+    """Process a password reset request.
+
+    Always returns True to prevent email enumeration.
+    Only sends email if user exists and rate limit not exceeded.
+    """
+    if not _check_reset_rate_limit(email):
+        logger.warning("password_reset_rate_limited", email=email)
+        return True  # Don't reveal rate limiting
+
+    result = await db.execute(select(User).where(User.email == email))
+    user = result.scalar_one_or_none()
+
+    if not user:
+        logger.debug("password_reset_no_user", email=email)
+        return True  # Don't reveal if user exists
+
+    await send_reset_email(user)
+    return True
+
+
+async def send_reset_email(user: User) -> bool:
+    """Send a password reset email."""
+    from src.email import templates
+    from src.email.service import send_email
+
+    token = create_password_reset_token(user.id)
+    reset_url = f"https://bhapi.ai/reset-password?token={token}"
+
+    subject, html, plain = templates.password_reset(
+        display_name=user.display_name,
+        reset_url=reset_url,
+    )
+
+    return await send_email(
+        to_email=user.email,
+        subject=subject,
+        html_content=html,
+        plain_content=plain,
+    )
+
+
+async def reset_password(db: AsyncSession, token: str, new_password: str) -> User:
+    """Reset a user's password using a reset token."""
+    user_id = verify_reset_token(token)
+    user = await get_user_by_id(db, user_id)
+
+    user.password_hash = hash_password(new_password)
+    await db.flush()
+    await db.refresh(user)
+
+    logger.info("password_reset_completed", user_id=str(user_id))
+    return user

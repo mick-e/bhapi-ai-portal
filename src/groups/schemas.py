@@ -81,3 +81,23 @@ class RoleChange(BaseSchema):
     """Change member role."""
 
     role: str = Field(pattern="^(parent|member|school_admin|club_admin)$")
+
+
+class ConsentCreate(BaseSchema):
+    """Record guardian consent for a member."""
+
+    consent_type: str = Field(pattern="^(coppa|gdpr|lgpd|au_privacy|monitoring|ai_interaction|data_collection)$")
+    evidence: str | None = None
+
+
+class ConsentResponse(BaseSchema):
+    """Consent record response."""
+
+    id: UUID
+    group_id: UUID
+    member_id: UUID
+    consent_type: str
+    parent_user_id: UUID | None
+    given_at: datetime
+    withdrawn_at: datetime | None
+    created_at: datetime

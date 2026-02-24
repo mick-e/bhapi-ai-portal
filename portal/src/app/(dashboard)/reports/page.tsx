@@ -25,8 +25,17 @@ import {
   useReports,
   useCreateReport,
   useDownloadReport,
+  useReportSchedules,
+  useUpdateReportSchedule,
 } from "@/hooks/use-reports";
-import type { Report, ReportType, ReportFormat, ReportStatus } from "@/types";
+import type {
+  Report,
+  ReportType,
+  ReportFormat,
+  ReportStatus,
+  ReportSchedule,
+  ReportScheduleConfig,
+} from "@/types";
 
 const typeIcons: Record<ReportType, typeof Shield> = {
   safety: Shield,
@@ -67,6 +76,7 @@ export default function ReportsPage() {
   const [filterType, setFilterType] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showScheduleSection, setShowScheduleSection] = useState(false);
   const pageSize = 20;
 
   const {
@@ -263,6 +273,22 @@ export default function ReportsPage() {
         </div>
       )}
 
+      {/* Schedule Configuration */}
+      {showScheduleSection && <ScheduleSection />}
+
+      {!showScheduleSection && (
+        <div className="mt-6">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setShowScheduleSection(true)}
+          >
+            <Calendar className="h-4 w-4" />
+            Configure Scheduled Reports
+          </Button>
+        </div>
+      )}
+
       {/* Create Report Modal */}
       {showCreateModal && (
         <CreateReportModal onClose={() => setShowCreateModal(false)} />
@@ -422,6 +448,7 @@ function CreateReportModal({ onClose }: { onClose: () => void }) {
               >
                 <option value="pdf">PDF</option>
                 <option value="csv">CSV</option>
+                <option value="json">JSON</option>
               </select>
             </div>
             <Input
@@ -459,6 +486,116 @@ function CreateReportModal({ onClose }: { onClose: () => void }) {
         </div>
       </div>
     </>
+  );
+}
+
+function ScheduleSection() {
+  const { data: schedules, isLoading } = useReportSchedules();
+  const updateSchedule = useUpdateReportSchedule();
+
+  const reportTypes: ReportType[] = ["safety", "spend", "activity", "compliance"];
+  const scheduleOptions: { value: ReportSchedule; label: string }[] = [
+    { value: "none", label: "None" },
+    { value: "daily", label: "Daily" },
+    { value: "weekly", label: "Weekly" },
+    { value: "monthly", label: "Monthly" },
+  ];
+
+  function getCurrentSchedule(type: ReportType): ReportScheduleConfig {
+    const existing = schedules?.find((s) => s.type === type);
+    return existing || { type, schedule: "none", format: "pdf", recipients: [] };
+  }
+
+  function handleScheduleChange(type: ReportType, schedule: ReportSchedule) {
+    const current = getCurrentSchedule(type);
+    updateSchedule.mutate({ ...current, schedule });
+  }
+
+  function handleFormatChange(type: ReportType, format: ReportFormat) {
+    const current = getCurrentSchedule(type);
+    updateSchedule.mutate({ ...current, format });
+  }
+
+  return (
+    <div className="mt-6">
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-gray-900">
+          Scheduled Reports
+        </h2>
+        <p className="text-sm text-gray-500">
+          Automatically generate and email reports on a schedule
+        </p>
+      </div>
+      {isLoading ? (
+        <div className="flex h-24 items-center justify-center">
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {reportTypes.map((type) => {
+            const config = getCurrentSchedule(type);
+            const TypeIcon = typeIcons[type] || FileBarChart;
+            const colorClass =
+              typeColors[type] || "bg-gray-50 text-gray-600";
+
+            return (
+              <Card key={type}>
+                <div className="flex items-start gap-3">
+                  <div
+                    className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg ${colorClass}`}
+                  >
+                    <TypeIcon className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1 space-y-3">
+                    <h3 className="text-sm font-semibold capitalize text-gray-900">
+                      {type} Report
+                    </h3>
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs text-gray-500">Schedule:</label>
+                      <select
+                        value={config.schedule}
+                        onChange={(e) =>
+                          handleScheduleChange(
+                            type,
+                            e.target.value as ReportSchedule
+                          )
+                        }
+                        className="rounded border border-gray-300 px-2 py-1 text-xs focus:border-primary focus:outline-none"
+                      >
+                        {scheduleOptions.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    {config.schedule !== "none" && (
+                      <div className="flex items-center gap-2">
+                        <label className="text-xs text-gray-500">Format:</label>
+                        <select
+                          value={config.format}
+                          onChange={(e) =>
+                            handleFormatChange(
+                              type,
+                              e.target.value as ReportFormat
+                            )
+                          }
+                          className="rounded border border-gray-300 px-2 py-1 text-xs focus:border-primary focus:outline-none"
+                        >
+                          <option value="pdf">PDF</option>
+                          <option value="csv">CSV</option>
+                          <option value="json">JSON</option>
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 

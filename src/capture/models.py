@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -22,9 +22,15 @@ class CaptureEvent(Base, UUIDMixin, TimestampMixin):
     session_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     event_type: Mapped[str] = mapped_column(String(50), nullable=False)  # prompt, response, session_start, session_end
     timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    content: Mapped[str | None] = mapped_column(Text, nullable=True)
     event_metadata: Mapped[dict | None] = mapped_column("event_metadata", JSONType, nullable=True)
     risk_processed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     source_channel: Mapped[str] = mapped_column(String(20), nullable=False, default="extension")  # extension, dns, api
+
+    __table_args__ = (
+        Index("ix_capture_events_group_member_ts", "group_id", "member_id", "timestamp"),
+        Index("ix_capture_events_group_platform_ts", "group_id", "platform", "timestamp"),
+    )
 
 
 class DeviceRegistration(Base, UUIDMixin, TimestampMixin):

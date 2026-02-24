@@ -1,17 +1,18 @@
-"""Safety classifier — stub for Vertex AI / Gemini safety classification.
+"""Safety classifier — configurable Vertex AI / Gemini with keyword fallback.
 
-In production this module calls the Vertex AI Safety API or Gemini's
-built-in safety classifiers.  For MVP, it falls back to a keyword-based
-heuristic that covers the same risk categories.
+Modes (set via SAFETY_CLASSIFIER_MODE env var):
+- keyword_only: Only use keyword-based fallback (default for dev/test)
+- vertex_ai:    Only use Vertex AI (fails if unavailable)
+- auto:         Try Vertex AI first, fallback to keywords if unavailable
 
-The prompt template is designed to resist prompt injection: the user
-content is placed inside delimited fences, and the system instructions
-explicitly instruct the model to *only* classify (never generate unsafe
-content) and to ignore any instructions embedded in the user text.
+The prompt template resists prompt injection: user content is placed inside
+delimited fences, and system instructions explicitly instruct the model to
+*only* classify (never generate unsafe content).
 """
 
 from __future__ import annotations
 
+import json
 import re
 
 import structlog
@@ -22,7 +23,7 @@ from src.risk.taxonomy import RISK_CATEGORIES
 logger = structlog.get_logger()
 
 # ---------------------------------------------------------------------------
-# Prompt template for Vertex AI / Gemini (used in production)
+# Prompt template for Vertex AI / Gemini
 # ---------------------------------------------------------------------------
 SAFETY_SYSTEM_PROMPT = """\
 You are a child-safety content classifier for an AI governance platform.
@@ -45,7 +46,7 @@ Respond with ONLY the JSON array. No markdown, no explanation.
 """
 
 # ---------------------------------------------------------------------------
-# Keyword-based fallback (used when Vertex AI is unavailable)
+# Keyword-based fallback patterns
 # ---------------------------------------------------------------------------
 _FALLBACK_PATTERNS: dict[str, list[tuple[re.Pattern, float]]] = {
     "SELF_HARM": [
@@ -72,7 +73,6 @@ _FALLBACK_PATTERNS: dict[str, list[tuple[re.Pattern, float]]] = {
         (re.compile(r"\b(?:phishing|nigerian\s+prince|guaranteed\s+returns)\b", re.IGNORECASE), 0.85),
     ],
     "PII_EXPOSURE": [
-        # PII detection is handled primarily by pii_detector.py; this is a backup
         (re.compile(r"\b(?:my\s+(?:ssn|social\s+security)\s+(?:is|number))\b", re.IGNORECASE), 0.80),
         (re.compile(r"\b(?:my\s+(?:credit\s+card|passport)\s+number\s+is)\b", re.IGNORECASE), 0.80),
     ],
@@ -90,37 +90,31 @@ _FALLBACK_PATTERNS: dict[str, list[tuple[re.Pattern, float]]] = {
 async def classify(text: str) -> list[RiskClassification]:
     """Classify text content for safety risks.
 
-    In production, this calls Vertex AI / Gemini safety classification.
-    Falls back to keyword matching when the external service is unavailable.
-
-    Parameters
-    ----------
-    text:
-        The content to classify.
-
-    Returns
-    -------
-    list[RiskClassification]
-        Zero or more classifications, one per detected risk category.
+    Uses the configured mode (keyword_only/vertex_ai/auto) to determine
+    which classifier path to use.
     """
     if not text or not text.strip():
         return []
 
-    # TODO: Implement Vertex AI / Gemini API call
-    # try:
-    #     return await _classify_vertex_ai(text)
-    # except Exception as exc:
-    #     logger.warning("vertex_ai_unavailable", error=str(exc))
-    #     return _classify_fallback(text)
+    from src.config import get_settings
+    settings = get_settings()
+    mode = settings.safety_classifier_mode
 
-    return _classify_fallback(text)
+    if mode == "vertex_ai":
+        return await _classify_vertex_ai(text, settings)
+    elif mode == "auto":
+        try:
+            return await _classify_vertex_ai(text, settings)
+        except Exception as exc:
+            logger.warning("vertex_ai_unavailable_falling_back", error=str(exc))
+            return _classify_fallback(text)
+    else:
+        # keyword_only (default)
+        return _classify_fallback(text)
 
 
 async def classify_with_prompt(text: str) -> tuple[list[RiskClassification], str]:
-    """Classify text and also return the prompt that would be sent to the model.
-
-    Useful for debugging and auditing the safety classifier's behaviour.
-    """
+    """Classify text and return the prompt that would be sent to the model."""
     prompt = SAFETY_SYSTEM_PROMPT.format(
         categories=", ".join(RISK_CATEGORIES.keys()),
         content=text,
@@ -132,8 +126,8 @@ async def classify_with_prompt(text: str) -> tuple[list[RiskClassification], str
 def _classify_fallback(text: str) -> list[RiskClassification]:
     """Keyword-based fallback classifier.
 
-    Uses regex patterns to produce risk classifications when the
-    Vertex AI service is unavailable.
+    Produces classifications with slightly lower confidence than Vertex AI
+    to indicate they came from the fallback path.
     """
     results: list[RiskClassification] = []
 
@@ -151,25 +145,86 @@ def _classify_fallback(text: str) -> list[RiskClassification]:
             category_meta = RISK_CATEGORIES.get(category, {})
             severity = category_meta.get("severity", "medium")
 
+            # Apply a small discount for keyword-only classification
+            discounted_confidence = best_confidence * 0.95
+
             results.append(
                 RiskClassification(
                     category=category,
                     severity=severity,
-                    confidence=best_confidence,
-                    reasoning=f"Safety classifier fallback match (pattern-based)",
+                    confidence=round(discounted_confidence, 3),
+                    reasoning="Safety classifier keyword match (fallback)",
                 )
             )
 
-    # Sort by severity priority
     severity_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
     results.sort(key=lambda r: severity_order.get(r.severity, 4))
-
     return results
 
 
-async def _classify_vertex_ai(text: str) -> list[RiskClassification]:
+async def _classify_vertex_ai(text: str, settings=None) -> list[RiskClassification]:
     """Call Vertex AI / Gemini safety classification API.
 
-    Not yet implemented — placeholder for production integration.
+    Requires:
+    - GCP_PROJECT_ID set in environment
+    - google-cloud-aiplatform installed
+    - Service account credentials configured
     """
-    raise NotImplementedError("Vertex AI integration not yet available")
+    if settings is None:
+        from src.config import get_settings
+        settings = get_settings()
+
+    if not settings.gcp_project_id:
+        raise RuntimeError("GCP_PROJECT_ID not configured — cannot use Vertex AI classifier")
+
+    try:
+        import vertexai
+        from vertexai.generative_models import GenerativeModel
+    except ImportError:
+        raise RuntimeError("google-cloud-aiplatform not installed — cannot use Vertex AI classifier")
+
+    prompt = SAFETY_SYSTEM_PROMPT.format(
+        categories=", ".join(RISK_CATEGORIES.keys()),
+        content=text,
+    )
+
+    vertexai.init(project=settings.gcp_project_id, location=settings.vertex_ai_location)
+    model = GenerativeModel(settings.vertex_ai_model)
+    response = await model.generate_content_async(prompt)
+
+    # Parse the JSON response
+    response_text = response.text.strip()
+    if response_text.startswith("```"):
+        # Strip markdown code fences
+        response_text = response_text.strip("`").strip()
+        if response_text.startswith("json"):
+            response_text = response_text[4:].strip()
+
+    try:
+        raw_results = json.loads(response_text)
+    except json.JSONDecodeError as exc:
+        logger.error("vertex_ai_parse_error", response=response_text[:200], error=str(exc))
+        return []
+
+    if not isinstance(raw_results, list):
+        return []
+
+    results: list[RiskClassification] = []
+    for item in raw_results:
+        if not isinstance(item, dict):
+            continue
+        try:
+            results.append(
+                RiskClassification(
+                    category=item.get("category", "UNKNOWN"),
+                    severity=item.get("severity", "medium"),
+                    confidence=float(item.get("confidence", 0.5)),
+                    reasoning=item.get("reasoning", "Vertex AI classification"),
+                )
+            )
+        except Exception as exc:
+            logger.warning("vertex_ai_item_parse_error", item=item, error=str(exc))
+
+    severity_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+    results.sort(key=lambda r: severity_order.get(r.severity, 4))
+    return results

@@ -52,6 +52,10 @@ portal/out/
 *.pdf
 *.csv
 *.b64
+data/
+
+# TypeScript
+*.tsbuildinfo
 
 # OS
 .DS_Store

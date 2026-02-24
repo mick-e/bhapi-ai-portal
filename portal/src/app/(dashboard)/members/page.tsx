@@ -186,6 +186,7 @@ export default function MembersPage() {
               setSearchQuery(e.target.value);
               setPage(1);
             }}
+            aria-label="Search members"
             className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
         </div>
@@ -256,8 +257,11 @@ export default function MembersPage() {
                           )
                         }
                         className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                        aria-label={`Actions for ${member.display_name}`}
+                        aria-expanded={menuOpenId === member.id}
+                        aria-haspopup="true"
                       >
-                        <MoreVertical className="h-4 w-4" />
+                        <MoreVertical className="h-4 w-4" aria-hidden="true" />
                       </button>
                       {menuOpenId === member.id && (
                         <>
@@ -355,8 +359,13 @@ export default function MembersPage() {
             onClick={() => setShowInviteModal(false)}
           />
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
-              <h2 className="text-lg font-bold text-gray-900">
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="invite-modal-title"
+              className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl"
+            >
+              <h2 id="invite-modal-title" className="text-lg font-bold text-gray-900">
                 Invite a Member
               </h2>
               <p className="mt-1 text-sm text-gray-500">
@@ -377,10 +386,11 @@ export default function MembersPage() {
                   onChange={(e) => setInviteEmail(e.target.value)}
                 />
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                  <label htmlFor="invite-role" className="mb-1.5 block text-sm font-medium text-gray-700">
                     Role
                   </label>
                   <select
+                    id="invite-role"
                     value={inviteRole}
                     onChange={(e) =>
                       setInviteRole(

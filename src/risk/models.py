@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, func
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, String, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -40,6 +40,10 @@ class RiskEvent(Base, UUIDMixin, TimestampMixin):
     # Relationships
     content_excerpts: Mapped[list["ContentExcerpt"]] = relationship(
         back_populates="risk_event", lazy="selectin"
+    )
+
+    __table_args__ = (
+        Index("ix_risk_events_group_severity_created", "group_id", "severity", "created_at"),
     )
 
 

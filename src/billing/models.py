@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, func
+from sqlalchemy import DateTime, Float, ForeignKey, Index, Integer, String, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -91,6 +91,10 @@ class SpendRecord(Base, UUIDMixin, TimestampMixin):
     token_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     model: Mapped[str | None] = mapped_column(String(100), nullable=True)
     raw_data: Mapped[dict | None] = mapped_column(JSONType, nullable=True)
+
+    __table_args__ = (
+        Index("ix_spend_records_group_period", "group_id", "period_start", "period_end"),
+    )
 
 
 class BudgetThreshold(Base, UUIDMixin, TimestampMixin):

@@ -56,6 +56,7 @@ export default function DashboardLayout({
 
       {/* Sidebar */}
       <aside
+        aria-label="Main navigation"
         className={`
           fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-white shadow-lg
           transform transition-transform duration-200 ease-in-out
@@ -72,13 +73,14 @@ export default function DashboardLayout({
           <button
             onClick={() => setSidebarOpen(false)}
             className="lg:hidden text-gray-400 hover:text-gray-600"
+            aria-label="Close navigation menu"
           >
-            <X className="h-5 w-5" />
+            <X className="h-5 w-5" aria-hidden="true" />
           </button>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4">
+        <nav aria-label="Sidebar navigation" className="flex-1 overflow-y-auto px-3 py-4">
           <ul className="space-y-1">
             {navItems.map((item) => {
               const isActive =
@@ -133,8 +135,9 @@ export default function DashboardLayout({
           <button
             onClick={() => setSidebarOpen(true)}
             className="lg:hidden text-gray-600 hover:text-gray-900"
+            aria-label="Open navigation menu"
           >
-            <Menu className="h-6 w-6" />
+            <Menu className="h-6 w-6" aria-hidden="true" />
           </button>
 
           <div className="hidden lg:block">
@@ -150,8 +153,9 @@ export default function DashboardLayout({
             <Link
               href="/alerts"
               className="relative rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+              aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
             >
-              <Bell className="h-5 w-5" />
+              <Bell className="h-5 w-5" aria-hidden="true" />
               {unreadCount > 0 && (
                 <span className="absolute right-1 top-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
                   {unreadCount > 9 ? "9+" : unreadCount}
@@ -164,6 +168,9 @@ export default function DashboardLayout({
               <button
                 onClick={() => setProfileMenuOpen(!profileMenuOpen)}
                 className="flex items-center gap-2 rounded-lg p-1.5 hover:bg-gray-100 transition-colors"
+                aria-expanded={profileMenuOpen}
+                aria-haspopup="true"
+                aria-label="User menu"
               >
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-100 text-sm font-semibold text-primary">
                   {user?.display_name?.charAt(0)?.toUpperCase() || "U"}
@@ -213,7 +220,7 @@ export default function DashboardLayout({
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-4 lg:p-8">{children}</main>
+        <main id="main-content" className="flex-1 overflow-y-auto p-4 lg:p-8">{children}</main>
       </div>
     </div>
   );

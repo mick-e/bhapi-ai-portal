@@ -273,7 +273,9 @@ async def test_list_events_empty(capture_client):
         f"/api/v1/capture/events?group_id={gid}", headers=headers
     )
     assert resp.status_code == 200
-    assert resp.json() == []
+    data = resp.json()
+    assert data["items"] == []
+    assert data["total"] == 0
 
 
 @pytest.mark.asyncio
@@ -295,7 +297,9 @@ async def test_list_events_returns_ingested(capture_client):
         f"/api/v1/capture/events?group_id={gid}", headers=headers
     )
     assert resp.status_code == 200
-    assert len(resp.json()) == 3
+    data = resp.json()
+    assert len(data["items"]) == 3
+    assert data["total"] == 3
 
 
 @pytest.mark.asyncio
@@ -329,8 +333,9 @@ async def test_list_events_filter_by_member(capture_client):
         headers=headers,
     )
     assert resp.status_code == 200
-    assert len(resp.json()) == 1
-    assert resp.json()[0]["member_id"] == mid
+    data = resp.json()
+    assert len(data["items"]) == 1
+    assert data["items"][0]["member_id"] == mid
 
 
 @pytest.mark.asyncio
@@ -356,8 +361,9 @@ async def test_list_events_filter_by_platform(capture_client):
         headers=headers,
     )
     assert resp.status_code == 200
-    assert len(resp.json()) == 1
-    assert resp.json()[0]["platform"] == "claude"
+    data = resp.json()
+    assert len(data["items"]) == 1
+    assert data["items"][0]["provider"] == "claude"
 
 
 @pytest.mark.asyncio
@@ -375,11 +381,16 @@ async def test_list_events_pagination(capture_client):
         )
 
     resp = await capture_client.get(
-        f"/api/v1/capture/events?group_id={gid}&limit=2&offset=0",
+        f"/api/v1/capture/events?group_id={gid}&page=1&page_size=2",
         headers=headers,
     )
     assert resp.status_code == 200
-    assert len(resp.json()) == 2
+    data = resp.json()
+    assert len(data["items"]) == 2
+    assert data["total"] == 5
+    assert data["page"] == 1
+    assert data["page_size"] == 2
+    assert data["total_pages"] == 3
 
 
 # ---------------------------------------------------------------------------

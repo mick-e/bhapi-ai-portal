@@ -2,12 +2,14 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.middleware import get_current_user
 from src.database import get_db
 from src.groups.schemas import (
+    ConsentCreate,
+    ConsentResponse,
     GroupCreate,
     GroupResponse,
     GroupUpdate,
@@ -28,6 +30,7 @@ from src.groups.service import (
     group_to_response,
     list_members,
     list_user_groups,
+    record_consent,
     remove_member,
     update_group,
 )
@@ -149,6 +152,26 @@ async def invite_member(
     """Invite a member to the group (FR-003, FR-004)."""
     invitation = await create_invitation(db, group_id, auth.user_id, data)
     return invitation
+
+
+@router.post("/{group_id}/members/{member_id}/consent", response_model=ConsentResponse, status_code=201)
+async def record_consent_endpoint(
+    group_id: UUID,
+    member_id: UUID,
+    data: ConsentCreate,
+    request: Request,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Record guardian consent for an underage member."""
+    ip_address = request.client.host if request.client else None
+    consent = await record_consent(
+        db, group_id, member_id, auth.user_id,
+        consent_type=data.consent_type,
+        ip_address=ip_address,
+        evidence=data.evidence,
+    )
+    return consent
 
 
 @router.post("/invitations/{token}/accept", response_model=MemberResponse, status_code=201)

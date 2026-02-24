@@ -70,6 +70,13 @@ class PasswordResetRequest(BaseSchema):
     email: EmailStr
 
 
+class PasswordResetConfirm(BaseSchema):
+    """Password reset confirmation with token and new password."""
+
+    token: str
+    new_password: str = Field(min_length=8, max_length=128)
+
+
 class MFASetupResponse(BaseSchema):
     """MFA setup response."""
 

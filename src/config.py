@@ -65,11 +65,26 @@ class Settings(BaseSettings):
     stripe_webhook_secret: str | None = None
     stripe_publishable_key: str | None = None
 
+    # Capture HMAC validation (disabled in dev/test for convenience)
+    capture_hmac_secret: str | None = None
+    capture_hmac_enabled: bool = False
+
+    # Safety classifier mode: keyword_only, vertex_ai, auto (try vertex_ai, fallback to keyword)
+    safety_classifier_mode: Literal["keyword_only", "vertex_ai", "auto"] = "keyword_only"
+    vertex_ai_model: str = "gemini-1.5-flash"
+    vertex_ai_location: str = "us-central1"
+
     # Email
     sendgrid_api_key: str | None = None
 
     # GCP
     gcp_project_id: str | None = None
+
+    # CORS — comma-separated origins (overrides defaults when set)
+    cors_origins: str | None = None
+
+    # Encryption
+    encryption_key: str | None = None  # Optional separate key for Fernet; falls back to secret_key
 
     # App
     app_name: str = "Bhapi AI Portal"

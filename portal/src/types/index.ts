@@ -149,7 +149,7 @@ export interface SpendSummary {
 
 export type ReportType = "safety" | "spend" | "activity" | "compliance";
 export type ReportStatus = "ready" | "generating" | "failed";
-export type ReportFormat = "pdf" | "csv";
+export type ReportFormat = "pdf" | "csv" | "json";
 export type ReportSchedule = "none" | "daily" | "weekly" | "monthly";
 
 export interface Report {

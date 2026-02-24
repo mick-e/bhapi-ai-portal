@@ -7,6 +7,7 @@ import structlog
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.encryption import decrypt_credential, encrypt_credential
 from src.exceptions import ConflictError, NotFoundError, ValidationError
 from src.billing.models import BudgetThreshold, LLMAccount, SpendRecord, Subscription
 from src.billing.schemas import ProviderConnect, SubscribeRequest, ThresholdConfig
@@ -86,12 +87,11 @@ async def connect_llm_account(
             f"An active {data.provider} account is already connected for this group"
         )
 
-    # In production, the API key would be encrypted with Cloud KMS before storage
     account = LLMAccount(
         id=uuid4(),
         group_id=data.group_id,
         provider=data.provider,
-        credentials_encrypted=data.api_key,  # TODO: encrypt with KMS
+        credentials_encrypted=encrypt_credential(data.api_key),
         status="active",
     )
     db.add(account)
@@ -105,6 +105,21 @@ async def connect_llm_account(
         provider=data.provider,
     )
     return account
+
+
+async def get_llm_account_credential(
+    db: AsyncSession, account_id: UUID
+) -> str:
+    """Get decrypted API key for an LLM account (used by spend sync)."""
+    result = await db.execute(
+        select(LLMAccount).where(LLMAccount.id == account_id)
+    )
+    account = result.scalar_one_or_none()
+    if not account:
+        raise NotFoundError("LLM Account", str(account_id))
+    if not account.credentials_encrypted:
+        raise ValidationError("LLM account has no credentials stored")
+    return decrypt_credential(account.credentials_encrypted)
 
 
 async def list_llm_accounts(

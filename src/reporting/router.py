@@ -1,9 +1,10 @@
 """Reporting API endpoints."""
 
+from pathlib import Path
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.middleware import get_current_user
@@ -24,6 +25,12 @@ from src.reporting.service import (
 from src.schemas import GroupContext
 
 router = APIRouter()
+
+CONTENT_TYPES = {
+    "pdf": "application/pdf",
+    "csv": "text/csv",
+    "json": "application/json",
+}
 
 
 @router.post("/generate", response_model=ReportResponse, status_code=201)
@@ -58,10 +65,26 @@ async def download_report(
 ):
     """Download a generated report (FR-042).
 
-    In production, this would return a signed URL or stream the file.
-    For now, returns the file path metadata.
+    Returns the file content if available, otherwise metadata.
     """
     report = await get_report(db, report_id)
+
+    # Try to serve the actual file
+    if report.file_path:
+        file_path = Path(report.file_path)
+        if file_path.exists():
+            content_type = CONTENT_TYPES.get(report.format, "application/octet-stream")
+            content = file_path.read_bytes()
+            filename = f"{report.report_type}_report.{report.format}"
+            return Response(
+                content=content,
+                media_type=content_type,
+                headers={
+                    "Content-Disposition": f'attachment; filename="{filename}"',
+                },
+            )
+
+    # Fallback to metadata
     return JSONResponse(
         content={
             "id": str(report.id),
@@ -69,7 +92,7 @@ async def download_report(
             "format": report.format,
             "generated_at": report.generated_at.isoformat(),
             "expires_at": report.expires_at.isoformat() if report.expires_at else None,
-            "download_url": f"/api/v1/reports/files/{report.file_path}",
+            "download_url": f"/api/v1/reports/{report.id}/download",
         }
     )
 

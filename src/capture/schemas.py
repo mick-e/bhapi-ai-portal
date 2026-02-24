@@ -17,6 +17,7 @@ class EventPayload(BaseSchema):
     session_id: str = Field(min_length=1, max_length=255)
     event_type: str = Field(pattern="^(prompt|response|session_start|session_end)$")
     timestamp: datetime
+    content: str | None = None
     metadata: dict | None = None
 
 
@@ -55,9 +56,29 @@ class CaptureEventResponse(BaseSchema):
     session_id: str
     event_type: str
     timestamp: datetime
+    content: str | None = None
     source_channel: str
     risk_processed: bool
     created_at: datetime
+
+
+class EnrichedEventResponse(BaseSchema):
+    """Enriched capture event response with member name and risk level."""
+
+    id: UUID
+    group_id: UUID
+    member_id: UUID
+    member_name: str = ""
+    provider: str
+    model: str = ""
+    event_type: str
+    prompt_preview: str = ""
+    response_preview: str = ""
+    token_count: int = 0
+    cost_usd: float = 0.0
+    risk_level: str = "low"
+    flagged: bool = False
+    timestamp: datetime
 
 
 class DeviceRegisterRequest(BaseSchema):

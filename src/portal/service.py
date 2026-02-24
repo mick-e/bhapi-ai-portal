@@ -1,18 +1,28 @@
 """Portal BFF service — aggregates data from other modules."""
 
+from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 import structlog
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.alerts.models import Alert
+from src.billing.models import BudgetThreshold, LLMAccount, SpendRecord
+from src.capture.models import CaptureEvent
 from src.groups.models import Group, GroupMember
 from src.portal.schemas import (
+    ActivityFeedItem,
     AlertSummary,
+    DashboardAlertItem,
     DashboardResponse,
-    MemberStatus,
+    GroupSettingsResponse,
+    NotificationPreferences,
+    RiskSummary,
     SpendSummary,
+    UpdateGroupSettingsRequest,
 )
+from src.risk.models import RiskEvent
 
 logger = structlog.get_logger()
 
@@ -26,31 +36,408 @@ async def get_dashboard(db: AsyncSession, group_id: UUID, user_id: UUID) -> Dash
         from src.exceptions import NotFoundError
         raise NotFoundError("Group", str(group_id))
 
-    # Get members
+    # Time boundaries
+    now = datetime.now(timezone.utc)
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+    # --- Members ---
     members_result = await db.execute(
         select(GroupMember).where(GroupMember.group_id == group_id)
     )
     members = list(members_result.scalars().all())
+    total_members = len(members)
 
-    member_statuses = [
-        MemberStatus(
-            id=m.id,
-            display_name=m.display_name,
-            role=m.role,
-            last_active=None,
-            active_platforms=[],
-            unresolved_alerts=0,
+    # Active members = members with capture events in last 24h
+    active_result = await db.execute(
+        select(func.count(func.distinct(CaptureEvent.member_id)))
+        .where(
+            CaptureEvent.group_id == group_id,
+            CaptureEvent.timestamp >= now - timedelta(hours=24),
         )
-        for m in members
+    )
+    active_members = active_result.scalar() or 0
+
+    # --- Interactions today ---
+    interactions_result = await db.execute(
+        select(func.count(CaptureEvent.id))
+        .where(
+            CaptureEvent.group_id == group_id,
+            CaptureEvent.timestamp >= today_start,
+        )
+    )
+    interactions_today = interactions_result.scalar() or 0
+
+    # Yesterday's count for trend
+    yesterday_start = today_start - timedelta(days=1)
+    yesterday_result = await db.execute(
+        select(func.count(CaptureEvent.id))
+        .where(
+            CaptureEvent.group_id == group_id,
+            CaptureEvent.timestamp >= yesterday_start,
+            CaptureEvent.timestamp < today_start,
+        )
+    )
+    yesterday_count = yesterday_result.scalar() or 0
+    if yesterday_count > 0:
+        change = ((interactions_today - yesterday_count) / yesterday_count) * 100
+        interactions_trend = f"{change:+.0f}% vs yesterday"
+    else:
+        interactions_trend = "tracking"
+
+    # --- Recent Activity (last 10 events) ---
+    recent_events_result = await db.execute(
+        select(CaptureEvent)
+        .where(CaptureEvent.group_id == group_id)
+        .order_by(CaptureEvent.timestamp.desc())
+        .limit(10)
+    )
+    recent_events = list(recent_events_result.scalars().all())
+
+    # Build member name lookup
+    member_names = {m.id: m.display_name for m in members}
+
+    recent_activity = [
+        ActivityFeedItem(
+            id=e.id,
+            group_id=e.group_id,
+            member_id=e.member_id,
+            member_name=member_names.get(e.member_id, "Unknown"),
+            provider=e.platform,
+            model="",
+            event_type=e.event_type,
+            risk_level="low",
+            timestamp=e.timestamp.isoformat() if e.timestamp else "",
+        )
+        for e in recent_events
     ]
 
+    # --- Alert Summary ---
+    unread_result = await db.execute(
+        select(func.count(Alert.id))
+        .where(
+            Alert.group_id == group_id,
+            Alert.status != "acknowledged",
+        )
+    )
+    unread_count = unread_result.scalar() or 0
+
+    critical_result = await db.execute(
+        select(func.count(Alert.id))
+        .where(
+            Alert.group_id == group_id,
+            Alert.status != "acknowledged",
+            Alert.severity == "critical",
+        )
+    )
+    critical_count = critical_result.scalar() or 0
+
+    # Recent alerts (last 5)
+    recent_alerts_result = await db.execute(
+        select(Alert)
+        .where(Alert.group_id == group_id)
+        .order_by(Alert.created_at.desc())
+        .limit(5)
+    )
+    recent_alerts = list(recent_alerts_result.scalars().all())
+
+    # Map backend severity to frontend severity
+    severity_map = {
+        "critical": "critical",
+        "high": "error",
+        "medium": "warning",
+        "low": "info",
+        "info": "info",
+    }
+
+    recent_alert_items = [
+        DashboardAlertItem(
+            id=a.id,
+            group_id=a.group_id,
+            type="risk",
+            severity=severity_map.get(a.severity, "info"),
+            title=a.title,
+            message=a.body,
+            member_name=member_names.get(a.member_id, None) if a.member_id else None,
+            read=a.status == "acknowledged",
+            actioned=a.status == "acknowledged",
+            related_member_id=a.member_id,
+            related_event_id=a.risk_event_id,
+            created_at=a.created_at.isoformat() if a.created_at else "",
+        )
+        for a in recent_alerts
+    ]
+
+    alert_summary = AlertSummary(
+        unread_count=unread_count,
+        critical_count=critical_count,
+        recent=recent_alert_items,
+    )
+
+    # --- Spend Summary ---
+    # This month's total spend
+    month_spend_result = await db.execute(
+        select(func.coalesce(func.sum(SpendRecord.amount), 0.0))
+        .where(
+            SpendRecord.group_id == group_id,
+            SpendRecord.period_start >= month_start,
+        )
+    )
+    month_usd = float(month_spend_result.scalar() or 0.0)
+
+    # Today's spend
+    today_spend_result = await db.execute(
+        select(func.coalesce(func.sum(SpendRecord.amount), 0.0))
+        .where(
+            SpendRecord.group_id == group_id,
+            SpendRecord.period_start >= today_start,
+        )
+    )
+    today_usd = float(today_spend_result.scalar() or 0.0)
+
+    # Budget
+    budget_result = await db.execute(
+        select(BudgetThreshold.amount).where(
+            BudgetThreshold.group_id == group_id,
+            BudgetThreshold.member_id.is_(None),
+        ).order_by(BudgetThreshold.created_at.desc()).limit(1)
+    )
+    budget_usd = float(budget_result.scalar() or 0.0)
+    budget_pct = (month_usd / budget_usd * 100.0) if budget_usd > 0 else 0.0
+
+    # Top provider
+    top_provider_name = ""
+    top_provider_cost = 0.0
+    top_provider_pct = 0.0
+    if month_usd > 0:
+        provider_spend_result = await db.execute(
+            select(
+                LLMAccount.provider,
+                func.coalesce(func.sum(SpendRecord.amount), 0.0).label("total"),
+            )
+            .join(LLMAccount, SpendRecord.llm_account_id == LLMAccount.id)
+            .where(
+                SpendRecord.group_id == group_id,
+                SpendRecord.period_start >= month_start,
+            )
+            .group_by(LLMAccount.provider)
+            .order_by(func.sum(SpendRecord.amount).desc())
+            .limit(1)
+        )
+        row = provider_spend_result.first()
+        if row:
+            top_provider_name = row[0] or ""
+            top_provider_cost = float(row[1])
+            top_provider_pct = (top_provider_cost / month_usd * 100.0) if month_usd > 0 else 0.0
+
+    # Top member
+    top_member_name = ""
+    top_member_cost = 0.0
+    top_member_pct = 0.0
+    if month_usd > 0:
+        member_spend_result = await db.execute(
+            select(
+                SpendRecord.member_id,
+                func.coalesce(func.sum(SpendRecord.amount), 0.0).label("total"),
+            )
+            .where(
+                SpendRecord.group_id == group_id,
+                SpendRecord.period_start >= month_start,
+                SpendRecord.member_id.isnot(None),
+            )
+            .group_by(SpendRecord.member_id)
+            .order_by(func.sum(SpendRecord.amount).desc())
+            .limit(1)
+        )
+        mrow = member_spend_result.first()
+        if mrow and mrow[0]:
+            top_member_cost = float(mrow[1])
+            top_member_pct = (top_member_cost / month_usd * 100.0) if month_usd > 0 else 0.0
+            top_member_name = member_names.get(mrow[0], "Unknown")
+
+    spend_summary = SpendSummary(
+        today_usd=today_usd,
+        month_usd=month_usd,
+        budget_usd=budget_usd,
+        budget_used_percentage=round(budget_pct, 1),
+        top_provider=top_provider_name,
+        top_provider_cost_usd=round(top_provider_cost, 2),
+        top_provider_percentage=round(top_provider_pct, 1),
+        top_member=top_member_name,
+        top_member_cost_usd=round(top_member_cost, 2),
+        top_member_percentage=round(top_member_pct, 1),
+    )
+
+    # --- Risk Summary ---
+    risk_today_result = await db.execute(
+        select(func.count(RiskEvent.id))
+        .where(
+            RiskEvent.group_id == group_id,
+            RiskEvent.created_at >= today_start,
+        )
+    )
+    total_events_today = risk_today_result.scalar() or 0
+
+    high_sev_result = await db.execute(
+        select(func.count(RiskEvent.id))
+        .where(
+            RiskEvent.group_id == group_id,
+            RiskEvent.created_at >= today_start,
+            RiskEvent.severity.in_(["critical", "high"]),
+        )
+    )
+    high_severity_count = high_sev_result.scalar() or 0
+
+    # Trend: compare today vs yesterday
+    yesterday_risk_result = await db.execute(
+        select(func.count(RiskEvent.id))
+        .where(
+            RiskEvent.group_id == group_id,
+            RiskEvent.created_at >= yesterday_start,
+            RiskEvent.created_at < today_start,
+        )
+    )
+    yesterday_risk = yesterday_risk_result.scalar() or 0
+
+    if total_events_today > yesterday_risk:
+        trend = "increasing"
+    elif total_events_today < yesterday_risk:
+        trend = "decreasing"
+    else:
+        trend = "stable"
+
+    risk_summary = RiskSummary(
+        total_events_today=total_events_today,
+        high_severity_count=high_severity_count,
+        trend=trend,
+    )
+
     return DashboardResponse(
+        active_members=active_members,
+        total_members=total_members,
+        interactions_today=interactions_today,
+        interactions_trend=interactions_trend,
+        recent_activity=recent_activity,
+        alert_summary=alert_summary,
+        spend_summary=spend_summary,
+        risk_summary=risk_summary,
+    )
+
+
+async def get_group_settings(db: AsyncSession, group_id: UUID, user_id: UUID) -> GroupSettingsResponse:
+    """Get group settings for the settings page."""
+    result = await db.execute(select(Group).where(Group.id == group_id))
+    group = result.scalar_one_or_none()
+    if not group:
+        from src.exceptions import NotFoundError
+        raise NotFoundError("Group", str(group_id))
+
+    settings = group.settings or {}
+
+    # Get budget from BudgetThreshold
+    budget_result = await db.execute(
+        select(BudgetThreshold.amount).where(
+            BudgetThreshold.group_id == group_id,
+            BudgetThreshold.member_id.is_(None),
+        ).order_by(BudgetThreshold.created_at.desc()).limit(1)
+    )
+    budget = float(budget_result.scalar() or 0.0)
+
+    # Map notification prefs from settings dict
+    notif_data = settings.get("notifications", {})
+    notifications = NotificationPreferences(
+        critical_safety=notif_data.get("critical_safety", True),
+        risk_warnings=notif_data.get("risk_warnings", True),
+        spend_alerts=notif_data.get("spend_alerts", True),
+        member_updates=notif_data.get("member_updates", True),
+        weekly_digest=notif_data.get("weekly_digest", True),
+        report_notifications=notif_data.get("report_notifications", True),
+    )
+
+    return GroupSettingsResponse(
         group_id=group.id,
         group_name=group.name,
-        active_members=0,
-        total_members=len(members),
-        recent_activity=[],
-        alert_summary=AlertSummary(),
-        spend_summary=SpendSummary(),
-        members=member_statuses,
+        account_type=group.type,
+        safety_level=settings.get("safety_level", "strict"),
+        auto_block_critical=settings.get("auto_block_critical", True),
+        prompt_logging=settings.get("prompt_logging", True),
+        pii_detection=settings.get("pii_detection", True),
+        notifications=notifications,
+        monthly_budget_usd=budget,
+        plan=settings.get("plan", "free"),
     )
+
+
+async def update_group_settings(
+    db: AsyncSession, group_id: UUID, user_id: UUID, data: UpdateGroupSettingsRequest
+) -> GroupSettingsResponse:
+    """Update group settings."""
+    result = await db.execute(select(Group).where(Group.id == group_id))
+    group = result.scalar_one_or_none()
+    if not group:
+        from src.exceptions import NotFoundError
+        raise NotFoundError("Group", str(group_id))
+
+    # Verify admin access
+    member_result = await db.execute(
+        select(GroupMember).where(
+            GroupMember.group_id == group_id,
+            GroupMember.user_id == user_id,
+        )
+    )
+    member = member_result.scalar_one_or_none()
+    if not member:
+        from src.exceptions import ForbiddenError
+        raise ForbiddenError("You are not a member of this group")
+
+    admin_roles = {"parent", "school_admin", "club_admin"}
+    if member.role not in admin_roles:
+        from src.exceptions import ForbiddenError
+        raise ForbiddenError("Admin role required")
+
+    settings = dict(group.settings or {})
+
+    if data.group_name is not None:
+        group.name = data.group_name
+    if data.safety_level is not None:
+        settings["safety_level"] = data.safety_level
+    if data.auto_block_critical is not None:
+        settings["auto_block_critical"] = data.auto_block_critical
+    if data.prompt_logging is not None:
+        settings["prompt_logging"] = data.prompt_logging
+    if data.pii_detection is not None:
+        settings["pii_detection"] = data.pii_detection
+    if data.notifications is not None:
+        existing_notif = settings.get("notifications", {})
+        existing_notif.update(data.notifications)
+        settings["notifications"] = existing_notif
+
+    group.settings = settings
+
+    # Update budget if provided
+    if data.monthly_budget_usd is not None:
+        from uuid import uuid4 as _uuid4
+        budget_result = await db.execute(
+            select(BudgetThreshold).where(
+                BudgetThreshold.group_id == group_id,
+                BudgetThreshold.member_id.is_(None),
+            ).order_by(BudgetThreshold.created_at.desc()).limit(1)
+        )
+        existing_budget = budget_result.scalar_one_or_none()
+        if existing_budget:
+            existing_budget.amount = data.monthly_budget_usd
+        else:
+            new_budget = BudgetThreshold(
+                id=_uuid4(),
+                group_id=group_id,
+                member_id=None,
+                amount=data.monthly_budget_usd,
+                currency="USD",
+                type="hard",
+            )
+            db.add(new_budget)
+
+    await db.flush()
+    await db.refresh(group)
+
+    return await get_group_settings(db, group_id, user_id)

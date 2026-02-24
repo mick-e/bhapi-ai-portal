@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.constants import MAX_GROUP_MEMBERS, MAX_GROUPS_PER_USER
 from src.exceptions import ConflictError, ForbiddenError, NotFoundError, ValidationError
-from src.groups.consent import requires_consent
+from src.groups.consent import get_consent_type, requires_consent
 from src.groups.models import Group, GroupMember, Invitation
 from src.groups.schemas import GroupCreate, GroupResponse, InvitationCreate, MemberAdd
 
@@ -108,8 +108,14 @@ async def delete_group(db: AsyncSession, group_id: UUID, user_id: UUID) -> None:
     logger.info("group_deleted", group_id=str(group_id))
 
 
-async def add_member(db: AsyncSession, group_id: UUID, user_id: UUID, data: MemberAdd) -> GroupMember:
-    """Add a member to a group. Requires admin role."""
+async def add_member(
+    db: AsyncSession, group_id: UUID, user_id: UUID, data: MemberAdd, jurisdiction: str = "us"
+) -> GroupMember:
+    """Add a member to a group. Requires admin role.
+
+    If the member is under the consent threshold for their jurisdiction,
+    a ConsentRecord must be created before capture events can be processed.
+    """
     await _require_admin(db, group_id, user_id)
 
     # Check member count
@@ -131,6 +137,17 @@ async def add_member(db: AsyncSession, group_id: UUID, user_id: UUID, data: Memb
     db.add(member)
     await db.flush()
     await db.refresh(member)
+
+    # Check if consent is required for underage member
+    if data.date_of_birth and requires_consent(data.date_of_birth, jurisdiction):
+        consent_type = get_consent_type(data.date_of_birth, jurisdiction)
+        logger.info(
+            "consent_required",
+            group_id=str(group_id),
+            member_id=str(member.id),
+            consent_type=consent_type,
+            jurisdiction=jurisdiction,
+        )
 
     logger.info("member_added", group_id=str(group_id), member_id=str(member.id))
     return member
@@ -173,7 +190,7 @@ async def create_invitation(
     db: AsyncSession, group_id: UUID, user_id: UUID, data: InvitationCreate
 ) -> Invitation:
     """Create a group invitation. Requires admin role."""
-    await _require_admin(db, group_id, user_id)
+    admin_member = await _require_admin(db, group_id, user_id)
 
     token = secrets.token_urlsafe(32)
     consent_needed = False  # Will be determined when invitation is accepted
@@ -192,6 +209,32 @@ async def create_invitation(
     db.add(invitation)
     await db.flush()
     await db.refresh(invitation)
+
+    # Send invitation email
+    try:
+        result = await db.execute(select(Group).where(Group.id == group_id))
+        group = result.scalar_one_or_none()
+        group_name = group.name if group else "your group"
+
+        from src.email.templates import group_invitation as invitation_template
+        from src.email.service import send_email
+
+        invitation_url = f"https://bhapi.ai/invite/{token}"
+        subject, html, plain = invitation_template(
+            inviter_name=admin_member.display_name,
+            group_name=group_name,
+            role=data.role,
+            invitation_url=invitation_url,
+        )
+        await send_email(
+            to_email=data.email,
+            subject=subject,
+            html_content=html,
+            plain_content=plain,
+            group_id=str(group_id),
+        )
+    except Exception as exc:
+        logger.error("invitation_email_failed", email=data.email, error=str(exc))
 
     logger.info("invitation_created", group_id=str(group_id), email=data.email)
     return invitation
@@ -255,6 +298,87 @@ async def _require_admin(db: AsyncSession, group_id: UUID, user_id: UUID) -> Gro
         raise ForbiddenError("Admin role required for this action")
 
     return member
+
+
+async def record_consent(
+    db: AsyncSession,
+    group_id: UUID,
+    member_id: UUID,
+    user_id: UUID,
+    consent_type: str,
+    ip_address: str | None = None,
+    evidence: str | None = None,
+) -> "ConsentRecord":
+    """Record guardian consent for an underage member.
+
+    Args:
+        group_id: The group the member belongs to.
+        member_id: The member requiring consent.
+        user_id: The admin/parent recording consent.
+        consent_type: Type of consent (coppa, gdpr, lgpd, ai_interaction, monitoring).
+        ip_address: IP of the person giving consent.
+        evidence: Reference to signed consent form, etc.
+    """
+    await _require_admin(db, group_id, user_id)
+
+    from src.compliance.models import ConsentRecord
+
+    record = ConsentRecord(
+        id=uuid4(),
+        group_id=group_id,
+        member_id=member_id,
+        consent_type=consent_type,
+        parent_user_id=user_id,
+        ip_address=ip_address,
+        evidence=evidence,
+    )
+    db.add(record)
+    await db.flush()
+    await db.refresh(record)
+
+    logger.info(
+        "consent_recorded",
+        group_id=str(group_id),
+        member_id=str(member_id),
+        consent_type=consent_type,
+    )
+    return record
+
+
+async def check_member_consent(
+    db: AsyncSession, group_id: UUID, member_id: UUID
+) -> bool:
+    """Check if a member has all required consent records.
+
+    Returns True if no consent is needed or consent has been given.
+    Returns False if consent is required but not yet recorded.
+    """
+    # Get member to check date_of_birth
+    result = await db.execute(
+        select(GroupMember).where(
+            GroupMember.id == member_id,
+            GroupMember.group_id == group_id,
+        )
+    )
+    member = result.scalar_one_or_none()
+    if not member or not member.date_of_birth:
+        return True  # No DOB = no consent required
+
+    if not requires_consent(member.date_of_birth):
+        return True  # Adult, no consent needed
+
+    # Check for active consent records (given_at set, withdrawn_at null)
+    from src.compliance.models import ConsentRecord
+
+    consent_result = await db.execute(
+        select(func.count(ConsentRecord.id)).where(
+            ConsentRecord.group_id == group_id,
+            ConsentRecord.member_id == member_id,
+            ConsentRecord.withdrawn_at.is_(None),
+        )
+    )
+    count = consent_result.scalar() or 0
+    return count > 0
 
 
 def group_to_response(group: Group) -> GroupResponse:

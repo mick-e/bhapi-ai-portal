@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 import structlog
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text as select_text
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 
@@ -58,9 +59,12 @@ def create_app() -> FastAPI:
     # --- Middleware stack (LIFO: last added = first executed) ---
 
     # CORS (executed last in request, first in response)
-    cors_origins = ["http://localhost:3000", "http://localhost:5173"]
-    if settings.is_production:
+    if settings.cors_origins:
+        cors_origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
+    elif settings.is_production:
         cors_origins = ["https://bhapi.ai", "https://www.bhapi.ai"]
+    else:
+        cors_origins = ["http://localhost:3000", "http://localhost:5173"]
     app.add_middleware(
         CORSMiddleware,
         allow_origins=cors_origins,
@@ -117,12 +121,27 @@ def _register_routers(app: FastAPI) -> None:
     @app.get("/health", tags=["Health"])
     async def health_check():
         from src.redis_client import is_redis_available
+
+        # DB connectivity is verified at startup by init_db().
+        # In production, the readiness probe provides a deeper check.
+        db_status = "connected"
+        if settings.is_production:
+            try:
+                from src.database import engine
+                async with engine.connect() as conn:
+                    await conn.execute(select_text("1"))
+            except Exception:
+                db_status = "error"
+
+        redis_status = "connected" if is_redis_available() else "unavailable"
+
+        overall = "healthy" if db_status == "connected" else "degraded"
         return {
-            "status": "healthy",
+            "status": overall,
             "version": settings.app_version,
             "environment": settings.environment,
-            "database": "connected",
-            "redis": "connected" if is_redis_available() else "unavailable",
+            "database": db_status,
+            "redis": redis_status,
         }
 
     @app.get("/health/live", tags=["Health"])
@@ -131,6 +150,16 @@ def _register_routers(app: FastAPI) -> None:
 
     @app.get("/health/ready", tags=["Health"])
     async def readiness():
+        if settings.is_production:
+            try:
+                from src.database import engine
+                async with engine.connect() as conn:
+                    await conn.execute(select_text("1"))
+            except Exception:
+                return JSONResponse(
+                    status_code=503,
+                    content={"status": "not_ready", "reason": "database unavailable"},
+                )
         return {"status": "ready"}
 
     # Root endpoint
@@ -169,6 +198,9 @@ def _register_routers(app: FastAPI) -> None:
 
     from src.risk.router import router as risk_router
     app.include_router(risk_router, prefix="/api/v1/risk", tags=["Risk"])
+
+    from src.jobs.router import router as jobs_router
+    app.include_router(jobs_router, prefix="/internal", tags=["Jobs"])
 
 
 # Create the app instance

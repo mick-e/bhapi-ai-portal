@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, String, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -44,6 +44,11 @@ class Alert(Base, UUIDMixin, TimestampMixin):
     )
     re_notify_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
+    )
+
+    __table_args__ = (
+        Index("ix_alerts_group_severity_created", "group_id", "severity", "created_at"),
+        Index("ix_alerts_group_status_created", "group_id", "status", "created_at"),
     )
 
 

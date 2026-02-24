@@ -3,10 +3,12 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
+from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.middleware import get_current_user
 from src.database import get_db
+from src.compliance.export_worker import export_user_data_bytes
 from src.compliance.schemas import (
     AuditEntryResponse,
     ConsentResponse,
@@ -44,6 +46,30 @@ async def get_data_request_status_endpoint(
     """Get data request status (FR-052)."""
     request = await get_data_request_status(db, request_id)
     return request
+
+
+@router.get("/data-request/{request_id}/download")
+async def download_export(
+    request_id: UUID,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Download a data export as a ZIP file (GDPR Article 20)."""
+    request = await get_data_request_status(db, request_id)
+
+    if request.request_type != "data_export":
+        from src.exceptions import ValidationError
+        raise ValidationError("Only data_export requests can be downloaded")
+
+    # Generate export on-demand
+    content = await export_user_data_bytes(db, request.user_id)
+    return Response(
+        content=content,
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": f'attachment; filename="bhapi_data_export.zip"',
+        },
+    )
 
 
 @router.get("/consents", response_model=list[ConsentResponse])

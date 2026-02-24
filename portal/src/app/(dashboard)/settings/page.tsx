@@ -98,13 +98,15 @@ export default function SettingsPage() {
 
       <div className="flex flex-col gap-8 lg:flex-row">
         {/* Sidebar Tabs */}
-        <nav className="w-full lg:w-56 flex-shrink-0">
-          <ul className="flex gap-1 overflow-x-auto lg:flex-col">
+        <nav aria-label="Settings sections" className="w-full lg:w-56 flex-shrink-0">
+          <ul role="tablist" className="flex gap-1 overflow-x-auto lg:flex-col">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               return (
                 <li key={tab.value}>
                   <button
+                    role="tab"
+                    aria-selected={activeTab === tab.value}
                     onClick={() => setActiveTab(tab.value)}
                     className={`flex w-full items-center gap-2.5 whitespace-nowrap rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                       activeTab === tab.value
@@ -385,10 +387,11 @@ function SafetyTab({
           </div>
         )}
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">
+          <label htmlFor="safety-level" className="mb-1.5 block text-sm font-medium text-gray-700">
             Default safety level
           </label>
           <select
+            id="safety-level"
             value={safetyLevel}
             onChange={(e) => setSafetyLevel(e.target.value as SafetyLevel)}
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
@@ -579,6 +582,7 @@ function NotificationToggle({
         type="button"
         role="switch"
         aria-checked={checked}
+        aria-label={label}
         disabled={disabled}
         onClick={() => !disabled && onToggle()}
         className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
