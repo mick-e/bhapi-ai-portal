@@ -86,6 +86,17 @@ class Settings(BaseSettings):
     # Encryption
     encryption_key: str | None = None  # Optional separate key for Fernet; falls back to secret_key
 
+    # OAuth SSO
+    oauth_google_client_id: str | None = None
+    oauth_google_client_secret: str | None = None
+    oauth_microsoft_client_id: str | None = None
+    oauth_microsoft_client_secret: str | None = None
+    oauth_apple_client_id: str | None = None
+    oauth_apple_client_secret: str | None = None
+    oauth_apple_team_id: str | None = None
+    oauth_apple_key_id: str | None = None
+    oauth_redirect_base_url: str = "http://localhost:8000"
+
     # App
     app_name: str = "Bhapi AI Portal"
     app_version: str = "0.1.0"

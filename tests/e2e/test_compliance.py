@@ -447,6 +447,138 @@ async def test_filter_audit_by_resource_type(compliance_client):
     assert entries[0]["resource_type"] == "member"
 
 
+# ---------------------------------------------------------------------------
+# Consent withdrawal tests
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_withdraw_specific_consent(compliance_client):
+    """Withdraw a specific consent type sets withdrawn_at."""
+    client, session = compliance_client
+    token, user_id = await _register_and_login(client, "withdraw1@test.com")
+    headers = {"Authorization": f"Bearer {token}"}
+    gid, mid = await _create_group_and_member(client, headers)
+
+    from src.compliance.models import ConsentRecord
+
+    consent = ConsentRecord(
+        id=uuid4(),
+        group_id=UUID(gid),
+        member_id=UUID(mid),
+        consent_type="monitoring",
+        parent_user_id=UUID(user_id),
+        given_at=datetime.now(timezone.utc),
+    )
+    session.add(consent)
+    await session.commit()
+
+    resp = await client.post(
+        "/api/v1/compliance/consent/withdraw",
+        json={"group_id": gid, "member_id": mid, "consent_type": "monitoring"},
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    records = resp.json()
+    assert len(records) == 1
+    assert records[0]["consent_type"] == "monitoring"
+    assert records[0]["withdrawn_at"] is not None
+
+
+@pytest.mark.asyncio
+async def test_withdraw_all_consents(compliance_client):
+    """Withdraw all consents for a member when consent_type is null."""
+    client, session = compliance_client
+    token, user_id = await _register_and_login(client, "withdraw2@test.com")
+    headers = {"Authorization": f"Bearer {token}"}
+    gid, mid = await _create_group_and_member(client, headers)
+
+    from src.compliance.models import ConsentRecord
+
+    for ct in ["monitoring", "data_collection", "ai_interaction"]:
+        session.add(ConsentRecord(
+            id=uuid4(),
+            group_id=UUID(gid),
+            member_id=UUID(mid),
+            consent_type=ct,
+            given_at=datetime.now(timezone.utc),
+        ))
+    await session.commit()
+
+    resp = await client.post(
+        "/api/v1/compliance/consent/withdraw",
+        json={"group_id": gid, "member_id": mid},
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    records = resp.json()
+    assert len(records) == 3
+    for r in records:
+        assert r["withdrawn_at"] is not None
+
+
+@pytest.mark.asyncio
+async def test_withdraw_nonexistent_consent(compliance_client):
+    """Withdraw on nonexistent consent returns empty list."""
+    client, session = compliance_client
+    token, _ = await _register_and_login(client, "withdraw3@test.com")
+    headers = {"Authorization": f"Bearer {token}"}
+    gid, mid = await _create_group_and_member(client, headers)
+
+    resp = await client.post(
+        "/api/v1/compliance/consent/withdraw",
+        json={"group_id": gid, "member_id": mid, "consent_type": "marketing"},
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    assert resp.json() == []
+
+
+@pytest.mark.asyncio
+async def test_withdraw_creates_audit_entry(compliance_client):
+    """Consent withdrawal creates audit entry with action consent.withdrawn."""
+    client, session = compliance_client
+    token, user_id = await _register_and_login(client, "withdraw4@test.com")
+    headers = {"Authorization": f"Bearer {token}"}
+    gid, mid = await _create_group_and_member(client, headers)
+
+    from src.compliance.models import AuditEntry, ConsentRecord
+
+    consent = ConsentRecord(
+        id=uuid4(),
+        group_id=UUID(gid),
+        member_id=UUID(mid),
+        consent_type="monitoring",
+        given_at=datetime.now(timezone.utc),
+    )
+    session.add(consent)
+    await session.commit()
+
+    await client.post(
+        "/api/v1/compliance/consent/withdraw",
+        json={"group_id": gid, "member_id": mid, "consent_type": "monitoring"},
+        headers=headers,
+    )
+
+    result = await session.execute(
+        select(AuditEntry).where(AuditEntry.action == "consent.withdrawn")
+    )
+    entries = list(result.scalars().all())
+    assert len(entries) == 1
+    assert entries[0].resource_type == "consent"
+    assert str(entries[0].actor_id) == user_id
+
+
+@pytest.mark.asyncio
+async def test_withdraw_consent_requires_auth(compliance_client):
+    """Consent withdrawal requires auth (401)."""
+    client, _ = compliance_client
+    resp = await client.post(
+        "/api/v1/compliance/consent/withdraw",
+        json={"group_id": str(uuid4()), "member_id": str(uuid4())},
+    )
+    assert resp.status_code == 401
+
+
 @pytest.mark.asyncio
 async def test_compliance_requires_auth(compliance_client):
     """Compliance endpoints require auth."""

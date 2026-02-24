@@ -1,0 +1,313 @@
+"""OAuth2 service for SSO providers (Google, Microsoft, Apple)."""
+
+import secrets
+from dataclasses import dataclass
+from uuid import UUID, uuid4
+
+import httpx
+import structlog
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.auth.models import OAuthConnection, User
+from src.auth.service import create_access_token, create_session
+from src.config import get_settings
+from src.encryption import encrypt_credential
+from src.exceptions import UnauthorizedError, ValidationError
+
+logger = structlog.get_logger()
+settings = get_settings()
+
+
+@dataclass
+class OAuthProviderConfig:
+    """Configuration for an OAuth2 provider."""
+
+    authorize_url: str
+    token_url: str
+    userinfo_url: str
+    scopes: list[str]
+    # Apple uses form_post response mode
+    response_mode: str | None = None
+
+
+PROVIDER_CONFIGS: dict[str, OAuthProviderConfig] = {
+    "google": OAuthProviderConfig(
+        authorize_url="https://accounts.google.com/o/oauth2/v2/auth",
+        token_url="https://oauth2.googleapis.com/token",
+        userinfo_url="https://www.googleapis.com/oauth2/v3/userinfo",
+        scopes=["openid", "email", "profile"],
+    ),
+    "microsoft": OAuthProviderConfig(
+        authorize_url="https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
+        token_url="https://login.microsoftonline.com/common/oauth2/v2.0/token",
+        userinfo_url="https://graph.microsoft.com/v1.0/me",
+        scopes=["openid", "email", "profile"],
+    ),
+    "apple": OAuthProviderConfig(
+        authorize_url="https://appleid.apple.com/auth/authorize",
+        token_url="https://appleid.apple.com/auth/token",
+        userinfo_url="",  # Apple returns user info in the ID token
+        scopes=["name", "email"],
+        response_mode="form_post",
+    ),
+}
+
+SUPPORTED_PROVIDERS = set(PROVIDER_CONFIGS.keys())
+
+
+@dataclass
+class OAuthUserInfo:
+    """User information extracted from OAuth provider."""
+
+    provider: str
+    provider_user_id: str
+    email: str
+    display_name: str
+    access_token: str
+    refresh_token: str | None = None
+
+
+def _get_client_credentials(provider: str) -> tuple[str, str]:
+    """Get client ID and secret for a provider. Raises if not configured."""
+    if provider == "google":
+        client_id = settings.oauth_google_client_id
+        client_secret = settings.oauth_google_client_secret
+    elif provider == "microsoft":
+        client_id = settings.oauth_microsoft_client_id
+        client_secret = settings.oauth_microsoft_client_secret
+    elif provider == "apple":
+        client_id = settings.oauth_apple_client_id
+        client_secret = settings.oauth_apple_client_secret
+    else:
+        raise ValidationError(f"Unsupported OAuth provider: {provider}")
+
+    if not client_id or not client_secret:
+        raise ValidationError(f"OAuth provider '{provider}' is not configured")
+
+    return client_id, client_secret
+
+
+def get_authorization_url(provider: str) -> tuple[str, str]:
+    """Build OAuth2 authorization URL with state parameter.
+
+    Returns (authorization_url, state).
+    """
+    if provider not in SUPPORTED_PROVIDERS:
+        raise ValidationError(f"Unsupported OAuth provider: {provider}")
+
+    config = PROVIDER_CONFIGS[provider]
+    client_id, _ = _get_client_credentials(provider)
+    state = secrets.token_urlsafe(32)
+
+    redirect_uri = f"{settings.oauth_redirect_base_url}/api/v1/auth/oauth/{provider}/callback"
+
+    params = {
+        "client_id": client_id,
+        "redirect_uri": redirect_uri,
+        "response_type": "code",
+        "scope": " ".join(config.scopes),
+        "state": state,
+    }
+
+    if config.response_mode:
+        params["response_mode"] = config.response_mode
+
+    query = "&".join(f"{k}={httpx.QueryParams({k: v})}" for k, v in params.items())
+    # Use httpx URL building for proper encoding
+    url = httpx.URL(config.authorize_url, params=params)
+    authorization_url = str(url)
+
+    logger.info("oauth_authorize_url_generated", provider=provider)
+    return authorization_url, state
+
+
+async def exchange_code_for_tokens(
+    provider: str, code: str
+) -> dict:
+    """Exchange authorization code for access/refresh tokens.
+
+    Returns the token response dict.
+    """
+    config = PROVIDER_CONFIGS[provider]
+    client_id, client_secret = _get_client_credentials(provider)
+    redirect_uri = f"{settings.oauth_redirect_base_url}/api/v1/auth/oauth/{provider}/callback"
+
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(
+            config.token_url,
+            data={
+                "grant_type": "authorization_code",
+                "code": code,
+                "redirect_uri": redirect_uri,
+                "client_id": client_id,
+                "client_secret": client_secret,
+            },
+            headers={"Accept": "application/json"},
+        )
+
+    if resp.status_code != 200:
+        logger.error(
+            "oauth_token_exchange_failed",
+            provider=provider,
+            status=resp.status_code,
+            body=resp.text[:200],
+        )
+        raise UnauthorizedError(f"OAuth token exchange failed for {provider}")
+
+    return resp.json()
+
+
+async def get_oauth_user_info(provider: str, access_token: str, id_token: str | None = None) -> OAuthUserInfo:
+    """Fetch user profile from OAuth provider.
+
+    For Apple, user info comes from the ID token (JWT) rather than a userinfo endpoint.
+    """
+    config = PROVIDER_CONFIGS[provider]
+
+    if provider == "apple":
+        return _parse_apple_id_token(id_token or "", access_token)
+
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(
+            config.userinfo_url,
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+
+    if resp.status_code != 200:
+        logger.error("oauth_userinfo_failed", provider=provider, status=resp.status_code)
+        raise UnauthorizedError(f"Failed to fetch user info from {provider}")
+
+    data = resp.json()
+
+    if provider == "google":
+        return OAuthUserInfo(
+            provider="google",
+            provider_user_id=data["sub"],
+            email=data["email"],
+            display_name=data.get("name", data["email"].split("@")[0]),
+            access_token=access_token,
+        )
+    elif provider == "microsoft":
+        return OAuthUserInfo(
+            provider="microsoft",
+            provider_user_id=data["id"],
+            email=data.get("mail") or data.get("userPrincipalName", ""),
+            display_name=data.get("displayName", ""),
+            access_token=access_token,
+        )
+
+    raise ValidationError(f"Unsupported provider: {provider}")
+
+
+def _parse_apple_id_token(id_token: str, access_token: str) -> OAuthUserInfo:
+    """Parse Apple's ID token (JWT) to extract user info.
+
+    Apple provides user info in the ID token, not a userinfo endpoint.
+    In production, this should validate the token signature against Apple's public keys.
+    """
+    import json
+    import base64
+
+    if not id_token:
+        raise UnauthorizedError("Apple ID token is required")
+
+    # Decode JWT payload (second segment) without verification
+    # In production, verify signature against https://appleid.apple.com/auth/keys
+    parts = id_token.split(".")
+    if len(parts) != 3:
+        raise UnauthorizedError("Invalid Apple ID token format")
+
+    # Add padding for base64 decode
+    payload_b64 = parts[1] + "=" * (4 - len(parts[1]) % 4)
+    payload = json.loads(base64.urlsafe_b64decode(payload_b64))
+
+    return OAuthUserInfo(
+        provider="apple",
+        provider_user_id=payload.get("sub", ""),
+        email=payload.get("email", ""),
+        display_name=payload.get("email", "").split("@")[0],
+        access_token=access_token,
+    )
+
+
+async def find_or_create_oauth_user(
+    db: AsyncSession, user_info: OAuthUserInfo
+) -> User:
+    """Find existing user by OAuth connection or email, or create a new one.
+
+    Priority:
+    1. Match by OAuthConnection.provider_user_id (existing SSO link)
+    2. Match by User.email (link SSO to existing email/password account)
+    3. Create new User (no password) + OAuthConnection
+    """
+    # 1. Check existing OAuth connection
+    result = await db.execute(
+        select(OAuthConnection).where(
+            OAuthConnection.provider == user_info.provider,
+            OAuthConnection.provider_user_id == user_info.provider_user_id,
+        )
+    )
+    existing_conn = result.scalar_one_or_none()
+
+    if existing_conn:
+        # Update tokens
+        existing_conn.access_token_encrypted = encrypt_credential(user_info.access_token)
+        if user_info.refresh_token:
+            existing_conn.refresh_token_encrypted = encrypt_credential(user_info.refresh_token)
+        await db.flush()
+
+        user_result = await db.execute(select(User).where(User.id == existing_conn.user_id))
+        user = user_result.scalar_one()
+        logger.info("oauth_login_existing", provider=user_info.provider, user_id=str(user.id))
+        return user
+
+    # 2. Check existing user by email
+    result = await db.execute(select(User).where(User.email == user_info.email))
+    existing_user = result.scalar_one_or_none()
+
+    if existing_user:
+        # Link OAuth to existing account
+        conn = OAuthConnection(
+            id=uuid4(),
+            user_id=existing_user.id,
+            provider=user_info.provider,
+            provider_user_id=user_info.provider_user_id,
+            access_token_encrypted=encrypt_credential(user_info.access_token),
+            refresh_token_encrypted=(
+                encrypt_credential(user_info.refresh_token) if user_info.refresh_token else None
+            ),
+        )
+        db.add(conn)
+        await db.flush()
+        logger.info("oauth_linked_existing_user", provider=user_info.provider, user_id=str(existing_user.id))
+        return existing_user
+
+    # 3. Create new user (no password — OAuth only)
+    new_user = User(
+        id=uuid4(),
+        email=user_info.email,
+        password_hash=None,
+        display_name=user_info.display_name,
+        account_type="family",  # Default; user can change later
+        email_verified=True,  # OAuth emails are pre-verified by the provider
+    )
+    db.add(new_user)
+    await db.flush()
+
+    conn = OAuthConnection(
+        id=uuid4(),
+        user_id=new_user.id,
+        provider=user_info.provider,
+        provider_user_id=user_info.provider_user_id,
+        access_token_encrypted=encrypt_credential(user_info.access_token),
+        refresh_token_encrypted=(
+            encrypt_credential(user_info.refresh_token) if user_info.refresh_token else None
+        ),
+    )
+    db.add(conn)
+    await db.flush()
+    await db.refresh(new_user)
+
+    logger.info("oauth_user_created", provider=user_info.provider, user_id=str(new_user.id))
+    return new_user

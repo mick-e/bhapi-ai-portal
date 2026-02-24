@@ -1,10 +1,12 @@
 """Auth API endpoints."""
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, Query, Response
+from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.schemas import (
     LoginRequest,
+    OAuthAuthorizeResponse,
     PasswordResetConfirm,
     PasswordResetRequest,
     RegisterRequest,
@@ -12,6 +14,14 @@ from src.auth.schemas import (
     UserProfile,
 )
 from src.auth.middleware import get_current_user
+from src.auth.oauth import (
+    exchange_code_for_tokens,
+    find_or_create_oauth_user,
+    get_authorization_url,
+    get_oauth_user_info,
+    OAuthUserInfo,
+    SUPPORTED_PROVIDERS,
+)
 from src.auth.service import (
     authenticate_user,
     confirm_email,
@@ -29,6 +39,7 @@ from src.auth.service import (
 from src.constants import SESSION_COOKIE_NAME
 from src.database import get_db
 from src.config import get_settings
+from src.exceptions import ValidationError
 from src.schemas import GroupContext
 
 settings = get_settings()
@@ -122,3 +133,64 @@ async def delete_account(
     """Delete user account (GDPR Article 17)."""
     await delete_user_account(db, auth.user_id)
     return None
+
+
+# ---------------------------------------------------------------------------
+# OAuth SSO endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.get("/oauth/{provider}/authorize", response_model=OAuthAuthorizeResponse)
+async def oauth_authorize(provider: str):
+    """Get OAuth authorization URL for a provider."""
+    if provider not in SUPPORTED_PROVIDERS:
+        raise ValidationError(f"Unsupported provider: {provider}. Supported: {', '.join(sorted(SUPPORTED_PROVIDERS))}")
+
+    authorization_url, state = get_authorization_url(provider)
+    return OAuthAuthorizeResponse(authorization_url=authorization_url, state=state)
+
+
+@router.get("/oauth/{provider}/callback")
+async def oauth_callback(
+    provider: str,
+    code: str = Query(...),
+    state: str = Query(...),
+    response: Response = None,
+    db: AsyncSession = Depends(get_db),
+):
+    """Handle OAuth callback — exchange code for tokens and create session."""
+    if provider not in SUPPORTED_PROVIDERS:
+        raise ValidationError(f"Unsupported provider: {provider}")
+
+    # Exchange authorization code for tokens
+    token_data = await exchange_code_for_tokens(provider, code)
+    access_token = token_data.get("access_token", "")
+    refresh_token = token_data.get("refresh_token")
+    id_token = token_data.get("id_token")
+
+    # Fetch user info from provider
+    user_info = await get_oauth_user_info(provider, access_token, id_token)
+    if refresh_token:
+        user_info.refresh_token = refresh_token
+
+    # Find or create user
+    user = await find_or_create_oauth_user(db, user_info)
+
+    # Create access token and session
+    app_access_token = create_access_token({"sub": str(user.id)})
+    session_token = await create_session(db, user.id)
+
+    # Build redirect to frontend with token
+    redirect_url = f"{settings.oauth_redirect_base_url}/oauth/callback?token={app_access_token}&state={state}"
+
+    redirect = RedirectResponse(url=redirect_url, status_code=302)
+    redirect.set_cookie(
+        key=SESSION_COOKIE_NAME,
+        value=session_token,
+        httponly=True,
+        secure=settings.is_production,
+        samesite="lax",
+        max_age=settings.session_timeout_hours * 3600,
+        domain=settings.cookie_domain,
+    )
+    return redirect

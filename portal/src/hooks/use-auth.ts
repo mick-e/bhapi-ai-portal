@@ -12,12 +12,15 @@ import {
   clearAuth,
 } from "@/lib/auth";
 
+type OAuthProvider = "google" | "microsoft" | "apple";
+
 interface UseAuthReturn {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
+  loginWithOAuth: (provider: OAuthProvider) => Promise<void>;
   logout: () => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
 }
@@ -98,6 +101,33 @@ export function useAuth(): UseAuthReturn {
     router.push("/");
   }, [router]);
 
+  const loginWithOAuth = useCallback(
+    async (provider: OAuthProvider) => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const response = await api.get<{ authorization_url: string; state: string }>(
+          `/api/v1/auth/oauth/${provider}/authorize`
+        );
+        // Store state for CSRF verification on callback
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem("oauth_state", response.state);
+        }
+        // Redirect to OAuth provider
+        window.location.href = response.authorization_url;
+      } catch (err) {
+        const message =
+          err instanceof ApiRequestError
+            ? err.detail
+            : `Failed to initiate ${provider} login.`;
+        setError(message);
+        setIsLoading(false);
+        throw err;
+      }
+    },
+    []
+  );
+
   const register = useCallback(
     async (data: RegisterData) => {
       setIsLoading(true);
@@ -131,6 +161,7 @@ export function useAuth(): UseAuthReturn {
     isAuthenticated: user !== null,
     error,
     login,
+    loginWithOAuth,
     logout,
     register,
   };

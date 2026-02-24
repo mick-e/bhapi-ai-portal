@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.exceptions import NotFoundError
 from src.compliance.models import AuditEntry, ConsentRecord, DataDeletionRequest
-from src.compliance.schemas import DataRequestCreate
+from src.compliance.schemas import ConsentWithdrawRequest, DataRequestCreate
 
 logger = structlog.get_logger()
 
@@ -79,6 +79,61 @@ async def list_consents(
     query = query.order_by(ConsentRecord.created_at.desc()).offset(offset).limit(limit)
     result = await db.execute(query)
     return list(result.scalars().all())
+
+
+async def withdraw_consent(
+    db: AsyncSession,
+    user_id: UUID,
+    data: ConsentWithdrawRequest,
+) -> list[ConsentRecord]:
+    """Withdraw active consent records (GDPR Article 7(3)).
+
+    Sets withdrawn_at on matching active consents and creates audit entries.
+    Returns the updated consent records.
+    """
+    query = (
+        select(ConsentRecord)
+        .where(ConsentRecord.group_id == data.group_id)
+        .where(ConsentRecord.member_id == data.member_id)
+        .where(ConsentRecord.withdrawn_at.is_(None))
+    )
+
+    if data.consent_type:
+        query = query.where(ConsentRecord.consent_type == data.consent_type)
+
+    result = await db.execute(query)
+    records = list(result.scalars().all())
+
+    now = datetime.now(timezone.utc)
+    for record in records:
+        record.withdrawn_at = now
+
+        audit = AuditEntry(
+            id=uuid4(),
+            group_id=data.group_id,
+            actor_id=user_id,
+            action="consent.withdrawn",
+            resource_type="consent",
+            resource_id=str(record.id),
+            details={
+                "consent_type": record.consent_type,
+                "member_id": str(data.member_id),
+            },
+        )
+        db.add(audit)
+
+    await db.flush()
+    for record in records:
+        await db.refresh(record)
+
+    logger.info(
+        "consent_withdrawn",
+        user_id=str(user_id),
+        group_id=str(data.group_id),
+        member_id=str(data.member_id),
+        count=len(records),
+    )
+    return records
 
 
 async def list_audit_entries(

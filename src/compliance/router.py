@@ -12,6 +12,7 @@ from src.compliance.export_worker import export_user_data_bytes
 from src.compliance.schemas import (
     AuditEntryResponse,
     ConsentResponse,
+    ConsentWithdrawRequest,
     DataRequestCreate,
     DataRequestStatus,
 )
@@ -20,6 +21,7 @@ from src.compliance.service import (
     get_data_request_status,
     list_audit_entries,
     list_consents,
+    withdraw_consent,
 )
 from src.schemas import GroupContext
 
@@ -84,6 +86,17 @@ async def list_consents_endpoint(
     """List consent records for a group (FR-053)."""
     consents = await list_consents(db, group_id, member_id=member_id, offset=offset, limit=limit)
     return consents
+
+
+@router.post("/consent/withdraw", response_model=list[ConsentResponse])
+async def withdraw_consent_endpoint(
+    data: ConsentWithdrawRequest,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Withdraw consent (GDPR Article 7(3))."""
+    records = await withdraw_consent(db, auth.user_id, data)
+    return records
 
 
 @router.get("/audit-log", response_model=list[AuditEntryResponse])

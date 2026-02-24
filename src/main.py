@@ -202,6 +202,9 @@ def _register_routers(app: FastAPI) -> None:
     from src.jobs.router import router as jobs_router
     app.include_router(jobs_router, prefix="/internal", tags=["Jobs"])
 
+    from src.legal.router import router as legal_router
+    app.include_router(legal_router, prefix="/legal", tags=["Legal"])
+
 
 # Create the app instance
 app = create_app()

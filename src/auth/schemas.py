@@ -77,6 +77,20 @@ class PasswordResetConfirm(BaseSchema):
     new_password: str = Field(min_length=8, max_length=128)
 
 
+class OAuthAuthorizeResponse(BaseSchema):
+    """OAuth authorization URL response."""
+
+    authorization_url: str
+    state: str
+
+
+class OAuthCallbackRequest(BaseSchema):
+    """OAuth callback parameters."""
+
+    code: str
+    state: str
+
+
 class MFASetupResponse(BaseSchema):
     """MFA setup response."""
 

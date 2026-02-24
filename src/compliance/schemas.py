@@ -42,6 +42,14 @@ class ConsentResponse(BaseSchema):
     created_at: datetime
 
 
+class ConsentWithdrawRequest(BaseSchema):
+    """Request to withdraw consent (GDPR Article 7(3))."""
+
+    group_id: UUID
+    member_id: UUID
+    consent_type: str | None = None  # None = withdraw all active consents
+
+
 class AuditEntryResponse(BaseSchema):
     """Audit log entry response."""
 
