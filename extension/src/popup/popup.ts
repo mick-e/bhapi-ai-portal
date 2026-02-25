@@ -10,7 +10,6 @@
 
 import {
   ConnectionStatus,
-  DEFAULT_CONFIG,
   ExtensionConfig,
   MessageType,
   PLATFORM_LABELS,
@@ -100,19 +99,15 @@ async function requestStatus(): Promise<ConnectionStatus | null> {
   return new Promise((resolve) => {
     chrome.runtime.sendMessage(
       { type: MessageType.STATUS_CHECK },
-      (response) => {
-        if (chrome.runtime.lastError) {
-          console.warn("[Bhapi Popup] Status check failed:", chrome.runtime.lastError.message);
-          resolve(null);
-          return;
-        }
-        if (response?.type === MessageType.STATUS_RESPONSE) {
-          resolve(response.payload as ConnectionStatus);
-        } else {
-          resolve(null);
-        }
-      },
-    );
+    ).then((response: Record<string, unknown>) => {
+      if (response?.type === MessageType.STATUS_RESPONSE) {
+        resolve(response.payload as ConnectionStatus);
+      } else {
+        resolve(null);
+      }
+    }).catch(() => {
+      resolve(null);
+    });
   });
 }
 

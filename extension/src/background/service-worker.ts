@@ -16,10 +16,8 @@ import { sendEvent, getConfig, checkStatus } from "../shared/api";
 import {
   CaptureEvent,
   ConnectionStatus,
-  ExtensionConfig,
   ExtensionMessage,
   MessageType,
-  PlatformType,
 } from "../shared/types";
 
 // ---------------------------------------------------------------------------

@@ -151,11 +151,6 @@ export async function pairWithSetupCode(
   apiUrl: string,
   setupCode: string,
 ): Promise<ApiResponse<{ groupId: string; memberId: string; signingSecret: string }>> {
-  const tempConfig: ExtensionConfig = {
-    ...DEFAULT_CONFIG,
-    apiUrl,
-  };
-
   try {
     const url = `${apiUrl}/api/v1/capture/pair`;
     const response = await fetch(url, {

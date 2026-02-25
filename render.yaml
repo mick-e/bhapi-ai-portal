@@ -35,9 +35,31 @@ services:
         sync: false
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
+      - key: STRIPE_PUBLISHABLE_KEY
+        sync: false
       - key: SENDGRID_API_KEY
         sync: false
       - key: GCP_PROJECT_ID
+        sync: false
+      - key: COOKIE_DOMAIN
+        value: bhapi.ai
+      - key: OAUTH_REDIRECT_BASE_URL
+        value: https://bhapi.ai
+      - key: OAUTH_GOOGLE_CLIENT_ID
+        sync: false
+      - key: OAUTH_GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: OAUTH_MICROSOFT_CLIENT_ID
+        sync: false
+      - key: OAUTH_MICROSOFT_CLIENT_SECRET
+        sync: false
+      - key: OAUTH_APPLE_CLIENT_ID
+        sync: false
+      - key: OAUTH_APPLE_CLIENT_SECRET
+        sync: false
+      - key: OAUTH_APPLE_TEAM_ID
+        sync: false
+      - key: OAUTH_APPLE_KEY_ID
         sync: false
 
   # Background job runner (cron)

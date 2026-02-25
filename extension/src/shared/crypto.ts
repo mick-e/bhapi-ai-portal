@@ -33,7 +33,7 @@ function bufferToHex(buffer: ArrayBuffer): string {
 async function importHmacKey(secret: string): Promise<CryptoKey> {
   return crypto.subtle.importKey(
     "raw",
-    encodeUtf8(secret),
+    encodeUtf8(secret) as BufferSource,
     { name: "HMAC", hash: "SHA-256" },
     false, // not extractable
     ["sign"],
@@ -50,7 +50,7 @@ async function importHmacKey(secret: string): Promise<CryptoKey> {
  */
 export async function signPayload(payload: string, secret: string): Promise<string> {
   const key = await importHmacKey(secret);
-  const signature = await crypto.subtle.sign("HMAC", key, encodeUtf8(payload));
+  const signature = await crypto.subtle.sign("HMAC", key, encodeUtf8(payload) as BufferSource);
   return bufferToHex(signature);
 }
 
