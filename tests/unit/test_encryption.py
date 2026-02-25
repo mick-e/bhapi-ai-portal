@@ -8,8 +8,7 @@ invalid-token error handling.
 import pytest
 from cryptography.fernet import InvalidToken
 
-from src.encryption import encrypt_credential, decrypt_credential
-
+from src.encryption import decrypt_credential, encrypt_credential
 
 # ---------------------------------------------------------------------------
 # 1. encrypt_credential returns a fernet-prefixed string
@@ -217,6 +216,7 @@ class TestInvalidToken:
         """A token encrypted with a different Fernet key should fail."""
         import base64
         import hashlib
+
         from cryptography.fernet import Fernet
 
         different_key = hashlib.sha256(b"completely-different-key").digest()

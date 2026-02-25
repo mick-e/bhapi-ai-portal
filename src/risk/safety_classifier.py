@@ -133,13 +133,11 @@ def _classify_fallback(text: str) -> list[RiskClassification]:
 
     for category, patterns in _FALLBACK_PATTERNS.items():
         best_confidence = 0.0
-        matched_pattern = ""
 
         for pattern, confidence in patterns:
             if pattern.search(text):
                 if confidence > best_confidence:
                     best_confidence = confidence
-                    matched_pattern = pattern.pattern
 
         if best_confidence > 0:
             category_meta = RISK_CATEGORIES.get(category, {})

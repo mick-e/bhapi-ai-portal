@@ -4,11 +4,11 @@ Verifies that users in different groups cannot access each other's data.
 """
 
 import pytest
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.pool import StaticPool
-from sqlalchemy import event
 
-from httpx import ASGITransport, AsyncClient
 from src.database import Base, get_db
 from src.main import create_app
 
@@ -187,7 +187,7 @@ async def test_member_cannot_change_roles(sec_client):
 
     # Get admin's user_id
     me_resp = await sec_client.get("/api/v1/auth/me", headers=h1)
-    admin_user_id = me_resp.json()["id"]
+    me_resp.json()["id"]
 
     # Admin invites member
     invite_resp = await sec_client.post(f"/api/v1/groups/{group_id}/invite", json={

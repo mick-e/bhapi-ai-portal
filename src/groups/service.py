@@ -8,8 +8,9 @@ import structlog
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.compliance.models import ConsentRecord
 from src.constants import MAX_GROUP_MEMBERS, MAX_GROUPS_PER_USER
-from src.exceptions import ConflictError, ForbiddenError, NotFoundError, ValidationError
+from src.exceptions import ForbiddenError, NotFoundError, ValidationError
 from src.groups.consent import get_consent_type, requires_consent
 from src.groups.models import Group, GroupMember, Invitation
 from src.groups.schemas import GroupCreate, GroupResponse, InvitationCreate, MemberAdd
@@ -83,7 +84,10 @@ async def list_user_groups(db: AsyncSession, user_id: UUID) -> list[Group]:
     return list(result.scalars().all())
 
 
-async def update_group(db: AsyncSession, group_id: UUID, user_id: UUID, name: str | None = None, settings: dict | None = None) -> Group:
+async def update_group(
+    db: AsyncSession, group_id: UUID, user_id: UUID,
+    name: str | None = None, settings: dict | None = None,
+) -> Group:
     """Update group settings. Requires admin role."""
     group = await get_group(db, group_id, user_id)
     await _require_admin(db, group_id, user_id)
@@ -169,7 +173,10 @@ async def remove_member(db: AsyncSession, group_id: UUID, member_id: UUID, user_
     logger.info("member_removed", group_id=str(group_id), member_id=str(member_id))
 
 
-async def change_member_role(db: AsyncSession, group_id: UUID, member_id: UUID, user_id: UUID, new_role: str) -> GroupMember:
+async def change_member_role(
+    db: AsyncSession, group_id: UUID, member_id: UUID,
+    user_id: UUID, new_role: str,
+) -> GroupMember:
     """Change a member's role. Requires admin role."""
     await _require_admin(db, group_id, user_id)
 
@@ -216,8 +223,8 @@ async def create_invitation(
         group = result.scalar_one_or_none()
         group_name = group.name if group else "your group"
 
-        from src.email.templates import group_invitation as invitation_template
         from src.email.service import send_email
+        from src.email.templates import group_invitation as invitation_template
 
         invitation_url = f"https://bhapi.ai/invite/{token}"
         subject, html, plain = invitation_template(

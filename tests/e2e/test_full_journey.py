@@ -6,9 +6,9 @@ Three complete journeys:
 3. Billing & Spend Flow — register, create group, subscribe, connect LLM, thresholds
 """
 
-import pytest
 from datetime import datetime, timezone
 
+import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
@@ -16,7 +16,6 @@ from sqlalchemy.pool import StaticPool
 
 from src.database import Base, get_db
 from src.main import create_app
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -181,7 +180,7 @@ class TestFamilyJourney:
         assert event_data["platform"] == "chatgpt"
         assert event_data["event_type"] == "prompt"
         assert event_data["source_channel"] == "extension"
-        event_id = event_data["id"]
+        event_data["id"]
 
         # Ingest a second event on a different platform
         event2_resp = await client.post("/api/v1/capture/events", json={
@@ -293,7 +292,7 @@ class TestSchoolJourney:
         assert student1_resp.status_code == 201
         student1 = student1_resp.json()
         assert student1["display_name"] == "Alice Student"
-        student1_id = student1["id"]
+        student1["id"]
 
         student2_resp = await client.post(
             f"/api/v1/groups/{group_id}/members",
@@ -303,7 +302,7 @@ class TestSchoolJourney:
         assert student2_resp.status_code == 201
         student2 = student2_resp.json()
         assert student2["display_name"] == "Bob Student"
-        student2_id = student2["id"]
+        student2["id"]
 
         # Verify both students appear in member list
         members_resp = await client.get(
@@ -480,7 +479,7 @@ class TestBillingJourney:
         assert llm_data["group_id"] == group_id
         assert llm_data["provider"] == "openai"
         assert llm_data["status"] in ("active", "connected", "pending")
-        openai_account_id = llm_data["id"]
+        llm_data["id"]
 
         # Connect a second provider (Anthropic)
         llm2_resp = await client.post("/api/v1/billing/llm-accounts", json={
@@ -490,7 +489,7 @@ class TestBillingJourney:
         }, headers=headers)
         assert llm2_resp.status_code == 201
         assert llm2_resp.json()["provider"] == "anthropic"
-        anthropic_account_id = llm2_resp.json()["id"]
+        llm2_resp.json()["id"]
 
         # ── Step 5: List LLM accounts ────────────────────────────────────
         list_resp = await client.get(
@@ -520,7 +519,7 @@ class TestBillingJourney:
         assert threshold_data["amount"] == 100.0
         assert threshold_data["currency"] == "USD"
         assert threshold_data["member_id"] is None  # Group-level, not member-specific
-        threshold_id = threshold_data["id"]
+        threshold_data["id"]
 
         # Create a second threshold (hard limit, member-specific)
         # First, add a member to assign a per-member threshold

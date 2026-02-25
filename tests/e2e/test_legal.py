@@ -1,7 +1,6 @@
 """E2E tests for legal document endpoints."""
 
 import pytest
-
 from httpx import ASGITransport, AsyncClient
 
 from src.main import create_app

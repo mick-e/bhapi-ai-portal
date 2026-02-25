@@ -4,9 +4,7 @@ Tests OAuth authorize URL generation, callback handling with mocked provider
 responses, user creation/linking, and token encryption.
 """
 
-import json
 from unittest.mock import AsyncMock, MagicMock, patch
-from uuid import uuid4
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -16,7 +14,6 @@ from sqlalchemy.pool import StaticPool
 
 from src.database import Base, get_db
 from src.main import create_app
-
 
 # ---------------------------------------------------------------------------
 # Helpers

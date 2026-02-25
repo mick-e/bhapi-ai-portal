@@ -3,14 +3,12 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from uuid import UUID
 
-from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from src.groups.models import GroupMember
-from src.risk.models import RiskEvent
 from src.reporting.generators.base import BaseGenerator
+from src.risk.models import RiskEvent
 
 
 class SafetyReportGenerator(BaseGenerator):

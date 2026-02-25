@@ -3,10 +3,8 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from uuid import UUID
 
-from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from src.capture.models import CaptureEvent
 from src.groups.models import GroupMember

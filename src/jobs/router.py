@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.config import get_settings
 from src.database import get_db
-from src.jobs.runner import get_registered_jobs, run_job, run_schedule, _init_registry
+from src.jobs.runner import _init_registry, get_registered_jobs, run_job, run_schedule
 
 router = APIRouter()
 

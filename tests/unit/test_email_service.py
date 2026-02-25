@@ -2,13 +2,13 @@
 
 import pytest
 
+from src.email import templates
 from src.email.service import (
     EmailRateLimitError,
     _check_rate_limit,
     reset_rate_limits,
     send_email,
 )
-from src.email import templates
 
 
 class TestEmailService:

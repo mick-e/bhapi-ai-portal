@@ -3,12 +3,12 @@
 import pytest
 
 from src.auth.service import (
+    _check_reset_rate_limit,
+    _reset_rate_tracker,
     create_email_verification_token,
     create_password_reset_token,
     verify_email_token,
     verify_reset_token,
-    _check_reset_rate_limit,
-    _reset_rate_tracker,
 )
 from src.exceptions import UnauthorizedError
 

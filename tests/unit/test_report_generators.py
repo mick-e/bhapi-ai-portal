@@ -1,18 +1,14 @@
 """Unit tests for report generators."""
 
-import json
-from datetime import datetime, timezone
 
 import pytest
-import pytest_asyncio
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.reporting.generators import GENERATORS
+from src.reporting.generators.activity_report import ActivityReportGenerator
 from src.reporting.generators.base import BaseGenerator
+from src.reporting.generators.compliance_report import ComplianceReportGenerator
 from src.reporting.generators.safety_report import SafetyReportGenerator
 from src.reporting.generators.spend_report import SpendReportGenerator
-from src.reporting.generators.activity_report import ActivityReportGenerator
-from src.reporting.generators.compliance_report import ComplianceReportGenerator
 
 
 class TestGeneratorRegistry:

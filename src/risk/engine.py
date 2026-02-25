@@ -24,11 +24,11 @@ from __future__ import annotations
 
 import structlog
 
-from src.risk.pii_detector import PIIEntity, detect as detect_pii
+from src.risk.pii_detector import PIIEntity
+from src.risk.pii_detector import detect as detect_pii
 from src.risk.rules_engine import evaluate as evaluate_rules
 from src.risk.safety_classifier import classify as classify_safety
 from src.risk.schemas import RiskClassification
-from src.risk.taxonomy import RISK_CATEGORIES
 
 logger = structlog.get_logger()
 

@@ -4,7 +4,6 @@ Covers get_group_settings (defaults, stored values, 404) and
 update_group_settings (name, safety_level, notifications, budget, admin role).
 """
 
-from datetime import datetime, timezone
 from uuid import uuid4
 
 import pytest
@@ -20,7 +19,6 @@ from src.exceptions import ForbiddenError, NotFoundError
 from src.groups.models import Group, GroupMember
 from src.portal.schemas import GroupSettingsResponse, UpdateGroupSettingsRequest
 from src.portal.service import get_group_settings, update_group_settings
-
 
 # ---------------------------------------------------------------------------
 # Fixture: async session with in-memory SQLite

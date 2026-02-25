@@ -4,10 +4,8 @@ Covers email, phone (US/UK/intl), SSN, credit card, IBAN, IP, DOB, name,
 masking, false-positive resistance, edge cases, and multi-PII scenarios.
 """
 
-import pytest
 
 from src.risk.pii_detector import PIIEntity, detect, mask
-
 
 # ---------------------------------------------------------------------------
 # Email detection
@@ -432,7 +430,7 @@ class TestEdgeCases:
         text = "SSN is 123-45-6789"
         entities = detect(text)
         # Verify no two entities have the exact same start position
-        starts = [e.start for e in entities]
+        [e.start for e in entities]
         # Overlapping entities should be deduplicated
         for i in range(len(entities) - 1):
             if entities[i].start == entities[i + 1].start:

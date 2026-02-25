@@ -4,16 +4,12 @@ Covers keyword watchlists per category, age-band scaling, custom keywords,
 clean-text scenarios, and multi-category detection.
 """
 
-import pytest
 
 from src.risk.rules_engine import (
-    AGE_BAND_MULTIPLIERS,
-    KEYWORD_WATCHLISTS,
     _effective_threshold,
     _get_age_band,
     evaluate,
 )
-
 
 # ---------------------------------------------------------------------------
 # Self-harm detection

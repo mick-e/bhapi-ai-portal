@@ -1,7 +1,6 @@
 """Redis client for caching and rate limiting."""
 
 from contextlib import asynccontextmanager
-from typing import Any
 
 import redis.asyncio as redis
 import structlog

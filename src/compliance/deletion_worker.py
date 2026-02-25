@@ -10,15 +10,14 @@ from datetime import datetime, timezone
 from uuid import uuid4
 
 import structlog
-from sqlalchemy import select, update
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.alerts.models import Alert, NotificationPreference
 from src.auth.models import OAuthConnection, Session, User
-from src.billing.models import SpendRecord
 from src.capture.models import CaptureEvent, DeviceRegistration
 from src.compliance.models import AuditEntry, ConsentRecord, DataDeletionRequest
-from src.groups.models import Group, GroupMember, Invitation
+from src.groups.models import GroupMember, Invitation
 from src.risk.models import ContentExcerpt, RiskEvent
 
 logger = structlog.get_logger()

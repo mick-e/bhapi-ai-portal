@@ -5,11 +5,11 @@ filtering by platform / event_type / risk_level / search, and
 the empty-group edge case.
 """
 
-import pytest
-import pytest_asyncio
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
+import pytest
+import pytest_asyncio
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.pool import StaticPool
@@ -20,7 +20,6 @@ from src.capture.service import list_events_enriched
 from src.database import Base
 from src.groups.models import Group, GroupMember
 from src.risk.models import RiskEvent
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

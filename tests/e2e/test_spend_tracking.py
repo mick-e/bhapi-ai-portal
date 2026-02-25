@@ -4,10 +4,9 @@ Covers subscription creation/duplicate detection, LLM account connect/list/disco
 spend summary retrieval, and budget threshold management.
 """
 
-import pytest
-from datetime import datetime, timezone
 from uuid import uuid4
 
+import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
@@ -15,7 +14,6 @@ from sqlalchemy.pool import StaticPool
 
 from src.database import Base, get_db
 from src.main import create_app
-
 
 # ---------------------------------------------------------------------------
 # Helpers

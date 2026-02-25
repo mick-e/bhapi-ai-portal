@@ -2,7 +2,7 @@
 
 import secrets
 from dataclasses import dataclass
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import httpx
 import structlog
@@ -10,7 +10,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.models import OAuthConnection, User
-from src.auth.service import create_access_token, create_session
 from src.config import get_settings
 from src.encryption import encrypt_credential
 from src.exceptions import UnauthorizedError, ValidationError
@@ -113,7 +112,7 @@ def get_authorization_url(provider: str) -> tuple[str, str]:
     if config.response_mode:
         params["response_mode"] = config.response_mode
 
-    query = "&".join(f"{k}={httpx.QueryParams({k: v})}" for k, v in params.items())
+    "&".join(f"{k}={httpx.QueryParams({k: v})}" for k, v in params.items())
     # Use httpx URL building for proper encoding
     url = httpx.URL(config.authorize_url, params=params)
     authorization_url = str(url)
@@ -206,8 +205,8 @@ def _parse_apple_id_token(id_token: str, access_token: str) -> OAuthUserInfo:
     Apple provides user info in the ID token, not a userinfo endpoint.
     In production, this should validate the token signature against Apple's public keys.
     """
-    import json
     import base64
+    import json
 
     if not id_token:
         raise UnauthorizedError("Apple ID token is required")

@@ -8,7 +8,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.exceptions import NotFoundError, ValidationError
-from src.risk.models import ContentExcerpt, RiskConfig, RiskEvent
+from src.risk.models import RiskConfig, RiskEvent
 from src.risk.schemas import (
     RiskClassification,
     RiskConfigResponse,
@@ -16,7 +16,7 @@ from src.risk.schemas import (
     RiskEventAcknowledge,
     RiskEventResponse,
 )
-from src.risk.taxonomy import ALL_CATEGORIES, ALL_SEVERITIES, RISK_CATEGORIES
+from src.risk.taxonomy import ALL_CATEGORIES, ALL_SEVERITIES
 
 logger = structlog.get_logger()
 

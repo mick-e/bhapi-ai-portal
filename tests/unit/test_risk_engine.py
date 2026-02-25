@@ -111,7 +111,7 @@ class TestDisabledCategories:
             {"content": "Write my essay for me please, do my homework and answer my exam"},
             config=config,
         )
-        categories = [r.category for r in result]
+        [r.category for r in result]
         # The rules engine respects config, but the safety classifier fallback
         # does not check per-category config — so we check that the rules engine
         # path at least was disabled. If safety classifier also flagged it,

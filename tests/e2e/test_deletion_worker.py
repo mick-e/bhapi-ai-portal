@@ -1,7 +1,7 @@
 """End-to-end tests for GDPR data deletion workflow."""
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 import pytest
 import pytest_asyncio
@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.alerts.models import Alert
 from src.auth.models import User
 from src.capture.models import CaptureEvent
-from src.compliance.deletion_worker import process_pending_deletions, _delete_user_data
+from src.compliance.deletion_worker import _delete_user_data, process_pending_deletions
 from src.compliance.models import AuditEntry, DataDeletionRequest
 from src.groups.models import Group, GroupMember
 from src.risk.models import RiskEvent

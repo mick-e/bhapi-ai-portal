@@ -7,9 +7,9 @@ import structlog
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.exceptions import NotFoundError
 from src.compliance.models import AuditEntry, ConsentRecord, DataDeletionRequest
 from src.compliance.schemas import ConsentWithdrawRequest, DataRequestCreate
+from src.exceptions import NotFoundError
 
 logger = structlog.get_logger()
 

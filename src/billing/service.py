@@ -1,16 +1,16 @@
 """Billing service — business logic for subscriptions, LLM accounts, and spend tracking."""
 
-from datetime import datetime, timezone
+from datetime import datetime
 from uuid import UUID, uuid4
 
 import structlog
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.encryption import decrypt_credential, encrypt_credential
-from src.exceptions import ConflictError, NotFoundError, ValidationError
 from src.billing.models import BudgetThreshold, LLMAccount, SpendRecord, Subscription
 from src.billing.schemas import ProviderConnect, SubscribeRequest, ThresholdConfig
+from src.encryption import decrypt_credential, encrypt_credential
+from src.exceptions import ConflictError, NotFoundError, ValidationError
 
 logger = structlog.get_logger()
 

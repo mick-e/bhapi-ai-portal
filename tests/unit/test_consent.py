@@ -1,8 +1,8 @@
 """Consent logic unit tests."""
 
-import pytest
-from datetime import datetime, timezone, timedelta
-from src.groups.consent import calculate_age, requires_consent, get_consent_type
+from datetime import datetime, timedelta, timezone
+
+from src.groups.consent import calculate_age, get_consent_type, requires_consent
 
 
 class TestCalculateAge:

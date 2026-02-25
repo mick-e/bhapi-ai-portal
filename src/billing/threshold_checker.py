@@ -18,7 +18,6 @@ import structlog
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.alerts.models import Alert
 from src.alerts.schemas import AlertCreate
 from src.alerts.service import create_alert
 from src.billing.models import BudgetThreshold, SpendRecord

@@ -1,11 +1,11 @@
 """Auth security tests."""
 
 import pytest
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.pool import StaticPool
-from sqlalchemy import event
 
-from httpx import ASGITransport, AsyncClient
 from src.database import Base, get_db
 from src.main import create_app
 
@@ -115,8 +115,9 @@ async def test_invalid_bearer_token(sec_client):
 @pytest.mark.asyncio
 async def test_expired_token(sec_client):
     """Expired token returns 401."""
-    from jose import jwt
     from datetime import datetime, timedelta, timezone
+
+    from jose import jwt
     token = jwt.encode(
         {"sub": "fake-user-id", "exp": datetime.now(timezone.utc) - timedelta(hours=1)},
         "test-secret-key-for-testing-only-min32chars",

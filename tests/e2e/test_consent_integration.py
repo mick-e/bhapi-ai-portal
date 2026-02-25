@@ -1,20 +1,18 @@
 """Tests for consent integration — blocks capture events for underage members."""
 
-import pytest
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
+import pytest
+
 from src.auth.models import User
-from src.capture.models import CaptureEvent
 from src.capture.schemas import EventPayload
 from src.capture.service import ingest_event
-from src.compliance.models import ConsentRecord
 from src.exceptions import ValidationError
 from src.groups.consent import calculate_age, get_consent_type, requires_consent
 from src.groups.models import Group, GroupMember
 from src.groups.schemas import MemberAdd
 from src.groups.service import add_member, check_member_consent, record_consent
-
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 

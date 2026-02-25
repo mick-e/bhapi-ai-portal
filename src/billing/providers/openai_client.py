@@ -6,7 +6,7 @@ for the newer API). Normalizes into SpendEntry objects.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime
 
 import structlog
 

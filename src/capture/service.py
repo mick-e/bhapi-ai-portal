@@ -1,7 +1,6 @@
 """Capture gateway service — event ingestion and normalisation."""
 
 import secrets
-from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
 import structlog
@@ -10,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.capture.models import CaptureEvent, DeviceRegistration
 from src.capture.schemas import DeviceRegisterRequest, EnrichedEventResponse, EventPayload
-from src.exceptions import NotFoundError, ValidationError
+from src.exceptions import ValidationError
 from src.groups.models import GroupMember
 from src.risk.models import RiskEvent
 

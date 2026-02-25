@@ -7,9 +7,9 @@ import structlog
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.exceptions import NotFoundError
 from src.alerts.models import Alert, NotificationPreference
 from src.alerts.schemas import AlertCreate, PreferenceConfig
+from src.exceptions import NotFoundError
 
 logger = structlog.get_logger()
 

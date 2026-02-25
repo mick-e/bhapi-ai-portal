@@ -5,10 +5,9 @@ risk config get/update, alert creation/listing/acknowledgement,
 and notification preferences.
 """
 
-import pytest
-from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
+import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
@@ -16,7 +15,6 @@ from sqlalchemy.pool import StaticPool
 
 from src.database import Base, get_db
 from src.main import create_app
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -128,8 +126,8 @@ async def test_create_and_list_risk_event(risk_client):
     gid, mid = await _create_group_and_member(client, headers)
 
     # Create risk event via service (convert str IDs to UUID)
-    from src.risk.service import create_risk_event
     from src.risk.schemas import RiskClassification
+    from src.risk.service import create_risk_event
 
     classification = RiskClassification(
         category="SELF_HARM",
@@ -158,8 +156,8 @@ async def test_filter_risk_events_by_category(risk_client):
     headers = {"Authorization": f"Bearer {token}"}
     gid, mid = await _create_group_and_member(client, headers)
 
-    from src.risk.service import create_risk_event
     from src.risk.schemas import RiskClassification
+    from src.risk.service import create_risk_event
 
     gid_uuid, mid_uuid = UUID(gid), UUID(mid)
     await create_risk_event(session, gid_uuid, mid_uuid, RiskClassification(
@@ -187,8 +185,8 @@ async def test_filter_risk_events_by_severity(risk_client):
     headers = {"Authorization": f"Bearer {token}"}
     gid, mid = await _create_group_and_member(client, headers)
 
-    from src.risk.service import create_risk_event
     from src.risk.schemas import RiskClassification
+    from src.risk.service import create_risk_event
 
     gid_uuid, mid_uuid = UUID(gid), UUID(mid)
     await create_risk_event(session, gid_uuid, mid_uuid, RiskClassification(
@@ -216,8 +214,8 @@ async def test_filter_risk_events_by_acknowledged(risk_client):
     headers = {"Authorization": f"Bearer {token}"}
     gid, mid = await _create_group_and_member(client, headers)
 
-    from src.risk.service import create_risk_event
     from src.risk.schemas import RiskClassification
+    from src.risk.service import create_risk_event
 
     await create_risk_event(session, UUID(gid), UUID(mid), RiskClassification(
         category="VIOLENCE", severity="critical", confidence=0.9, reasoning="test"
@@ -240,8 +238,8 @@ async def test_risk_event_pagination(risk_client):
     headers = {"Authorization": f"Bearer {token}"}
     gid, mid = await _create_group_and_member(client, headers)
 
-    from src.risk.service import create_risk_event
     from src.risk.schemas import RiskClassification
+    from src.risk.service import create_risk_event
 
     gid_uuid, mid_uuid = UUID(gid), UUID(mid)
     for i in range(5):
@@ -268,8 +266,8 @@ async def test_get_single_risk_event(risk_client):
     headers = {"Authorization": f"Bearer {token}"}
     gid, mid = await _create_group_and_member(client, headers)
 
-    from src.risk.service import create_risk_event
     from src.risk.schemas import RiskClassification
+    from src.risk.service import create_risk_event
 
     ev = await create_risk_event(session, UUID(gid), UUID(mid), RiskClassification(
         category="SELF_HARM", severity="critical", confidence=0.85, reasoning="test"
@@ -292,8 +290,8 @@ async def test_acknowledge_risk_event(risk_client):
     headers = {"Authorization": f"Bearer {token}"}
     gid, mid = await _create_group_and_member(client, headers)
 
-    from src.risk.service import create_risk_event
     from src.risk.schemas import RiskClassification
+    from src.risk.service import create_risk_event
 
     ev = await create_risk_event(session, UUID(gid), UUID(mid), RiskClassification(
         category="VIOLENCE", severity="critical", confidence=0.9, reasoning="test"
@@ -319,8 +317,8 @@ async def test_acknowledge_already_acknowledged_event(risk_client):
     headers = {"Authorization": f"Bearer {token}"}
     gid, mid = await _create_group_and_member(client, headers)
 
-    from src.risk.service import create_risk_event
     from src.risk.schemas import RiskClassification
+    from src.risk.service import create_risk_event
 
     ev = await create_risk_event(session, UUID(gid), UUID(mid), RiskClassification(
         category="VIOLENCE", severity="critical", confidence=0.9, reasoning="test"
@@ -478,8 +476,8 @@ async def test_create_and_list_alert(risk_client):
     headers = {"Authorization": f"Bearer {token}"}
     gid, mid = await _create_group_and_member(client, headers)
 
-    from src.alerts.service import create_alert
     from src.alerts.schemas import AlertCreate
+    from src.alerts.service import create_alert
 
     await create_alert(session, AlertCreate(
         group_id=UUID(gid),
@@ -509,8 +507,8 @@ async def test_filter_alerts_by_severity(risk_client):
     headers = {"Authorization": f"Bearer {token}"}
     gid, mid = await _create_group_and_member(client, headers)
 
-    from src.alerts.service import create_alert
     from src.alerts.schemas import AlertCreate
+    from src.alerts.service import create_alert
 
     await create_alert(session, AlertCreate(
         group_id=UUID(gid), severity="critical", title="Critical alert", body="Body 1",
@@ -537,8 +535,8 @@ async def test_get_single_alert(risk_client):
     headers = {"Authorization": f"Bearer {token}"}
     gid, _ = await _create_group_and_member(client, headers)
 
-    from src.alerts.service import create_alert
     from src.alerts.schemas import AlertCreate
+    from src.alerts.service import create_alert
 
     alert = await create_alert(session, AlertCreate(
         group_id=UUID(gid), severity="high", title="PII detected", body="Details here",
@@ -561,8 +559,8 @@ async def test_acknowledge_alert(risk_client):
     headers = {"Authorization": f"Bearer {token}"}
     gid, _ = await _create_group_and_member(client, headers)
 
-    from src.alerts.service import create_alert
     from src.alerts.schemas import AlertCreate
+    from src.alerts.service import create_alert
 
     alert = await create_alert(session, AlertCreate(
         group_id=UUID(gid), severity="critical", title="Alert", body="Body",

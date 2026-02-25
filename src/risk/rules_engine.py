@@ -216,7 +216,7 @@ def evaluate(
 
     config = config or {}
     results: list[RiskClassification] = []
-    text_lower = text.lower()
+    text.lower()
 
     for category, patterns in _COMPILED_WATCHLISTS.items():
         # Check if category is enabled

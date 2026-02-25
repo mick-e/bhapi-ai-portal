@@ -16,7 +16,7 @@ Uses 18+ regex patterns to detect PII in text content, covering:
 """
 
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 @dataclass

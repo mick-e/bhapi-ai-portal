@@ -1,20 +1,19 @@
 """Auth service — business logic for authentication."""
 
 import hashlib
-import secrets
 from datetime import datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
 import bcrypt
 import structlog
 from jose import jwt
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.models import Session, User
-from src.auth.schemas import RegisterRequest, TokenResponse, UserProfile
+from src.auth.schemas import RegisterRequest, UserProfile
 from src.config import get_settings
-from src.exceptions import ConflictError, NotFoundError, UnauthorizedError, ValidationError
+from src.exceptions import ConflictError, NotFoundError, UnauthorizedError
 
 logger = structlog.get_logger()
 settings = get_settings()

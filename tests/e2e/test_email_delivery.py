@@ -5,18 +5,18 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 import pytest_asyncio
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.alerts.models import Alert, NotificationPreference
 from src.alerts.delivery import deliver_alert_email, deliver_risk_alert
+from src.alerts.digest import run_daily_digest, run_hourly_digest
+from src.alerts.models import Alert, NotificationPreference
 from src.alerts.scheduler import (
+    reset_renotify_state,
     run_renotification_check,
     schedule_renotification,
-    reset_renotify_state,
 )
-from src.alerts.digest import run_hourly_digest, run_daily_digest
 from src.auth.models import User
+from src.auth.schemas import RegisterRequest
 from src.auth.service import (
     confirm_email,
     create_email_verification_token,
@@ -25,7 +25,6 @@ from src.auth.service import (
     reset_password,
     send_verification_email,
 )
-from src.auth.schemas import RegisterRequest
 from src.groups.models import Group, GroupMember
 
 
@@ -79,7 +78,7 @@ def _make_alert(group_id, member_id=None, severity="critical", status="pending")
         member_id=member_id,
         severity=severity,
         title=f"Test {severity} alert",
-        body=f"Detected test content on chatgpt with 90% confidence. Test reasoning.",
+        body="Detected test content on chatgpt with 90% confidence. Test reasoning.",
         channel="portal",
         status=status,
     )

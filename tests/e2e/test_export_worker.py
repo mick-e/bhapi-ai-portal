@@ -1,10 +1,10 @@
 """End-to-end tests for GDPR data export workflow."""
 
+import io
 import json
 import uuid
 import zipfile
-import io
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 import pytest
 import pytest_asyncio
@@ -14,9 +14,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.auth.models import User
 from src.capture.models import CaptureEvent
 from src.compliance.export_worker import (
+    _collect_user_data,
     export_user_data_bytes,
     process_pending_exports,
-    _collect_user_data,
 )
 from src.compliance.models import AuditEntry, DataDeletionRequest
 from src.groups.models import Group, GroupMember

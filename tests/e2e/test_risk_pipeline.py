@@ -4,7 +4,7 @@ Tests the full flow: ingest capture event → risk pipeline → risk events + al
 """
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 import pytest
 import pytest_asyncio
@@ -15,7 +15,6 @@ from src.alerts.models import Alert
 from src.auth.models import User
 from src.capture.models import CaptureEvent
 from src.groups.models import Group, GroupMember
-from src.risk.models import RiskEvent
 from src.risk.pipeline import process_capture_event
 
 

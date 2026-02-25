@@ -7,9 +7,9 @@ Uses database-based locking to prevent concurrent execution of the same job.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Callable, Awaitable
+from typing import Awaitable, Callable
 
 import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -55,8 +55,8 @@ def _init_registry() -> None:
     if _JOB_REGISTRY:
         return
 
+    from src.alerts.digest import run_daily_digest, run_hourly_digest
     from src.alerts.scheduler import run_renotification_check
-    from src.alerts.digest import run_hourly_digest, run_daily_digest
     from src.billing.scheduler import sync_all_accounts
     from src.billing.threshold_checker import check_all_group_thresholds
     from src.compliance.deletion_worker import process_pending_deletions

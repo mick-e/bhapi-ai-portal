@@ -19,7 +19,6 @@ from src.billing.providers.base import (
     AuthenticationError,
     BaseProvider,
     RateLimitError,
-    SpendEntry,
 )
 
 logger = structlog.get_logger()
@@ -38,10 +37,10 @@ def _init_registry() -> None:
     if _PROVIDER_REGISTRY:
         return
 
-    from src.billing.providers.openai_client import OpenAIProvider
     from src.billing.providers.anthropic_client import AnthropicProvider
     from src.billing.providers.google_client import GoogleProvider
     from src.billing.providers.microsoft_client import MicrosoftProvider
+    from src.billing.providers.openai_client import OpenAIProvider
 
     register_provider("openai", OpenAIProvider)
     register_provider("anthropic", AnthropicProvider)

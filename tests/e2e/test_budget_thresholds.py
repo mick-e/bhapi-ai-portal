@@ -1,7 +1,7 @@
 """End-to-end tests for budget threshold alerting and spend sync."""
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 import pytest
 import pytest_asyncio

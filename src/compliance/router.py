@@ -7,7 +7,6 @@ from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.middleware import get_current_user
-from src.database import get_db
 from src.compliance.export_worker import export_user_data_bytes
 from src.compliance.schemas import (
     AuditEntryResponse,
@@ -23,6 +22,7 @@ from src.compliance.service import (
     list_consents,
     withdraw_consent,
 )
+from src.database import get_db
 from src.schemas import GroupContext
 
 router = APIRouter()
@@ -69,7 +69,7 @@ async def download_export(
         content=content,
         media_type="application/zip",
         headers={
-            "Content-Disposition": f'attachment; filename="bhapi_data_export.zip"',
+            "Content-Disposition": 'attachment; filename="bhapi_data_export.zip"',
         },
     )
 

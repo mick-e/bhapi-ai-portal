@@ -1,6 +1,5 @@
 """Auth enforcement middleware."""
 
-from uuid import UUID
 
 import structlog
 from starlette.middleware.base import BaseHTTPMiddleware

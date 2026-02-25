@@ -7,15 +7,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.middleware import get_current_user
 from src.capture.schemas import (
-    APIWebhookEvent,
     CaptureEventResponse,
     DeviceRegisterRequest,
     DeviceResponse,
-    DNSEvent,
-    EnrichedEventResponse,
     EventPayload,
 )
-from src.capture.service import ingest_event, list_devices, list_events, list_events_enriched, register_device
+from src.capture.service import ingest_event, list_devices, list_events_enriched, register_device
 from src.capture.validators import verify_hmac_signature
 from src.config import get_settings
 from src.database import get_db

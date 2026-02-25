@@ -4,6 +4,14 @@ from fastapi import APIRouter, Depends, Query, Response
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.auth.middleware import get_current_user
+from src.auth.oauth import (
+    SUPPORTED_PROVIDERS,
+    exchange_code_for_tokens,
+    find_or_create_oauth_user,
+    get_authorization_url,
+    get_oauth_user_info,
+)
 from src.auth.schemas import (
     LoginRequest,
     OAuthAuthorizeResponse,
@@ -13,15 +21,6 @@ from src.auth.schemas import (
     TokenResponse,
     UserProfile,
 )
-from src.auth.middleware import get_current_user
-from src.auth.oauth import (
-    exchange_code_for_tokens,
-    find_or_create_oauth_user,
-    get_authorization_url,
-    get_oauth_user_info,
-    OAuthUserInfo,
-    SUPPORTED_PROVIDERS,
-)
 from src.auth.service import (
     authenticate_user,
     confirm_email,
@@ -29,16 +28,15 @@ from src.auth.service import (
     create_session,
     delete_user_account,
     get_user_by_id,
-    invalidate_session,
     register_user,
     request_password_reset,
     reset_password,
     send_verification_email,
     user_to_profile,
 )
+from src.config import get_settings
 from src.constants import SESSION_COOKIE_NAME
 from src.database import get_db
-from src.config import get_settings
 from src.exceptions import ValidationError
 from src.schemas import GroupContext
 
