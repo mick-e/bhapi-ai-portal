@@ -1,47 +1,5 @@
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-[project]
-name = "bhapi-ai-portal"
-version = "1.0.0"
-description = "Bhapi Family AI Governance Portal"
-requires-python = ">=3.11"
-license = "MIT"
-
-dependencies = [
-    "fastapi>=0.109.0",
-    "uvicorn[standard]>=0.27.0",
-    "pydantic>=2.5.0",
-    "pydantic-settings>=2.1.0",
-    "sqlalchemy[asyncio]>=2.0.25",
-    "asyncpg>=0.29.0",
-    "alembic>=1.13.0",
-    "python-jose[cryptography]>=3.3.0",
-    "passlib[bcrypt]>=1.7.4",
-    "python-multipart>=0.0.6",
-    "httpx>=0.26.0",
-    "stripe>=8.0.0",
-    "reportlab>=4.1.0",
-    "sendgrid>=6.11.0",
-    "structlog>=24.1.0",
-    "redis>=5.0.0",
-]
-
-[project.optional-dependencies]
-gcp = [
-    "google-cloud-pubsub>=2.19.0",
-    "google-cloud-dlp>=3.15.0",
-    "google-cloud-firestore>=2.14.0",
-    "google-cloud-storage>=2.14.0",
-    "google-cloud-secret-manager>=2.18.0",
-    "google-cloud-kms>=2.21.0",
-    "google-auth>=2.27.0",
-]
-llm = [
-    "openai>=1.12.0",
-    "anthropic>=0.18.0",
-]
+# Project metadata (not an installable package — deps in requirements.txt)
+# Render deploys via Dockerfile, not pip install.
 
 [tool.ruff]
 target-version = "py311"
