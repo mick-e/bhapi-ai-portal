@@ -2,7 +2,6 @@
 
 from contextlib import asynccontextmanager
 
-import os
 from pathlib import Path
 
 import structlog
@@ -10,7 +9,6 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text as select_text
 
 from src.config import get_settings
@@ -169,9 +167,12 @@ def _register_routers(app: FastAPI) -> None:
                 )
         return {"status": "ready"}
 
-    # Root endpoint
+    # Root endpoint — serves frontend landing page if available, else JSON
     @app.get("/", tags=["Root"])
     async def root():
+        portal_index = _get_portal_dir() / "index.html"
+        if portal_index.is_file():
+            return FileResponse(str(portal_index))
         return {
             "name": settings.app_name,
             "version": settings.app_version,
@@ -213,22 +214,37 @@ def _register_routers(app: FastAPI) -> None:
     app.include_router(legal_router, prefix="/legal", tags=["Legal"])
 
 
+def _get_portal_dir() -> Path:
+    """Resolve the portal static export directory."""
+    # Try multiple paths to handle Docker (/app/portal/out) and local dev
+    candidates = [
+        Path("/app/portal/out"),
+        Path(__file__).resolve().parent.parent / "portal" / "out",
+        Path.cwd() / "portal" / "out",
+    ]
+    for p in candidates:
+        if p.is_dir():
+            return p
+    return candidates[0]  # fallback
+
+
 def _mount_frontend(app: FastAPI) -> None:
     """Mount the Next.js static export if the build output exists."""
-    portal_dir = Path(__file__).resolve().parent.parent / "portal" / "out"
+    portal_dir = _get_portal_dir()
     if not portal_dir.is_dir():
-        logger.info("frontend_not_found", path=str(portal_dir))
+        logger.info("frontend_not_found", candidates=[str(p) for p in [
+            Path("/app/portal/out"),
+            Path(__file__).resolve().parent.parent / "portal" / "out",
+            Path.cwd() / "portal" / "out",
+        ]])
         return
 
-    # Serve Next.js static assets (_next/static/*)
-    next_assets = portal_dir / "_next"
-    if next_assets.is_dir():
-        app.mount("/_next", StaticFiles(directory=str(next_assets)), name="next-assets")
+    logger.info("frontend_mounted", path=str(portal_dir))
 
     # Catch-all: serve the correct page HTML for client-side routes
     @app.get("/{path:path}", include_in_schema=False)
     async def serve_frontend(request: Request, path: str):
-        # Try exact file (e.g., favicon.ico, images)
+        # Try exact file (e.g., favicon.ico, _next/static/chunks/xxx.js)
         file_path = portal_dir / path
         if file_path.is_file():
             return FileResponse(str(file_path))
