@@ -1,11 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Shield } from "lucide-react";
 import { setAuthToken } from "@/lib/auth";
 
 export default function OAuthCallbackPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 px-4">
+          <Shield className="mx-auto h-10 w-10 text-primary animate-pulse" />
+          <p className="mt-4 text-sm text-gray-600">Loading...</p>
+        </div>
+      }
+    >
+      <OAuthCallbackContent />
+    </Suspense>
+  );
+}
+
+function OAuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
