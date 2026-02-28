@@ -16,10 +16,17 @@ from src.capture.service import ingest_event, list_devices, list_events_enriched
 from src.capture.validators import verify_hmac_signature
 from src.config import get_settings
 from src.database import get_db
-from src.exceptions import UnauthorizedError
+from src.exceptions import UnauthorizedError, ValidationError
 from src.schemas import GroupContext
 
 router = APIRouter()
+
+
+def _gid(group_id: UUID | None, auth: GroupContext) -> UUID:
+    gid = group_id or auth.group_id
+    if not gid:
+        raise ValidationError("No group found. Please create a group first.")
+    return gid
 
 
 async def _validate_hmac(request: Request, x_bhapi_signature: str | None = Header(None)) -> None:
@@ -77,7 +84,7 @@ async def capture_api_event(
 
 @router.get("/events")
 async def list_capture_events(
-    group_id: UUID = Query(...),
+    group_id: UUID | None = Query(None),
     member_id: UUID | None = Query(None),
     platform: str | None = Query(None),
     risk_level: str | None = Query(None),
@@ -90,7 +97,7 @@ async def list_capture_events(
 ):
     """List enriched capture events for a group with pagination (FR-023)."""
     return await list_events_enriched(
-        db, group_id, member_id, platform, risk_level, event_type, search, page, page_size
+        db, _gid(group_id, auth), member_id, platform, risk_level, event_type, search, page, page_size
     )
 
 
@@ -106,9 +113,9 @@ async def register_device_endpoint(
 
 @router.get("/devices", response_model=list[DeviceResponse])
 async def list_devices_endpoint(
-    group_id: UUID = Query(...),
+    group_id: UUID | None = Query(None),
     auth: GroupContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """List registered devices for a group."""
-    return await list_devices(db, group_id)
+    return await list_devices(db, _gid(group_id, auth))

@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.middleware import get_current_user
 from src.database import get_db
+from src.exceptions import ValidationError
 from src.reporting.schemas import (
     ReportRequest,
     ReportResponse,
@@ -25,6 +26,14 @@ from src.reporting.service import (
 from src.schemas import GroupContext
 
 router = APIRouter()
+
+
+def _gid(group_id: UUID | None, auth: GroupContext) -> UUID:
+    gid = group_id or auth.group_id
+    if not gid:
+        raise ValidationError("No group found. Please create a group first.")
+    return gid
+
 
 CONTENT_TYPES = {
     "pdf": "application/pdf",
@@ -46,14 +55,14 @@ async def generate_report_endpoint(
 
 @router.get("", response_model=list[ReportResponse])
 async def list_reports_endpoint(
-    group_id: UUID = Query(..., description="Group ID"),
+    group_id: UUID | None = Query(None, description="Group ID"),
     offset: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
     auth: GroupContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """List generated reports for a group."""
-    reports = await list_reports(db, group_id, offset=offset, limit=limit)
+    reports = await list_reports(db, _gid(group_id, auth), offset=offset, limit=limit)
     return reports
 
 
@@ -110,10 +119,10 @@ async def create_schedule_endpoint(
 
 @router.get("/schedules", response_model=list[ScheduleResponse])
 async def list_schedules_endpoint(
-    group_id: UUID = Query(..., description="Group ID"),
+    group_id: UUID | None = Query(None, description="Group ID"),
     auth: GroupContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """List report schedules for a group."""
-    schedules = await list_schedules(db, group_id)
+    schedules = await list_schedules(db, _gid(group_id, auth))
     return schedules

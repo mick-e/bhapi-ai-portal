@@ -23,9 +23,17 @@ from src.compliance.service import (
     withdraw_consent,
 )
 from src.database import get_db
+from src.exceptions import ValidationError
 from src.schemas import GroupContext
 
 router = APIRouter()
+
+
+def _gid(group_id: UUID | None, auth: GroupContext) -> UUID:
+    gid = group_id or auth.group_id
+    if not gid:
+        raise ValidationError("No group found. Please create a group first.")
+    return gid
 
 
 @router.post("/data-request", response_model=DataRequestStatus, status_code=201)
@@ -60,7 +68,6 @@ async def download_export(
     request = await get_data_request_status(db, request_id)
 
     if request.request_type != "data_export":
-        from src.exceptions import ValidationError
         raise ValidationError("Only data_export requests can be downloaded")
 
     # Generate export on-demand
@@ -76,7 +83,7 @@ async def download_export(
 
 @router.get("/consents", response_model=list[ConsentResponse])
 async def list_consents_endpoint(
-    group_id: UUID = Query(..., description="Group ID"),
+    group_id: UUID | None = Query(None, description="Group ID"),
     member_id: UUID | None = Query(None, description="Filter by member ID"),
     offset: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
@@ -84,7 +91,7 @@ async def list_consents_endpoint(
     db: AsyncSession = Depends(get_db),
 ):
     """List consent records for a group (FR-053)."""
-    consents = await list_consents(db, group_id, member_id=member_id, offset=offset, limit=limit)
+    consents = await list_consents(db, _gid(group_id, auth), member_id=member_id, offset=offset, limit=limit)
     return consents
 
 
@@ -101,7 +108,7 @@ async def withdraw_consent_endpoint(
 
 @router.get("/audit-log", response_model=list[AuditEntryResponse])
 async def list_audit_log_endpoint(
-    group_id: UUID = Query(..., description="Group ID"),
+    group_id: UUID | None = Query(None, description="Group ID"),
     action: str | None = Query(None, description="Filter by action"),
     resource_type: str | None = Query(None, description="Filter by resource type"),
     offset: int = Query(0, ge=0),
@@ -111,6 +118,6 @@ async def list_audit_log_endpoint(
 ):
     """List audit log entries (FR-054)."""
     entries = await list_audit_entries(
-        db, group_id, action=action, resource_type=resource_type, offset=offset, limit=limit
+        db, _gid(group_id, auth), action=action, resource_type=resource_type, offset=offset, limit=limit
     )
     return entries

@@ -52,4 +52,21 @@ async def get_current_user(
     except Exception:
         raise UnauthorizedError("User account not found")
 
-    return GroupContext(user_id=uid)
+    # Look up user's primary group
+    from src.groups.service import list_user_groups
+    groups = await list_user_groups(db, uid)
+    group_id = groups[0].id if groups else None
+    role = None
+    if groups:
+        # Get the user's role in their primary group
+        from sqlalchemy import select
+        from src.groups.models import GroupMember
+        result = await db.execute(
+            select(GroupMember.role).where(
+                GroupMember.group_id == group_id,
+                GroupMember.user_id == uid,
+            )
+        )
+        role = result.scalar_one_or_none()
+
+    return GroupContext(user_id=uid, group_id=group_id, role=role)

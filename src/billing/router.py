@@ -30,9 +30,17 @@ from src.billing.service import (
     list_thresholds,
 )
 from src.database import get_db
+from src.exceptions import ValidationError
 from src.schemas import GroupContext
 
 router = APIRouter()
+
+
+def _gid(group_id: UUID | None, auth: GroupContext) -> UUID:
+    gid = group_id or auth.group_id
+    if not gid:
+        raise ValidationError("No group found. Please create a group first.")
+    return gid
 
 
 # ─── Subscriptions ───────────────────────────────────────────────────────────
@@ -51,12 +59,12 @@ async def subscribe(
 
 @router.get("/subscription", response_model=SubscriptionStatus)
 async def get_subscription_status(
-    group_id: UUID = Query(..., description="Group ID"),
+    group_id: UUID | None = Query(None, description="Group ID"),
     auth: GroupContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Get current subscription status for a group."""
-    subscription = await get_subscription(db, group_id)
+    subscription = await get_subscription(db, _gid(group_id, auth))
     return subscription
 
 
@@ -76,12 +84,12 @@ async def connect_account(
 
 @router.get("/llm-accounts", response_model=list[LLMAccountResponse])
 async def list_accounts(
-    group_id: UUID = Query(..., description="Group ID"),
+    group_id: UUID | None = Query(None, description="Group ID"),
     auth: GroupContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """List connected LLM accounts for a group."""
-    accounts = await list_llm_accounts(db, group_id)
+    accounts = await list_llm_accounts(db, _gid(group_id, auth))
     return accounts
 
 
@@ -101,7 +109,7 @@ async def disconnect_account(
 
 @router.get("/spend", response_model=SpendSummary)
 async def get_spend(
-    group_id: UUID = Query(..., description="Group ID"),
+    group_id: UUID | None = Query(None, description="Group ID"),
     period_start: datetime = Query(..., description="Period start (ISO 8601)"),
     period_end: datetime = Query(..., description="Period end (ISO 8601)"),
     auth: GroupContext = Depends(get_current_user),
@@ -114,31 +122,31 @@ async def get_spend(
     if period_end.tzinfo is None:
         period_end = period_end.replace(tzinfo=timezone.utc)
 
-    summary = await get_spend_summary(db, group_id, period_start, period_end)
+    summary = await get_spend_summary(db, _gid(group_id, auth), period_start, period_end)
     return summary
 
 
 @router.get("/spend/member/{member_id}", response_model=list[SpendRecordResponse])
 async def get_member_spend(
     member_id: UUID,
-    group_id: UUID = Query(..., description="Group ID"),
+    group_id: UUID | None = Query(None, description="Group ID"),
     auth: GroupContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Get spend records for a specific member (FR-034)."""
-    records = await get_spend_by_member(db, group_id, member_id)
+    records = await get_spend_by_member(db, _gid(group_id, auth), member_id)
     return records
 
 
 @router.get("/spend/platform/{account_id}", response_model=list[SpendRecordResponse])
 async def get_platform_spend(
     account_id: UUID,
-    group_id: UUID = Query(..., description="Group ID"),
+    group_id: UUID | None = Query(None, description="Group ID"),
     auth: GroupContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Get spend records by LLM platform account."""
-    records = await get_spend_by_platform(db, group_id, account_id)
+    records = await get_spend_by_platform(db, _gid(group_id, auth), account_id)
     return records
 
 
@@ -158,10 +166,10 @@ async def create_threshold_endpoint(
 
 @router.get("/thresholds", response_model=list[ThresholdResponse])
 async def list_thresholds_endpoint(
-    group_id: UUID = Query(..., description="Group ID"),
+    group_id: UUID | None = Query(None, description="Group ID"),
     auth: GroupContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """List budget thresholds for a group."""
-    thresholds = await list_thresholds(db, group_id)
+    thresholds = await list_thresholds(db, _gid(group_id, auth))
     return thresholds

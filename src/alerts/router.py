@@ -19,14 +19,22 @@ from src.alerts.service import (
 )
 from src.auth.middleware import get_current_user
 from src.database import get_db
+from src.exceptions import ValidationError
 from src.schemas import GroupContext
 
 router = APIRouter()
 
 
+def _gid(group_id: UUID | None, auth: GroupContext) -> UUID:
+    gid = group_id or auth.group_id
+    if not gid:
+        raise ValidationError("No group found. Please create a group first.")
+    return gid
+
+
 @router.get("", response_model=list[AlertResponse])
 async def list_alerts_endpoint(
-    group_id: UUID = Query(..., description="Group ID to list alerts for"),
+    group_id: UUID | None = Query(None, description="Group ID (defaults to user's primary group)"),
     severity: str | None = Query(None, description="Filter by severity"),
     status: str | None = Query(None, description="Filter by status"),
     offset: int = Query(0, ge=0),
@@ -35,19 +43,19 @@ async def list_alerts_endpoint(
     db: AsyncSession = Depends(get_db),
 ):
     """List alerts for a group (FR-021)."""
-    alerts = await list_alerts(db, group_id, severity=severity, status=status, offset=offset, limit=limit)
+    alerts = await list_alerts(db, _gid(group_id, auth), severity=severity, status=status, offset=offset, limit=limit)
     return alerts
 
 
 # Static paths MUST come before /{alert_id} to avoid "preferences" being parsed as UUID
 @router.get("/preferences", response_model=list[PreferenceResponse])
 async def get_preferences_endpoint(
-    group_id: UUID = Query(..., description="Group ID"),
+    group_id: UUID | None = Query(None, description="Group ID (defaults to user's primary group)"),
     auth: GroupContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Get notification preferences for the current user in a group."""
-    prefs = await get_preferences(db, group_id, auth.user_id)
+    prefs = await get_preferences(db, _gid(group_id, auth), auth.user_id)
     return prefs
 
 

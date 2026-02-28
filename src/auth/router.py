@@ -44,10 +44,16 @@ settings = get_settings()
 router = APIRouter()
 
 
-@router.post("/register", response_model=UserProfile, status_code=201)
-async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
-    """Register a new user account."""
+@router.post("/register", response_model=TokenResponse, status_code=201)
+async def register(data: RegisterRequest, response: Response, db: AsyncSession = Depends(get_db)):
+    """Register a new user account, auto-create group, and return token."""
     user = await register_user(db, data)
+
+    # Auto-create a group for the user
+    from src.groups.schemas import GroupCreate
+    from src.groups.service import create_group
+    group_name = f"{data.display_name}'s {data.account_type.capitalize()}"
+    await create_group(db, user.id, GroupCreate(name=group_name, type=data.account_type))
 
     # Send verification email (non-blocking — don't fail registration on email error)
     try:
@@ -55,7 +61,23 @@ async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
     except Exception:
         pass  # Logged in send_verification_email
 
-    return user_to_profile(user)
+    # Create access token and session so user is logged in immediately
+    access_token = create_access_token({"sub": str(user.id)})
+    session_token = await create_session(db, user.id)
+    response.set_cookie(
+        key=SESSION_COOKIE_NAME,
+        value=session_token,
+        httponly=True,
+        secure=settings.is_production,
+        samesite="lax",
+        max_age=settings.session_timeout_hours * 3600,
+        domain=settings.cookie_domain,
+    )
+
+    return TokenResponse(
+        access_token=access_token,
+        expires_in=settings.jwt_access_token_expire_minutes * 60,
+    )
 
 
 @router.post("/login", response_model=TokenResponse)
