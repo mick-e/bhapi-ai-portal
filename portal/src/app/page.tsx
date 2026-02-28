@@ -119,15 +119,18 @@ export default function LandingPage() {
           <div className="mx-auto mt-16 grid max-w-5xl grid-cols-1 gap-8 md:grid-cols-3">
             <AccountTypeCard
               title="Families"
+              price="$9.99/mo"
               description="Protect your children and manage AI usage across the household."
               features={[
                 "Per-child safety profiles",
                 "Age-appropriate content filtering",
                 "Shared family spend limits",
               ]}
+              cta={{ label: "Get Started", href: "/register" }}
             />
             <AccountTypeCard
               title="Schools"
+              price="Custom pricing"
               description="Safeguard students and empower teachers with AI oversight tools."
               features={[
                 "Classroom-level controls",
@@ -135,15 +138,18 @@ export default function LandingPage() {
                 "Compliance reporting",
               ]}
               highlighted
+              cta={{ label: "Contact Sales", href: "mailto:sales@bhapi.ai" }}
             />
             <AccountTypeCard
               title="Clubs"
+              price="Custom pricing"
               description="Keep your organisation safe with group-wide AI governance."
               features={[
                 "Custom member roles",
                 "Activity monitoring",
                 "Budget management",
               ]}
+              cta={{ label: "Contact Sales", href: "mailto:sales@bhapi.ai" }}
             />
           </div>
         </div>
@@ -191,18 +197,22 @@ function FeatureCard({
 
 function AccountTypeCard({
   title,
+  price,
   description,
   features,
   highlighted = false,
+  cta,
 }: {
   title: string;
+  price: string;
   description: string;
   features: string[];
   highlighted?: boolean;
+  cta: { label: string; href: string };
 }) {
   return (
     <div
-      className={`rounded-xl p-8 ${
+      className={`rounded-xl p-8 flex flex-col ${
         highlighted
           ? "bg-primary text-white ring-2 ring-primary shadow-lg"
           : "bg-white ring-1 ring-gray-200 shadow-sm"
@@ -216,13 +226,20 @@ function AccountTypeCard({
         {title}
       </h3>
       <p
+        className={`mt-1 text-2xl font-bold ${
+          highlighted ? "text-white" : "text-gray-900"
+        }`}
+      >
+        {price}
+      </p>
+      <p
         className={`mt-2 text-sm ${
           highlighted ? "text-primary-100" : "text-gray-600"
         }`}
       >
         {description}
       </p>
-      <ul className="mt-6 space-y-3">
+      <ul className="mt-6 space-y-3 flex-1">
         {features.map((feature) => (
           <li key={feature} className="flex items-start gap-2 text-sm">
             <Shield
@@ -236,6 +253,16 @@ function AccountTypeCard({
           </li>
         ))}
       </ul>
+      <Link
+        href={cta.href}
+        className={`mt-6 block rounded-lg px-4 py-2.5 text-center text-sm font-semibold transition-colors ${
+          highlighted
+            ? "bg-white text-primary hover:bg-primary-50"
+            : "bg-primary text-white hover:bg-primary-700"
+        }`}
+      >
+        {cta.label}
+      </Link>
     </div>
   );
 }

@@ -25,6 +25,8 @@ build/
 *.pem
 *.key
 keys/
+client_secret*.json
+credentials.json
 
 # Testing
 .coverage

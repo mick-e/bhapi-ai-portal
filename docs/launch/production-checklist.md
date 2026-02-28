@@ -92,17 +92,19 @@ OAUTH_APPLE_KEY_ID=<key-id>
 
 In [Stripe Dashboard → Products](https://dashboard.stripe.com/products):
 
-| Product | Monthly Price | Annual Price |
-|---------|--------------|--------------|
-| Bhapi Family | $9.99/mo | $99.99/yr |
-| Bhapi School | $29.99/mo | $299.99/yr |
-| Bhapi Club | $19.99/mo | $199.99/yr |
+| Product | Monthly Price | Annual Price | Model |
+|---------|--------------|--------------|-------|
+| Bhapi Family | $9.99/mo | $99.99/yr | Self-serve (Stripe Checkout) |
+| Bhapi School | Custom | Custom | Contact sales (sales@bhapi.ai) |
+| Bhapi Club | Custom | Custom | Contact sales (sales@bhapi.ai) |
 
-For each product:
+Only the **Family plan** needs Stripe products/prices. School and Club plans are custom-priced via sales.
+
+For the Family plan:
 1. Click **Add product**
-2. Set name (e.g., "Bhapi Family Plan")
-3. Add **Recurring** price for monthly
-4. Add **Recurring** price for annual
+2. Set name: "Bhapi Family Plan"
+3. Add **Recurring** price for monthly ($9.99)
+4. Add **Recurring** price for annual ($99.99)
 5. Copy the **Price ID** (starts with `price_`)
 
 ### 2.2 Configure Webhook
@@ -143,15 +145,13 @@ STRIPE_WEBHOOK_SECRET=whsec_...
 STRIPE_PUBLISHABLE_KEY=pk_live_...
 ```
 
-Optional per-plan price IDs (for checkout):
+Family plan price IDs (for checkout):
 ```
 STRIPE_PRICE_FAMILY_MONTHLY=price_...
 STRIPE_PRICE_FAMILY_ANNUAL=price_...
-STRIPE_PRICE_SCHOOL_MONTHLY=price_...
-STRIPE_PRICE_SCHOOL_ANNUAL=price_...
-STRIPE_PRICE_CLUB_MONTHLY=price_...
-STRIPE_PRICE_CLUB_ANNUAL=price_...
 ```
+
+*Note: School and Club plans use custom pricing via sales — no Stripe price IDs needed.*
 
 ---
 

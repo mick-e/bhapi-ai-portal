@@ -20,13 +20,10 @@ SKIP = "[SKIP]"
 INFO = "[INFO]"
 
 # Plan price mappings — replace with actual Stripe price IDs when configured
+# Only Family plan is self-serve. School and Club use custom pricing via sales.
 PLAN_PRICES = {
     "family_monthly": os.environ.get("STRIPE_PRICE_FAMILY_MONTHLY", ""),
     "family_annual": os.environ.get("STRIPE_PRICE_FAMILY_ANNUAL", ""),
-    "school_monthly": os.environ.get("STRIPE_PRICE_SCHOOL_MONTHLY", ""),
-    "school_annual": os.environ.get("STRIPE_PRICE_SCHOOL_ANNUAL", ""),
-    "club_monthly": os.environ.get("STRIPE_PRICE_CLUB_MONTHLY", ""),
-    "club_annual": os.environ.get("STRIPE_PRICE_CLUB_ANNUAL", ""),
 }
 
 test_customers: list[str] = []

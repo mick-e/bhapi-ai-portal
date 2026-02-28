@@ -10,6 +10,7 @@ Handles:
 
 from __future__ import annotations
 
+import os
 from datetime import datetime, timezone
 
 import structlog
@@ -81,14 +82,14 @@ async def get_or_create_customer(
 # ---------------------------------------------------------------------------
 
 # Plan → Stripe price ID mapping (configured in Stripe dashboard)
+# Only Family plan is self-serve. School and Club require custom pricing via sales.
 PLAN_PRICES = {
-    "family_monthly": "price_family_monthly",
-    "family_annual": "price_family_annual",
-    "school_monthly": "price_school_monthly",
-    "school_annual": "price_school_annual",
-    "club_monthly": "price_club_monthly",
-    "club_annual": "price_club_annual",
+    "family_monthly": os.environ.get("STRIPE_PRICE_FAMILY_MONTHLY", "price_family_monthly"),
+    "family_annual": os.environ.get("STRIPE_PRICE_FAMILY_ANNUAL", "price_family_annual"),
 }
+
+# Plans that require contacting sales for custom pricing
+CONTACT_SALES_PLANS = {"school", "club"}
 
 
 async def create_checkout_session(
@@ -103,6 +104,11 @@ async def create_checkout_session(
     Returns dict with session_id and url.
     """
     stripe = _get_stripe()
+
+    # Check if this is a contact-sales plan
+    plan_base = plan_key.rsplit("_", 1)[0] if "_" in plan_key else plan_key
+    if plan_base in CONTACT_SALES_PLANS:
+        raise StripeError(f"Plan '{plan_base}' requires custom pricing — contact sales")
 
     price_id = PLAN_PRICES.get(plan_key)
     if not price_id:
