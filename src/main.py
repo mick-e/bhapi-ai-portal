@@ -2,11 +2,15 @@
 
 from contextlib import asynccontextmanager
 
+import os
+from pathlib import Path
+
 import structlog
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text as select_text
 
 from src.config import get_settings
@@ -112,6 +116,9 @@ def create_app() -> FastAPI:
     # --- Register routers ---
     _register_routers(app)
 
+    # --- Serve Next.js static export (production) ---
+    _mount_frontend(app)
+
     return app
 
 
@@ -204,6 +211,39 @@ def _register_routers(app: FastAPI) -> None:
 
     from src.legal.router import router as legal_router
     app.include_router(legal_router, prefix="/legal", tags=["Legal"])
+
+
+def _mount_frontend(app: FastAPI) -> None:
+    """Mount the Next.js static export if the build output exists."""
+    portal_dir = Path(__file__).resolve().parent.parent / "portal" / "out"
+    if not portal_dir.is_dir():
+        logger.info("frontend_not_found", path=str(portal_dir))
+        return
+
+    # Serve Next.js static assets (_next/static/*)
+    next_assets = portal_dir / "_next"
+    if next_assets.is_dir():
+        app.mount("/_next", StaticFiles(directory=str(next_assets)), name="next-assets")
+
+    # Catch-all: serve the correct page HTML for client-side routes
+    @app.get("/{path:path}", include_in_schema=False)
+    async def serve_frontend(request: Request, path: str):
+        # Try exact file (e.g., favicon.ico, images)
+        file_path = portal_dir / path
+        if file_path.is_file():
+            return FileResponse(str(file_path))
+
+        # Try path/index.html (e.g., /login -> /login/index.html)
+        index_path = portal_dir / path / "index.html"
+        if index_path.is_file():
+            return FileResponse(str(index_path))
+
+        # Fallback to root index.html (SPA client-side routing)
+        root_index = portal_dir / "index.html"
+        if root_index.is_file():
+            return FileResponse(str(root_index))
+
+        return JSONResponse(status_code=404, content={"detail": "Not found"})
 
 
 # Create the app instance

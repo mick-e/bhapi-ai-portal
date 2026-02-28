@@ -26,9 +26,8 @@ COPY src/ src/
 COPY alembic/ alembic/
 COPY alembic.ini alembic.ini
 
-# Copy built frontend
-COPY --from=frontend-builder /app/portal/.next portal/.next
-COPY --from=frontend-builder /app/portal/public portal/public
+# Copy built frontend (static export)
+COPY --from=frontend-builder /app/portal/out portal/out
 
 # Create non-root user
 RUN useradd --create-home --uid 1000 appuser
