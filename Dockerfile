@@ -23,8 +23,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY src/ src/
-COPY alembic/ alembic/ 2>/dev/null || true
-COPY alembic.ini alembic.ini 2>/dev/null || true
+COPY alembic/ alembic/
+COPY alembic.ini alembic.ini
 
 # Copy built frontend
 COPY --from=frontend-builder /app/portal/.next portal/.next
