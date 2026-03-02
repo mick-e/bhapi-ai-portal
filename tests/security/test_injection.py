@@ -154,9 +154,10 @@ async def test_xss_img_onerror(sec_client):
         "account_type": "family",
     })
     assert resp.status_code == 201
-    # JSON response is inherently safe — frontend must escape
-    data = resp.json()
-    assert data["display_name"] == '<img src=x onerror="alert(1)">'
+    # Register returns TokenResponse; verify via /me that name is stored as-is
+    token = resp.json()["access_token"]
+    me = await sec_client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
+    assert me.json()["display_name"] == '<img src=x onerror="alert(1)">'
 
 
 @pytest.mark.asyncio
@@ -189,7 +190,10 @@ async def test_xss_svg_injection(sec_client):
 async def test_path_traversal_in_url(sec_client):
     """Path traversal in URL doesn't leak files."""
     resp = await sec_client.get("/api/v1/../../../etc/passwd")
-    assert resp.status_code in (404, 400, 307)
+    # URL normalization resolves to a non-API path; frontend catch-all may serve 200 (index.html)
+    assert resp.status_code in (200, 404, 400, 307)
+    # Verify it's NOT serving actual /etc/passwd content
+    assert "root:" not in resp.text
 
 
 @pytest.mark.asyncio

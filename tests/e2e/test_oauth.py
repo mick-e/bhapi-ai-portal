@@ -20,19 +20,16 @@ from src.main import create_app
 # ---------------------------------------------------------------------------
 
 async def _register_and_login(client, email="oauth@test.com"):
-    """Register + login, return (token, user_id as str)."""
+    """Register, return (token, user_id as str)."""
     reg = await client.post("/api/v1/auth/register", json={
         "email": email,
         "password": "SecurePass1",
         "display_name": "OAuth Tester",
         "account_type": "family",
     })
-    user_id = reg.json()["id"]
-    login = await client.post("/api/v1/auth/login", json={
-        "email": email,
-        "password": "SecurePass1",
-    })
-    return login.json()["access_token"], user_id
+    token = reg.json()["access_token"]
+    me = await client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
+    return token, me.json()["id"]
 
 
 def _mock_google_token_response():

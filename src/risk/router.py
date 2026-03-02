@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.middleware import get_current_user
 from src.database import get_db
-from src.exceptions import ValidationError
+from src.dependencies import resolve_group_id as _gid
 from src.risk.schemas import (
     RiskConfigResponse,
     RiskConfigUpdate,
@@ -27,13 +27,6 @@ from src.risk.service import (
 from src.schemas import GroupContext
 
 router = APIRouter()
-
-
-def _gid(group_id: UUID | None, auth: GroupContext) -> UUID:
-    gid = group_id or auth.group_id
-    if not gid:
-        raise ValidationError("No group found. Please create a group first.")
-    return gid
 
 
 @router.get("/events", response_model=RiskEventListResponse)

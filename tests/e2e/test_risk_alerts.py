@@ -21,19 +21,16 @@ from src.main import create_app
 # ---------------------------------------------------------------------------
 
 async def _register_and_login(client, email="risk@test.com"):
-    """Register + login, return (token, user_id as str)."""
+    """Register, return (token, user_id as str)."""
     reg = await client.post("/api/v1/auth/register", json={
         "email": email,
         "password": "SecurePass1",
         "display_name": "Risk Tester",
         "account_type": "family",
     })
-    user_id = reg.json()["id"]
-    login = await client.post("/api/v1/auth/login", json={
-        "email": email,
-        "password": "SecurePass1",
-    })
-    return login.json()["access_token"], user_id
+    token = reg.json()["access_token"]
+    me = await client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
+    return token, me.json()["id"]
 
 
 async def _create_group_and_member(client, headers):
@@ -465,7 +462,9 @@ async def test_list_alerts_empty(risk_client):
         f"/api/v1/alerts?group_id={gid}", headers=headers
     )
     assert resp.status_code == 200
-    assert resp.json() == []
+    data = resp.json()
+    assert data["items"] == []
+    assert data["total"] == 0
 
 
 @pytest.mark.asyncio
@@ -493,10 +492,11 @@ async def test_create_and_list_alert(risk_client):
         f"/api/v1/alerts?group_id={gid}", headers=headers
     )
     assert resp.status_code == 200
-    alerts = resp.json()
+    data = resp.json()
+    alerts = data["items"]
     assert len(alerts) == 1
     assert alerts[0]["title"] == "Self-harm content detected"
-    assert alerts[0]["status"] == "pending"
+    assert alerts[0]["read"] is False
 
 
 @pytest.mark.asyncio
@@ -522,7 +522,8 @@ async def test_filter_alerts_by_severity(risk_client):
         f"/api/v1/alerts?group_id={gid}&severity=critical", headers=headers
     )
     assert resp.status_code == 200
-    alerts = resp.json()
+    data = resp.json()
+    alerts = data["items"]
     assert len(alerts) == 1
     assert alerts[0]["severity"] == "critical"
 
@@ -571,8 +572,8 @@ async def test_acknowledge_alert(risk_client):
         f"/api/v1/alerts/{alert.id}/acknowledge", headers=headers
     )
     assert resp.status_code == 200
-    assert resp.json()["status"] == "acknowledged"
-    assert resp.json()["acknowledged_by"] == user_id
+    assert resp.json()["read"] is True
+    assert resp.json()["actioned"] is True
 
 
 @pytest.mark.asyncio
@@ -605,6 +606,7 @@ async def test_get_preferences_empty(risk_client):
         f"/api/v1/alerts/preferences?group_id={gid}", headers=headers
     )
     assert resp.status_code == 200
+    # Preferences endpoint still returns flat list (not paginated)
     assert resp.json() == []
 
 

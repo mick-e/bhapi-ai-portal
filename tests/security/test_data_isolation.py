@@ -56,17 +56,13 @@ async def sec_client():
 
 async def _register_and_login(client, email, password="SecurePass1", display_name="User"):
     """Register a user and return their auth headers."""
-    await client.post("/api/v1/auth/register", json={
+    reg = await client.post("/api/v1/auth/register", json={
         "email": email,
         "password": password,
         "display_name": display_name,
         "account_type": "family",
     })
-    login = await client.post("/api/v1/auth/login", json={
-        "email": email,
-        "password": password,
-    })
-    token = login.json()["access_token"]
+    token = reg.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
 
 
@@ -83,10 +79,11 @@ async def test_user_cannot_list_other_groups(sec_client):
         "name": "Alice Family", "type": "family",
     }, headers=h1)
 
-    # Bob should see 0 groups
+    # Bob should only see his own auto-created group, not Alice's
     resp = await sec_client.get("/api/v1/groups", headers=h2)
     assert resp.status_code == 200
-    assert len(resp.json()) == 0
+    groups = resp.json()
+    assert all("Alice Family" != g["name"] for g in groups)
 
 
 @pytest.mark.asyncio

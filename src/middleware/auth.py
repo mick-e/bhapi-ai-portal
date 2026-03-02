@@ -6,6 +6,8 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
+from src.constants import SESSION_COOKIE_NAME
+
 logger = structlog.get_logger()
 
 # Paths that don't require authentication
@@ -45,7 +47,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
         # Check for auth token
         auth_header = request.headers.get("Authorization")
-        session_cookie = request.cookies.get("bhapi_session")
+        session_cookie = request.cookies.get(SESSION_COOKIE_NAME)
 
         if not auth_header and not session_cookie:
             return JSONResponse(

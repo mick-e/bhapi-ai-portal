@@ -56,7 +56,7 @@ async def auth_client():
 
 @pytest.mark.asyncio
 async def test_register_family_account(auth_client):
-    """Register a family account successfully."""
+    """Register a family account returns token and session cookie."""
     response = await auth_client.post("/api/v1/auth/register", json={
         "email": "parent@example.com",
         "password": "SecurePass1",
@@ -65,15 +65,19 @@ async def test_register_family_account(auth_client):
     })
     assert response.status_code == 201
     data = response.json()
-    assert data["email"] == "parent@example.com"
-    assert data["display_name"] == "Test Parent"
-    assert data["account_type"] == "family"
-    assert data["email_verified"] is False
+    assert "access_token" in data
+    assert data["token_type"] == "bearer"
+    assert "user" in data
+    assert data["user"]["email"] == "parent@example.com"
+    assert data["user"]["display_name"] == "Test Parent"
+    assert data["user"]["account_type"] == "family"
+    assert data["user"]["group_id"] is not None
+    assert "bhapi_session" in response.cookies
 
 
 @pytest.mark.asyncio
 async def test_register_school_account(auth_client):
-    """Register a school account."""
+    """Register a school account returns token."""
     response = await auth_client.post("/api/v1/auth/register", json={
         "email": "admin@school.edu",
         "password": "SecurePass1",
@@ -81,12 +85,12 @@ async def test_register_school_account(auth_client):
         "account_type": "school",
     })
     assert response.status_code == 201
-    assert response.json()["account_type"] == "school"
+    assert "access_token" in response.json()
 
 
 @pytest.mark.asyncio
 async def test_register_club_account(auth_client):
-    """Register a club account."""
+    """Register a club account returns token."""
     response = await auth_client.post("/api/v1/auth/register", json={
         "email": "manager@club.org",
         "password": "SecurePass1",
@@ -94,7 +98,7 @@ async def test_register_club_account(auth_client):
         "account_type": "club",
     })
     assert response.status_code == 201
-    assert response.json()["account_type"] == "club"
+    assert "access_token" in response.json()
 
 
 @pytest.mark.asyncio
@@ -157,7 +161,8 @@ async def test_login_success(auth_client):
     data = response.json()
     assert "access_token" in data
     assert data["token_type"] == "bearer"
-    assert data["expires_in"] > 0
+    assert "user" in data
+    assert data["user"]["email"] == "login@example.com"
 
     # Check session cookie
     assert "bhapi_session" in response.cookies

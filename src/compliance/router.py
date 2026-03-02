@@ -23,17 +23,11 @@ from src.compliance.service import (
     withdraw_consent,
 )
 from src.database import get_db
+from src.dependencies import resolve_group_id as _gid
 from src.exceptions import ValidationError
 from src.schemas import GroupContext
 
 router = APIRouter()
-
-
-def _gid(group_id: UUID | None, auth: GroupContext) -> UUID:
-    gid = group_id or auth.group_id
-    if not gid:
-        raise ValidationError("No group found. Please create a group first.")
-    return gid
 
 
 @router.post("/data-request", response_model=DataRequestStatus, status_code=201)

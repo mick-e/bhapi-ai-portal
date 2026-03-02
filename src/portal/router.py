@@ -7,20 +7,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.middleware import get_current_user
 from src.database import get_db
-from src.exceptions import ValidationError
+from src.dependencies import resolve_group_id as _resolve_group_id
 from src.portal.schemas import DashboardResponse, GroupSettingsResponse, UpdateGroupSettingsRequest
 from src.portal.service import get_dashboard, get_group_settings, update_group_settings
 from src.schemas import GroupContext
 
 router = APIRouter()
-
-
-def _resolve_group_id(group_id: UUID | None, auth: GroupContext) -> UUID:
-    """Resolve group_id from query param or auth context."""
-    gid = group_id or auth.group_id
-    if not gid:
-        raise ValidationError("No group found. Please create a group first.")
-    return gid
 
 
 @router.get("/dashboard", response_model=DashboardResponse)

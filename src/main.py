@@ -100,7 +100,7 @@ def create_app() -> FastAPI:
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+            "script-src 'self' 'unsafe-inline'; "
             "style-src 'self' 'unsafe-inline'; "
             "img-src 'self' data: https:; "
             "font-src 'self' https:; "
@@ -214,29 +214,34 @@ def _register_routers(app: FastAPI) -> None:
     app.include_router(legal_router, prefix="/legal", tags=["Legal"])
 
 
+_PORTAL_CANDIDATES = [
+    Path("/app/portal/out"),
+    Path(__file__).resolve().parent.parent / "portal" / "out",
+    Path.cwd() / "portal" / "out",
+]
+
+# Cached result — resolved once at import time, stable for process lifetime
+_portal_dir: Path | None = None
+
+
 def _get_portal_dir() -> Path:
-    """Resolve the portal static export directory."""
-    # Try multiple paths to handle Docker (/app/portal/out) and local dev
-    candidates = [
-        Path("/app/portal/out"),
-        Path(__file__).resolve().parent.parent / "portal" / "out",
-        Path.cwd() / "portal" / "out",
-    ]
-    for p in candidates:
+    """Resolve the portal static export directory (cached)."""
+    global _portal_dir
+    if _portal_dir is not None:
+        return _portal_dir
+    for p in _PORTAL_CANDIDATES:
         if p.is_dir():
+            _portal_dir = p
             return p
-    return candidates[0]  # fallback
+    _portal_dir = _PORTAL_CANDIDATES[0]  # fallback
+    return _portal_dir
 
 
 def _mount_frontend(app: FastAPI) -> None:
     """Mount the Next.js static export if the build output exists."""
     portal_dir = _get_portal_dir()
     if not portal_dir.is_dir():
-        logger.info("frontend_not_found", candidates=[str(p) for p in [
-            Path("/app/portal/out"),
-            Path(__file__).resolve().parent.parent / "portal" / "out",
-            Path.cwd() / "portal" / "out",
-        ]])
+        logger.info("frontend_not_found", candidates=[str(p) for p in _PORTAL_CANDIDATES])
         return
 
     logger.info("frontend_mounted", path=str(portal_dir))
@@ -244,6 +249,10 @@ def _mount_frontend(app: FastAPI) -> None:
     # Catch-all: serve the correct page HTML for client-side routes
     @app.get("/{path:path}", include_in_schema=False)
     async def serve_frontend(request: Request, path: str):
+        # Never serve frontend for API or internal routes
+        if path.startswith(("api/", "internal/")):
+            return JSONResponse(status_code=404, content={"detail": "Not found"})
+
         # Try exact file (e.g., favicon.ico, _next/static/chunks/xxx.js)
         file_path = portal_dir / path
         if file_path.is_file():

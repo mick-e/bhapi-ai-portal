@@ -3,19 +3,16 @@
 from pathlib import Path
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Body, Depends, Query
 from fastapi.responses import JSONResponse, Response
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.middleware import get_current_user
 from src.database import get_db
-from src.exceptions import ValidationError
-from src.reporting.schemas import (
-    ReportRequest,
-    ReportResponse,
-    ScheduleConfig,
-    ScheduleResponse,
-)
+from src.dependencies import resolve_group_id as _gid
+from src.reporting.models import ReportExport, ScheduledReport
+from src.reporting.schemas import ReportRequest, ScheduleConfig
 from src.reporting.service import (
     create_schedule,
     generate_report,
@@ -27,14 +24,6 @@ from src.schemas import GroupContext
 
 router = APIRouter()
 
-
-def _gid(group_id: UUID | None, auth: GroupContext) -> UUID:
-    gid = group_id or auth.group_id
-    if not gid:
-        raise ValidationError("No group found. Please create a group first.")
-    return gid
-
-
 CONTENT_TYPES = {
     "pdf": "application/pdf",
     "csv": "text/csv",
@@ -42,28 +31,152 @@ CONTENT_TYPES = {
 }
 
 
-@router.post("/generate", response_model=ReportResponse, status_code=201)
+def _report_to_frontend(report: ReportExport) -> dict:
+    """Convert backend ReportExport to frontend Report shape."""
+    # Map report_type: backend "risk" → frontend "safety"
+    type_map = {"risk": "safety", "activity": "activity", "spend": "spend", "compliance": "compliance"}
+    report_type = type_map.get(report.report_type, report.report_type)
+
+    return {
+        "id": str(report.id),
+        "group_id": str(report.group_id),
+        "title": f"{report_type.capitalize()} Report",
+        "description": f"{report_type.capitalize()} report in {report.format.upper()} format",
+        "type": report_type,
+        "status": "ready" if report.file_path else "generating",
+        "format": report.format,
+        "period_start": "",
+        "period_end": "",
+        "download_url": f"/api/v1/reports/{report.id}/download",
+        "generated_at": report.generated_at.isoformat() if report.generated_at else None,
+        "created_at": report.created_at.isoformat() if report.created_at else "",
+    }
+
+
+def _schedule_to_frontend(schedule: ScheduledReport) -> dict:
+    """Convert backend ScheduledReport to frontend ReportScheduleConfig shape."""
+    return {
+        "type": schedule.report_type,
+        "schedule": schedule.schedule,
+        "format": "pdf",
+        "recipients": schedule.recipients or [],
+    }
+
+
+@router.post("", status_code=201)
+async def create_report(
+    body: dict = Body(...),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a report (frontend calls POST /api/v1/reports)."""
+    gid = _gid(None, auth)
+    # Map frontend "safety" back to backend "risk"
+    type_map = {"safety": "risk", "activity": "activity", "spend": "spend", "compliance": "compliance"}
+    report_type = type_map.get(body.get("type", ""), body.get("type", "activity"))
+
+    data = ReportRequest(
+        group_id=gid,
+        report_type=report_type,
+        format=body.get("format", "pdf"),
+        period_start=body.get("period_start"),
+        period_end=body.get("period_end"),
+    )
+    export = await generate_report(db, data)
+    return _report_to_frontend(export)
+
+
+@router.post("/generate", status_code=201)
 async def generate_report_endpoint(
     data: ReportRequest,
     auth: GroupContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Generate a report (FR-041)."""
+    """Generate a report (legacy endpoint, FR-041)."""
     export = await generate_report(db, data)
-    return export
+    return _report_to_frontend(export)
 
 
-@router.get("", response_model=list[ReportResponse])
+@router.get("")
 async def list_reports_endpoint(
     group_id: UUID | None = Query(None, description="Group ID"),
-    offset: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=100),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=100),
+    type: str | None = Query(None, description="Filter by report type"),
+    status: str | None = Query(None, description="Filter by status"),
     auth: GroupContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """List generated reports for a group."""
-    reports = await list_reports(db, _gid(group_id, auth), offset=offset, limit=limit)
-    return reports
+    """List generated reports with pagination matching frontend PaginatedResponse."""
+    gid = _gid(group_id, auth)
+
+    base = select(ReportExport).where(ReportExport.group_id == gid)
+    count_q = select(func.count(ReportExport.id)).where(ReportExport.group_id == gid)
+
+    if type:
+        type_map = {"safety": "risk", "activity": "activity", "spend": "spend", "compliance": "compliance"}
+        backend_type = type_map.get(type, type)
+        base = base.where(ReportExport.report_type == backend_type)
+        count_q = count_q.where(ReportExport.report_type == backend_type)
+
+    total = (await db.execute(count_q)).scalar() or 0
+    offset = (page - 1) * page_size
+    rows = await db.execute(
+        base.order_by(ReportExport.generated_at.desc()).offset(offset).limit(page_size)
+    )
+    items = [_report_to_frontend(r) for r in rows.scalars().all()]
+    total_pages = max((total + page_size - 1) // page_size, 1)
+
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": total_pages,
+    }
+
+
+@router.post("/schedule", status_code=201)
+async def create_schedule_endpoint(
+    data: ScheduleConfig,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a report schedule (POST /schedule)."""
+    schedule = await create_schedule(db, data)
+    return _schedule_to_frontend(schedule)
+
+
+@router.get("/schedules")
+async def list_schedules_endpoint(
+    group_id: UUID | None = Query(None, description="Group ID"),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List report schedules for a group."""
+    schedules = await list_schedules(db, _gid(group_id, auth))
+    return [_schedule_to_frontend(s) for s in schedules]
+
+
+@router.put("/schedules")
+async def update_schedule_endpoint(
+    body: dict = Body(...),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update/create a report schedule (frontend PUT /schedules)."""
+    gid = _gid(None, auth)
+    type_map = {"safety": "risk", "activity": "activity", "spend": "spend", "compliance": "compliance"}
+    report_type = type_map.get(body.get("type", ""), body.get("type", "activity"))
+
+    data = ScheduleConfig(
+        group_id=gid,
+        report_type=report_type,
+        schedule=body.get("schedule", "weekly"),
+        recipients=body.get("recipients", []),
+    )
+    schedule = await create_schedule(db, data)
+    return _schedule_to_frontend(schedule)
 
 
 @router.get("/{report_id}/download")
@@ -72,13 +185,9 @@ async def download_report(
     auth: GroupContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Download a generated report (FR-042).
-
-    Returns the file content if available, otherwise metadata.
-    """
+    """Download a generated report (FR-042)."""
     report = await get_report(db, report_id)
 
-    # Try to serve the actual file
     if report.file_path:
         file_path = Path(report.file_path)
         if file_path.exists():
@@ -93,7 +202,6 @@ async def download_report(
                 },
             )
 
-    # Fallback to metadata
     return JSONResponse(
         content={
             "id": str(report.id),
@@ -104,25 +212,3 @@ async def download_report(
             "download_url": f"/api/v1/reports/{report.id}/download",
         }
     )
-
-
-@router.post("/schedule", response_model=ScheduleResponse, status_code=201)
-async def create_schedule_endpoint(
-    data: ScheduleConfig,
-    auth: GroupContext = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """Create a report generation schedule (FR-043)."""
-    schedule = await create_schedule(db, data)
-    return schedule
-
-
-@router.get("/schedules", response_model=list[ScheduleResponse])
-async def list_schedules_endpoint(
-    group_id: UUID | None = Query(None, description="Group ID"),
-    auth: GroupContext = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """List report schedules for a group."""
-    schedules = await list_schedules(db, _gid(group_id, auth))
-    return schedules

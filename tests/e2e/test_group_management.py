@@ -11,18 +11,14 @@ from src.main import create_app
 
 
 async def _register_and_login(client, email="test@example.com", account_type="family"):
-    """Helper: register and login, return token."""
-    await client.post("/api/v1/auth/register", json={
+    """Helper: register and return token."""
+    reg = await client.post("/api/v1/auth/register", json={
         "email": email,
         "password": "SecurePass1",
         "display_name": "Test User",
         "account_type": account_type,
     })
-    login = await client.post("/api/v1/auth/login", json={
-        "email": email,
-        "password": "SecurePass1",
-    })
-    return login.json()["access_token"]
+    return reg.json()["access_token"]
 
 
 @pytest.fixture
@@ -116,7 +112,8 @@ async def test_list_groups(group_client):
     assert response.status_code == 200
     data = response.json()
     assert len(data) >= 1
-    assert data[0]["name"] == "Test Group"
+    group_names = [g["name"] for g in data]
+    assert "Test Group" in group_names
 
 
 @pytest.mark.asyncio

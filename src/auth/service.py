@@ -153,16 +153,23 @@ async def delete_user_account(db: AsyncSession, user_id: UUID) -> None:
     logger.info("user_account_deleted", user_id=str(user_id))
 
 
-def user_to_profile(user: User) -> UserProfile:
-    """Convert User model to UserProfile schema."""
+def user_to_profile(
+    user: User,
+    group_id: "UUID | None" = None,
+    role: str | None = None,
+) -> UserProfile:
+    """Convert User model to UserProfile schema with optional group context."""
     return UserProfile(
         id=user.id,
         email=user.email,
         display_name=user.display_name,
         account_type=user.account_type,
+        group_id=group_id,
+        role=role,
         email_verified=user.email_verified,
         mfa_enabled=user.mfa_enabled,
         created_at=user.created_at,
+        updated_at=getattr(user, "updated_at", None),
     )
 
 

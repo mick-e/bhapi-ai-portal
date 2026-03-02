@@ -5,7 +5,7 @@ from uuid import UUID
 from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.auth.service import decode_token, get_user_by_id
+from src.auth.service import decode_token
 from src.constants import SESSION_COOKIE_NAME
 from src.database import get_db
 from src.exceptions import UnauthorizedError
@@ -45,28 +45,22 @@ async def get_current_user(
     if not user_id:
         raise UnauthorizedError("Authentication required")
 
-    # Verify user still exists (handles deleted accounts)
+    # Verify user exists and fetch primary group in a single query.
+    # Uses a LEFT JOIN so we get the user row even if they have no groups.
     uid = UUID(user_id)
-    try:
-        await get_user_by_id(db, uid)
-    except Exception:
+
+    from sqlalchemy import select
+    from src.auth.models import User
+    from src.groups.models import GroupMember
+
+    result = await db.execute(
+        select(User.id, GroupMember.group_id, GroupMember.role)
+        .outerjoin(GroupMember, GroupMember.user_id == User.id)
+        .where(User.id == uid)
+        .limit(1)
+    )
+    row = result.first()
+    if not row:
         raise UnauthorizedError("User account not found")
 
-    # Look up user's primary group
-    from src.groups.service import list_user_groups
-    groups = await list_user_groups(db, uid)
-    group_id = groups[0].id if groups else None
-    role = None
-    if groups:
-        # Get the user's role in their primary group
-        from sqlalchemy import select
-        from src.groups.models import GroupMember
-        result = await db.execute(
-            select(GroupMember.role).where(
-                GroupMember.group_id == group_id,
-                GroupMember.user_id == uid,
-            )
-        )
-        role = result.scalar_one_or_none()
-
-    return GroupContext(user_id=uid, group_id=group_id, role=role)
+    return GroupContext(user_id=uid, group_id=row.group_id, role=row.role)

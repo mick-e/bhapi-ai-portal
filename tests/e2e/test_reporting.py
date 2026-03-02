@@ -20,18 +20,14 @@ from src.main import create_app
 # ---------------------------------------------------------------------------
 
 async def _register_and_login(client, email="reports@test.com"):
-    """Register + login, return (token, user_id)."""
-    await client.post("/api/v1/auth/register", json={
+    """Register, return token."""
+    reg = await client.post("/api/v1/auth/register", json={
         "email": email,
         "password": "SecurePass1",
         "display_name": "Reports Tester",
         "account_type": "family",
     })
-    login = await client.post("/api/v1/auth/login", json={
-        "email": email,
-        "password": "SecurePass1",
-    })
-    return login.json()["access_token"]
+    return reg.json()["access_token"]
 
 
 async def _create_group(client, headers):
@@ -109,11 +105,10 @@ async def test_generate_report_pdf(report_client):
     )
     assert resp.status_code == 201
     data = resp.json()
-    assert data["report_type"] == "activity"
+    assert data["type"] == "activity"
     assert data["format"] == "pdf"
-    assert data["group_id"] == gid
-    assert data["file_path"] is not None
-    assert data["file_path"].endswith(".pdf")
+    assert data["status"] == "ready"
+    assert data["download_url"] is not None
 
 
 @pytest.mark.asyncio
@@ -130,7 +125,7 @@ async def test_generate_report_csv(report_client):
     )
     assert resp.status_code == 201
     assert resp.json()["format"] == "csv"
-    assert resp.json()["file_path"].endswith(".csv")
+    assert resp.json()["type"] == "safety"  # "risk" maps to "safety" for frontend
 
 
 @pytest.mark.asyncio
@@ -147,7 +142,7 @@ async def test_generate_report_json(report_client):
     )
     assert resp.status_code == 201
     assert resp.json()["format"] == "json"
-    assert resp.json()["file_path"].endswith(".json")
+    assert resp.json()["type"] == "spend"
 
 
 @pytest.mark.asyncio
@@ -163,12 +158,12 @@ async def test_generate_compliance_report(report_client):
         headers=headers,
     )
     assert resp.status_code == 201
-    assert resp.json()["report_type"] == "compliance"
+    assert resp.json()["type"] == "compliance"
 
 
 @pytest.mark.asyncio
-async def test_generate_report_has_expiry(report_client):
-    """Generated report has an expiry date."""
+async def test_generate_report_has_generated_at(report_client):
+    """Generated report has a generated_at timestamp."""
     token = await _register_and_login(report_client, "expiry@test.com")
     headers = {"Authorization": f"Bearer {token}"}
     gid = await _create_group(report_client, headers)
@@ -179,7 +174,7 @@ async def test_generate_report_has_expiry(report_client):
         headers=headers,
     )
     assert resp.status_code == 201
-    assert resp.json()["expires_at"] is not None
+    assert resp.json()["generated_at"] is not None
 
 
 @pytest.mark.asyncio
@@ -203,7 +198,7 @@ async def test_generate_report_invalid_type(report_client):
 
 @pytest.mark.asyncio
 async def test_list_reports_empty(report_client):
-    """GET /reports returns empty for new group."""
+    """GET /reports returns empty paginated result for new group."""
     token = await _register_and_login(report_client, "list0@test.com")
     headers = {"Authorization": f"Bearer {token}"}
     gid = await _create_group(report_client, headers)
@@ -212,7 +207,9 @@ async def test_list_reports_empty(report_client):
         f"/api/v1/reports?group_id={gid}", headers=headers
     )
     assert resp.status_code == 200
-    assert resp.json() == []
+    data = resp.json()
+    assert data["items"] == []
+    assert data["total"] == 0
 
 
 @pytest.mark.asyncio
@@ -237,8 +234,9 @@ async def test_list_reports_after_generation(report_client):
         f"/api/v1/reports?group_id={gid}", headers=headers
     )
     assert resp.status_code == 200
-    reports = resp.json()
-    assert len(reports) == 2
+    data = resp.json()
+    assert len(data["items"]) == 2
+    assert data["total"] == 2
 
 
 # ---------------------------------------------------------------------------
@@ -265,8 +263,7 @@ async def test_create_weekly_schedule(report_client):
     assert resp.status_code == 201
     data = resp.json()
     assert data["schedule"] == "weekly"
-    assert data["report_type"] == "activity"
-    assert data["next_generation"] is not None
+    assert data["type"] == "activity"
 
 
 @pytest.mark.asyncio

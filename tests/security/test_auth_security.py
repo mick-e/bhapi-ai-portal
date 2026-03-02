@@ -233,9 +233,10 @@ async def test_xss_in_display_name(sec_client):
         "account_type": "family",
     })
     assert resp.status_code == 201
-    # The name is stored as-is (Pydantic strips whitespace but doesn't sanitize HTML)
-    # The frontend must escape it. JSON response is safe.
-    assert resp.json()["display_name"] == "<script>alert('xss')</script>"
+    # Register returns TokenResponse; verify via /me that name is stored as-is
+    token = resp.json()["access_token"]
+    me = await sec_client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
+    assert me.json()["display_name"] == "<script>alert('xss')</script>"
 
 
 @pytest.mark.asyncio
@@ -279,7 +280,8 @@ async def test_user_cannot_see_other_users_groups(sec_client):
     token2 = login2.json()["access_token"]
     h2 = {"Authorization": f"Bearer {token2}"}
 
-    # User 2 should see 0 groups (not user 1's group)
+    # User 2 should only see their own auto-created group (not user 1's group)
     resp = await sec_client.get("/api/v1/groups", headers=h2)
     assert resp.status_code == 200
-    assert len(resp.json()) == 0
+    groups = resp.json()
+    assert all("U1 Family" != g["name"] for g in groups)

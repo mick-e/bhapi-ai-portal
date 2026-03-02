@@ -145,7 +145,8 @@ async def send_email(
         if plain_content:
             message.add_content(Content("text/plain", plain_content))
 
-        response = client.send(message)
+        import asyncio
+        response = await asyncio.to_thread(client.send, message)
 
         logger.info(
             "email_sent",

@@ -1,11 +1,13 @@
 """FastAPI dependency injection."""
 
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database import get_db
+from src.exceptions import ValidationError
 from src.schemas import GroupContext, PaginationParams
 
 # Type aliases for clean endpoint signatures
@@ -13,10 +15,9 @@ DbSession = Annotated[AsyncSession, Depends(get_db)]
 Pagination = Annotated[PaginationParams, Depends()]
 
 
-# Auth dependency placeholder — will be implemented in src/auth/middleware.py
-async def get_current_user() -> GroupContext:
-    """Get authenticated user context. Override in auth module."""
-    raise NotImplementedError("Auth middleware not configured")
-
-
-AuthContext = Annotated[GroupContext, Depends(get_current_user)]
+def resolve_group_id(group_id: UUID | None, auth: GroupContext) -> UUID:
+    """Resolve group_id from explicit param or the user's primary group."""
+    gid = group_id or auth.group_id
+    if not gid:
+        raise ValidationError("No group found. Please create a group first.")
+    return gid

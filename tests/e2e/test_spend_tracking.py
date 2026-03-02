@@ -20,19 +20,16 @@ from src.main import create_app
 # ---------------------------------------------------------------------------
 
 async def _register_and_login(client, email="billing@test.com"):
-    """Register + login, return (token, user_id)."""
+    """Register, return (token, user_id)."""
     reg = await client.post("/api/v1/auth/register", json={
         "email": email,
         "password": "SecurePass1",
         "display_name": "Billing Tester",
         "account_type": "family",
     })
-    user_id = reg.json()["id"]
-    login = await client.post("/api/v1/auth/login", json={
-        "email": email,
-        "password": "SecurePass1",
-    })
-    return login.json()["access_token"], user_id
+    token = reg.json()["access_token"]
+    me = await client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
+    return token, me.json()["id"]
 
 
 async def _create_group(client, headers):
@@ -333,16 +330,13 @@ async def test_get_spend_summary_empty(billing_client):
     gid = await _create_group(billing_client, headers)
 
     resp = await billing_client.get(
-        f"/api/v1/billing/spend?group_id={gid}"
-        "&period_start=2024-01-01T00:00:00Z"
-        "&period_end=2024-12-31T23:59:59Z",
+        f"/api/v1/billing/spend?group_id={gid}&period=month",
         headers=headers,
     )
     assert resp.status_code == 200
     data = resp.json()
-    assert data["total_amount"] == 0.0
-    assert data["record_count"] == 0
-    assert data["currency"] == "USD"
+    assert data["total_cost_usd"] == 0.0
+    assert data["period"] == "month"
 
 
 # ---------------------------------------------------------------------------

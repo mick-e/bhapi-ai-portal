@@ -24,7 +24,7 @@ from src.main import create_app
 async def _register_and_login(client: AsyncClient, email: str, password: str = "SecurePass1",
                                display_name: str = "Test User",
                                account_type: str = "family"):
-    """Register a user, login, and return (token, user_id)."""
+    """Register a user and return (token, user_id)."""
     reg = await client.post("/api/v1/auth/register", json={
         "email": email,
         "password": password,
@@ -32,15 +32,10 @@ async def _register_and_login(client: AsyncClient, email: str, password: str = "
         "account_type": account_type,
     })
     assert reg.status_code == 201, f"Register failed: {reg.status_code} {reg.text}"
-    user_id = reg.json()["id"]
-
-    login = await client.post("/api/v1/auth/login", json={
-        "email": email,
-        "password": password,
-    })
-    assert login.status_code == 200, f"Login failed: {login.status_code} {login.text}"
-    token = login.json()["access_token"]
-    return token, user_id
+    token = reg.json()["access_token"]
+    me = await client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
+    assert me.status_code == 200, f"Get profile failed: {me.status_code} {me.text}"
+    return token, me.json()["id"]
 
 
 def _event_payload(group_id, member_id, platform="chatgpt", event_type="prompt"):
@@ -116,7 +111,7 @@ class TestFamilyJourney:
     async def test_family_onboarding_journey(self, journey_client):
         client = journey_client
 
-        # ── Step 1: Register parent user ─────────────────────────────────
+        # ── Step 1: Register parent user (returns token directly) ────────
         reg_resp = await client.post("/api/v1/auth/register", json={
             "email": "parent@familyjourney.com",
             "password": "SecurePass1",
@@ -124,23 +119,18 @@ class TestFamilyJourney:
             "account_type": "family",
         })
         assert reg_resp.status_code == 201
-        parent_data = reg_resp.json()
+        reg_data = reg_resp.json()
+        assert "access_token" in reg_data
+        headers = {"Authorization": f"Bearer {reg_data['access_token']}"}
+
+        # Verify profile via /me
+        me_resp = await client.get("/api/v1/auth/me", headers=headers)
+        assert me_resp.status_code == 200
+        parent_data = me_resp.json()
         assert parent_data["email"] == "parent@familyjourney.com"
         assert parent_data["display_name"] == "Jane Parent"
         assert parent_data["account_type"] == "family"
         user_id = parent_data["id"]
-
-        # ── Step 2: Login ────────────────────────────────────────────────
-        login_resp = await client.post("/api/v1/auth/login", json={
-            "email": "parent@familyjourney.com",
-            "password": "SecurePass1",
-        })
-        assert login_resp.status_code == 200
-        token_data = login_resp.json()
-        assert "access_token" in token_data
-        assert token_data["token_type"] == "bearer"
-        assert token_data["expires_in"] > 0
-        headers = {"Authorization": f"Bearer {token_data['access_token']}"}
 
         # ── Step 3: Create family group ──────────────────────────────────
         grp_resp = await client.post("/api/v1/groups", json={
@@ -233,8 +223,10 @@ class TestFamilyJourney:
         )
         assert alerts_resp.status_code == 200
         alerts_data = alerts_resp.json()
-        # Alerts list may be empty for a brand-new group, but the endpoint works
-        assert isinstance(alerts_data, list)
+        # Alerts endpoint returns paginated response
+        assert "items" in alerts_data
+        assert "total" in alerts_data
+        assert isinstance(alerts_data["items"], list)
 
 
 # ===========================================================================
@@ -249,7 +241,7 @@ class TestSchoolJourney:
     async def test_school_admin_journey(self, journey_client):
         client = journey_client
 
-        # ── Step 1: Register school admin ────────────────────────────────
+        # ── Step 1: Register school admin (returns token directly) ────────
         reg_resp = await client.post("/api/v1/auth/register", json={
             "email": "admin@schooljourney.com",
             "password": "SchoolPass1",
@@ -257,19 +249,18 @@ class TestSchoolJourney:
             "account_type": "school",
         })
         assert reg_resp.status_code == 201
-        admin_data = reg_resp.json()
+        reg_data = reg_resp.json()
+        assert "access_token" in reg_data
+        token = reg_data["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+
+        # Verify profile via /me
+        me_resp = await client.get("/api/v1/auth/me", headers=headers)
+        assert me_resp.status_code == 200
+        admin_data = me_resp.json()
         assert admin_data["account_type"] == "school"
         assert admin_data["display_name"] == "Principal Smith"
         admin_id = admin_data["id"]
-
-        # ── Step 2: Login ────────────────────────────────────────────────
-        login_resp = await client.post("/api/v1/auth/login", json={
-            "email": "admin@schooljourney.com",
-            "password": "SchoolPass1",
-        })
-        assert login_resp.status_code == 200
-        token = login_resp.json()["access_token"]
-        headers = {"Authorization": f"Bearer {token}"}
 
         # ── Step 3: Create school group ──────────────────────────────────
         grp_resp = await client.post("/api/v1/groups", json={

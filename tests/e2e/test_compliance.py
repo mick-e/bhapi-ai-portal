@@ -20,19 +20,16 @@ from src.main import create_app
 # ---------------------------------------------------------------------------
 
 async def _register_and_login(client, email="comply@test.com"):
-    """Register + login, return (token, user_id as str)."""
+    """Register, return (token, user_id as str)."""
     reg = await client.post("/api/v1/auth/register", json={
         "email": email,
         "password": "SecurePass1",
         "display_name": "Compliance Tester",
         "account_type": "family",
     })
-    user_id = reg.json()["id"]
-    login = await client.post("/api/v1/auth/login", json={
-        "email": email,
-        "password": "SecurePass1",
-    })
-    return login.json()["access_token"], user_id
+    token = reg.json()["access_token"]
+    me = await client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
+    return token, me.json()["id"]
 
 
 async def _create_group_and_member(client, headers):

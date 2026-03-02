@@ -45,16 +45,27 @@ class TokenResponse(BaseSchema):
     expires_in: int
 
 
+class AuthResponse(BaseSchema):
+    """Auth response with token + user data for frontend."""
+
+    access_token: str
+    token_type: str = "bearer"
+    user: UserProfile
+
+
 class UserProfile(BaseSchema):
-    """User profile response."""
+    """User profile response — matches frontend User type."""
 
     id: UUID
     email: str
     display_name: str
     account_type: str
-    email_verified: bool
-    mfa_enabled: bool
+    group_id: UUID | None = None
+    role: str | None = None
+    email_verified: bool = False
+    mfa_enabled: bool = False
     created_at: datetime
+    updated_at: datetime | None = None
 
 
 class PasswordChangeRequest(BaseSchema):

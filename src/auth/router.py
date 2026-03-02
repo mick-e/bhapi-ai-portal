@@ -1,5 +1,7 @@
 """Auth API endpoints."""
 
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, Query, Response
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,6 +15,7 @@ from src.auth.oauth import (
     get_oauth_user_info,
 )
 from src.auth.schemas import (
+    AuthResponse,
     LoginRequest,
     OAuthAuthorizeResponse,
     PasswordResetConfirm,
@@ -44,7 +47,47 @@ settings = get_settings()
 router = APIRouter()
 
 
-@router.post("/register", response_model=TokenResponse, status_code=201)
+def _set_session_cookie(response: Response, session_token: str) -> None:
+    """Set the session cookie with consistent security attributes."""
+    response.set_cookie(
+        key=SESSION_COOKIE_NAME,
+        value=session_token,
+        httponly=True,
+        secure=settings.is_production,
+        samesite="lax",
+        max_age=settings.session_timeout_hours * 3600,
+        domain=settings.cookie_domain,
+    )
+
+
+async def _create_auth_response(
+    db: AsyncSession, user_id: str, response: Response,
+) -> AuthResponse:
+    """Create access token + session cookie and return AuthResponse with user data."""
+    access_token = create_access_token({"sub": user_id})
+    session_token = await create_session(db, UUID(user_id))
+    _set_session_cookie(response, session_token)
+
+    # Fetch user + group context for the response
+    uid = UUID(user_id)
+    user = await get_user_by_id(db, uid)
+
+    from sqlalchemy import select as sa_select
+    from src.groups.models import GroupMember
+    result = await db.execute(
+        sa_select(GroupMember.group_id, GroupMember.role)
+        .where(GroupMember.user_id == uid)
+        .limit(1)
+    )
+    row = result.first()
+    group_id = row.group_id if row else None
+    role = row.role if row else None
+
+    profile = user_to_profile(user, group_id=group_id, role=role)
+    return AuthResponse(access_token=access_token, user=profile)
+
+
+@router.post("/register", response_model=AuthResponse, status_code=201)
 async def register(data: RegisterRequest, response: Response, db: AsyncSession = Depends(get_db)):
     """Register a new user account, auto-create group, and return token."""
     user = await register_user(db, data)
@@ -61,49 +104,15 @@ async def register(data: RegisterRequest, response: Response, db: AsyncSession =
     except Exception:
         pass  # Logged in send_verification_email
 
-    # Create access token and session so user is logged in immediately
-    access_token = create_access_token({"sub": str(user.id)})
-    session_token = await create_session(db, user.id)
-    response.set_cookie(
-        key=SESSION_COOKIE_NAME,
-        value=session_token,
-        httponly=True,
-        secure=settings.is_production,
-        samesite="lax",
-        max_age=settings.session_timeout_hours * 3600,
-        domain=settings.cookie_domain,
-    )
-
-    return TokenResponse(
-        access_token=access_token,
-        expires_in=settings.jwt_access_token_expire_minutes * 60,
-    )
+    return await _create_auth_response(db, str(user.id), response)
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login", response_model=AuthResponse)
 async def login(data: LoginRequest, response: Response, db: AsyncSession = Depends(get_db)):
     """Login with email and password."""
     user = await authenticate_user(db, data.email, data.password)
 
-    # Create access token
-    access_token = create_access_token({"sub": str(user.id)})
-
-    # Create session cookie
-    session_token = await create_session(db, user.id)
-    response.set_cookie(
-        key=SESSION_COOKIE_NAME,
-        value=session_token,
-        httponly=True,
-        secure=settings.is_production,
-        samesite="lax",
-        max_age=settings.session_timeout_hours * 3600,
-        domain=settings.cookie_domain,
-    )
-
-    return TokenResponse(
-        access_token=access_token,
-        expires_in=settings.jwt_access_token_expire_minutes * 60,
-    )
+    return await _create_auth_response(db, str(user.id), response)
 
 
 @router.post("/logout", status_code=204)
@@ -118,9 +127,26 @@ async def get_me(
     db: AsyncSession = Depends(get_db),
     auth: "GroupContext" = Depends(get_current_user),
 ):
-    """Get current user profile."""
+    """Get current user profile with group context."""
     user = await get_user_by_id(db, auth.user_id)
-    return user_to_profile(user)
+    return user_to_profile(user, group_id=auth.group_id, role=auth.role)
+
+
+@router.patch("/me", response_model=UserProfile)
+async def update_me(
+    data: dict,
+    db: AsyncSession = Depends(get_db),
+    auth: "GroupContext" = Depends(get_current_user),
+):
+    """Update current user profile."""
+    user = await get_user_by_id(db, auth.user_id)
+    if "display_name" in data and data["display_name"]:
+        user.display_name = data["display_name"]
+    if "email" in data and data["email"]:
+        user.email = data["email"]
+    await db.flush()
+    await db.refresh(user)
+    return user_to_profile(user, group_id=auth.group_id, role=auth.role)
 
 
 @router.post("/password/reset", status_code=202)
@@ -204,13 +230,5 @@ async def oauth_callback(
     redirect_url = f"{settings.oauth_redirect_base_url}/oauth/callback?token={app_access_token}&state={state}"
 
     redirect = RedirectResponse(url=redirect_url, status_code=302)
-    redirect.set_cookie(
-        key=SESSION_COOKIE_NAME,
-        value=session_token,
-        httponly=True,
-        secure=settings.is_production,
-        samesite="lax",
-        max_age=settings.session_timeout_hours * 3600,
-        domain=settings.cookie_domain,
-    )
+    _set_session_cookie(redirect, session_token)
     return redirect
