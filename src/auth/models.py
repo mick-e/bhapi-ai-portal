@@ -28,6 +28,7 @@ class User(Base, UUIDMixin, TimestampMixin, SoftDeleteMixin):
     # Relationships
     oauth_connections: Mapped[list["OAuthConnection"]] = relationship(back_populates="user", lazy="selectin")
     sessions: Mapped[list["Session"]] = relationship(back_populates="user", lazy="selectin")
+    api_keys: Mapped[list["ApiKey"]] = relationship(back_populates="user", lazy="selectin")
 
 
 class OAuthConnection(Base, UUIDMixin, TimestampMixin):
@@ -42,6 +43,22 @@ class OAuthConnection(Base, UUIDMixin, TimestampMixin):
     refresh_token_encrypted: Mapped[str | None] = mapped_column(String(1024), nullable=True)
 
     user: Mapped["User"] = relationship(back_populates="oauth_connections")
+
+
+class ApiKey(Base, UUIDMixin, TimestampMixin):
+    """API key for programmatic access to the Bhapi proxy."""
+
+    __tablename__ = "api_keys"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    group_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("groups.id"), nullable=False)
+    name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    key_hash: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
+    key_prefix: Mapped[str] = mapped_column(String(20), nullable=False)
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    user: Mapped["User"] = relationship(back_populates="api_keys")
 
 
 class Session(Base, UUIDMixin):

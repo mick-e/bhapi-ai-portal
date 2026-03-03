@@ -10,7 +10,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.auth.middleware import get_current_user
 from src.billing.models import BudgetThreshold, LLMAccount, SpendRecord
 from src.billing.schemas import (
+    CheckoutRequest,
+    CheckoutResponse,
     LLMAccountResponse,
+    PortalResponse,
     ProviderConnect,
     SubscribeRequest,
     SubscriptionStatus,
@@ -19,15 +22,19 @@ from src.billing.schemas import (
 )
 from src.billing.service import (
     connect_llm_account,
+    create_checkout_session_for_group,
     create_subscription,
     create_threshold,
     disconnect_llm_account,
+    get_billing_portal_url,
     get_subscription,
     list_llm_accounts,
     list_thresholds,
 )
+from src.billing.stripe_client import StripeError
 from src.database import get_db
 from src.dependencies import resolve_group_id as _gid
+from src.exceptions import ValidationError as BhapiValidationError
 from src.groups.models import GroupMember
 from src.schemas import GroupContext
 
@@ -57,6 +64,52 @@ async def get_subscription_status(
     """Get current subscription status for a group."""
     subscription = await get_subscription(db, _gid(group_id, auth))
     return subscription
+
+
+# ─── Stripe Checkout & Portal ────────────────────────────────────────────────
+
+
+@router.post("/checkout", response_model=CheckoutResponse)
+async def create_checkout(
+    data: CheckoutRequest,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a Stripe Checkout Session for plan upgrade."""
+    from src.auth.service import get_user_by_id
+
+    user = await get_user_by_id(db, auth.user_id)
+    gid = _gid(None, auth)
+
+    try:
+        result = await create_checkout_session_for_group(
+            db=db,
+            group_id=gid,
+            user_email=user.email,
+            user_name=user.display_name,
+            plan_type=data.plan_type,
+            billing_cycle=data.billing_cycle,
+        )
+    except StripeError as exc:
+        raise BhapiValidationError(str(exc))
+
+    return CheckoutResponse(session_id=result["session_id"], url=result["url"])
+
+
+@router.get("/portal", response_model=PortalResponse)
+async def get_billing_portal(
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get Stripe Billing Portal URL for managing subscription."""
+    gid = _gid(None, auth)
+
+    try:
+        url = await get_billing_portal_url(db, gid)
+    except StripeError as exc:
+        raise BhapiValidationError(str(exc))
+
+    return PortalResponse(url=url)
 
 
 # ─── LLM Accounts ────────────────────────────────────────────────────────────

@@ -20,7 +20,7 @@ cd portal && npm run dev
 
 ### Testing
 ```bash
-# All backend tests (547+ tests)
+# All backend tests (566+ tests)
 pytest tests/ -v
 
 # E2E tests (in-memory SQLite, no keys needed)
@@ -57,12 +57,12 @@ docker compose up --build
 ### Modules
 | Module | Prefix | Description |
 |--------|--------|-------------|
-| `auth/` | `/api/v1/auth` | Registration, login, password reset, email verification |
+| `auth/` | `/api/v1/auth` | Registration, login, password reset, email verification, API keys |
 | `groups/` | `/api/v1/groups` | Groups, members, invitations, consent (COPPA/GDPR/LGPD) |
 | `capture/` | `/api/v1/capture` | Event ingestion from extension/DNS/API, enriched listing |
 | `risk/` | `/api/v1/risk` | PII detection, safety classification, rules engine |
 | `alerts/` | `/api/v1/alerts` | Notifications, email delivery, digest batching, re-notification |
-| `billing/` | `/api/v1/billing` | Stripe subscriptions, LLM spend tracking (OpenAI/Anthropic/Google/Microsoft) |
+| `billing/` | `/api/v1/billing` | Stripe subscriptions, checkout, billing portal, LLM spend tracking (OpenAI/Anthropic/Google/Microsoft) |
 | `reporting/` | `/api/v1/reports` | Reports, PDF/CSV export, scheduling |
 | `portal/` | `/api/v1/portal` | BFF dashboard aggregation, group settings |
 | `compliance/` | `/api/v1/compliance` | GDPR/COPPA/LGPD data rights, deletion, export |
@@ -174,7 +174,7 @@ All custom exceptions inherit from `src.exceptions.BhapiException`:
 ## Database
 
 - **ORM:** SQLAlchemy 2.x async (asyncpg for PostgreSQL, aiosqlite for SQLite in tests)
-- **Migrations:** Alembic (3 migrations: initial schema, content column, compound indexes)
+- **Migrations:** Alembic (4 migrations: initial schema, content column, compound indexes, api_keys table)
 - **Production:** PostgreSQL 16
 - **Tests:** In-memory SQLite
 
@@ -232,3 +232,5 @@ All custom exceptions inherit from `src.exceptions.BhapiException`:
 8. **BudgetThreshold** — uses `type` field (not `threshold_type`), has no `period` field
 9. **Capture events API** — returns paginated `{items, total, page, page_size, total_pages}`, not flat list
 10. **Email domain validation** — `.test` TLD rejected; use `.com` in test emails
+11. **API Keys** — `bhapi_sk_` prefix, SHA-256 hashed in DB, full key shown only on creation
+12. **Billing checkout** — Only `family` plan is self-serve via Stripe; `school`/`club` require contacting sales

@@ -22,7 +22,11 @@ import {
   useGroupSettings,
   useUpdateGroupSettings,
   useUpdateProfile,
+  useApiKeys,
+  useGenerateApiKey,
+  useRevokeApiKey,
 } from "@/hooks/use-settings";
+import { useCreateCheckout } from "@/hooks/use-billing";
 import type {
   SafetyLevel,
   NotificationPreferences,
@@ -444,6 +448,9 @@ function BillingTab({
   const [budget, setBudget] = useState(String(monthlyBudget));
   const updateSettings = useUpdateGroupSettings();
   const [saved, setSaved] = useState(false);
+  const [showUpgrade, setShowUpgrade] = useState(false);
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
+  const checkout = useCreateCheckout();
 
   useEffect(() => {
     setBudget(String(monthlyBudget));
@@ -461,6 +468,10 @@ function BillingTab({
         },
       }
     );
+  }
+
+  function handleUpgrade() {
+    checkout.mutate({ plan_type: "family", billing_cycle: billingCycle });
   }
 
   const planLabels: Record<string, { name: string; description: string }> = {
@@ -484,6 +495,13 @@ function BillingTab({
             Billing settings updated
           </div>
         )}
+
+        {checkout.isError && (
+          <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
+            {(checkout.error as Error)?.message || "Failed to start checkout"}
+          </div>
+        )}
+
         <div className="rounded-lg bg-primary-50 p-4">
           <div className="flex items-center justify-between">
             <div>
@@ -494,9 +512,63 @@ function BillingTab({
                 {planInfo.description}
               </p>
             </div>
-            {plan === "free" && <Button size="sm">Upgrade</Button>}
+            {plan === "free" && (
+              <Button size="sm" onClick={() => setShowUpgrade(true)}>
+                Upgrade
+              </Button>
+            )}
           </div>
         </div>
+
+        {showUpgrade && (
+          <div className="rounded-lg border border-primary-200 bg-white p-4 space-y-4">
+            <h4 className="text-sm font-semibold text-gray-900">
+              Upgrade to Family Plan
+            </h4>
+            <p className="text-xs text-gray-500">
+              Unlimited members, advanced safety rules, full compliance suite.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setBillingCycle("monthly")}
+                className={`flex-1 rounded-lg border p-3 text-center text-sm transition-colors ${
+                  billingCycle === "monthly"
+                    ? "border-primary bg-primary-50 font-medium text-primary"
+                    : "border-gray-200 text-gray-600 hover:border-gray-300"
+                }`}
+              >
+                Monthly
+              </button>
+              <button
+                onClick={() => setBillingCycle("annual")}
+                className={`flex-1 rounded-lg border p-3 text-center text-sm transition-colors ${
+                  billingCycle === "annual"
+                    ? "border-primary bg-primary-50 font-medium text-primary"
+                    : "border-gray-200 text-gray-600 hover:border-gray-300"
+                }`}
+              >
+                Annual
+                <span className="ml-1 text-xs text-green-600">(save 20%)</span>
+              </button>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={handleUpgrade}
+                isLoading={checkout.isPending}
+              >
+                <CreditCard className="h-4 w-4" />
+                Continue to Checkout
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => setShowUpgrade(false)}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+
         <div>
           <h4 className="text-sm font-medium text-gray-700">
             Monthly budget
@@ -526,28 +598,179 @@ function BillingTab({
 // ─── API Keys Tab ───────────────────────────────────────────────────────────
 
 function ApiKeysTab() {
+  const { data: keys, isLoading, isError } = useApiKeys();
+  const generateKey = useGenerateApiKey();
+  const revokeKey = useRevokeApiKey();
+  const [newKey, setNewKey] = useState<string | null>(null);
+  const [keyName, setKeyName] = useState("");
+  const [showGenerate, setShowGenerate] = useState(false);
+  const [confirmRevoke, setConfirmRevoke] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  function handleGenerate() {
+    generateKey.mutate(
+      { name: keyName || undefined },
+      {
+        onSuccess: (data) => {
+          setNewKey(data.key);
+          setKeyName("");
+          setShowGenerate(false);
+        },
+      }
+    );
+  }
+
+  function handleRevoke(keyId: string) {
+    revokeKey.mutate(keyId, {
+      onSuccess: () => setConfirmRevoke(null),
+    });
+  }
+
+  function handleCopy() {
+    if (newKey) {
+      navigator.clipboard.writeText(newKey);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  }
+
   return (
     <Card title="API Keys" description="Manage API keys for the Bhapi proxy">
       <div className="max-w-lg space-y-4">
-        <div className="rounded-lg border border-gray-200 p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-900">
-                Production Key
-              </p>
-              <p className="mt-0.5 font-mono text-xs text-gray-400">
-                bhapi_sk_****...****3f2a
-              </p>
+        {generateKey.isError && (
+          <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
+            {(generateKey.error as Error)?.message || "Failed to generate key"}
+          </div>
+        )}
+
+        {newKey && (
+          <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+            <p className="text-sm font-medium text-green-800">
+              API key created — copy it now, it will not be shown again.
+            </p>
+            <div className="mt-2 flex items-center gap-2">
+              <code className="flex-1 break-all rounded bg-white px-2 py-1 font-mono text-xs text-gray-900">
+                {newKey}
+              </code>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleCopy}
+              >
+                {copied ? "Copied" : "Copy"}
+              </Button>
             </div>
-            <Button variant="ghost" size="sm">
-              Revoke
+            <button
+              onClick={() => setNewKey(null)}
+              className="mt-2 text-xs text-green-700 underline"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
+        {isLoading && (
+          <div className="flex items-center gap-2 py-4">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span className="text-sm text-gray-500">Loading keys...</span>
+          </div>
+        )}
+
+        {isError && (
+          <p className="text-sm text-red-600">Failed to load API keys.</p>
+        )}
+
+        {keys && keys.length > 0 && (
+          <div className="space-y-3">
+            {keys.map((k) => (
+              <div
+                key={k.id}
+                className="flex items-center justify-between rounded-lg border border-gray-200 p-4"
+              >
+                <div>
+                  <p className="text-sm font-medium text-gray-900">
+                    {k.name || "Unnamed Key"}
+                  </p>
+                  <p className="mt-0.5 font-mono text-xs text-gray-400">
+                    {k.key_prefix}
+                  </p>
+                  <p className="mt-0.5 text-xs text-gray-400">
+                    Created {new Date(k.created_at).toLocaleDateString()}
+                    {k.last_used_at &&
+                      ` · Last used ${new Date(k.last_used_at).toLocaleDateString()}`}
+                  </p>
+                </div>
+                {confirmRevoke === k.id ? (
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRevoke(k.id)}
+                      isLoading={revokeKey.isPending}
+                    >
+                      Confirm
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setConfirmRevoke(null)}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setConfirmRevoke(k.id)}
+                  >
+                    Revoke
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {keys && keys.length === 0 && !newKey && (
+          <p className="text-sm text-gray-500">No API keys yet.</p>
+        )}
+
+        {showGenerate ? (
+          <div className="flex items-end gap-2">
+            <div className="flex-1">
+              <Input
+                label="Key name (optional)"
+                value={keyName}
+                onChange={(e) => setKeyName(e.target.value)}
+                placeholder="e.g. Production"
+              />
+            </div>
+            <Button
+              onClick={handleGenerate}
+              isLoading={generateKey.isPending}
+              size="sm"
+            >
+              Create
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setShowGenerate(false);
+                setKeyName("");
+              }}
+            >
+              Cancel
             </Button>
           </div>
-        </div>
-        <Button variant="secondary">
-          <Key className="h-4 w-4" />
-          Generate New Key
-        </Button>
+        ) : (
+          <Button variant="secondary" onClick={() => setShowGenerate(true)}>
+            <Key className="h-4 w-4" />
+            Generate New Key
+          </Button>
+        )}
+
         <p className="text-xs text-gray-400">
           API keys provide access to the Bhapi proxy. Keep them secure and
           never share them publicly.

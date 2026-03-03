@@ -1,6 +1,7 @@
 """Auth service — business logic for authentication."""
 
 import hashlib
+import secrets
 from datetime import datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
@@ -10,7 +11,7 @@ from jose import jwt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.auth.models import Session, User
+from src.auth.models import ApiKey, Session, User
 from src.auth.schemas import RegisterRequest, UserProfile
 from src.config import get_settings
 from src.exceptions import ConflictError, NotFoundError, UnauthorizedError
@@ -334,3 +335,79 @@ async def reset_password(db: AsyncSession, token: str, new_password: str) -> Use
 
     logger.info("password_reset_completed", user_id=str(user_id))
     return user
+
+
+# ---------------------------------------------------------------------------
+# API Keys
+# ---------------------------------------------------------------------------
+
+API_KEY_PREFIX = "bhapi_sk_"
+
+
+def _generate_raw_key() -> str:
+    """Generate a cryptographically secure API key string."""
+    return API_KEY_PREFIX + secrets.token_urlsafe(32)
+
+
+def _hash_api_key(raw_key: str) -> str:
+    """Hash an API key for storage using SHA-256."""
+    return hashlib.sha256(raw_key.encode()).hexdigest()
+
+
+def _key_preview(raw_key: str) -> str:
+    """Create a preview like 'bhapi_sk_Ab...3f2a'."""
+    return raw_key[:12] + "..." + raw_key[-4:]
+
+
+async def list_api_keys(db: AsyncSession, user_id: UUID) -> list[ApiKey]:
+    """List all non-revoked API keys for a user."""
+    result = await db.execute(
+        select(ApiKey)
+        .where(ApiKey.user_id == user_id, ApiKey.revoked_at.is_(None))
+        .order_by(ApiKey.created_at.desc())
+    )
+    return list(result.scalars().all())
+
+
+async def create_api_key(
+    db: AsyncSession,
+    user_id: UUID,
+    group_id: UUID,
+    name: str | None = None,
+) -> tuple[ApiKey, str]:
+    """Create a new API key. Returns (model, full_key_string)."""
+    raw_key = _generate_raw_key()
+
+    api_key = ApiKey(
+        id=uuid4(),
+        user_id=user_id,
+        group_id=group_id,
+        name=name,
+        key_hash=_hash_api_key(raw_key),
+        key_prefix=_key_preview(raw_key),
+    )
+    db.add(api_key)
+    await db.flush()
+    await db.refresh(api_key)
+
+    logger.info("api_key_created", key_id=str(api_key.id), user_id=str(user_id))
+    return api_key, raw_key
+
+
+async def revoke_api_key(db: AsyncSession, key_id: UUID, user_id: UUID) -> ApiKey:
+    """Revoke an API key by setting revoked_at."""
+    result = await db.execute(
+        select(ApiKey).where(ApiKey.id == key_id, ApiKey.user_id == user_id)
+    )
+    api_key = result.scalar_one_or_none()
+    if not api_key:
+        raise NotFoundError("API Key", str(key_id))
+    if api_key.revoked_at:
+        raise ConflictError("API key is already revoked")
+
+    api_key.revoked_at = datetime.now(timezone.utc)
+    await db.flush()
+    await db.refresh(api_key)
+
+    logger.info("api_key_revoked", key_id=str(key_id), user_id=str(user_id))
+    return api_key

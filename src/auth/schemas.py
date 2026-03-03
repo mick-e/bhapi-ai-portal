@@ -113,3 +113,29 @@ class MFAVerifyRequest(BaseSchema):
     """MFA verification request."""
 
     code: str = Field(min_length=6, max_length=6)
+
+
+# ─── API Keys ────────────────────────────────────────────────────────────────
+
+
+class CreateApiKeyRequest(BaseSchema):
+    """Create API key request."""
+
+    name: str | None = Field(None, max_length=255)
+
+
+class ApiKeyResponse(BaseSchema):
+    """API key response (key is masked)."""
+
+    id: UUID
+    name: str | None = None
+    key_prefix: str
+    created_at: datetime
+    last_used_at: datetime | None = None
+    revoked_at: datetime | None = None
+
+
+class CreateApiKeyResponse(ApiKeyResponse):
+    """Create API key response — full key shown only once."""
+
+    key: str

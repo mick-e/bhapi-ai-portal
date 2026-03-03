@@ -105,6 +105,26 @@ class ThresholdResponse(BaseSchema):
     created_at: datetime
 
 
+class CheckoutRequest(BaseSchema):
+    """Create Stripe checkout session request."""
+
+    plan_type: str = Field(pattern="^(family)$")
+    billing_cycle: str = Field(default="monthly", pattern="^(monthly|annual)$")
+
+
+class CheckoutResponse(BaseSchema):
+    """Stripe checkout session response."""
+
+    session_id: str
+    url: str
+
+
+class PortalResponse(BaseSchema):
+    """Stripe billing portal response."""
+
+    url: str
+
+
 class EnvelopeCreate(BaseSchema):
     """Create a spend envelope (budget allocation)."""
 

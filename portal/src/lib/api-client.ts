@@ -1,5 +1,10 @@
 import type {
   ApiError,
+  ApiKeyItem,
+  CheckoutRequest,
+  CheckoutResponse,
+  CreateApiKeyRequest,
+  CreateApiKeyResponse,
   DashboardData,
   GroupMember,
   InviteMemberRequest,
@@ -18,6 +23,7 @@ import type {
   UpdateProfileRequest,
   User,
   PaginatedResponse,
+  PortalResponse,
 } from "@/types";
 
 // ─── Base Client ────────────────────────────────────────────────────────────
@@ -314,6 +320,34 @@ export const reportsApi = {
 
   updateSchedule(data: ReportScheduleConfig): Promise<ReportScheduleConfig> {
     return api.put<ReportScheduleConfig>("/api/v1/reports/schedules", data);
+  },
+};
+
+// ─── API Keys ────────────────────────────────────────────────────────────────
+
+export const apiKeysApi = {
+  list(): Promise<ApiKeyItem[]> {
+    return api.get<ApiKeyItem[]>("/api/v1/auth/api-keys");
+  },
+
+  generate(data: CreateApiKeyRequest): Promise<CreateApiKeyResponse> {
+    return api.post<CreateApiKeyResponse>("/api/v1/auth/api-keys", data);
+  },
+
+  revoke(keyId: string): Promise<void> {
+    return api.delete<void>(`/api/v1/auth/api-keys/${keyId}`);
+  },
+};
+
+// ─── Billing Checkout ────────────────────────────────────────────────────────
+
+export const billingApi = {
+  createCheckout(data: CheckoutRequest): Promise<CheckoutResponse> {
+    return api.post<CheckoutResponse>("/api/v1/billing/checkout", data);
+  },
+
+  getPortalUrl(): Promise<PortalResponse> {
+    return api.get<PortalResponse>("/api/v1/billing/portal");
   },
 };
 

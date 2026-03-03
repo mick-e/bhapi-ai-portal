@@ -301,3 +301,38 @@ export interface AcknowledgeRiskRequest {
   event_id: string;
   notes?: string;
 }
+
+// ─── API Keys ──────────────────────────────────────────────────────────────
+
+export interface ApiKeyItem {
+  id: string;
+  name: string | null;
+  key_prefix: string;
+  created_at: string;
+  last_used_at: string | null;
+  revoked_at: string | null;
+}
+
+export interface CreateApiKeyRequest {
+  name?: string;
+}
+
+export interface CreateApiKeyResponse extends ApiKeyItem {
+  key: string;
+}
+
+// ─── Billing Checkout ──────────────────────────────────────────────────────
+
+export interface CheckoutRequest {
+  plan_type: string;
+  billing_cycle: "monthly" | "annual";
+}
+
+export interface CheckoutResponse {
+  session_id: string;
+  url: string;
+}
+
+export interface PortalResponse {
+  url: string;
+}

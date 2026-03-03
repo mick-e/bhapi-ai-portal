@@ -53,6 +53,66 @@ async def create_subscription(
     return subscription
 
 
+async def create_checkout_session_for_group(
+    db: AsyncSession,
+    group_id: UUID,
+    user_email: str,
+    user_name: str,
+    plan_type: str,
+    billing_cycle: str,
+) -> dict:
+    """Create a Stripe Checkout Session for a group upgrade.
+
+    Returns dict with session_id and url.
+    """
+    from src.billing.stripe_client import create_checkout_session, get_or_create_customer
+
+    # Get or create Stripe customer
+    customer_id = await get_or_create_customer(
+        email=user_email,
+        name=user_name,
+        group_id=str(group_id),
+    )
+
+    # Build the plan key (e.g. "family_monthly")
+    plan_key = f"{plan_type}_{billing_cycle}"
+
+    result = await create_checkout_session(
+        customer_id=customer_id,
+        plan_key=plan_key,
+        group_id=str(group_id),
+    )
+
+    logger.info(
+        "checkout_session_created",
+        group_id=str(group_id),
+        plan_key=plan_key,
+        session_id=result["session_id"],
+    )
+    return result
+
+
+async def get_billing_portal_url(
+    db: AsyncSession,
+    group_id: UUID,
+) -> str:
+    """Get Stripe Billing Portal URL for a group's subscription."""
+    from src.billing.stripe_client import create_portal_session
+
+    # Find active subscription to get customer ID
+    result = await db.execute(
+        select(Subscription).where(
+            Subscription.group_id == group_id,
+            Subscription.stripe_customer_id.isnot(None),
+        ).order_by(Subscription.created_at.desc())
+    )
+    subscription = result.scalar_one_or_none()
+    if not subscription or not subscription.stripe_customer_id:
+        raise NotFoundError("No active Stripe subscription", str(group_id))
+
+    return await create_portal_session(customer_id=subscription.stripe_customer_id)
+
+
 async def get_subscription(db: AsyncSession, group_id: UUID) -> Subscription:
     """Get the active subscription for a group."""
     result = await db.execute(

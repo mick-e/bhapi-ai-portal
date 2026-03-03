@@ -1,8 +1,11 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { settingsApi } from "@/lib/api-client";
+import { settingsApi, apiKeysApi } from "@/lib/api-client";
 import type {
+  ApiKeyItem,
+  CreateApiKeyRequest,
+  CreateApiKeyResponse,
   GroupSettings,
   UpdateGroupSettingsRequest,
   UpdateProfileRequest,
@@ -12,6 +15,7 @@ import type {
 export const settingsKeys = {
   all: ["settings"] as const,
   group: () => [...settingsKeys.all, "group"] as const,
+  apiKeys: () => [...settingsKeys.all, "api-keys"] as const,
 };
 
 export function useGroupSettings() {
@@ -45,6 +49,37 @@ export function useUpdateProfile() {
         localStorage.setItem("bhapi_user", JSON.stringify(updatedUser));
       }
       queryClient.invalidateQueries({ queryKey: settingsKeys.all });
+    },
+  });
+}
+
+// ─── API Keys ────────────────────────────────────────────────────────────────
+
+export function useApiKeys() {
+  return useQuery<ApiKeyItem[]>({
+    queryKey: settingsKeys.apiKeys(),
+    queryFn: () => apiKeysApi.list(),
+  });
+}
+
+export function useGenerateApiKey() {
+  const queryClient = useQueryClient();
+
+  return useMutation<CreateApiKeyResponse, Error, CreateApiKeyRequest>({
+    mutationFn: (data) => apiKeysApi.generate(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: settingsKeys.apiKeys() });
+    },
+  });
+}
+
+export function useRevokeApiKey() {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, string>({
+    mutationFn: (keyId) => apiKeysApi.revoke(keyId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: settingsKeys.apiKeys() });
     },
   });
 }

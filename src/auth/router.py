@@ -15,7 +15,10 @@ from src.auth.oauth import (
     get_oauth_user_info,
 )
 from src.auth.schemas import (
+    ApiKeyResponse,
     AuthResponse,
+    CreateApiKeyRequest,
+    CreateApiKeyResponse,
     LoginRequest,
     OAuthAuthorizeResponse,
     PasswordResetConfirm,
@@ -28,12 +31,15 @@ from src.auth.service import (
     authenticate_user,
     confirm_email,
     create_access_token,
+    create_api_key,
     create_session,
     delete_user_account,
     get_user_by_id,
+    list_api_keys,
     register_user,
     request_password_reset,
     reset_password,
+    revoke_api_key,
     send_verification_email,
     user_to_profile,
 )
@@ -178,6 +184,53 @@ async def delete_account(
 ):
     """Delete user account (GDPR Article 17)."""
     await delete_user_account(db, auth.user_id)
+    return None
+
+
+# ---------------------------------------------------------------------------
+# API Keys
+# ---------------------------------------------------------------------------
+
+
+@router.get("/api-keys", response_model=list[ApiKeyResponse])
+async def list_keys(
+    db: AsyncSession = Depends(get_db),
+    auth: "GroupContext" = Depends(get_current_user),
+):
+    """List all active API keys for the current user."""
+    keys = await list_api_keys(db, auth.user_id)
+    return keys
+
+
+@router.post("/api-keys", response_model=CreateApiKeyResponse, status_code=201)
+async def generate_key(
+    data: CreateApiKeyRequest,
+    db: AsyncSession = Depends(get_db),
+    auth: "GroupContext" = Depends(get_current_user),
+):
+    """Generate a new API key. The full key is only returned once."""
+    api_key, raw_key = await create_api_key(
+        db, auth.user_id, auth.group_id, name=data.name,
+    )
+    return CreateApiKeyResponse(
+        id=api_key.id,
+        name=api_key.name,
+        key_prefix=api_key.key_prefix,
+        key=raw_key,
+        created_at=api_key.created_at,
+        last_used_at=api_key.last_used_at,
+        revoked_at=api_key.revoked_at,
+    )
+
+
+@router.delete("/api-keys/{key_id}", status_code=204)
+async def revoke_key(
+    key_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    auth: "GroupContext" = Depends(get_current_user),
+):
+    """Revoke an API key."""
+    await revoke_api_key(db, key_id, auth.user_id)
     return None
 
 
