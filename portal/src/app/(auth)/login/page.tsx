@@ -2,8 +2,8 @@
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
-import { Shield } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { BhapiLogo } from "@/components/BhapiLogo";
 import { Input } from "@/components/ui/Input";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -35,8 +35,7 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="mb-8 flex flex-col items-center">
           <Link href="/" className="flex items-center gap-2">
-            <Shield className="h-10 w-10 text-primary" />
-            <span className="text-2xl font-bold text-gray-900">Bhapi</span>
+            <BhapiLogo className="h-10 w-auto" color="#FF6B35" />
           </Link>
           <h1 className="mt-4 text-2xl font-bold text-gray-900">
             Welcome back
@@ -148,7 +147,7 @@ export default function LoginPage() {
             </label>
             <Link
               href="/forgot-password"
-              className="text-sm font-medium text-primary hover:text-primary-700"
+              className="text-sm font-medium text-primary-700 hover:text-primary-800"
             >
               Forgot password?
             </Link>
@@ -168,7 +167,7 @@ export default function LoginPage() {
           Don&apos;t have an account?{" "}
           <Link
             href="/register"
-            className="font-medium text-primary hover:text-primary-700"
+            className="font-medium text-primary-700 hover:text-primary-800"
           >
             Create one free
           </Link>

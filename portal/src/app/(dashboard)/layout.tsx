@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Shield,
   LayoutDashboard,
   Users,
   Activity,
@@ -17,6 +16,7 @@ import {
   X,
   ChevronDown,
 } from "lucide-react";
+import { BhapiLogo } from "@/components/BhapiLogo";
 import { useAuth } from "@/hooks/use-auth";
 import { useAlerts } from "@/hooks/use-alerts";
 
@@ -67,8 +67,7 @@ export default function DashboardLayout({
         {/* Sidebar header */}
         <div className="flex h-16 items-center justify-between border-b border-gray-100 px-6">
           <Link href="/dashboard" className="flex items-center gap-2">
-            <Shield className="h-7 w-7 text-primary" />
-            <span className="text-lg font-bold text-gray-900">Bhapi</span>
+            <BhapiLogo className="h-7 w-auto" color="#FF6B35" />
           </Link>
           <button
             onClick={() => setSidebarOpen(false)}
@@ -97,7 +96,7 @@ export default function DashboardLayout({
                       transition-colors
                       ${
                         isActive
-                          ? "bg-primary-50 text-primary"
+                          ? "bg-primary-50 text-primary-700"
                           : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                       }
                     `}

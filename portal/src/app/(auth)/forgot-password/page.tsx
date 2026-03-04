@@ -2,7 +2,8 @@
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
-import { Shield, ArrowLeft, Mail } from "lucide-react";
+import { ArrowLeft, Mail } from "lucide-react";
+import { BhapiLogo } from "@/components/BhapiLogo";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { api } from "@/lib/api-client";
@@ -40,8 +41,7 @@ export default function ForgotPasswordPage() {
         {/* Logo */}
         <div className="mb-8 flex flex-col items-center">
           <Link href="/" className="flex items-center gap-2">
-            <Shield className="h-10 w-10 text-primary" />
-            <span className="text-2xl font-bold text-gray-900">Bhapi</span>
+            <BhapiLogo className="h-10 w-auto" color="#FF6B35" />
           </Link>
         </div>
 
@@ -61,7 +61,7 @@ export default function ForgotPasswordPage() {
             <div className="mt-8">
               <Link
                 href="/login"
-                className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:text-primary-700"
+                className="inline-flex items-center gap-2 text-sm font-medium text-primary-700 hover:text-primary-800"
               >
                 <ArrowLeft className="h-4 w-4" />
                 Back to sign in
@@ -110,7 +110,7 @@ export default function ForgotPasswordPage() {
             <div className="mt-6 text-center">
               <Link
                 href="/login"
-                className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:text-primary-700"
+                className="inline-flex items-center gap-2 text-sm font-medium text-primary-700 hover:text-primary-800"
               >
                 <ArrowLeft className="h-4 w-4" />
                 Back to sign in

@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Shield, Users, Bell, BarChart3, ArrowRight } from "lucide-react";
+import { Users, Bell, BarChart3, ArrowRight, Check } from "lucide-react";
+import { BhapiLogo } from "@/components/BhapiLogo";
 
 export default function LandingPage() {
   return (
@@ -8,8 +9,7 @@ export default function LandingPage() {
       <nav className="border-b border-gray-100">
         <div className="container-narrow flex h-16 items-center justify-between">
           <div className="flex items-center gap-2">
-            <Shield className="h-8 w-8 text-primary" />
-            <span className="text-xl font-bold text-gray-900">Bhapi</span>
+            <BhapiLogo className="h-8 w-auto" color="#FF6B35" />
           </div>
           <div className="flex items-center gap-4">
             <Link
@@ -20,7 +20,7 @@ export default function LandingPage() {
             </Link>
             <Link
               href="/register"
-              className="inline-flex items-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 transition-colors"
+              className="inline-flex items-center rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 transition-colors"
             >
               Get Started
             </Link>
@@ -46,7 +46,7 @@ export default function LandingPage() {
             <div className="mt-10 flex items-center justify-center gap-4">
               <Link
                 href="/register"
-                className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-base font-semibold text-white shadow-sm hover:bg-primary-700 transition-colors"
+                className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-6 py-3 text-base font-semibold text-white shadow-sm hover:bg-primary-700 transition-colors"
               >
                 Create Free Account
                 <ArrowRight className="h-4 w-4" />
@@ -100,7 +100,7 @@ export default function LandingPage() {
               description="Monitor AI API costs and set budgets per member or for the entire group."
             />
             <FeatureCard
-              icon={<Shield className="h-6 w-6 text-primary" />}
+              icon={<BarChart3 className="h-6 w-6 text-primary" />}
               title="Safety Reports"
               description="Comprehensive reports on AI usage patterns, risks, and compliance."
             />
@@ -160,7 +160,7 @@ export default function LandingPage() {
         <div className="container-narrow py-12">
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
             <div className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-primary" />
+              <BhapiLogo className="h-5 w-auto" color="#FF6B35" />
               <span className="text-sm font-semibold text-gray-900">
                 Bhapi AI Portal
               </span>
@@ -214,7 +214,7 @@ function AccountTypeCard({
     <div
       className={`rounded-xl p-8 flex flex-col ${
         highlighted
-          ? "bg-primary text-white ring-2 ring-primary shadow-lg"
+          ? "bg-primary-600 text-white ring-2 ring-primary-600 shadow-lg"
           : "bg-white ring-1 ring-gray-200 shadow-sm"
       }`}
     >
@@ -242,7 +242,7 @@ function AccountTypeCard({
       <ul className="mt-6 space-y-3 flex-1">
         {features.map((feature) => (
           <li key={feature} className="flex items-start gap-2 text-sm">
-            <Shield
+            <Check
               className={`mt-0.5 h-4 w-4 flex-shrink-0 ${
                 highlighted ? "text-primary-200" : "text-primary"
               }`}
@@ -257,8 +257,8 @@ function AccountTypeCard({
         href={cta.href}
         className={`mt-6 block rounded-lg px-4 py-2.5 text-center text-sm font-semibold transition-colors ${
           highlighted
-            ? "bg-white text-primary hover:bg-primary-50"
-            : "bg-primary text-white hover:bg-primary-700"
+            ? "bg-white text-primary-700 hover:bg-primary-50"
+            : "bg-primary-600 text-white hover:bg-primary-700"
         }`}
       >
         {cta.label}

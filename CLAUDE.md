@@ -83,6 +83,10 @@ docker compose up --build
 - React Query for data fetching
 - WCAG 2.1 AA accessible (ARIA labels, keyboard navigation, skip-to-content)
 - Pages: dashboard, members, activity, alerts, spend, reports, settings
+- **Brand**: Orange `#FF6B35` primary, Teal `#0D9488` accent, Inter font
+- **Logo**: `BhapiLogo` component (`portal/src/components/BhapiLogo.tsx`) — SVG wordmark + smile arc, `variant="full"|"icon"`
+- **WCAG AA**: Buttons use `bg-primary-600` (not `bg-primary`), text links use `text-primary-700` for contrast compliance
+- **Static assets**: `portal/public/logo.svg`, `favicon.svg`, `favicon.ico`
 
 ### Browser Extension (`extension/`)
 - Manifest V3 (Chrome + Firefox)

@@ -12,6 +12,12 @@ export const metadata: Metadata = {
   title: "Bhapi AI Portal",
   description:
     "AI Safety for Families, Schools & Clubs — monitor, manage, and protect AI usage",
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", sizes: "32x32" },
+    ],
+  },
 };
 
 export default function RootLayout({

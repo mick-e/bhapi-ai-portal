@@ -2,7 +2,8 @@
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
-import { Shield, Users, GraduationCap, Building2 } from "lucide-react";
+import { Users, GraduationCap, Building2 } from "lucide-react";
+import { BhapiLogo } from "@/components/BhapiLogo";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useAuth } from "@/hooks/use-auth";
@@ -75,8 +76,7 @@ export default function RegisterPage() {
         {/* Logo */}
         <div className="mb-8 flex flex-col items-center">
           <Link href="/" className="flex items-center gap-2">
-            <Shield className="h-10 w-10 text-primary" />
-            <span className="text-2xl font-bold text-gray-900">Bhapi</span>
+            <BhapiLogo className="h-10 w-auto" color="#FF6B35" />
           </Link>
           <h1 className="mt-4 text-2xl font-bold text-gray-900">
             Create your account
@@ -167,7 +167,7 @@ export default function RegisterPage() {
           Already have an account?{" "}
           <Link
             href="/login"
-            className="font-medium text-primary hover:text-primary-700"
+            className="font-medium text-primary-700 hover:text-primary-800"
           >
             Sign in
           </Link>

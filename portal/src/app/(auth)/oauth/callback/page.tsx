@@ -2,7 +2,8 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Shield } from "lucide-react";
+import { AlertCircle } from "lucide-react";
+import { BhapiLogo } from "@/components/BhapiLogo";
 import { setAuthToken } from "@/lib/auth";
 
 export default function OAuthCallbackPage() {
@@ -10,7 +11,7 @@ export default function OAuthCallbackPage() {
     <Suspense
       fallback={
         <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 px-4">
-          <Shield className="mx-auto h-10 w-10 text-primary animate-pulse" />
+          <BhapiLogo className="mx-auto h-10 w-auto animate-pulse" color="#FF6B35" />
           <p className="mt-4 text-sm text-gray-600">Loading...</p>
         </div>
       }
@@ -52,14 +53,14 @@ function OAuthCallbackContent() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 px-4">
         <div className="w-full max-w-md text-center">
-          <Shield className="mx-auto h-10 w-10 text-red-500" />
+          <AlertCircle className="mx-auto h-10 w-10 text-red-500" />
           <h1 className="mt-4 text-xl font-bold text-gray-900">
             Sign-in Failed
           </h1>
           <p className="mt-2 text-sm text-gray-600">{error}</p>
           <a
             href="/login"
-            className="mt-4 inline-block text-sm font-medium text-primary hover:text-primary-700"
+            className="mt-4 inline-block text-sm font-medium text-primary-700 hover:text-primary-800"
           >
             Back to login
           </a>
@@ -71,7 +72,7 @@ function OAuthCallbackContent() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-md text-center">
-        <Shield className="mx-auto h-10 w-10 text-primary animate-pulse" />
+        <BhapiLogo className="mx-auto h-10 w-auto animate-pulse" color="#FF6B35" />
         <h1 className="mt-4 text-xl font-bold text-gray-900">
           Completing sign-in...
         </h1>

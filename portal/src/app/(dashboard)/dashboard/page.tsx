@@ -120,7 +120,7 @@ export default function DashboardPage() {
           footer={
             <Link
               href="/activity"
-              className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary-700"
+              className="inline-flex items-center gap-1 text-sm font-medium text-primary-700 hover:text-primary-800"
             >
               View all activity
               <ArrowRight className="h-4 w-4" />
@@ -148,7 +148,7 @@ export default function DashboardPage() {
           footer={
             <Link
               href="/alerts"
-              className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary-700"
+              className="inline-flex items-center gap-1 text-sm font-medium text-primary-700 hover:text-primary-800"
             >
               View all alerts
               <ArrowRight className="h-4 w-4" />
@@ -178,7 +178,7 @@ export default function DashboardPage() {
           footer={
             <Link
               href="/spend"
-              className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary-700"
+              className="inline-flex items-center gap-1 text-sm font-medium text-primary-700 hover:text-primary-800"
             >
               View spend details
               <ArrowRight className="h-4 w-4" />
