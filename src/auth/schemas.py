@@ -45,14 +45,6 @@ class TokenResponse(BaseSchema):
     expires_in: int
 
 
-class AuthResponse(BaseSchema):
-    """Auth response with token + user data for frontend."""
-
-    access_token: str
-    token_type: str = "bearer"
-    user: UserProfile
-
-
 class UserProfile(BaseSchema):
     """User profile response — matches frontend User type."""
 
@@ -66,6 +58,14 @@ class UserProfile(BaseSchema):
     mfa_enabled: bool = False
     created_at: datetime
     updated_at: datetime | None = None
+
+
+class AuthResponse(BaseSchema):
+    """Auth response with token + user data for frontend."""
+
+    access_token: str
+    token_type: str = "bearer"
+    user: UserProfile
 
 
 class PasswordChangeRequest(BaseSchema):
