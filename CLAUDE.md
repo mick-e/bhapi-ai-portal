@@ -84,9 +84,9 @@ docker compose up --build
 - WCAG 2.1 AA accessible (ARIA labels, keyboard navigation, skip-to-content)
 - Pages: dashboard, members, activity, alerts, spend, reports, settings
 - **Brand**: Orange `#FF6B35` primary, Teal `#0D9488` accent, Inter font
-- **Logo**: `BhapiLogo` component (`portal/src/components/BhapiLogo.tsx`) — SVG wordmark + smile arc, `variant="full"|"icon"`
+- **Logo**: `BhapiLogo` component (`portal/src/components/BhapiLogo.tsx`) — renders `/logo.png` (orange wordmark + smile arc)
 - **WCAG AA**: Buttons use `bg-primary-600` (not `bg-primary`), text links use `text-primary-700` for contrast compliance
-- **Static assets**: `portal/public/logo.svg`, `favicon.svg`, `favicon.ico`
+- **Static assets**: `portal/public/logo.png`, `logo.svg`, `icon.png` (circular app icon), `favicon.svg`, `favicon.ico`
 
 ### Browser Extension (`extension/`)
 - Manifest V3 (Chrome + Firefox)
@@ -238,3 +238,4 @@ All custom exceptions inherit from `src.exceptions.BhapiException`:
 10. **Email domain validation** — `.test` TLD rejected; use `.com` in test emails
 11. **API Keys** — `bhapi_sk_` prefix, SHA-256 hashed in DB, full key shown only on creation
 12. **Billing checkout** — Only `family` plan is self-serve via Stripe; `school`/`club` require contacting sales
+13. **Dashboard no-group** — New users without a group see a "Create your first group" onboarding flow instead of an error; `User.group_id` is nullable
