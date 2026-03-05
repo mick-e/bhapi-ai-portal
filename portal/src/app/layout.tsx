@@ -13,10 +13,7 @@ export const metadata: Metadata = {
   description:
     "AI Safety for Families, Schools & Clubs — monitor, manage, and protect AI usage",
   icons: {
-    icon: [
-      { url: "/favicon.svg", type: "image/svg+xml" },
-      { url: "/favicon.ico", sizes: "32x32" },
-    ],
+    icon: "/favicon.ico",
     apple: "/icon.png",
   },
 };

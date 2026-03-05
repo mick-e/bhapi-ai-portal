@@ -84,9 +84,9 @@ docker compose up --build
 - WCAG 2.1 AA accessible (ARIA labels, keyboard navigation, skip-to-content)
 - Pages: dashboard, members, activity, alerts, spend, reports, settings
 - **Brand**: Orange `#FF6B35` primary, Teal `#0D9488` accent, Inter font
-- **Logo**: `BhapiLogo` component (`portal/src/components/BhapiLogo.tsx`) — renders `/logo.png` (orange wordmark + smile arc)
+- **Logo**: `BhapiLogo` component (`portal/src/components/BhapiLogo.tsx`) — plain `<img>` tag rendering `/logo.png` (orange wordmark + smile arc). NEVER use `next/image` — static export (`output: "export"`) breaks it
 - **WCAG AA**: Buttons use `bg-primary-600` (not `bg-primary`), text links use `text-primary-700` for contrast compliance
-- **Static assets**: `portal/public/logo.png`, `logo.svg`, `icon.png` (circular app icon), `favicon.svg`, `favicon.ico`
+- **Static assets**: `portal/public/logo.png` (wordmark), `icon.png` (circular app icon), `favicon.ico` (generated from icon.png). No SVG assets — use only the PNG images from Downloads
 
 ### Browser Extension (`extension/`)
 - Manifest V3 (Chrome + Firefox)
@@ -239,3 +239,5 @@ All custom exceptions inherit from `src.exceptions.BhapiException`:
 11. **API Keys** — `bhapi_sk_` prefix, SHA-256 hashed in DB, full key shown only on creation
 12. **Billing checkout** — Only `family` plan is self-serve via Stripe; `school`/`club` require contacting sales
 13. **Dashboard no-group** — New users without a group see a "Create your first group" onboarding flow instead of an error; `User.group_id` is nullable
+14. **next/image breaks on static export** — `next.config.js` uses `output: "export"`, so `next/image` (`Image` component) will NOT render images in production. Always use plain `<img>` tags instead. This is the #1 cause of "missing logo" bugs
+15. **Favicon/icon assets** — Use actual PNG image files from the brand assets (circular bhapi icon), never create custom SVG favicons. Generate `.ico` from the PNG via Pillow

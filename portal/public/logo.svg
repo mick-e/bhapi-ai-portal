@@ -1,6 +1,0 @@
-<svg viewBox="0 0 120 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Smile arc above "hap" -->
-  <path d="M30 8c3 8 10 13 17 13s14-5 17-13" stroke="#FF6B35" stroke-width="3" stroke-linecap="round" fill="none"/>
-  <!-- "bhapi" wordmark -->
-  <text x="6" y="36" fill="#FF6B35" font-family="Inter, system-ui, sans-serif" font-weight="700" font-size="28" letter-spacing="-0.5">bhapi</text>
-</svg>
