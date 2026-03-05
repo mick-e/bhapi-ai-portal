@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   Users,
   Activity,
@@ -10,23 +11,108 @@ import {
   ArrowRight,
   Loader2,
   RefreshCw,
+  Plus,
 } from "lucide-react";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useDashboardSummary } from "@/hooks/use-dashboard";
+import { useAuth } from "@/hooks/use-auth";
+import { groupsApi } from "@/lib/api-client";
 import type { Alert, CaptureEvent } from "@/types";
 
+function CreateGroupPrompt() {
+  const { user } = useAuth();
+  const [name, setName] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const groupType = user?.account_type || "family";
+
+  async function handleCreate() {
+    if (!name.trim()) {
+      setError("Please enter a group name.");
+      return;
+    }
+    setCreating(true);
+    setError(null);
+    try {
+      await groupsApi.create({ name: name.trim(), type: groupType });
+      // Reload the page to pick up the new group context
+      window.location.reload();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create group.");
+      setCreating(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col items-center justify-center py-16">
+      <div className="mx-auto w-full max-w-md rounded-xl bg-white p-8 shadow-sm ring-1 ring-gray-200">
+        <div className="text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary-100">
+            <Plus className="h-7 w-7 text-primary-600" />
+          </div>
+          <h2 className="mt-4 text-xl font-bold text-gray-900">
+            Create your first group
+          </h2>
+          <p className="mt-2 text-sm text-gray-500">
+            Set up your {groupType} group to start monitoring AI usage and keeping everyone safe.
+          </p>
+        </div>
+
+        <div className="mt-6 space-y-4">
+          {error && (
+            <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-red-200">
+              {error}
+            </div>
+          )}
+          <div>
+            <label htmlFor="group-name" className="block text-sm font-medium text-gray-700">
+              Group name
+            </label>
+            <input
+              id="group-name"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder={groupType === "family" ? "The Smith Family" : groupType === "school" ? "Oakwood Academy" : "My Club"}
+              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+              onKeyDown={(e) => e.key === "Enter" && handleCreate()}
+            />
+          </div>
+          <Button
+            onClick={handleCreate}
+            isLoading={creating}
+            className="w-full"
+          >
+            Create {groupType.charAt(0).toUpperCase() + groupType.slice(1)} Group
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
+  const { user } = useAuth();
   const { data, isLoading, isError, error, refetch } = useDashboardSummary();
 
-  if (isLoading) {
+  // If user has no group, show onboarding
+  const noGroup = !user?.group_id;
+
+  if (isLoading && !noGroup) {
     return (
       <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <span className="ml-3 text-sm text-gray-500">Loading dashboard...</span>
       </div>
     );
+  }
+
+  // Show create group prompt if user has no group or if the error is about missing group
+  if (noGroup || (isError && (error as Error)?.message?.includes("No group found"))) {
+    return <CreateGroupPrompt />;
   }
 
   if (isError) {

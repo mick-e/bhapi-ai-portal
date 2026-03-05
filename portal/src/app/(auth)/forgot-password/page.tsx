@@ -41,7 +41,7 @@ export default function ForgotPasswordPage() {
         {/* Logo */}
         <div className="mb-8 flex flex-col items-center">
           <Link href="/" className="flex items-center gap-2">
-            <BhapiLogo className="h-10 w-auto" color="#FF6B35" />
+            <BhapiLogo className="h-10 w-auto" />
           </Link>
         </div>
 

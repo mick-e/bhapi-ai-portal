@@ -5,7 +5,9 @@ import type {
   CheckoutResponse,
   CreateApiKeyRequest,
   CreateApiKeyResponse,
+  CreateGroupRequest,
   DashboardData,
+  Group,
   GroupMember,
   InviteMemberRequest,
   UpdateMemberRequest,
@@ -127,6 +129,14 @@ function qs(params: Record<string, string | number | boolean | undefined>): stri
   if (entries.length === 0) return "";
   return "?" + entries.map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`).join("&");
 }
+
+// ─── Groups ─────────────────────────────────────────────────────────────────
+
+export const groupsApi = {
+  create(data: CreateGroupRequest): Promise<Group> {
+    return api.post<Group>("/api/v1/groups", data);
+  },
+};
 
 // ─── Dashboard ──────────────────────────────────────────────────────────────
 

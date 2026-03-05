@@ -5,8 +5,8 @@ export interface User {
   email: string;
   display_name: string;
   account_type: "family" | "school" | "club";
-  group_id: string;
-  role: "owner" | "admin" | "member" | "viewer";
+  group_id: string | null;
+  role: "owner" | "admin" | "member" | "viewer" | null;
   avatar_url?: string;
   created_at: string;
   updated_at: string;
@@ -21,6 +21,11 @@ export interface Group {
   plan: "free" | "starter" | "pro" | "enterprise";
   created_at: string;
   updated_at: string;
+}
+
+export interface CreateGroupRequest {
+  name: string;
+  type: "family" | "school" | "club";
 }
 
 export interface GroupMember {

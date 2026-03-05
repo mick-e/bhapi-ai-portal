@@ -9,7 +9,7 @@ export default function LandingPage() {
       <nav className="border-b border-gray-100">
         <div className="container-narrow flex h-16 items-center justify-between">
           <div className="flex items-center gap-2">
-            <BhapiLogo className="h-8 w-auto" color="#FF6B35" />
+            <BhapiLogo className="h-8 w-auto" />
           </div>
           <div className="flex items-center gap-4">
             <Link
@@ -160,7 +160,7 @@ export default function LandingPage() {
         <div className="container-narrow py-12">
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
             <div className="flex items-center gap-2">
-              <BhapiLogo className="h-5 w-auto" color="#FF6B35" />
+              <BhapiLogo className="h-5 w-auto" />
               <span className="text-sm font-semibold text-gray-900">
                 Bhapi AI Portal
               </span>

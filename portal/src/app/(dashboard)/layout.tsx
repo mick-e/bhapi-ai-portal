@@ -67,7 +67,7 @@ export default function DashboardLayout({
         {/* Sidebar header */}
         <div className="flex h-16 items-center justify-between border-b border-gray-100 px-6">
           <Link href="/dashboard" className="flex items-center gap-2">
-            <BhapiLogo className="h-7 w-auto" color="#FF6B35" />
+            <BhapiLogo className="h-7 w-auto" />
           </Link>
           <button
             onClick={() => setSidebarOpen(false)}

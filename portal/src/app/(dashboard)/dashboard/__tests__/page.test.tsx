@@ -46,6 +46,27 @@ const mockDashboardData: DashboardData = {
   },
 };
 
+// Mock the auth hook
+vi.mock("@/hooks/use-auth", () => ({
+  useAuth: () => ({
+    user: {
+      id: "u1",
+      email: "test@example.com",
+      display_name: "Test User",
+      account_type: "family",
+      group_id: "g1",
+      role: "owner",
+    },
+    isLoading: false,
+    isAuthenticated: true,
+    error: null,
+    login: vi.fn(),
+    loginWithOAuth: vi.fn(),
+    logout: vi.fn(),
+    register: vi.fn(),
+  }),
+}));
+
 // Mock the dashboard hook
 vi.mock("@/hooks/use-dashboard", () => ({
   dashboardKeys: { all: ["dashboard"], summary: () => ["dashboard", "summary"] },

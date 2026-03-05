@@ -11,7 +11,7 @@ export default function OAuthCallbackPage() {
     <Suspense
       fallback={
         <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 px-4">
-          <BhapiLogo className="mx-auto h-10 w-auto animate-pulse" color="#FF6B35" />
+          <BhapiLogo className="mx-auto h-10 w-auto animate-pulse" />
           <p className="mt-4 text-sm text-gray-600">Loading...</p>
         </div>
       }
@@ -72,7 +72,7 @@ function OAuthCallbackContent() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-md text-center">
-        <BhapiLogo className="mx-auto h-10 w-auto animate-pulse" color="#FF6B35" />
+        <BhapiLogo className="mx-auto h-10 w-auto animate-pulse" />
         <h1 className="mt-4 text-xl font-bold text-gray-900">
           Completing sign-in...
         </h1>
