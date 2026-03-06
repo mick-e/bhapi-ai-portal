@@ -118,6 +118,17 @@ class MFAVerifyRequest(BaseSchema):
 # ─── API Keys ────────────────────────────────────────────────────────────────
 
 
+class ContactInquiryRequest(BaseSchema):
+    """Contact inquiry from school/club registration page."""
+
+    organisation: str = Field(min_length=1, max_length=255)
+    contact_name: str = Field(min_length=1, max_length=255)
+    email: EmailStr
+    account_type: str = Field(pattern="^(school|club)$")
+    estimated_members: str = Field(pattern="^(10-50|50-200|200-500|500\\+)$")
+    message: str | None = Field(None, max_length=2000)
+
+
 class CreateApiKeyRequest(BaseSchema):
     """Create API key request."""
 

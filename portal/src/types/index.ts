@@ -341,3 +341,16 @@ export interface CheckoutResponse {
 export interface PortalResponse {
   url: string;
 }
+
+// ─── Contact Inquiry ────────────────────────────────────────────────────────
+
+export type EstimatedMembers = "10-50" | "50-200" | "200-500" | "500+";
+
+export interface ContactInquiryRequest {
+  organisation: string;
+  contact_name: string;
+  email: string;
+  account_type: "school" | "club";
+  estimated_members: EstimatedMembers;
+  message?: string;
+}

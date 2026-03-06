@@ -17,6 +17,7 @@ from src.auth.oauth import (
 from src.auth.schemas import (
     ApiKeyResponse,
     AuthResponse,
+    ContactInquiryRequest,
     CreateApiKeyRequest,
     CreateApiKeyResponse,
     LoginRequest,
@@ -185,6 +186,43 @@ async def delete_account(
     """Delete user account (GDPR Article 17)."""
     await delete_user_account(db, auth.user_id)
     return None
+
+
+# ---------------------------------------------------------------------------
+# Contact Inquiry (public — no auth required)
+# ---------------------------------------------------------------------------
+
+
+@router.post("/contact-inquiry", status_code=202)
+async def contact_inquiry(data: ContactInquiryRequest):
+    """Receive a contact inquiry from the school/club registration form."""
+    import structlog
+    from src.email.service import send_email
+
+    log = structlog.get_logger()
+
+    subject = f"[Bhapi] New {data.account_type.capitalize()} Inquiry from {data.organisation}"
+    html_content = (
+        f"<h2>New {data.account_type.capitalize()} Inquiry</h2>"
+        f"<p><strong>Organisation:</strong> {data.organisation}</p>"
+        f"<p><strong>Contact:</strong> {data.contact_name}</p>"
+        f"<p><strong>Email:</strong> {data.email}</p>"
+        f"<p><strong>Account Type:</strong> {data.account_type}</p>"
+        f"<p><strong>Estimated Members:</strong> {data.estimated_members}</p>"
+        f"<p><strong>Message:</strong> {data.message or '(none)'}</p>"
+    )
+
+    sent = await send_email(
+        to_email="sales@bhapi.ai",
+        subject=subject,
+        html_content=html_content,
+        from_email="noreply@bhapi.ai",
+    )
+
+    if not sent:
+        log.warning("contact_inquiry_email_failed", email=data.email, org=data.organisation)
+
+    return {"message": "Thank you for your interest! Our team will be in touch within 1 business day."}
 
 
 # ---------------------------------------------------------------------------
