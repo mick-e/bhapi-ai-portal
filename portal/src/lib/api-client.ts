@@ -80,6 +80,15 @@ export async function apiFetch<T>(
     } catch {
       detail = response.statusText || detail;
     }
+
+    // Clear stale auth and redirect to login on token expiry
+    if (response.status === 401 && typeof window !== "undefined") {
+      localStorage.removeItem("bhapi_auth_token");
+      localStorage.removeItem("bhapi_user");
+      window.location.href = "/login";
+      return undefined as T;
+    }
+
     throw new ApiRequestError(response.status, detail);
   }
 
