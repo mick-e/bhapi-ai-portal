@@ -48,7 +48,7 @@ async def create_group(db: AsyncSession, user_id: UUID, data: GroupCreate) -> Gr
     )
     db.add(member)
     await db.flush()
-    await db.refresh(group)
+    await db.refresh(group, ["members"])
 
     logger.info("group_created", group_id=str(group.id), type=data.type)
     return group
