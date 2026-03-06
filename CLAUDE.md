@@ -239,6 +239,7 @@ All custom exceptions inherit from `src.exceptions.BhapiException`:
 11. **API Keys** — `bhapi_sk_` prefix, SHA-256 hashed in DB, full key shown only on creation
 12. **Billing checkout** — Only `family` plan is self-serve via Stripe; `school`/`club` require contacting sales
 16. **Registration** — School/club account types show a contact inquiry form (not registration). Only family accounts can self-register. Contact inquiries go to `POST /api/v1/auth/contact-inquiry` (public, no auth) → emails sales@bhapi.ai
+17. **Async SQLAlchemy refresh** — `db.refresh(obj)` expires relationships. Always pass relationship names: `await db.refresh(group, ["members"])` to avoid `MissingGreenlet` errors when accessing relationships after refresh
 13. **Dashboard no-group** — New users without a group see a "Create your first group" onboarding flow instead of an error; `User.group_id` is nullable
 14. **next/image + static export** — `next.config.js` uses `output: "export"` with `images: { unoptimized: true }`. Use plain `<img>` tags (NOT `next/image`) for images. `BhapiLogo` uses `<img>` with inline `style` fallback so it never renders oversized even without CSS
 15. **Brand assets are PNG only** — Logo (`logo.png`) and icon (`icon.png`) are actual PNG files from user's Downloads. NEVER create custom SVG logos/favicons. Generate `.ico` from `icon.png` via Pillow. Source files: `bhapi logo@2x.png` (wordmark+smile), `bhapi app icon circle.png` (circular icon)
