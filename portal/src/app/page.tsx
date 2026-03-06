@@ -161,9 +161,6 @@ export default function LandingPage() {
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
             <div className="flex items-center gap-2">
               <BhapiLogo className="h-5 w-auto" />
-              <span className="text-sm font-semibold text-gray-900">
-                Bhapi AI Portal
-              </span>
             </div>
             <p className="text-sm text-gray-500">
               &copy; {new Date().getFullYear()} Bhapi. All rights reserved.
