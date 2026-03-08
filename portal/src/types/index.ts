@@ -40,6 +40,8 @@ export interface GroupMember {
   avatar_url?: string;
   last_active?: string;
   risk_level?: "low" | "medium" | "high";
+  date_of_birth?: string;
+  age_verified?: boolean;
   joined_at: string;
 }
 
@@ -278,11 +280,13 @@ export interface UpdateGroupSettingsRequest {
   pii_detection?: boolean;
   notifications?: Partial<NotificationPreferences>;
   monthly_budget_usd?: number;
+  sms_enabled?: boolean;
 }
 
 export interface UpdateProfileRequest {
   display_name?: string;
   email?: string;
+  phone_number?: string;
 }
 
 // ─── Consent ───────────────────────────────────────────────────────────────

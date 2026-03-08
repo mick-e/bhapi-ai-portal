@@ -530,4 +530,8 @@ export const integrationsApi = {
   disconnect(connectionId: string): Promise<void> {
     return api.delete<void>(`/api/v1/integrations/disconnect/${connectionId}`);
   },
+
+  startAgeVerification(groupId: string, memberId: string): Promise<{ session_url: string }> {
+    return api.post<{ session_url: string }>(`/api/v1/integrations/age-verify/start${qs({ group_id: groupId, member_id: memberId })}`);
+  },
 };

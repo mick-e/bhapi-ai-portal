@@ -269,7 +269,10 @@ function NotificationsTab({
   notifications: NotificationPreferences;
 }) {
   const [prefs, setPrefs] = useState<NotificationPreferences>(notifications);
+  const [smsEnabled, setSmsEnabled] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState("");
   const updateSettings = useUpdateGroupSettings();
+  const updateProfile = useUpdateProfile();
   const { addToast } = useToast();
 
   useEffect(() => {
@@ -282,12 +285,15 @@ function NotificationsTab({
 
   function handleSave() {
     updateSettings.mutate(
-      { notifications: prefs },
+      { notifications: prefs, sms_enabled: smsEnabled },
       {
         onSuccess: () => addToast("Notification preferences saved", "success"),
         onError: (err) => addToast((err as Error).message || "Failed to save preferences", "error"),
       }
     );
+    if (phoneNumber) {
+      updateProfile.mutate({ phone_number: phoneNumber });
+    }
   }
 
   return (
@@ -330,6 +336,29 @@ function NotificationsTab({
           checked={prefs.report_notifications}
           onToggle={() => toggle("report_notifications")}
         />
+
+        <div className="border-t border-gray-200 pt-6">
+          <h4 className="mb-4 text-sm font-semibold text-gray-900">SMS Notifications</h4>
+          <NotificationToggle
+            label="Enable SMS alerts"
+            description="Receive critical alerts via text message (standard rates may apply)"
+            checked={smsEnabled}
+            onToggle={() => setSmsEnabled(!smsEnabled)}
+          />
+          {smsEnabled && (
+            <div className="mt-4">
+              <Input
+                label="Phone number"
+                type="tel"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                placeholder="+1 (555) 123-4567"
+                helperText="Include country code. Used for SMS alerts only."
+              />
+            </div>
+          )}
+        </div>
+
         <div className="pt-2">
           <Button onClick={handleSave} isLoading={updateSettings.isPending}>
             Save Preferences

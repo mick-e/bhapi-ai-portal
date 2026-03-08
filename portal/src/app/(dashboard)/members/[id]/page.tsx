@@ -1,6 +1,6 @@
 "use client";
 
-import { use } from "react";
+import { use, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -12,6 +12,8 @@ import {
   AlertTriangle,
   Loader2,
   RefreshCw,
+  Ban,
+  ShieldCheck,
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -19,6 +21,10 @@ import { useMember } from "@/hooks/use-members";
 import { useActivity } from "@/hooks/use-activity";
 import { useRiskEvents } from "@/hooks/use-alerts";
 import { useSpendRecords } from "@/hooks/use-spend";
+import { useBlockCheck, useCreateBlockRule, useRevokeBlockRule } from "@/hooks/use-blocking";
+import { useAuth } from "@/hooks/use-auth";
+import { integrationsApi } from "@/lib/api-client";
+import { useToast } from "@/contexts/ToastContext";
 
 export default function MemberDetailPage({
   params,
@@ -26,6 +32,9 @@ export default function MemberDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id: memberId } = use(params);
+  const { user } = useAuth();
+  const { addToast } = useToast();
+  const groupId = user?.group_id || "";
 
   const {
     data: member,
@@ -49,6 +58,11 @@ export default function MemberDetailPage({
     member_id: memberId,
     page_size: 5,
   });
+
+  const { data: blockStatus } = useBlockCheck(groupId || null, memberId);
+  const createBlock = useCreateBlockRule();
+  const revokeBlock = useRevokeBlockRule();
+  const [ageVerifying, setAgeVerifying] = useState(false);
 
   if (isLoading) {
     return (
@@ -154,6 +168,102 @@ export default function MemberDetailPage({
           label="Last Active"
           value={member.last_active ? formatRelativeTime(member.last_active) : "Never"}
         />
+      </div>
+
+      {/* Age Verification & Blocking Controls */}
+      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Card title="Age Verification">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">
+                {member.date_of_birth
+                  ? `DOB: ${member.date_of_birth}`
+                  : "Date of birth not verified"}
+              </p>
+              {member.age_verified && (
+                <p className="mt-1 flex items-center gap-1 text-xs text-green-600">
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                  Verified
+                </p>
+              )}
+            </div>
+            {!member.age_verified && (
+              <Button
+                size="sm"
+                variant="secondary"
+                isLoading={ageVerifying}
+                onClick={async () => {
+                  setAgeVerifying(true);
+                  try {
+                    await integrationsApi.startAgeVerification(groupId, memberId);
+                    addToast("Age verification started", "success");
+                  } catch {
+                    addToast("Failed to start verification", "error");
+                  } finally {
+                    setAgeVerifying(false);
+                  }
+                }}
+              >
+                <ShieldCheck className="h-4 w-4" />
+                Verify Age
+              </Button>
+            )}
+          </div>
+        </Card>
+
+        <Card title="Blocking Controls">
+          <div className="flex items-center justify-between">
+            <div>
+              {blockStatus?.blocked ? (
+                <p className="flex items-center gap-1.5 text-sm font-medium text-red-600">
+                  <Ban className="h-4 w-4" />
+                  AI access blocked ({blockStatus.rules?.length || 0} active rule{(blockStatus.rules?.length || 0) !== 1 ? "s" : ""})
+                </p>
+              ) : (
+                <p className="text-sm text-gray-600">AI access allowed</p>
+              )}
+            </div>
+            {blockStatus?.blocked ? (
+              <Button
+                size="sm"
+                variant="secondary"
+                isLoading={revokeBlock.isPending}
+                onClick={() => {
+                  const rule = blockStatus.rules?.[0];
+                  if (rule) {
+                    revokeBlock.mutate(
+                      { ruleId: rule.id, groupId },
+                      {
+                        onSuccess: () => addToast("Block rule revoked", "success"),
+                        onError: () => addToast("Failed to revoke block", "error"),
+                      }
+                    );
+                  }
+                }}
+              >
+                Unblock
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                variant="secondary"
+                isLoading={createBlock.isPending}
+                onClick={() => {
+                  createBlock.mutate(
+                    { group_id: groupId, member_id: memberId, reason: "Manual block from member page" },
+                    {
+                      onSuccess: () => addToast("Member blocked", "success"),
+                      onError: () => addToast("Failed to block member", "error"),
+                    }
+                  );
+                }}
+              >
+                <Ban className="h-4 w-4" />
+                Block Access
+              </Button>
+            )}
+          </div>
+        </Card>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

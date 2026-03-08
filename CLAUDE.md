@@ -20,7 +20,7 @@ cd portal && npm run dev
 
 ### Testing
 ```bash
-# All backend tests (689 tests)
+# All backend tests (710 tests)
 pytest tests/ -v
 
 # E2E tests (371 collected, in-memory SQLite, no keys needed)
@@ -276,12 +276,12 @@ All custom exceptions inherit from `src.exceptions.BhapiException`:
 9. **Capture events API** — returns paginated `{items, total, page, page_size, total_pages}`, not flat list
 10. **Email domain validation** — `.test` TLD rejected; use `.com` in test emails
 11. **API Keys** — `bhapi_sk_` prefix, SHA-256 hashed in DB, full key shown only on creation
-12. **Billing checkout** — All plans self-serve via Stripe; school/club use per-seat pricing with member count as quantity
-16. **Registration** — School/club account types show a contact inquiry form (not registration). Only family accounts can self-register. Contact inquiries go to `POST /api/v1/auth/contact-inquiry` (public, no auth) → emails sales@bhapi.ai
-17. **Async SQLAlchemy refresh** — `db.refresh(obj)` expires relationships. Always pass relationship names: `await db.refresh(group, ["members"])` to avoid `MissingGreenlet` errors when accessing relationships after refresh
+12. **Billing checkout** — All plans self-serve via Stripe checkout once an account exists; school/club use per-seat pricing with member count as quantity. Note: school/club accounts are created by sales (see #16), then the account owner uses self-serve Stripe checkout.
 13. **Dashboard no-group** — New users without a group see a "Create your first group" onboarding flow instead of an error; `User.group_id` is nullable
 14. **next/image + static export** — `next.config.js` uses `output: "export"` with `images: { unoptimized: true }`. Use plain `<img>` tags (NOT `next/image`) for images. `BhapiLogo` uses `<img>` with inline `style` fallback so it never renders oversized even without CSS
 15. **Brand assets are PNG only** — Logo (`logo.png`) and icon (`icon.png`) are actual PNG files from user's Downloads. NEVER create custom SVG logos/favicons. Generate `.ico` from `icon.png` via Pillow. Source files: `bhapi logo@2x.png` (wordmark+smile), `bhapi app icon circle.png` (circular icon)
+16. **Registration flow** — Family accounts self-register via `POST /register`. School/club submit a contact inquiry form → `POST /api/v1/auth/contact-inquiry` (public, no auth) → emails sales@bhapi.ai → sales creates the account → owner then uses Stripe checkout (#12) to subscribe.
+17. **Async SQLAlchemy refresh** — `db.refresh(obj)` expires relationships. Always pass relationship names: `await db.refresh(group, ["members"])` to avoid `MissingGreenlet` errors when accessing relationships after refresh
 18. **Family member cap** — `MAX_FAMILY_MEMBERS = 5` enforced in `add_member()` and `accept_invitation()`. School/club have no cap.
 19. **Stripe webhooks persist** — `handle_webhook_event()` creates/updates Subscription rows in DB for created/updated/cancelled/payment_failed events
 20. **Content excerpts encrypted** — Stored via `encrypt_credential()`, decrypted on read. TTL cleanup job runs daily.
