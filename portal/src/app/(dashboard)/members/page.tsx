@@ -359,7 +359,7 @@ export default function MembersPage() {
                 <tr
                   key={member.id}
                   className="hover:bg-gray-50 cursor-pointer"
-                  onClick={() => router.push(`/members/${member.id}`)}
+                  onClick={() => router.push(`/members/detail?id=${member.id}`)}
                 >
                   <td className="whitespace-nowrap px-4 py-4" onClick={(e) => e.stopPropagation()}>
                     <input

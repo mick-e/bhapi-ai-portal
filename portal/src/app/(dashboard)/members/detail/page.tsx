@@ -1,11 +1,10 @@
 "use client";
 
-import { use, useState } from "react";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft,
-  User,
-  Shield,
   Activity,
   CreditCard,
   Clock,
@@ -26,12 +25,17 @@ import { useAuth } from "@/hooks/use-auth";
 import { integrationsApi } from "@/lib/api-client";
 import { useToast } from "@/contexts/ToastContext";
 
-export default function MemberDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id: memberId } = use(params);
+export default function MemberDetailPage() {
+  return (
+    <Suspense fallback={<div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /><span className="ml-3 text-sm text-gray-500">Loading member...</span></div>}>
+      <MemberDetailContent />
+    </Suspense>
+  );
+}
+
+function MemberDetailContent() {
+  const searchParams = useSearchParams();
+  const memberId = searchParams.get("id") || "";
   const { user } = useAuth();
   const { addToast } = useToast();
   const groupId = user?.group_id || "";
@@ -64,6 +68,18 @@ export default function MemberDetailPage({
   const revokeBlock = useRevokeBlockRule();
   const [ageVerifying, setAgeVerifying] = useState(false);
 
+  if (!memberId) {
+    return (
+      <div className="flex h-64 flex-col items-center justify-center text-center">
+        <AlertTriangle className="h-10 w-10 text-amber-500" />
+        <p className="mt-3 text-sm font-medium text-gray-900">No member selected</p>
+        <Link href="/members" className="mt-2 text-sm text-primary-700 hover:underline">
+          Back to Members
+        </Link>
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -77,9 +93,7 @@ export default function MemberDetailPage({
     return (
       <div className="flex h-64 flex-col items-center justify-center text-center">
         <AlertTriangle className="h-10 w-10 text-amber-500" />
-        <p className="mt-3 text-sm font-medium text-gray-900">
-          Failed to load member
-        </p>
+        <p className="mt-3 text-sm font-medium text-gray-900">Failed to load member</p>
         <p className="mt-1 text-sm text-gray-500">
           {(error as Error)?.message || "Something went wrong"}
         </p>
@@ -113,7 +127,6 @@ export default function MemberDetailPage({
 
   return (
     <div>
-      {/* Back link */}
       <Link
         href="/members"
         className="mb-6 inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-700"
@@ -132,14 +145,10 @@ export default function MemberDetailPage({
           <div className="mt-1 flex items-center gap-3">
             <span className="text-sm text-gray-500">{member.email}</span>
             <span className="text-sm capitalize text-gray-500">{member.role}</span>
-            <span
-              className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${statusColors[member.status]}`}
-            >
+            <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${statusColors[member.status]}`}>
               {member.status}
             </span>
-            <span
-              className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${riskColors[member.risk_level || "low"]}`}
-            >
+            <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${riskColors[member.risk_level || "low"]}`}>
               {member.risk_level || "low"} risk
             </span>
           </div>
@@ -148,26 +157,10 @@ export default function MemberDetailPage({
 
       {/* Stats cards */}
       <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-4">
-        <StatCard
-          icon={<Activity className="h-5 w-5 text-primary" />}
-          label="Total Activity"
-          value={String(activityData?.total ?? 0)}
-        />
-        <StatCard
-          icon={<AlertTriangle className="h-5 w-5 text-amber-500" />}
-          label="Risk Events"
-          value={String(riskData?.total ?? 0)}
-        />
-        <StatCard
-          icon={<CreditCard className="h-5 w-5 text-accent" />}
-          label="Total Spend"
-          value={`$${totalSpend.toFixed(2)}`}
-        />
-        <StatCard
-          icon={<Clock className="h-5 w-5 text-gray-500" />}
-          label="Last Active"
-          value={member.last_active ? formatRelativeTime(member.last_active) : "Never"}
-        />
+        <StatCard icon={<Activity className="h-5 w-5 text-primary" />} label="Total Activity" value={String(activityData?.total ?? 0)} />
+        <StatCard icon={<AlertTriangle className="h-5 w-5 text-amber-500" />} label="Risk Events" value={String(riskData?.total ?? 0)} />
+        <StatCard icon={<CreditCard className="h-5 w-5 text-accent" />} label="Total Spend" value={`$${totalSpend.toFixed(2)}`} />
+        <StatCard icon={<Clock className="h-5 w-5 text-gray-500" />} label="Last Active" value={member.last_active ? formatRelativeTime(member.last_active) : "Never"} />
       </div>
 
       {/* Age Verification & Blocking Controls */}
@@ -176,9 +169,7 @@ export default function MemberDetailPage({
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">
-                {member.date_of_birth
-                  ? `DOB: ${member.date_of_birth}`
-                  : "Date of birth not verified"}
+                {member.date_of_birth ? `DOB: ${member.date_of_birth}` : "Date of birth not verified"}
               </p>
               {member.age_verified && (
                 <p className="mt-1 flex items-center gap-1 text-xs text-green-600">
@@ -267,7 +258,6 @@ export default function MemberDetailPage({
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Recent Activity */}
         <Card title="Recent Activity">
           {recentActivity.length === 0 ? (
             <p className="py-4 text-center text-sm text-gray-500">No activity yet</p>
@@ -276,22 +266,12 @@ export default function MemberDetailPage({
               {recentActivity.map((event) => (
                 <div key={event.id} className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-900">
-                      {event.provider} / {event.model}
-                    </p>
-                    <p className="text-xs text-gray-500 truncate max-w-[250px]">
-                      {event.prompt_preview}
-                    </p>
+                    <p className="text-sm text-gray-900">{event.provider} / {event.model}</p>
+                    <p className="text-xs text-gray-500 truncate max-w-[250px]">{event.prompt_preview}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${riskColors[event.risk_level]}`}
-                    >
-                      {event.risk_level}
-                    </span>
-                    <span className="text-xs text-gray-400">
-                      {formatRelativeTime(event.timestamp)}
-                    </span>
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${riskColors[event.risk_level]}`}>{event.risk_level}</span>
+                    <span className="text-xs text-gray-400">{formatRelativeTime(event.timestamp)}</span>
                   </div>
                 </div>
               ))}
@@ -299,7 +279,6 @@ export default function MemberDetailPage({
           )}
         </Card>
 
-        {/* Risk Events */}
         <Card title="Risk Events">
           {recentRisks.length === 0 ? (
             <p className="py-4 text-center text-sm text-gray-500">No risk events</p>
@@ -309,19 +288,11 @@ export default function MemberDetailPage({
                 <div key={risk.id} className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-900">{risk.category}</p>
-                    <p className="text-xs text-gray-500 truncate max-w-[250px]">
-                      {risk.description}
-                    </p>
+                    <p className="text-xs text-gray-500 truncate max-w-[250px]">{risk.description}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${riskColors[risk.severity]}`}
-                    >
-                      {risk.severity}
-                    </span>
-                    {risk.acknowledged && (
-                      <span className="text-xs text-green-600">Ack</span>
-                    )}
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${riskColors[risk.severity]}`}>{risk.severity}</span>
+                    {risk.acknowledged && <span className="text-xs text-green-600">Ack</span>}
                   </div>
                 </div>
               ))}
@@ -330,7 +301,6 @@ export default function MemberDetailPage({
         </Card>
       </div>
 
-      {/* Spend Records */}
       <div className="mt-6">
         <Card title="Recent Spend">
           {recentSpend.length === 0 ? (
@@ -367,21 +337,11 @@ export default function MemberDetailPage({
   );
 }
 
-function StatCard({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-}) {
+function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
     <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
       <div className="flex items-center gap-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-50">
-          {icon}
-        </div>
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-50">{icon}</div>
         <div>
           <p className="text-xs text-gray-500">{label}</p>
           <p className="text-lg font-bold text-gray-900">{value}</p>
@@ -399,7 +359,6 @@ function formatRelativeTime(timestamp: string): string {
     const diffMins = Math.floor(diffMs / 60_000);
     const diffHours = Math.floor(diffMs / 3_600_000);
     const diffDays = Math.floor(diffMs / 86_400_000);
-
     if (diffMins < 1) return "just now";
     if (diffMins < 60) return `${diffMins} min ago`;
     if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
