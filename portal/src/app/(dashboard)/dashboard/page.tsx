@@ -12,6 +12,7 @@ import {
   Loader2,
   RefreshCw,
   Plus,
+  CheckCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
@@ -19,15 +20,20 @@ import { Button } from "@/components/ui/Button";
 import { useDashboardSummary } from "@/hooks/use-dashboard";
 import { useAuth } from "@/hooks/use-auth";
 import { groupsApi } from "@/lib/api-client";
+import { ActivityChart } from "@/components/charts/ActivityChart";
+import { RiskBreakdown } from "@/components/charts/RiskBreakdown";
+import { SpendChart } from "@/components/charts/SpendChart";
 import type { Alert, CaptureEvent } from "@/types";
 
 function CreateGroupPrompt() {
   const { user } = useAuth();
+  const [step, setStep] = useState(1);
   const [name, setName] = useState("");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const groupType = user?.account_type || "family";
+  const totalSteps = 3;
 
   async function handleCreate() {
     if (!name.trim()) {
@@ -38,7 +44,6 @@ function CreateGroupPrompt() {
     setError(null);
     try {
       await groupsApi.create({ name: name.trim(), type: groupType });
-      // Reload the page to pick up the new group context
       window.location.reload();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create group.");
@@ -48,47 +53,144 @@ function CreateGroupPrompt() {
 
   return (
     <div className="flex flex-col items-center justify-center py-16">
-      <div className="mx-auto w-full max-w-md rounded-xl bg-white p-8 shadow-sm ring-1 ring-gray-200">
-        <div className="text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary-100">
-            <Plus className="h-7 w-7 text-primary-600" />
-          </div>
-          <h2 className="mt-4 text-xl font-bold text-gray-900">
-            Create your first group
-          </h2>
-          <p className="mt-2 text-sm text-gray-500">
-            Set up your {groupType} group to start monitoring AI usage and keeping everyone safe.
-          </p>
+      <div className="mx-auto w-full max-w-lg rounded-xl bg-white p-8 shadow-sm ring-1 ring-gray-200">
+        {/* Progress */}
+        <div className="mb-6 flex items-center justify-center gap-2">
+          {[1, 2, 3].map((s) => (
+            <div
+              key={s}
+              className={`h-2 w-12 rounded-full transition-colors ${
+                s <= step ? "bg-primary" : "bg-gray-200"
+              }`}
+            />
+          ))}
         </div>
 
-        <div className="mt-6 space-y-4">
-          {error && (
-            <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-red-200">
-              {error}
+        {step === 1 && (
+          <div className="text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary-100">
+              <Plus className="h-7 w-7 text-primary-600" />
             </div>
-          )}
-          <div>
-            <label htmlFor="group-name" className="block text-sm font-medium text-gray-700">
-              Group name
-            </label>
-            <input
-              id="group-name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={groupType === "family" ? "The Smith Family" : groupType === "school" ? "Oakwood Academy" : "My Club"}
-              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-              onKeyDown={(e) => e.key === "Enter" && handleCreate()}
-            />
+            <h2 className="mt-4 text-xl font-bold text-gray-900">
+              Welcome to Bhapi
+            </h2>
+            <p className="mt-2 text-sm text-gray-500">
+              Let&apos;s set up your {groupType} group to start monitoring AI usage and keeping everyone safe.
+            </p>
+            <div className="mt-6 space-y-3 text-left">
+              <StepPreview icon="1" title="Create your group" description="Name your group and configure basic settings" />
+              <StepPreview icon="2" title="Safety overview" description="Understand how Bhapi protects your members" />
+              <StepPreview icon="3" title="Invite members" description="Add family members, students, or club participants" />
+            </div>
+            <Button onClick={() => setStep(2)} className="mt-6 w-full">
+              Get Started
+            </Button>
           </div>
-          <Button
-            onClick={handleCreate}
-            isLoading={creating}
-            className="w-full"
-          >
-            Create {groupType.charAt(0).toUpperCase() + groupType.slice(1)} Group
-          </Button>
-        </div>
+        )}
+
+        {step === 2 && (
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">
+              Create your group
+            </h2>
+            <p className="mt-1 text-sm text-gray-500">
+              Step {step} of {totalSteps}
+            </p>
+
+            <div className="mt-6 space-y-4">
+              {error && (
+                <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-red-200">
+                  {error}
+                </div>
+              )}
+              <div>
+                <label htmlFor="group-name" className="block text-sm font-medium text-gray-700">
+                  Group name
+                </label>
+                <input
+                  id="group-name"
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder={groupType === "family" ? "The Smith Family" : groupType === "school" ? "Oakwood Academy" : "My Club"}
+                  className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                  onKeyDown={(e) => e.key === "Enter" && handleCreate()}
+                />
+              </div>
+
+              <div className="rounded-lg bg-gray-50 p-4">
+                <h3 className="text-sm font-semibold text-gray-900">What Bhapi monitors</h3>
+                <ul className="mt-2 space-y-1.5 text-xs text-gray-600">
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-green-500" />
+                    AI interactions on ChatGPT, Gemini, Copilot, Claude, and Grok
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-green-500" />
+                    Real-time safety alerts for harmful content
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-green-500" />
+                    PII detection and spend tracking
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-green-500" />
+                    COPPA, GDPR, and LGPD compliance built in
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-between">
+              <Button variant="secondary" onClick={() => setStep(1)}>
+                Back
+              </Button>
+              <Button
+                onClick={handleCreate}
+                isLoading={creating}
+                disabled={!name.trim()}
+              >
+                Create Group
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {step === 3 && (
+          <div className="text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
+              <CheckCircle className="h-7 w-7 text-green-600" />
+            </div>
+            <h2 className="mt-4 text-xl font-bold text-gray-900">
+              You&apos;re all set!
+            </h2>
+            <p className="mt-2 text-sm text-gray-500">
+              Your group has been created. Head to Members to invite your first members, or explore the dashboard.
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function StepPreview({
+  icon,
+  title,
+  description,
+}: {
+  icon: string;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="flex items-start gap-3">
+      <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-primary-100 text-xs font-bold text-primary-700">
+        {icon}
+      </div>
+      <div>
+        <p className="text-sm font-medium text-gray-900">{title}</p>
+        <p className="text-xs text-gray-500">{description}</p>
       </div>
     </div>
   );
@@ -195,6 +297,19 @@ export default function DashboardPage() {
             label: `${summary.spend_summary.budget_used_percentage.toFixed(1)}% of budget`,
           }}
         />
+      </div>
+
+      {/* Charts */}
+      <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <Card title="Activity Trend" description="Interactions over the last 7 days">
+          <ActivityChart data={summary.activity_trend ?? []} />
+        </Card>
+        <Card title="Risk Breakdown" description="Categories in the last 30 days">
+          <RiskBreakdown data={summary.risk_breakdown ?? []} />
+        </Card>
+        <Card title="Daily Spend" description="API costs over the last 7 days">
+          <SpendChart data={summary.spend_trend ?? []} />
+        </Card>
       </div>
 
       {/* Recent Activity and Alerts */}

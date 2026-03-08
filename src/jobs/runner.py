@@ -61,7 +61,9 @@ def _init_registry() -> None:
     from src.billing.threshold_checker import check_all_group_thresholds
     from src.compliance.deletion_worker import process_pending_deletions
     from src.compliance.export_worker import process_pending_exports
+    from src.compliance.file_cleanup import cleanup_expired_exports
     from src.reporting.scheduler import run_scheduled_reports
+    from src.risk.cleanup import cleanup_expired_excerpts
 
     register_job(
         "renotification_check",
@@ -110,6 +112,18 @@ def _init_registry() -> None:
         "Generate and deliver scheduled reports",
         "hourly",
         run_scheduled_reports,
+    )
+    register_job(
+        "excerpt_cleanup",
+        "Delete expired content excerpts",
+        "daily",
+        cleanup_expired_excerpts,
+    )
+    register_job(
+        "export_cleanup",
+        "Delete expired data export files",
+        "daily",
+        cleanup_expired_exports,
     )
 
 

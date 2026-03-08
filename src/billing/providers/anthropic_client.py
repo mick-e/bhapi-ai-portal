@@ -115,6 +115,53 @@ class AnthropicProvider(BaseProvider):
         except Exception:
             return False
 
+    async def revoke_key(self) -> bool:
+        """Revoke Anthropic API key via the admin API.
+
+        Uses DELETE /v1/api_keys/{key_id} to deactivate the key.
+        Requires an admin-scoped API key to perform revocation.
+        """
+        import httpx
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                headers = {
+                    "x-api-key": self.api_key,
+                    "anthropic-version": "2023-06-01",
+                }
+                # List keys to find the matching one
+                response = await client.get(
+                    f"{self._BASE_URL}/api_keys",
+                    headers=headers,
+                )
+                if response.status_code != 200:
+                    logger.warning("anthropic_revoke_list_failed", status=response.status_code)
+                    return False
+
+                keys = response.json().get("data", [])
+                key_prefix = self.api_key[:12] if len(self.api_key) >= 12 else self.api_key
+                target_key = next(
+                    (k for k in keys if k.get("partial_key_hint", "").startswith(key_prefix[:8])),
+                    None,
+                )
+                if not target_key:
+                    logger.warning("anthropic_revoke_key_not_found")
+                    return False
+
+                # Disable the key
+                del_response = await client.post(
+                    f"{self._BASE_URL}/api_keys/{target_key['id']}/disable",
+                    headers=headers,
+                )
+                if del_response.status_code in (200, 204):
+                    logger.info("anthropic_key_revoked", key_id=target_key["id"])
+                    return True
+
+                logger.warning("anthropic_revoke_failed", status=del_response.status_code)
+                return False
+        except Exception as exc:
+            logger.error("anthropic_revoke_error", error=str(exc))
+            return False
+
     def _parse_usage_response(
         self,
         data: dict,

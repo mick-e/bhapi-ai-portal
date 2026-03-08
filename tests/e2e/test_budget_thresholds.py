@@ -63,8 +63,9 @@ async def group_with_billing(test_session: AsyncSession):
 
 
 class TestBudgetThresholdAlerting:
-    def setup_method(self):
-        reset_fired_alerts()
+    @pytest.fixture(autouse=True)
+    async def _reset_fired(self, test_session):
+        await reset_fired_alerts(test_session)
 
     @pytest.mark.asyncio
     async def test_no_thresholds_no_alerts(self, test_session, group_with_billing):

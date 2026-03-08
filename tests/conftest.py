@@ -22,6 +22,41 @@ from sqlalchemy.pool import StaticPool
 from src.database import Base, get_db
 from src.main import create_app
 
+
+async def make_test_group(session, name="Test", group_type="family", **kwargs):
+    """Create a Group with a real User to satisfy FK constraints.
+
+    Returns (group, owner_id). Use this in tests instead of creating
+    Group(owner_id=uuid4()) which fails FK checks.
+    """
+    from uuid import uuid4
+    from src.auth.models import User
+    from src.groups.models import Group
+
+    owner_id = kwargs.pop("owner_id", None) or uuid4()
+    user = User(
+        id=owner_id,
+        email=f"test-{uuid4().hex[:8]}@example.com",
+        display_name="Test User",
+        account_type=group_type,
+        email_verified=False,
+        mfa_enabled=False,
+    )
+    session.add(user)
+    await session.flush()
+
+    group = Group(
+        id=kwargs.pop("id", None) or uuid4(),
+        name=name,
+        type=group_type,
+        owner_id=owner_id,
+        settings=kwargs.pop("settings", {}),
+        **kwargs,
+    )
+    session.add(group)
+    await session.flush()
+    return group, owner_id
+
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
 

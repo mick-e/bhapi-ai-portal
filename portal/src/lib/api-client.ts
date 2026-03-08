@@ -1,6 +1,9 @@
 import type {
   ApiError,
   ApiKeyItem,
+  AppealRecord,
+  BlockRule,
+  BlockStatus,
   CheckoutRequest,
   CheckoutResponse,
   ContactInquiryRequest,
@@ -13,9 +16,11 @@ import type {
   InviteMemberRequest,
   UpdateMemberRequest,
   CaptureEvent,
+  MemberBaseline,
   RiskEvent,
   AcknowledgeRiskRequest,
   Alert,
+  SISConnection,
   SpendSummary,
   SpendRecord,
   Report,
@@ -24,7 +29,13 @@ import type {
   GroupSettings,
   UpdateGroupSettingsRequest,
   UpdateProfileRequest,
+  TrendData,
+  TransparencyReport,
+  UsagePattern,
   User,
+  BudgetThreshold,
+  ConsentRecord,
+  RecordConsentRequest,
   PaginatedResponse,
   PortalResponse,
 } from "@/types";
@@ -183,6 +194,17 @@ export const membersApi = {
   remove(groupId: string, memberId: string): Promise<void> {
     return api.delete<void>(`/api/v1/groups/${groupId}/members/${memberId}`);
   },
+
+  recordConsent(
+    groupId: string,
+    memberId: string,
+    data: RecordConsentRequest
+  ): Promise<ConsentRecord> {
+    return api.post<ConsentRecord>(
+      `/api/v1/groups/${groupId}/members/${memberId}/consent`,
+      data
+    );
+  },
 };
 
 // ─── Activity / Capture Events ──────────────────────────────────────────────
@@ -196,6 +218,8 @@ export const activityApi = {
     provider?: string;
     event_type?: string;
     search?: string;
+    start_date?: string;
+    end_date?: string;
   }): Promise<PaginatedResponse<CaptureEvent>> {
     const query = qs({
       page: params?.page,
@@ -205,6 +229,8 @@ export const activityApi = {
       provider: params?.provider,
       event_type: params?.event_type,
       search: params?.search,
+      start_date: params?.start_date,
+      end_date: params?.end_date,
     });
     return api.get<PaginatedResponse<CaptureEvent>>(`/api/v1/capture/events${query}`);
   },
@@ -216,8 +242,16 @@ export const activityApi = {
 
 // ─── Risk Events ────────────────────────────────────────────────────────────
 
+interface RiskEventListBackend {
+  items: RiskEvent[];
+  total: number;
+  offset: number;
+  limit: number;
+  has_more: boolean;
+}
+
 export const riskApi = {
-  list(params?: {
+  async list(params?: {
     page?: number;
     page_size?: number;
     severity?: string;
@@ -225,19 +259,29 @@ export const riskApi = {
     resolved?: boolean;
     member_id?: string;
   }): Promise<PaginatedResponse<RiskEvent>> {
+    const page = params?.page ?? 1;
+    const pageSize = params?.page_size ?? 20;
+    const offset = (page - 1) * pageSize;
     const query = qs({
-      page: params?.page,
-      page_size: params?.page_size,
+      offset,
+      limit: pageSize,
       severity: params?.severity,
       category: params?.category,
-      resolved: params?.resolved,
+      acknowledged: params?.resolved,
       member_id: params?.member_id,
     });
-    return api.get<PaginatedResponse<RiskEvent>>(`/api/v1/risk/events${query}`);
+    const data = await api.get<RiskEventListBackend>(`/api/v1/risk/events${query}`);
+    return {
+      items: data.items,
+      total: data.total,
+      page,
+      page_size: pageSize,
+      total_pages: Math.max(1, Math.ceil(data.total / pageSize)),
+    };
   },
 
   acknowledge(data: AcknowledgeRiskRequest): Promise<RiskEvent> {
-    return api.post<RiskEvent>("/api/v1/risk/acknowledge", data);
+    return api.post<RiskEvent>(`/api/v1/risk/events/${data.event_id}/acknowledge`, data);
   },
 };
 
@@ -250,6 +294,8 @@ export const alertsApi = {
     severity?: string;
     type?: string;
     read?: boolean;
+    start_date?: string;
+    end_date?: string;
   }): Promise<PaginatedResponse<Alert>> {
     const query = qs({
       page: params?.page,
@@ -257,6 +303,8 @@ export const alertsApi = {
       severity: params?.severity,
       type: params?.type,
       read: params?.read,
+      start_date: params?.start_date,
+      end_date: params?.end_date,
     });
     return api.get<PaginatedResponse<Alert>>(`/api/v1/alerts${query}`);
   },
@@ -271,6 +319,10 @@ export const alertsApi = {
 
   markAllRead(): Promise<void> {
     return api.post<void>("/api/v1/alerts/mark-all-read");
+  },
+
+  snooze(alertId: string, hours: number): Promise<Alert> {
+    return api.post<Alert>(`/api/v1/alerts/${alertId}/snooze`, { hours });
   },
 };
 
@@ -295,6 +347,19 @@ export const spendApi = {
       provider: params?.provider,
     });
     return api.get<PaginatedResponse<SpendRecord>>(`/api/v1/billing/spend/records${query}`);
+  },
+  getThresholds(): Promise<BudgetThreshold[]> {
+    return api.get<BudgetThreshold[]>("/api/v1/billing/thresholds");
+  },
+
+  createThreshold(data: {
+    group_id: string;
+    member_id?: string | null;
+    type: "soft" | "hard";
+    amount: number;
+    notify_at?: number[];
+  }): Promise<BudgetThreshold> {
+    return api.post<BudgetThreshold>("/api/v1/billing/thresholds", data);
   },
 };
 
@@ -392,5 +457,77 @@ export const settingsApi = {
 
   updateProfile(data: UpdateProfileRequest): Promise<User> {
     return api.patch<User>("/api/v1/auth/me", data);
+  },
+};
+
+// ─── Blocking ────────────────────────────────────────────────────────────────
+
+export const blockingApi = {
+  list(groupId: string): Promise<BlockRule[]> {
+    return api.get<BlockRule[]>(`/api/v1/blocking/rules${qs({ group_id: groupId })}`);
+  },
+
+  check(groupId: string, memberId: string): Promise<BlockStatus> {
+    return api.get<BlockStatus>(`/api/v1/blocking/check/${memberId}${qs({ group_id: groupId })}`);
+  },
+
+  create(data: { group_id: string; member_id: string; platforms?: string[]; reason?: string }): Promise<BlockRule> {
+    return api.post<BlockRule>("/api/v1/blocking/rules", data);
+  },
+
+  revoke(ruleId: string): Promise<BlockRule> {
+    return api.delete<BlockRule>(`/api/v1/blocking/rules/${ruleId}`);
+  },
+};
+
+// ─── Analytics ───────────────────────────────────────────────────────────────
+
+export const analyticsApi = {
+  trends(groupId: string, days?: number): Promise<TrendData> {
+    return api.get<TrendData>(`/api/v1/analytics/trends${qs({ group_id: groupId, days: days || 7 })}`);
+  },
+
+  usagePatterns(groupId: string, days?: number): Promise<UsagePattern> {
+    return api.get<UsagePattern>(`/api/v1/analytics/usage-patterns${qs({ group_id: groupId, days: days || 7 })}`);
+  },
+
+  memberBaselines(groupId: string, days?: number): Promise<MemberBaseline[]> {
+    return api.get<MemberBaseline[]>(`/api/v1/analytics/member-baselines${qs({ group_id: groupId, days: days || 30 })}`);
+  },
+};
+
+// ─── Compliance (Phase 8) ────────────────────────────────────────────────────
+
+export const complianceApi = {
+  transparency(groupId: string): Promise<TransparencyReport> {
+    return api.get<TransparencyReport>(`/api/v1/compliance/algorithmic-transparency${qs({ group_id: groupId })}`);
+  },
+
+  listAppeals(groupId: string): Promise<{ items: AppealRecord[]; total: number }> {
+    return api.get<{ items: AppealRecord[]; total: number }>(`/api/v1/compliance/appeals${qs({ group_id: groupId })}`);
+  },
+
+  submitAppeal(riskEventId: string, data: { group_id: string; reason: string }): Promise<AppealRecord> {
+    return api.post<AppealRecord>(`/api/v1/compliance/appeal/${riskEventId}`, data);
+  },
+};
+
+// ─── Integrations ────────────────────────────────────────────────────────────
+
+export const integrationsApi = {
+  listConnections(groupId: string): Promise<SISConnection[]> {
+    return api.get<SISConnection[]>(`/api/v1/integrations/status${qs({ group_id: groupId })}`);
+  },
+
+  connect(data: { group_id: string; provider: string; access_token: string }): Promise<SISConnection> {
+    return api.post<SISConnection>("/api/v1/integrations/connect", data);
+  },
+
+  sync(connectionId: string): Promise<{ members_created: number; members_updated: number }> {
+    return api.post<{ members_created: number; members_updated: number }>(`/api/v1/integrations/sync/${connectionId}`);
+  },
+
+  disconnect(connectionId: string): Promise<void> {
+    return api.delete<void>(`/api/v1/integrations/disconnect/${connectionId}`);
   },
 };

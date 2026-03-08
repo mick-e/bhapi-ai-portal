@@ -75,6 +75,32 @@ vi.mock("@/hooks/use-members", () => ({
     mutate: mockRemoveMember,
     isPending: false,
   })),
+  useBulkUpdateMembers: vi.fn(() => ({
+    mutate: vi.fn(),
+    isPending: false,
+  })),
+  useBulkRemoveMembers: vi.fn(() => ({
+    mutate: vi.fn(),
+    isPending: false,
+  })),
+}));
+
+vi.mock("next/navigation", () => ({
+  useRouter: vi.fn(() => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    back: vi.fn(),
+    prefetch: vi.fn(),
+  })),
+  usePathname: vi.fn(() => "/members"),
+}));
+
+vi.mock("@/contexts/ToastContext", () => ({
+  useToast: vi.fn(() => ({
+    addToast: vi.fn(),
+    removeToast: vi.fn(),
+    toasts: [],
+  })),
 }));
 
 vi.mock("@/hooks/use-auth", () => ({

@@ -70,3 +70,11 @@ class BaseProvider(ABC):
         Returns True if credentials work, False otherwise.
         """
         ...
+
+    async def revoke_key(self) -> bool:
+        """Attempt to revoke/delete the API key via provider admin API.
+
+        Returns True if revoked, False if not supported or failed.
+        Default implementation returns False (not supported).
+        """
+        return False

@@ -105,6 +105,50 @@ class OpenAIProvider(BaseProvider):
         except httpx.HTTPError:
             return False
 
+    async def revoke_key(self) -> bool:
+        """Revoke OpenAI API key via the admin API.
+
+        Uses DELETE /organization/api_keys/{key_id} to deactivate the key.
+        Requires an admin-scoped API key to perform revocation.
+        """
+        import httpx
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                # First, list keys to find the matching key ID
+                response = await client.get(
+                    f"{self._BASE_URL}/organization/api_keys",
+                    headers={"Authorization": f"Bearer {self.api_key}"},
+                )
+                if response.status_code != 200:
+                    logger.warning("openai_revoke_list_failed", status=response.status_code)
+                    return False
+
+                keys = response.json().get("data", [])
+                # Find key matching our API key (by prefix)
+                key_prefix = self.api_key[:8] if len(self.api_key) >= 8 else self.api_key
+                target_key = next(
+                    (k for k in keys if k.get("sensitive_id", "").startswith(key_prefix)),
+                    None,
+                )
+                if not target_key:
+                    logger.warning("openai_revoke_key_not_found")
+                    return False
+
+                # Delete the key
+                del_response = await client.delete(
+                    f"{self._BASE_URL}/organization/api_keys/{target_key['id']}",
+                    headers={"Authorization": f"Bearer {self.api_key}"},
+                )
+                if del_response.status_code in (200, 204):
+                    logger.info("openai_key_revoked", key_id=target_key["id"])
+                    return True
+
+                logger.warning("openai_revoke_failed", status=del_response.status_code)
+                return False
+        except Exception as exc:
+            logger.error("openai_revoke_error", error=str(exc))
+            return False
+
     def _parse_costs_response(
         self,
         data: dict,

@@ -25,10 +25,6 @@ logger = structlog.get_logger()
 # Maximum number of re-notification attempts per alert
 MAX_RENOTIFICATIONS = 3
 
-# Track re-notification count in a simple way using re_notify_at cycles
-# We use a metadata approach: count how many times status went through "sent" → re-sent
-_renotify_counts: dict[str, int] = {}
-
 
 async def run_renotification_check(db: AsyncSession) -> int:
     """Check for unacknowledged alerts that need re-notification.
@@ -51,16 +47,14 @@ async def run_renotification_check(db: AsyncSession) -> int:
 
     for alert in alerts:
         alert_key = str(alert.id)
-        count = _renotify_counts.get(alert_key, 0)
 
-        if count >= MAX_RENOTIFICATIONS:
+        if alert.renotify_count >= MAX_RENOTIFICATIONS:
             # Max re-notifications reached — stop escalating
             alert.re_notify_at = None
-            _renotify_counts.pop(alert_key, None)
             logger.info(
                 "renotify_max_reached",
                 alert_id=alert_key,
-                count=count,
+                count=alert.renotify_count,
             )
             continue
 
@@ -68,7 +62,7 @@ async def run_renotification_check(db: AsyncSession) -> int:
         try:
             sent = await deliver_alert_email(db, alert)
             if sent:
-                _renotify_counts[alert_key] = count + 1
+                alert.renotify_count += 1
                 renotified += 1
 
                 # Schedule next re-notification
@@ -79,7 +73,7 @@ async def run_renotification_check(db: AsyncSession) -> int:
                     "alert_renotified",
                     alert_id=alert_key,
                     severity=alert.severity,
-                    attempt=count + 1,
+                    attempt=alert.renotify_count,
                     next_at=alert.re_notify_at.isoformat(),
                 )
         except Exception as exc:
@@ -113,11 +107,24 @@ async def schedule_renotification(db: AsyncSession, alert: Alert) -> None:
     )
 
 
-def clear_renotification(alert_id: str) -> None:
+async def clear_renotification(db: AsyncSession, alert_id: str) -> None:
     """Clear re-notification tracking for an acknowledged alert."""
-    _renotify_counts.pop(alert_id, None)
+    result = await db.execute(
+        select(Alert).where(Alert.id == alert_id)
+    )
+    alert = result.scalars().first()
+    if alert is not None:
+        alert.renotify_count = 0
+        alert.re_notify_at = None
+        await db.flush()
 
 
-def reset_renotify_state() -> None:
+async def reset_renotify_state(db: AsyncSession | None = None) -> None:
     """Reset all re-notification state. Used in tests."""
-    _renotify_counts.clear()
+    if db is not None:
+        from sqlalchemy import update
+
+        await db.execute(
+            update(Alert).values(renotify_count=0, re_notify_at=None)
+        )
+        await db.flush()

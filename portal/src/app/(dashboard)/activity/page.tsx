@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { ActivityDetailModal } from "@/components/ActivityDetailModal";
+import { DateRangeFilter } from "@/components/DateRangeFilter";
 import { useActivity } from "@/hooks/use-activity";
 import type { CaptureEvent, EventType } from "@/types";
 
@@ -40,6 +42,8 @@ export default function ActivityPage() {
   const [filterProvider, setFilterProvider] = useState<string>("all");
   const [filterType, setFilterType] = useState<string>("all");
   const [page, setPage] = useState(1);
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [dateRange, setDateRange] = useState<{ start?: string; end?: string } | null>(null);
   const pageSize = 20;
 
   const {
@@ -55,6 +59,8 @@ export default function ActivityPage() {
     provider: filterProvider !== "all" ? filterProvider : undefined,
     event_type: filterType !== "all" ? filterType : undefined,
     search: searchQuery || undefined,
+    start_date: dateRange?.start,
+    end_date: dateRange?.end,
   });
 
   const events = activityData?.items ?? [];
@@ -105,6 +111,11 @@ export default function ActivityPage() {
             </span>
           )}
         </p>
+      </div>
+
+      {/* Date Range */}
+      <div className="mb-4">
+        <DateRangeFilter onChange={(range) => { setDateRange(range); setPage(1); }} />
       </div>
 
       {/* Filters */}
@@ -177,7 +188,11 @@ export default function ActivityPage() {
       {/* Activity Timeline */}
       <div className="space-y-4">
         {events.map((event) => (
-          <ActivityCard key={event.id} event={event} />
+          <ActivityCard
+            key={event.id}
+            event={event}
+            onClick={() => setSelectedEventId(event.id)}
+          />
         ))}
 
         {events.length === 0 && (
@@ -226,19 +241,33 @@ export default function ActivityPage() {
           </div>
         </div>
       )}
+
+      {/* Detail Modal */}
+      {selectedEventId && (
+        <ActivityDetailModal
+          eventId={selectedEventId}
+          onClose={() => setSelectedEventId(null)}
+        />
+      )}
     </div>
   );
 }
 
 // ─── Sub-components ─────────────────────────────────────────────────────────
 
-function ActivityCard({ event }: { event: CaptureEvent }) {
+function ActivityCard({ event, onClick }: { event: CaptureEvent; onClick: () => void }) {
   const TypeIcon =
     typeIcons[(event.event_type as EventType) || "chat"] ?? MessageSquare;
   const timeLabel = formatRelativeTime(event.timestamp);
 
   return (
     <Card>
+      <button
+        type="button"
+        onClick={onClick}
+        className="w-full text-left"
+        aria-label={`View details for ${event.member_name}'s ${event.event_type} interaction`}
+      >
       <div className="flex items-start gap-4">
         <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-gray-100">
           <TypeIcon className="h-5 w-5 text-gray-600" />
@@ -276,6 +305,7 @@ function ActivityCard({ event }: { event: CaptureEvent }) {
           </div>
         </div>
       </div>
+      </button>
     </Card>
   );
 }

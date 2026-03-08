@@ -17,6 +17,7 @@ import {
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { locales, localeLabels, getLocale, setLocale } from "@/i18n";
 import { useAuth } from "@/hooks/use-auth";
 import {
   useGroupSettings,
@@ -27,6 +28,7 @@ import {
   useRevokeApiKey,
 } from "@/hooks/use-settings";
 import { useCreateCheckout } from "@/hooks/use-billing";
+import { useToast } from "@/contexts/ToastContext";
 import type {
   SafetyLevel,
   NotificationPreferences,
@@ -178,7 +180,7 @@ function ProfileTab({
   const [name, setName] = useState(displayName);
   const [emailVal, setEmailVal] = useState(email);
   const updateProfile = useUpdateProfile();
-  const [saved, setSaved] = useState(false);
+  const { addToast } = useToast();
 
   useEffect(() => {
     setName(displayName);
@@ -189,10 +191,8 @@ function ProfileTab({
     updateProfile.mutate(
       { display_name: name, email: emailVal },
       {
-        onSuccess: () => {
-          setSaved(true);
-          setTimeout(() => setSaved(false), 3000);
-        },
+        onSuccess: () => addToast("Profile updated successfully", "success"),
+        onError: (err) => addToast((err as Error).message || "Failed to update profile", "error"),
       }
     );
   }
@@ -203,12 +203,6 @@ function ProfileTab({
         {updateProfile.isError && (
           <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
             {(updateProfile.error as Error)?.message || "Failed to update profile"}
-          </div>
-        )}
-        {saved && (
-          <div className="flex items-center gap-2 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-600">
-            <CheckCircle2 className="h-4 w-4" />
-            Profile updated successfully
           </div>
         )}
         <Input
@@ -233,6 +227,26 @@ function ProfileTab({
             <span className="capitalize">{accountType}</span>
           </div>
         </div>
+        <div>
+          <label htmlFor="locale-select" className="mb-1.5 block text-sm font-medium text-gray-700">
+            Language
+          </label>
+          <select
+            id="locale-select"
+            value={getLocale()}
+            onChange={(e) => setLocale(e.target.value as typeof locales[number])}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+          >
+            {locales.map((locale) => (
+              <option key={locale} value={locale}>
+                {localeLabels[locale]}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1.5 text-sm text-gray-500">
+            Changing the language will reload the page.
+          </p>
+        </div>
         <div className="pt-2">
           <Button
             onClick={handleSave}
@@ -256,7 +270,7 @@ function NotificationsTab({
 }) {
   const [prefs, setPrefs] = useState<NotificationPreferences>(notifications);
   const updateSettings = useUpdateGroupSettings();
-  const [saved, setSaved] = useState(false);
+  const { addToast } = useToast();
 
   useEffect(() => {
     setPrefs(notifications);
@@ -270,10 +284,8 @@ function NotificationsTab({
     updateSettings.mutate(
       { notifications: prefs },
       {
-        onSuccess: () => {
-          setSaved(true);
-          setTimeout(() => setSaved(false), 3000);
-        },
+        onSuccess: () => addToast("Notification preferences saved", "success"),
+        onError: (err) => addToast((err as Error).message || "Failed to save preferences", "error"),
       }
     );
   }
@@ -281,12 +293,6 @@ function NotificationsTab({
   return (
     <Card title="Notifications" description="Choose what alerts you receive">
       <div className="max-w-lg space-y-6">
-        {saved && (
-          <div className="flex items-center gap-2 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-600">
-            <CheckCircle2 className="h-4 w-4" />
-            Notification preferences saved
-          </div>
-        )}
         <NotificationToggle
           label="Critical safety alerts"
           description="Immediate notification for blocked or dangerous content"
@@ -352,7 +358,7 @@ function SafetyTab({
   const [promptLog, setPromptLog] = useState(initialPromptLog);
   const [piiDetect, setPiiDetect] = useState(initialPiiDetect);
   const updateSettings = useUpdateGroupSettings();
-  const [saved, setSaved] = useState(false);
+  const { addToast } = useToast();
 
   useEffect(() => {
     setSafetyLevel(initialLevel);
@@ -370,10 +376,8 @@ function SafetyTab({
         pii_detection: piiDetect,
       },
       {
-        onSuccess: () => {
-          setSaved(true);
-          setTimeout(() => setSaved(false), 3000);
-        },
+        onSuccess: () => addToast("Safety rules updated", "success"),
+        onError: (err) => addToast((err as Error).message || "Failed to update safety rules", "error"),
       }
     );
   }
@@ -384,12 +388,6 @@ function SafetyTab({
       description="Configure content filtering and safety policies"
     >
       <div className="max-w-lg space-y-6">
-        {saved && (
-          <div className="flex items-center gap-2 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-600">
-            <CheckCircle2 className="h-4 w-4" />
-            Safety rules updated
-          </div>
-        )}
         <div>
           <label htmlFor="safety-level" className="mb-1.5 block text-sm font-medium text-gray-700">
             Default safety level
@@ -447,7 +445,7 @@ function BillingTab({
 }) {
   const [budget, setBudget] = useState(String(monthlyBudget));
   const updateSettings = useUpdateGroupSettings();
-  const [saved, setSaved] = useState(false);
+  const { addToast } = useToast();
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
   const checkout = useCreateCheckout();
@@ -462,10 +460,8 @@ function BillingTab({
     updateSettings.mutate(
       { monthly_budget_usd: budgetNum },
       {
-        onSuccess: () => {
-          setSaved(true);
-          setTimeout(() => setSaved(false), 3000);
-        },
+        onSuccess: () => addToast("Billing settings updated", "success"),
+        onError: (err) => addToast((err as Error).message || "Failed to update billing", "error"),
       }
     );
   }
@@ -489,13 +485,6 @@ function BillingTab({
       description="Manage your subscription and payment methods"
     >
       <div className="max-w-lg space-y-6">
-        {saved && (
-          <div className="flex items-center gap-2 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-600">
-            <CheckCircle2 className="h-4 w-4" />
-            Billing settings updated
-          </div>
-        )}
-
         {checkout.isError && (
           <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
             {(checkout.error as Error)?.message || "Failed to start checkout"}

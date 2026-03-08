@@ -164,8 +164,9 @@ class TestAlertEmailDelivery:
 class TestRenotificationScheduler:
     """Test re-notification scheduling and execution."""
 
-    def setup_method(self):
-        reset_renotify_state()
+    @pytest.fixture(autouse=True)
+    async def _reset_renotify(self, test_session):
+        await reset_renotify_state(test_session)
 
     @pytest.mark.asyncio
     async def test_schedule_sets_renotify_at(self, test_session, test_group_with_admin):

@@ -9,7 +9,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.compliance.models import ConsentRecord
-from src.constants import MAX_GROUP_MEMBERS, MAX_GROUPS_PER_USER
+from src.constants import MAX_FAMILY_MEMBERS, MAX_GROUP_MEMBERS, MAX_GROUPS_PER_USER
 from src.exceptions import ForbiddenError, NotFoundError, ValidationError
 from src.groups.consent import get_consent_type, requires_consent
 from src.groups.models import Group, GroupMember, Invitation
@@ -122,13 +122,21 @@ async def add_member(
     """
     await _require_admin(db, group_id, user_id)
 
+    # Determine cap based on group type
+    group_result = await db.execute(select(Group).where(Group.id == group_id))
+    group = group_result.scalar_one_or_none()
+    if not group:
+        raise NotFoundError("Group", str(group_id))
+
+    cap = MAX_FAMILY_MEMBERS if group.type == "family" else MAX_GROUP_MEMBERS
+
     # Check member count
     result = await db.execute(
         select(func.count(GroupMember.id)).where(GroupMember.group_id == group_id)
     )
     count = result.scalar() or 0
-    if count >= MAX_GROUP_MEMBERS:
-        raise ValidationError(f"Maximum {MAX_GROUP_MEMBERS} members per group")
+    if count >= cap:
+        raise ValidationError(f"Maximum {cap} members per {group.type} group")
 
     member = GroupMember(
         id=uuid4(),
@@ -154,6 +162,12 @@ async def add_member(
         )
 
     logger.info("member_added", group_id=str(group_id), member_id=str(member.id))
+
+    # Update per-seat billing for school/club
+    if group.type in ("school", "club"):
+        from src.billing.service import update_seat_count
+        await update_seat_count(db, group_id)
+
     return member
 
 
@@ -168,9 +182,18 @@ async def remove_member(db: AsyncSession, group_id: UUID, member_id: UUID, user_
     if not member:
         raise NotFoundError("Member", str(member_id))
 
+    # Need group type before deleting member
+    group_result = await db.execute(select(Group).where(Group.id == group_id))
+    group = group_result.scalar_one_or_none()
+
     await db.delete(member)
     await db.flush()
     logger.info("member_removed", group_id=str(group_id), member_id=str(member_id))
+
+    # Update per-seat billing for school/club
+    if group and group.type in ("school", "club"):
+        from src.billing.service import update_seat_count
+        await update_seat_count(db, group_id)
 
 
 async def change_member_role(
@@ -260,6 +283,18 @@ async def accept_invitation(db: AsyncSession, token: str, user_id: UUID) -> Grou
         invitation.status = "expired"
         await db.flush()
         raise ValidationError("Invitation has expired")
+
+    # Check member cap for the group
+    group_result = await db.execute(select(Group).where(Group.id == invitation.group_id))
+    group = group_result.scalar_one_or_none()
+    if group:
+        cap = MAX_FAMILY_MEMBERS if group.type == "family" else MAX_GROUP_MEMBERS
+        count_result = await db.execute(
+            select(func.count(GroupMember.id)).where(GroupMember.group_id == invitation.group_id)
+        )
+        count = count_result.scalar() or 0
+        if count >= cap:
+            raise ValidationError(f"Maximum {cap} members per {group.type} group")
 
     # Create member
     member = GroupMember(

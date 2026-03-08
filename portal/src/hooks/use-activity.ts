@@ -21,6 +21,8 @@ export function useActivity(params?: {
   provider?: string;
   event_type?: string;
   search?: string;
+  start_date?: string;
+  end_date?: string;
 }) {
   return useQuery<PaginatedResponse<CaptureEvent>>({
     queryKey: activityKeys.list(params),

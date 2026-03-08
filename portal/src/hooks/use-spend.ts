@@ -1,8 +1,8 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { spendApi } from "@/lib/api-client";
-import type { SpendSummary, SpendRecord, PaginatedResponse } from "@/types";
+import type { SpendSummary, SpendRecord, BudgetThreshold, PaginatedResponse } from "@/types";
 
 export const spendKeys = {
   all: ["spend"] as const,
@@ -29,5 +29,29 @@ export function useSpendRecords(params?: {
   return useQuery<PaginatedResponse<SpendRecord>>({
     queryKey: spendKeys.recordList(params),
     queryFn: () => spendApi.getRecords(params),
+  });
+}
+
+export function useBudgetThresholds() {
+  return useQuery<BudgetThreshold[]>({
+    queryKey: [...spendKeys.all, "thresholds"] as const,
+    queryFn: () => spendApi.getThresholds(),
+  });
+}
+
+export function useCreateBudgetThreshold() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: {
+      group_id: string;
+      member_id?: string | null;
+      type: "soft" | "hard";
+      amount: number;
+      notify_at?: number[];
+    }) => spendApi.createThreshold(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: spendKeys.all });
+    },
   });
 }

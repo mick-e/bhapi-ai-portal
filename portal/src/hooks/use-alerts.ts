@@ -29,6 +29,8 @@ export function useAlerts(params?: {
   severity?: string;
   type?: string;
   read?: boolean;
+  start_date?: string;
+  end_date?: string;
 }) {
   return useQuery<PaginatedResponse<Alert>>({
     queryKey: alertKeys.list(params),
@@ -79,6 +81,18 @@ export function useMarkAllAlertsRead() {
 
   return useMutation({
     mutationFn: () => alertsApi.markAllRead(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: alertKeys.lists() });
+    },
+  });
+}
+
+export function useSnoozeAlert() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ alertId, hours }: { alertId: string; hours: number }) =>
+      alertsApi.snooze(alertId, hours),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: alertKeys.lists() });
     },

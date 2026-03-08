@@ -20,13 +20,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.alerts.schemas import AlertCreate
 from src.alerts.service import create_alert
-from src.billing.models import BudgetThreshold, SpendRecord
+from src.billing.models import BudgetThreshold, FiredThresholdAlert, SpendRecord
 
 logger = structlog.get_logger()
-
-# Track which (threshold_id, percentage_level) alerts have been fired
-# In production this would be persisted in the database
-_fired_alerts: set[tuple[str, int]] = set()
 
 
 async def check_thresholds(db: AsyncSession, group_id: UUID) -> int:
@@ -63,9 +59,15 @@ async def check_thresholds(db: AsyncSession, group_id: UUID) -> int:
             trigger_amount = threshold.amount * (level / 100.0)
 
             if total_spend >= trigger_amount:
-                # Check if we already fired this alert
-                alert_key = (str(threshold.id), level)
-                if alert_key in _fired_alerts:
+                # Check if we already fired this alert (persisted in DB)
+                existing = await db.execute(
+                    select(FiredThresholdAlert).where(
+                        FiredThresholdAlert.threshold_id == threshold.id,
+                        FiredThresholdAlert.percentage_level == level,
+                        FiredThresholdAlert.period_start >= month_start,
+                    )
+                )
+                if existing.scalars().first() is not None:
                     continue
 
                 # Determine severity based on threshold type
@@ -98,7 +100,11 @@ async def check_thresholds(db: AsyncSession, group_id: UUID) -> int:
                         channel="portal",
                     ),
                 )
-                _fired_alerts.add(alert_key)
+                db.add(FiredThresholdAlert(
+                    threshold_id=threshold.id,
+                    percentage_level=level,
+                    period_start=month_start,
+                ))
                 alerts_created += 1
 
                 logger.info(
@@ -139,6 +145,10 @@ async def check_all_group_thresholds(db: AsyncSession) -> int:
     return total_alerts
 
 
-def reset_fired_alerts() -> None:
+async def reset_fired_alerts(db: AsyncSession | None = None) -> None:
     """Reset fired alerts tracking. Called at the start of each billing period or in tests."""
-    _fired_alerts.clear()
+    if db is not None:
+        from sqlalchemy import delete
+
+        await db.execute(delete(FiredThresholdAlert))
+        await db.flush()

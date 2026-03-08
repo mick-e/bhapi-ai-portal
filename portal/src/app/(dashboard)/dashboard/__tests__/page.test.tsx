@@ -44,6 +44,9 @@ const mockDashboardData: DashboardData = {
     high_severity_count: 1,
     trend: "stable",
   },
+  activity_trend: [],
+  risk_breakdown: [],
+  spend_trend: [],
 };
 
 // Mock the auth hook

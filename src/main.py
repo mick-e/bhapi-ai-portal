@@ -213,6 +213,15 @@ def _register_routers(app: FastAPI) -> None:
     from src.legal.router import router as legal_router
     app.include_router(legal_router, prefix="/legal", tags=["Legal"])
 
+    from src.integrations.router import router as integrations_router
+    app.include_router(integrations_router, prefix="/api/v1/integrations", tags=["Integrations"])
+
+    from src.blocking.router import router as blocking_router
+    app.include_router(blocking_router, prefix="/api/v1/blocking", tags=["Blocking"])
+
+    from src.analytics.router import router as analytics_router
+    app.include_router(analytics_router, prefix="/api/v1/analytics", tags=["Analytics"])
+
 
 _PORTAL_CANDIDATES = [
     Path("/app/portal/out"),

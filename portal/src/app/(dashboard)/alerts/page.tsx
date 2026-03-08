@@ -14,11 +14,14 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { DateRangeFilter } from "@/components/DateRangeFilter";
 import {
   useAlerts,
   useMarkAlertActioned,
   useMarkAllAlertsRead,
+  useSnoozeAlert,
 } from "@/hooks/use-alerts";
+import { useToast } from "@/contexts/ToastContext";
 import type { Alert, AlertSeverity } from "@/types";
 
 const severityIcons: Record<AlertSeverity, typeof Info> = {
@@ -62,6 +65,7 @@ export default function AlertsPage() {
   const [filterSeverity, setFilterSeverity] = useState<string>("all");
   const [filterType, setFilterType] = useState<string>("all");
   const [page, setPage] = useState(1);
+  const [dateRange, setDateRange] = useState<{ start?: string; end?: string } | null>(null);
   const pageSize = 20;
 
   const {
@@ -75,10 +79,14 @@ export default function AlertsPage() {
     page_size: pageSize,
     severity: filterSeverity !== "all" ? filterSeverity : undefined,
     type: filterType !== "all" ? filterType : undefined,
+    start_date: dateRange?.start,
+    end_date: dateRange?.end,
   });
 
+  const { addToast } = useToast();
   const markActionedMutation = useMarkAlertActioned();
   const markAllReadMutation = useMarkAllAlertsRead();
+  const snoozeMutation = useSnoozeAlert();
 
   const alerts = alertsData?.items ?? [];
   const totalPages = alertsData?.total_pages ?? 1;
@@ -86,11 +94,27 @@ export default function AlertsPage() {
   const unreadCount = alerts.filter((a) => !a.read).length;
 
   function handleMarkAllRead() {
-    markAllReadMutation.mutate();
+    markAllReadMutation.mutate(undefined, {
+      onSuccess: () => addToast("All alerts marked as read", "success"),
+      onError: (err) => addToast((err as Error).message || "Failed to mark alerts read", "error"),
+    });
   }
 
   function handleAcknowledge(alertId: string) {
-    markActionedMutation.mutate(alertId);
+    markActionedMutation.mutate(alertId, {
+      onSuccess: () => addToast("Alert acknowledged", "success"),
+      onError: (err) => addToast((err as Error).message || "Failed to acknowledge alert", "error"),
+    });
+  }
+
+  function handleSnooze(alertId: string, hours: number) {
+    snoozeMutation.mutate(
+      { alertId, hours },
+      {
+        onSuccess: () => addToast(`Alert snoozed for ${hours} hour${hours > 1 ? "s" : ""}`, "success"),
+        onError: (err) => addToast((err as Error).message || "Failed to snooze alert", "error"),
+      }
+    );
   }
 
   if (isLoading) {
@@ -154,6 +178,11 @@ export default function AlertsPage() {
         )}
       </div>
 
+      {/* Date Range */}
+      <div className="mb-4">
+        <DateRangeFilter onChange={(range) => { setDateRange(range); setPage(1); }} />
+      </div>
+
       {/* Filters */}
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <Filter className="h-4 w-4 text-gray-400" />
@@ -194,6 +223,7 @@ export default function AlertsPage() {
             key={alert.id}
             alert={alert}
             onAcknowledge={handleAcknowledge}
+            onSnooze={handleSnooze}
             isAcknowledging={
               markActionedMutation.isPending &&
               markActionedMutation.variables === alert.id
@@ -251,21 +281,24 @@ export default function AlertsPage() {
 function AlertCard({
   alert,
   onAcknowledge,
+  onSnooze,
   isAcknowledging,
 }: {
   alert: Alert;
   onAcknowledge: (id: string) => void;
+  onSnooze: (id: string, hours: number) => void;
   isAcknowledging: boolean;
 }) {
   const style = severityStyles[alert.severity] || severityStyles.info;
   const SeverityIcon = severityIcons[alert.severity] || Info;
   const timeLabel = formatRelativeTime(alert.created_at);
+  const isSnoozed = alert.snoozed_until && new Date(alert.snoozed_until) > new Date();
 
   return (
     <div
       className={`rounded-r-xl border-l-4 ${style.border} ${
         alert.read ? "bg-white" : style.bg
-      } p-4 shadow-sm ring-1 ring-gray-200`}
+      } ${isSnoozed ? "opacity-60" : ""} p-4 shadow-sm ring-1 ring-gray-200`}
     >
       <div className="flex items-start gap-3">
         <SeverityIcon
@@ -290,6 +323,11 @@ function AlertCard({
                 >
                   {alert.severity}
                 </span>
+                {isSnoozed && (
+                  <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-500">
+                    Snoozed
+                  </span>
+                )}
               </div>
               <div className="mt-0.5 flex items-center gap-2">
                 {alert.member_name && (
@@ -308,7 +346,7 @@ function AlertCard({
           </div>
           <p className="mt-1 text-sm text-gray-600">{alert.message}</p>
           {!alert.actioned && (
-            <div className="mt-3">
+            <div className="mt-3 flex items-center gap-2">
               <Button
                 variant="secondary"
                 size="sm"
@@ -317,6 +355,23 @@ function AlertCard({
               >
                 Acknowledge
               </Button>
+              {!isSnoozed && (
+                <select
+                  onChange={(e) => {
+                    const hours = parseInt(e.target.value);
+                    if (hours) onSnooze(alert.id, hours);
+                    e.target.value = "";
+                  }}
+                  defaultValue=""
+                  className="rounded-lg border border-gray-300 px-2 py-1.5 text-xs text-gray-600 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  aria-label="Snooze alert"
+                >
+                  <option value="" disabled>Snooze...</option>
+                  <option value="1">1 hour</option>
+                  <option value="4">4 hours</option>
+                  <option value="24">24 hours</option>
+                </select>
+              )}
             </div>
           )}
           {alert.actioned && (

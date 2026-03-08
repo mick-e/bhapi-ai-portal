@@ -1,11 +1,13 @@
 """OAuth2 service for SSO providers (Google, Microsoft, Apple)."""
 
 import secrets
+import time
 from dataclasses import dataclass
 from uuid import uuid4
 
 import httpx
 import structlog
+from jose import jwt as jose_jwt, JWTError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,6 +18,10 @@ from src.exceptions import UnauthorizedError, ValidationError
 
 logger = structlog.get_logger()
 settings = get_settings()
+
+# Apple JWKS cache for JWT signature verification
+_apple_jwks_cache: dict = {"keys": [], "fetched_at": 0}
+_JWKS_CACHE_TTL = 3600  # 1 hour
 
 
 @dataclass
@@ -165,7 +171,7 @@ async def get_oauth_user_info(provider: str, access_token: str, id_token: str | 
     config = PROVIDER_CONFIGS[provider]
 
     if provider == "apple":
-        return _parse_apple_id_token(id_token or "", access_token)
+        return await _parse_apple_id_token(id_token or "", access_token)
 
     async with httpx.AsyncClient() as client:
         resp = await client.get(
@@ -199,11 +205,38 @@ async def get_oauth_user_info(provider: str, access_token: str, id_token: str | 
     raise ValidationError(f"Unsupported provider: {provider}")
 
 
-def _parse_apple_id_token(id_token: str, access_token: str) -> OAuthUserInfo:
-    """Parse Apple's ID token (JWT) to extract user info.
+async def _fetch_apple_jwks() -> list[dict]:
+    """Fetch Apple's JWKS (JSON Web Key Set) for JWT signature verification.
 
-    Apple provides user info in the ID token, not a userinfo endpoint.
-    In production, this should validate the token signature against Apple's public keys.
+    Results are cached for 1 hour to avoid hitting Apple's endpoint on every request.
+    """
+    now = time.time()
+    if _apple_jwks_cache["keys"] and (now - _apple_jwks_cache["fetched_at"]) < _JWKS_CACHE_TTL:
+        return _apple_jwks_cache["keys"]
+
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get("https://appleid.apple.com/auth/keys", timeout=10.0)
+            resp.raise_for_status()
+            jwks = resp.json()
+            _apple_jwks_cache["keys"] = jwks.get("keys", [])
+            _apple_jwks_cache["fetched_at"] = now
+            logger.info("apple_jwks_fetched", key_count=len(_apple_jwks_cache["keys"]))
+            return _apple_jwks_cache["keys"]
+    except Exception as exc:
+        logger.error("apple_jwks_fetch_failed", error=str(exc))
+        # Return stale cache if available, otherwise raise
+        if _apple_jwks_cache["keys"]:
+            logger.warning("apple_jwks_using_stale_cache")
+            return _apple_jwks_cache["keys"]
+        raise UnauthorizedError("Failed to fetch Apple's signing keys") from exc
+
+
+def _parse_apple_id_token_unverified(id_token: str, access_token: str) -> OAuthUserInfo:
+    """Parse Apple's ID token WITHOUT signature verification (dev/test only).
+
+    This is used in development and test environments where real Apple tokens
+    are not available.
     """
     import base64
     import json
@@ -211,8 +244,6 @@ def _parse_apple_id_token(id_token: str, access_token: str) -> OAuthUserInfo:
     if not id_token:
         raise UnauthorizedError("Apple ID token is required")
 
-    # Decode JWT payload (second segment) without verification
-    # In production, verify signature against https://appleid.apple.com/auth/keys
     parts = id_token.split(".")
     if len(parts) != 3:
         raise UnauthorizedError("Invalid Apple ID token format")
@@ -228,6 +259,69 @@ def _parse_apple_id_token(id_token: str, access_token: str) -> OAuthUserInfo:
         display_name=payload.get("email", "").split("@")[0],
         access_token=access_token,
     )
+
+
+async def _parse_apple_id_token(id_token: str, access_token: str) -> OAuthUserInfo:
+    """Parse and verify Apple's ID token (JWT) to extract user info.
+
+    In production, verifies the JWT signature against Apple's JWKS endpoint.
+    In development/test, falls back to unverified parsing.
+    """
+    if not id_token:
+        raise UnauthorizedError("Apple ID token is required")
+
+    # Dev/test: skip signature verification (no real Apple tokens available)
+    if settings.is_development or settings.is_test:
+        return _parse_apple_id_token_unverified(id_token, access_token)
+
+    # Production: full JWT signature verification against Apple's JWKS
+    try:
+        # Get the key ID from the JWT header
+        unverified_header = jose_jwt.get_unverified_header(id_token)
+        kid = unverified_header.get("kid")
+        if not kid:
+            raise UnauthorizedError("Apple ID token missing key ID (kid) in header")
+
+        # Fetch Apple's JWKS and find matching key
+        jwks = await _fetch_apple_jwks()
+        signing_key = None
+        for key in jwks:
+            if key.get("kid") == kid:
+                signing_key = key
+                break
+
+        if not signing_key:
+            # Key not found — force refresh cache in case Apple rotated keys
+            _apple_jwks_cache["fetched_at"] = 0
+            jwks = await _fetch_apple_jwks()
+            for key in jwks:
+                if key.get("kid") == kid:
+                    signing_key = key
+                    break
+
+        if not signing_key:
+            raise UnauthorizedError("No matching key found in Apple's JWKS")
+
+        # Verify and decode the JWT
+        payload = jose_jwt.decode(
+            id_token,
+            signing_key,
+            algorithms=["RS256"],
+            audience=settings.oauth_apple_client_id,
+            issuer="https://appleid.apple.com",
+        )
+
+        return OAuthUserInfo(
+            provider="apple",
+            provider_user_id=payload.get("sub", ""),
+            email=payload.get("email", ""),
+            display_name=payload.get("email", "").split("@")[0],
+            access_token=access_token,
+        )
+
+    except JWTError as exc:
+        logger.error("apple_jwt_verification_failed", error=str(exc))
+        raise UnauthorizedError(f"Invalid Apple ID token: {exc}") from exc
 
 
 async def find_or_create_oauth_user(

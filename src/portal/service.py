@@ -14,12 +14,14 @@ from src.groups.models import Group, GroupMember
 from src.portal.schemas import (
     ActivityFeedItem,
     AlertSummary,
+    CategoryCount,
     DashboardAlertItem,
     DashboardResponse,
     GroupSettingsResponse,
     NotificationPreferences,
     RiskSummary,
     SpendSummary,
+    TrendDataPoint,
     UpdateGroupSettingsRequest,
 )
 from src.risk.models import RiskEvent
@@ -312,6 +314,55 @@ async def get_dashboard(db: AsyncSession, group_id: UUID, user_id: UUID) -> Dash
         trend=trend,
     )
 
+    # --- Activity Trend (last 7 days) ---
+    activity_trend = []
+    for i in range(6, -1, -1):
+        day_start = (now - timedelta(days=i)).replace(hour=0, minute=0, second=0, microsecond=0)
+        day_end = day_start + timedelta(days=1)
+        day_count_result = await db.execute(
+            select(func.count(CaptureEvent.id)).where(
+                CaptureEvent.group_id == group_id,
+                CaptureEvent.timestamp >= day_start,
+                CaptureEvent.timestamp < day_end,
+            )
+        )
+        activity_trend.append(TrendDataPoint(
+            date=day_start.strftime("%Y-%m-%d"),
+            count=day_count_result.scalar() or 0,
+        ))
+
+    # --- Risk Breakdown (by category, last 30 days) ---
+    risk_cat_result = await db.execute(
+        select(RiskEvent.category, func.count(RiskEvent.id))
+        .where(
+            RiskEvent.group_id == group_id,
+            RiskEvent.created_at >= now - timedelta(days=30),
+        )
+        .group_by(RiskEvent.category)
+        .order_by(func.count(RiskEvent.id).desc())
+    )
+    risk_breakdown = [
+        CategoryCount(category=row[0], count=row[1])
+        for row in risk_cat_result.all()
+    ]
+
+    # --- Spend Trend (last 7 days) ---
+    spend_trend = []
+    for i in range(6, -1, -1):
+        day_start = (now - timedelta(days=i)).replace(hour=0, minute=0, second=0, microsecond=0)
+        day_end = day_start + timedelta(days=1)
+        day_spend_result = await db.execute(
+            select(func.coalesce(func.sum(SpendRecord.amount), 0.0)).where(
+                SpendRecord.group_id == group_id,
+                SpendRecord.period_start >= day_start,
+                SpendRecord.period_start < day_end,
+            )
+        )
+        spend_trend.append(TrendDataPoint(
+            date=day_start.strftime("%Y-%m-%d"),
+            amount=round(float(day_spend_result.scalar() or 0.0), 2),
+        ))
+
     return DashboardResponse(
         active_members=active_members,
         total_members=total_members,
@@ -321,6 +372,9 @@ async def get_dashboard(db: AsyncSession, group_id: UUID, user_id: UUID) -> Dash
         alert_summary=alert_summary,
         spend_summary=spend_summary,
         risk_summary=risk_summary,
+        activity_trend=activity_trend,
+        risk_breakdown=risk_breakdown,
+        spend_trend=spend_trend,
     )
 
 

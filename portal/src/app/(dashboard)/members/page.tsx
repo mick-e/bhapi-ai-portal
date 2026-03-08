@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Users,
   UserPlus,
@@ -24,14 +25,18 @@ import {
   useInviteMember,
   useUpdateMember,
   useRemoveMember,
+  useBulkUpdateMembers,
+  useBulkRemoveMembers,
 } from "@/hooks/use-members";
-// Types are inferred from React Query hooks
+import { useToast } from "@/contexts/ToastContext";
 
 export default function MembersPage() {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // Invite form state
   const [inviteEmail, setInviteEmail] = useState("");
@@ -48,9 +53,12 @@ export default function MembersPage() {
     refetch,
   } = useMembers({ page, page_size: pageSize, search: searchQuery || undefined });
 
+  const { addToast } = useToast();
   const inviteMutation = useInviteMember();
   const updateMutation = useUpdateMember();
   const removeMutation = useRemoveMember();
+  const bulkUpdateMutation = useBulkUpdateMembers();
+  const bulkRemoveMutation = useBulkRemoveMembers();
 
   const members = membersData?.items ?? [];
   const totalPages = membersData?.total_pages ?? 1;
@@ -68,27 +76,105 @@ export default function MembersPage() {
           setShowInviteModal(false);
           setInviteEmail("");
           setInviteRole("member");
+          addToast("Invitation sent successfully", "success");
+        },
+        onError: (err) => {
+          addToast((err as Error).message || "Failed to send invite", "error");
         },
       }
     );
   }
 
   function handleSuspend(memberId: string) {
-    updateMutation.mutate({ memberId, data: { status: "suspended" } });
+    updateMutation.mutate(
+      { memberId, data: { status: "suspended" } },
+      {
+        onSuccess: () => addToast("Member suspended", "success"),
+        onError: (err) => addToast((err as Error).message || "Failed to suspend member", "error"),
+      }
+    );
     setMenuOpenId(null);
   }
 
   function handleActivate(memberId: string) {
-    updateMutation.mutate({ memberId, data: { status: "active" } });
+    updateMutation.mutate(
+      { memberId, data: { status: "active" } },
+      {
+        onSuccess: () => addToast("Member reactivated", "success"),
+        onError: (err) => addToast((err as Error).message || "Failed to reactivate member", "error"),
+      }
+    );
     setMenuOpenId(null);
   }
 
   function handleRemove(memberId: string) {
     if (window.confirm("Are you sure you want to remove this member?")) {
-      removeMutation.mutate(memberId);
+      removeMutation.mutate(memberId, {
+        onSuccess: () => addToast("Member removed", "success"),
+        onError: (err) => addToast((err as Error).message || "Failed to remove member", "error"),
+      });
     }
     setMenuOpenId(null);
   }
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (selectedIds.size === members.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(members.map((m) => m.id)));
+    }
+  }
+
+  function handleBulkSuspend() {
+    const ids = Array.from(selectedIds);
+    bulkUpdateMutation.mutate(
+      { memberIds: ids, data: { status: "suspended" } },
+      {
+        onSuccess: () => {
+          addToast(`${ids.length} member(s) suspended`, "success");
+          setSelectedIds(new Set());
+        },
+        onError: (err) => addToast((err as Error).message || "Bulk suspend failed", "error"),
+      }
+    );
+  }
+
+  function handleBulkActivate() {
+    const ids = Array.from(selectedIds);
+    bulkUpdateMutation.mutate(
+      { memberIds: ids, data: { status: "active" } },
+      {
+        onSuccess: () => {
+          addToast(`${ids.length} member(s) reactivated`, "success");
+          setSelectedIds(new Set());
+        },
+        onError: (err) => addToast((err as Error).message || "Bulk activate failed", "error"),
+      }
+    );
+  }
+
+  function handleBulkRemove() {
+    const ids = Array.from(selectedIds);
+    if (!window.confirm(`Remove ${ids.length} member(s)? This cannot be undone.`)) return;
+    bulkRemoveMutation.mutate(ids, {
+      onSuccess: () => {
+        addToast(`${ids.length} member(s) removed`, "success");
+        setSelectedIds(new Set());
+      },
+      onError: (err) => addToast((err as Error).message || "Bulk remove failed", "error"),
+    });
+  }
+
+  const isBulkLoading = bulkUpdateMutation.isPending || bulkRemoveMutation.isPending;
 
   if (isLoading) {
     return (
@@ -192,12 +278,62 @@ export default function MembersPage() {
         </div>
       </div>
 
+      {/* Bulk Action Bar */}
+      {selectedIds.size > 0 && (
+        <div className="mb-4 flex items-center gap-3 rounded-lg bg-primary-50 px-4 py-3 ring-1 ring-primary-200">
+          <span className="text-sm font-medium text-primary-700">
+            {selectedIds.size} selected
+          </span>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handleBulkSuspend}
+            isLoading={isBulkLoading}
+          >
+            Suspend
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handleBulkActivate}
+            isLoading={isBulkLoading}
+          >
+            Reactivate
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handleBulkRemove}
+            isLoading={isBulkLoading}
+            className="text-red-600 hover:bg-red-50"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            Remove
+          </Button>
+          <button
+            onClick={() => setSelectedIds(new Set())}
+            className="ml-auto text-xs text-gray-500 hover:text-gray-700"
+          >
+            Clear selection
+          </button>
+        </div>
+      )}
+
       {/* Members Table */}
       <Card>
         <div className="-mx-6 -my-4 overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
+                <th className="w-10 px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={members.length > 0 && selectedIds.size === members.length}
+                    onChange={toggleSelectAll}
+                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                    aria-label="Select all members"
+                  />
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                   Member
                 </th>
@@ -220,7 +356,20 @@ export default function MembersPage() {
             </thead>
             <tbody className="divide-y divide-gray-100 bg-white">
               {members.map((member) => (
-                <tr key={member.id} className="hover:bg-gray-50">
+                <tr
+                  key={member.id}
+                  className="hover:bg-gray-50 cursor-pointer"
+                  onClick={() => router.push(`/members/${member.id}`)}
+                >
+                  <td className="whitespace-nowrap px-4 py-4" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(member.id)}
+                      onChange={() => toggleSelect(member.id)}
+                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                      aria-label={`Select ${member.display_name}`}
+                    />
+                  </td>
                   <td className="whitespace-nowrap px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-100 text-xs font-semibold text-primary">
@@ -248,7 +397,7 @@ export default function MembersPage() {
                       ? formatRelativeTime(member.last_active)
                       : "Never"}
                   </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-right">
+                  <td className="whitespace-nowrap px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                     <div className="relative inline-block">
                       <button
                         onClick={() =>
@@ -304,7 +453,7 @@ export default function MembersPage() {
               ))}
               {members.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center">
+                  <td colSpan={7} className="px-6 py-12 text-center">
                     <Users className="mx-auto h-10 w-10 text-gray-300" />
                     <p className="mt-3 text-sm text-gray-500">
                       {searchQuery

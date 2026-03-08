@@ -3,11 +3,13 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.middleware import get_current_user
 from src.database import get_db
 from src.dependencies import resolve_group_id as _gid
+from src.groups.models import GroupMember
 from src.risk.schemas import (
     RiskConfigResponse,
     RiskConfigUpdate,
@@ -52,13 +54,33 @@ async def list_events(
         limit=limit,
         offset=offset,
     )
-    return RiskEventListResponse(
-        items=[risk_event_to_response(e) for e in events],
-        total=total,
-        offset=offset,
-        limit=limit,
-        has_more=(offset + limit) < total,
-    )
+
+    # Enrich with member names
+    member_ids = list({e.member_id for e in events})
+    member_names: dict[UUID, str] = {}
+    if member_ids:
+        mr = await db.execute(
+            select(GroupMember.id, GroupMember.display_name).where(
+                GroupMember.id.in_(member_ids)
+            )
+        )
+        member_names = {row[0]: row[1] for row in mr.all()}
+
+    items = []
+    for e in events:
+        resp = risk_event_to_response(e)
+        item = resp.model_dump()
+        item["member_name"] = member_names.get(e.member_id, "Unknown")
+        item["description"] = (e.details or {}).get("reasoning", e.category)
+        items.append(item)
+
+    return {
+        "items": items,
+        "total": total,
+        "offset": offset,
+        "limit": limit,
+        "has_more": (offset + limit) < total,
+    }
 
 
 @router.get("/events/{event_id}", response_model=RiskEventResponse)

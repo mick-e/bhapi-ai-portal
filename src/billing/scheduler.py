@@ -47,6 +47,9 @@ def _init_registry() -> None:
     register_provider("google", GoogleProvider)
     register_provider("microsoft", MicrosoftProvider)
 
+    from src.billing.providers.xai_client import XAIProvider
+    register_provider("xai", XAIProvider)
+
 
 def get_provider(name: str, api_key: str) -> BaseProvider:
     """Get a provider instance by name."""

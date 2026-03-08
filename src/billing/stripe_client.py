@@ -12,9 +12,13 @@ from __future__ import annotations
 
 import os
 from datetime import datetime, timezone
+from uuid import UUID, uuid4
 
 import structlog
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.billing.models import Subscription
 from src.config import get_settings
 
 logger = structlog.get_logger()
@@ -82,25 +86,34 @@ async def get_or_create_customer(
 # ---------------------------------------------------------------------------
 
 # Plan → Stripe price ID mapping (configured in Stripe dashboard)
-# Only Family plan is self-serve. School and Club require custom pricing via sales.
 PLAN_PRICES = {
     "family_monthly": os.environ.get("STRIPE_PRICE_FAMILY_MONTHLY", "price_family_monthly"),
     "family_annual": os.environ.get("STRIPE_PRICE_FAMILY_ANNUAL", "price_family_annual"),
+    "school_monthly": os.environ.get("STRIPE_PRICE_SCHOOL_MONTHLY", "price_school_monthly"),
+    "school_annual": os.environ.get("STRIPE_PRICE_SCHOOL_ANNUAL", "price_school_annual"),
+    "club_monthly": os.environ.get("STRIPE_PRICE_CLUB_MONTHLY", "price_club_monthly"),
+    "club_annual": os.environ.get("STRIPE_PRICE_CLUB_ANNUAL", "price_club_annual"),
 }
 
-# Plans that require contacting sales for custom pricing
-CONTACT_SALES_PLANS = {"school", "club"}
+# Per-seat plans (quantity = member count)
+PER_SEAT_PLANS = {"school", "club"}
+
+# Plans that require contacting sales for custom pricing (none currently)
+CONTACT_SALES_PLANS: set[str] = set()
 
 
 async def create_checkout_session(
     customer_id: str,
     plan_key: str,
     group_id: str,
+    seat_count: int = 1,
+    is_new_subscription: bool = True,
     success_url: str = "https://bhapi.ai/billing/success?session_id={CHECKOUT_SESSION_ID}",
     cancel_url: str = "https://bhapi.ai/billing/cancel",
 ) -> dict:
     """Create a Stripe Checkout Session for subscription.
 
+    For school/club plans, seat_count sets the per-seat quantity.
     Returns dict with session_id and url.
     """
     stripe = _get_stripe()
@@ -114,17 +127,26 @@ async def create_checkout_session(
     if not price_id:
         raise StripeError(f"Unknown plan: {plan_key}")
 
+    # Per-seat plans use member count as quantity
+    quantity = max(seat_count, 1) if plan_base in PER_SEAT_PLANS else 1
+
+    # Trial for new subscriptions
+    from src.constants import FREE_TRIAL_DAYS
+    subscription_data: dict = {
+        "metadata": {"group_id": group_id, "plan_key": plan_key},
+    }
+    if is_new_subscription:
+        subscription_data["trial_period_days"] = FREE_TRIAL_DAYS
+
     try:
         session = stripe.checkout.Session.create(
             customer=customer_id,
             mode="subscription",
-            line_items=[{"price": price_id, "quantity": 1}],
+            line_items=[{"price": price_id, "quantity": quantity}],
             success_url=success_url,
             cancel_url=cancel_url,
             metadata={"group_id": group_id, "plan_key": plan_key},
-            subscription_data={
-                "metadata": {"group_id": group_id, "plan_key": plan_key},
-            },
+            subscription_data=subscription_data,
         )
 
         logger.info(
@@ -186,7 +208,7 @@ def verify_webhook_signature(payload: bytes, signature: str) -> dict:
         raise StripeError(f"Invalid webhook payload: {exc}") from exc
 
 
-async def handle_webhook_event(event: dict) -> dict:
+async def handle_webhook_event(event: dict, db: AsyncSession) -> dict:
     """Process a verified Stripe webhook event.
 
     Supported events:
@@ -212,16 +234,76 @@ async def handle_webhook_event(event: dict) -> dict:
         logger.debug("stripe_webhook_unhandled", event_type=event_type)
         return {"action": "ignored", "event_type": event_type}
 
-    return await handler(data)
+    return await handler(data, db)
 
 
-async def _handle_subscription_created(data: dict) -> dict:
+async def _handle_subscription_created(data: dict, db: AsyncSession) -> dict:
     """Handle new subscription creation from Stripe."""
     sub_id = data.get("id")
     customer_id = data.get("customer")
     status = data.get("status")
-    group_id = data.get("metadata", {}).get("group_id")
+    group_id_str = data.get("metadata", {}).get("group_id")
+    group_id = UUID(group_id_str) if group_id_str else None
     plan_key = data.get("metadata", {}).get("plan_key", "unknown")
+
+    # Parse plan_type and billing_cycle from plan_key (e.g. "family_monthly")
+    parts = plan_key.rsplit("_", 1) if "_" in plan_key else [plan_key, "monthly"]
+    plan_type = parts[0]
+    billing_cycle = parts[1] if len(parts) > 1 else "monthly"
+
+    # Parse current_period_end and trial_end
+    period_end_ts = data.get("current_period_end")
+    current_period_end = (
+        datetime.fromtimestamp(period_end_ts, tz=timezone.utc)
+        if period_end_ts
+        else None
+    )
+    trial_end_ts = data.get("trial_end")
+    trial_end = (
+        datetime.fromtimestamp(trial_end_ts, tz=timezone.utc)
+        if trial_end_ts
+        else None
+    )
+
+    # Upsert: find existing subscription by stripe_subscription_id or group_id
+    existing = None
+    if sub_id:
+        result = await db.execute(
+            select(Subscription).where(
+                Subscription.stripe_subscription_id == sub_id
+            )
+        )
+        existing = result.scalar_one_or_none()
+
+    if not existing and group_id:
+        result = await db.execute(
+            select(Subscription).where(Subscription.group_id == group_id)
+        )
+        existing = result.scalar_one_or_none()
+
+    if existing:
+        existing.stripe_subscription_id = sub_id
+        existing.stripe_customer_id = customer_id
+        existing.plan_type = plan_type
+        existing.billing_cycle = billing_cycle
+        existing.status = status
+        existing.current_period_end = current_period_end
+        existing.trial_end = trial_end
+    else:
+        subscription = Subscription(
+            id=uuid4(),
+            group_id=group_id,
+            stripe_customer_id=customer_id,
+            stripe_subscription_id=sub_id,
+            plan_type=plan_type,
+            billing_cycle=billing_cycle,
+            status=status,
+            current_period_end=current_period_end,
+            trial_end=trial_end,
+        )
+        db.add(subscription)
+
+    await db.flush()
 
     logger.info(
         "stripe_subscription_created",
@@ -237,49 +319,90 @@ async def _handle_subscription_created(data: dict) -> dict:
         "subscription_id": sub_id,
         "customer_id": customer_id,
         "status": status,
-        "group_id": group_id,
+        "group_id": str(group_id) if group_id else None,
         "plan_key": plan_key,
     }
 
 
-async def _handle_subscription_updated(data: dict) -> dict:
+async def _handle_subscription_updated(data: dict, db: AsyncSession) -> dict:
     """Handle subscription update (plan change, renewal, etc.)."""
     sub_id = data.get("id")
     status = data.get("status")
     group_id = data.get("metadata", {}).get("group_id")
 
     # Extract current period end for renewal tracking
-    period_end = data.get("current_period_end")
-    if period_end:
-        period_end = datetime.fromtimestamp(period_end, tz=timezone.utc).isoformat()
-
-    logger.info(
-        "stripe_subscription_updated",
-        subscription_id=sub_id,
-        status=status,
-        group_id=group_id,
-        period_end=period_end,
+    period_end_ts = data.get("current_period_end")
+    current_period_end = (
+        datetime.fromtimestamp(period_end_ts, tz=timezone.utc)
+        if period_end_ts
+        else None
     )
+    period_end_iso = current_period_end.isoformat() if current_period_end else None
+
+    # Update existing subscription in DB
+    result = await db.execute(
+        select(Subscription).where(
+            Subscription.stripe_subscription_id == sub_id
+        )
+    )
+    existing = result.scalar_one_or_none()
+
+    if existing:
+        existing.status = status
+        if current_period_end:
+            existing.current_period_end = current_period_end
+        await db.flush()
+        logger.info(
+            "stripe_subscription_updated",
+            subscription_id=sub_id,
+            status=status,
+            group_id=group_id,
+            period_end=period_end_iso,
+        )
+    else:
+        logger.warning(
+            "stripe_subscription_updated_not_found",
+            subscription_id=sub_id,
+            status=status,
+            group_id=group_id,
+        )
 
     return {
         "action": "subscription_updated",
         "subscription_id": sub_id,
         "status": status,
         "group_id": group_id,
-        "period_end": period_end,
+        "period_end": period_end_iso,
     }
 
 
-async def _handle_subscription_cancelled(data: dict) -> dict:
+async def _handle_subscription_cancelled(data: dict, db: AsyncSession) -> dict:
     """Handle subscription cancellation."""
     sub_id = data.get("id")
     group_id = data.get("metadata", {}).get("group_id")
 
-    logger.info(
-        "stripe_subscription_cancelled",
-        subscription_id=sub_id,
-        group_id=group_id,
+    # Set status to cancelled in DB
+    result = await db.execute(
+        select(Subscription).where(
+            Subscription.stripe_subscription_id == sub_id
+        )
     )
+    existing = result.scalar_one_or_none()
+
+    if existing:
+        existing.status = "cancelled"
+        await db.flush()
+        logger.info(
+            "stripe_subscription_cancelled",
+            subscription_id=sub_id,
+            group_id=group_id,
+        )
+    else:
+        logger.warning(
+            "stripe_subscription_cancelled_not_found",
+            subscription_id=sub_id,
+            group_id=group_id,
+        )
 
     return {
         "action": "subscription_cancelled",
@@ -288,20 +411,47 @@ async def _handle_subscription_cancelled(data: dict) -> dict:
     }
 
 
-async def _handle_payment_failed(data: dict) -> dict:
+async def _handle_payment_failed(data: dict, db: AsyncSession) -> dict:
     """Handle failed payment (invoice.payment_failed)."""
     invoice_id = data.get("id")
     customer_id = data.get("customer")
     sub_id = data.get("subscription")
     amount = data.get("amount_due", 0)
 
-    logger.warning(
-        "stripe_payment_failed",
-        invoice_id=invoice_id,
-        customer_id=customer_id,
-        subscription_id=sub_id,
-        amount=amount,
-    )
+    # Set subscription status to past_due
+    if sub_id:
+        result = await db.execute(
+            select(Subscription).where(
+                Subscription.stripe_subscription_id == sub_id
+            )
+        )
+        existing = result.scalar_one_or_none()
+
+        if existing:
+            existing.status = "past_due"
+            await db.flush()
+            logger.warning(
+                "stripe_payment_failed",
+                invoice_id=invoice_id,
+                customer_id=customer_id,
+                subscription_id=sub_id,
+                amount=amount,
+            )
+        else:
+            logger.warning(
+                "stripe_payment_failed_subscription_not_found",
+                invoice_id=invoice_id,
+                customer_id=customer_id,
+                subscription_id=sub_id,
+                amount=amount,
+            )
+    else:
+        logger.warning(
+            "stripe_payment_failed_no_subscription",
+            invoice_id=invoice_id,
+            customer_id=customer_id,
+            amount=amount,
+        )
 
     return {
         "action": "payment_failed",

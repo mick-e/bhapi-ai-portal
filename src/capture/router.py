@@ -1,5 +1,6 @@
 """Capture gateway API endpoints."""
 
+from datetime import date
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, Query, Request
@@ -85,6 +86,8 @@ async def list_capture_events(
     risk_level: str | None = Query(None),
     event_type: str | None = Query(None),
     search: str | None = Query(None),
+    start_date: date | None = Query(None, description="Filter events from this date (inclusive)"),
+    end_date: date | None = Query(None, description="Filter events until this date (inclusive)"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     auth: GroupContext = Depends(get_current_user),
@@ -94,7 +97,8 @@ async def list_capture_events(
     # Accept both "platform" and "provider" param names (frontend sends "provider")
     effective_platform = platform or provider
     return await list_events_enriched(
-        db, _gid(group_id, auth), member_id, effective_platform, risk_level, event_type, search, page, page_size
+        db, _gid(group_id, auth), member_id, effective_platform, risk_level, event_type, search, page, page_size,
+        start_date=start_date, end_date=end_date,
     )
 
 

@@ -4,11 +4,12 @@ from datetime import datetime
 from uuid import UUID, uuid4
 
 import structlog
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.billing.models import BudgetThreshold, LLMAccount, SpendRecord, Subscription
 from src.billing.schemas import ProviderConnect, SubscribeRequest, ThresholdConfig
+from src.config import get_settings
 from src.encryption import decrypt_credential, encrypt_credential
 from src.exceptions import ConflictError, NotFoundError, ValidationError
 
@@ -65,7 +66,7 @@ async def create_checkout_session_for_group(
 
     Returns dict with session_id and url.
     """
-    from src.billing.stripe_client import create_checkout_session, get_or_create_customer
+    from src.billing.stripe_client import PER_SEAT_PLANS, create_checkout_session, get_or_create_customer
 
     # Get or create Stripe customer
     customer_id = await get_or_create_customer(
@@ -77,10 +78,27 @@ async def create_checkout_session_for_group(
     # Build the plan key (e.g. "family_monthly")
     plan_key = f"{plan_type}_{billing_cycle}"
 
+    # For per-seat plans, count current members
+    seat_count = 1
+    if plan_type in PER_SEAT_PLANS:
+        from src.groups.models import GroupMember
+        count_result = await db.execute(
+            select(func.count(GroupMember.id)).where(GroupMember.group_id == group_id)
+        )
+        seat_count = max(count_result.scalar() or 1, 1)
+
+    # Check if group has had a subscription before (no trial for returning)
+    existing_result = await db.execute(
+        select(Subscription).where(Subscription.group_id == group_id)
+    )
+    is_new = existing_result.scalar_one_or_none() is None
+
     result = await create_checkout_session(
         customer_id=customer_id,
         plan_key=plan_key,
         group_id=str(group_id),
+        seat_count=seat_count,
+        is_new_subscription=is_new,
     )
 
     logger.info(
@@ -316,6 +334,76 @@ async def create_threshold(
         amount=data.amount,
     )
     return threshold
+
+
+async def revoke_llm_api_key(db: AsyncSession, account_id: UUID) -> bool:
+    """Attempt to revoke an LLM provider API key."""
+    from src.billing.scheduler import get_provider
+
+    result = await db.execute(select(LLMAccount).where(LLMAccount.id == account_id))
+    account = result.scalar_one_or_none()
+    if not account:
+        raise NotFoundError("LLM Account", str(account_id))
+    if not account.credentials_encrypted:
+        return False
+
+    api_key = decrypt_credential(account.credentials_encrypted)
+    provider = get_provider(account.provider, api_key)
+
+    revoked = await provider.revoke_key()
+
+    # Always clear credentials locally
+    account.credentials_encrypted = None
+    account.status = "inactive"
+    await db.flush()
+
+    logger.info("llm_key_revoked", account_id=str(account_id), provider_revoked=revoked)
+    return revoked
+
+
+async def update_seat_count(db: AsyncSession, group_id: UUID) -> bool:
+    """Update Stripe subscription quantity to match current member count.
+
+    Used for school/club per-seat billing. Returns True if updated.
+    """
+    from src.billing.stripe_client import PER_SEAT_PLANS
+    from src.groups.models import GroupMember
+
+    # Find active subscription
+    result = await db.execute(
+        select(Subscription).where(
+            Subscription.group_id == group_id,
+            Subscription.status.in_(["active", "trialing"]),
+            Subscription.stripe_subscription_id.isnot(None),
+        )
+    )
+    subscription = result.scalar_one_or_none()
+    if not subscription or subscription.plan_type not in PER_SEAT_PLANS:
+        return False
+
+    # Count current members
+    count_result = await db.execute(
+        select(func.count(GroupMember.id)).where(GroupMember.group_id == group_id)
+    )
+    member_count = max(count_result.scalar() or 1, 1)
+
+    try:
+        import stripe
+        stripe.api_key = get_settings().stripe_secret_key
+        sub = stripe.Subscription.retrieve(subscription.stripe_subscription_id)
+        if sub.get("items", {}).get("data"):
+            item_id = sub["items"]["data"][0]["id"]
+            stripe.SubscriptionItem.modify(item_id, quantity=member_count)
+            logger.info(
+                "seat_count_updated",
+                group_id=str(group_id),
+                new_count=member_count,
+            )
+            return True
+    except Exception as exc:
+        logger.error("seat_count_update_failed", group_id=str(group_id), error=str(exc))
+
+    return False
 
 
 async def list_thresholds(

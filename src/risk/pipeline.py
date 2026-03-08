@@ -6,14 +6,15 @@ Flow: CaptureEvent → engine.process_event() → risk_service.create_risk_event
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from uuid import UUID
+from datetime import datetime, timedelta, timezone
+from uuid import UUID, uuid4
 
 import structlog
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.alerts.models import Alert
+from src.encryption import encrypt_credential
 from src.alerts.schemas import AlertCreate
 from src.alerts.service import create_alert
 from src.capture.models import CaptureEvent
@@ -86,6 +87,17 @@ async def process_capture_event(
             details={"source": "pipeline", "platform": capture_event.platform},
         )
         risk_events.append(risk_event)
+
+        # Create encrypted content excerpt for this risk event
+        if content.strip():
+            from src.risk.models import ContentExcerpt
+            excerpt = ContentExcerpt(
+                id=uuid4(),
+                risk_event_id=risk_event.id,
+                encrypted_content=encrypt_credential(content[:2000]),
+                expires_at=datetime.now(timezone.utc) + timedelta(days=365),
+            )
+            db.add(excerpt)
 
         # Create alert for this risk event
         alert = await _create_alert_for_risk(db, capture_event, risk_event, classification)

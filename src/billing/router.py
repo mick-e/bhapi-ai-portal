@@ -3,7 +3,8 @@
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+import structlog
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -26,17 +27,20 @@ from src.billing.service import (
     create_subscription,
     create_threshold,
     disconnect_llm_account,
+    revoke_llm_api_key,
     get_billing_portal_url,
     get_subscription,
     list_llm_accounts,
     list_thresholds,
 )
-from src.billing.stripe_client import StripeError
+from src.billing.stripe_client import StripeError, handle_webhook_event, verify_webhook_signature
 from src.database import get_db
 from src.dependencies import resolve_group_id as _gid
 from src.exceptions import ValidationError as BhapiValidationError
 from src.groups.models import GroupMember
 from src.schemas import GroupContext
+
+webhook_logger = structlog.get_logger()
 
 router = APIRouter()
 
@@ -112,6 +116,33 @@ async def get_billing_portal(
     return PortalResponse(url=url)
 
 
+# ─── Stripe Webhooks ─────────────────────────────────────────────────────────
+
+
+@router.post("/webhooks")
+async def stripe_webhook(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """Handle incoming Stripe webhook events."""
+    payload = await request.body()
+    signature = request.headers.get("Stripe-Signature", "")
+
+    try:
+        event = verify_webhook_signature(payload, signature)
+    except StripeError as exc:
+        webhook_logger.warning("stripe_webhook_signature_failed", error=str(exc))
+        raise BhapiValidationError(str(exc))
+
+    result = await handle_webhook_event(event, db)
+    webhook_logger.info(
+        "stripe_webhook_processed",
+        event_type=event.get("type"),
+        action=result.get("action"),
+    )
+    return {"status": "ok"}
+
+
 # ─── LLM Accounts ────────────────────────────────────────────────────────────
 
 
@@ -146,6 +177,24 @@ async def disconnect_account(
     """Disconnect an LLM provider account."""
     account = await disconnect_llm_account(db, account_id)
     return account
+
+
+@router.post("/llm-accounts/{account_id}/revoke")
+async def revoke_account_key(
+    account_id: UUID,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Revoke the API key for an LLM provider via their admin API.
+
+    Attempts to revoke the key remotely, then clears local credentials.
+    """
+    revoked = await revoke_llm_api_key(db, account_id)
+    return {
+        "account_id": str(account_id),
+        "provider_revoked": revoked,
+        "credentials_cleared": True,
+    }
 
 
 # ─── Spend Tracking (BFF for frontend) ────────────────────────────────────────

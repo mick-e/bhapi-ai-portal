@@ -86,6 +86,19 @@ class MemberStatus(BaseSchema):
     unresolved_alerts: int = 0
 
 
+class TrendDataPoint(BaseSchema):
+    """Single data point for trend charts."""
+    date: str
+    count: int = 0
+    amount: float = 0.0
+
+
+class CategoryCount(BaseSchema):
+    """Risk category breakdown item."""
+    category: str
+    count: int
+
+
 class DashboardResponse(BaseSchema):
     """Primary dashboard response (FR-010) — matches frontend DashboardData."""
 
@@ -97,6 +110,9 @@ class DashboardResponse(BaseSchema):
     alert_summary: AlertSummary = Field(default_factory=AlertSummary)
     spend_summary: SpendSummary = Field(default_factory=SpendSummary)
     risk_summary: RiskSummary = Field(default_factory=RiskSummary)
+    activity_trend: list[TrendDataPoint] = Field(default_factory=list)
+    risk_breakdown: list[CategoryCount] = Field(default_factory=list)
+    spend_trend: list[TrendDataPoint] = Field(default_factory=list)
 
 
 # ─── Settings ───────────────────────────────────────────────────────────────

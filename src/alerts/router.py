@@ -1,9 +1,10 @@
 """Alerts API endpoints."""
 
-from datetime import datetime, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, Query
+from pydantic import BaseModel, Field
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -49,6 +50,7 @@ def _alert_to_frontend(alert: Alert, member_names: dict[UUID, str]) -> dict:
         "actioned": alert.status == "acknowledged",
         "related_member_id": str(alert.member_id) if alert.member_id else None,
         "related_event_id": str(alert.risk_event_id) if alert.risk_event_id else None,
+        "snoozed_until": alert.snoozed_until.isoformat() if alert.snoozed_until else None,
         "created_at": alert.created_at.isoformat() if alert.created_at else "",
     }
 
@@ -59,6 +61,8 @@ async def list_alerts_endpoint(
     severity: str | None = Query(None, description="Filter by severity"),
     type: str | None = Query(None, description="Filter by type"),
     read: bool | None = Query(None, description="Filter by read status"),
+    start_date: date | None = Query(None, description="Filter alerts from this date (inclusive)"),
+    end_date: date | None = Query(None, description="Filter alerts until this date (inclusive)"),
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=100),
     auth: GroupContext = Depends(get_current_user),
@@ -69,6 +73,15 @@ async def list_alerts_endpoint(
 
     base = select(Alert).where(Alert.group_id == gid)
     count_q = select(func.count(Alert.id)).where(Alert.group_id == gid)
+
+    if start_date:
+        start_dt = datetime.combine(start_date, time.min, tzinfo=timezone.utc)
+        base = base.where(Alert.created_at >= start_dt)
+        count_q = count_q.where(Alert.created_at >= start_dt)
+    if end_date:
+        end_dt = datetime.combine(end_date, time.max, tzinfo=timezone.utc)
+        base = base.where(Alert.created_at <= end_dt)
+        count_q = count_q.where(Alert.created_at <= end_dt)
 
     # Map frontend severity names back to backend
     if severity:
@@ -201,4 +214,24 @@ async def acknowledge_alert_endpoint(
     """Acknowledge an alert (FR-022)."""
     from src.alerts.service import acknowledge_alert
     alert = await acknowledge_alert(db, alert_id, auth.user_id)
+    return _alert_to_frontend(alert, {})
+
+
+class SnoozeRequest(BaseModel):
+    """Snooze an alert for a duration."""
+    hours: int = Field(ge=1, le=168, description="Number of hours to snooze (1-168)")
+
+
+@router.post("/{alert_id}/snooze")
+async def snooze_alert(
+    alert_id: UUID,
+    data: SnoozeRequest,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Snooze an alert for a specified number of hours."""
+    alert = await get_alert(db, alert_id)
+    alert.snoozed_until = datetime.now(timezone.utc) + timedelta(hours=data.hours)
+    await db.flush()
+    await db.refresh(alert)
     return _alert_to_frontend(alert, {})

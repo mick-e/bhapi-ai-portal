@@ -8,7 +8,7 @@ import pytest
 from src.auth.models import User
 from src.capture.schemas import EventPayload
 from src.capture.service import ingest_event
-from src.exceptions import ValidationError
+from src.exceptions import ForbiddenError, ValidationError
 from src.groups.consent import calculate_age, get_consent_type, requires_consent
 from src.groups.models import Group, GroupMember
 from src.groups.schemas import MemberAdd
@@ -244,7 +244,7 @@ class TestCaptureConsentBlocking:
             timestamp=datetime.now(timezone.utc),
             content="Hello world",
         )
-        with pytest.raises(ValidationError, match="guardian consent required"):
+        with pytest.raises(ForbiddenError, match="consent required"):
             await ingest_event(test_session, payload)
 
     @pytest.mark.asyncio

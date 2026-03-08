@@ -50,6 +50,7 @@ SEVERITY_LEVELS = ("critical", "high", "medium", "low")
 # Default limits
 DEFAULT_PAGE_SIZE = 50
 MAX_PAGE_SIZE = 100
+MAX_FAMILY_MEMBERS = 5
 MAX_GROUP_MEMBERS = 500
 MAX_GROUPS_PER_USER = 20
 

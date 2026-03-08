@@ -1,6 +1,7 @@
 """Capture gateway service — event ingestion and normalisation."""
 
 import secrets
+from datetime import date, datetime, time, timezone
 from uuid import UUID, uuid4
 
 import structlog
@@ -9,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.capture.models import CaptureEvent, DeviceRegistration
 from src.capture.schemas import DeviceRegisterRequest, EnrichedEventResponse, EventPayload
-from src.exceptions import ValidationError
+from src.exceptions import ForbiddenError, ValidationError
 from src.groups.models import GroupMember
 from src.risk.models import RiskEvent
 
@@ -30,7 +31,7 @@ async def ingest_event(
     from src.groups.service import check_member_consent
     has_consent = await check_member_consent(db, payload.group_id, payload.member_id)
     if not has_consent:
-        raise ValidationError(
+        raise ForbiddenError(
             "Capture blocked: guardian consent required for this member. "
             "Record consent before monitoring can begin."
         )
@@ -102,6 +103,8 @@ async def list_events_enriched(
     search: str | None = None,
     page: int = 1,
     page_size: int = 20,
+    start_date: "date | None" = None,
+    end_date: "date | None" = None,
 ) -> dict:
     """List capture events enriched with member name and risk level, with pagination."""
     # Build base query
@@ -121,6 +124,14 @@ async def list_events_enriched(
         pattern = f"%{search}%"
         query = query.where(CaptureEvent.content.ilike(pattern))
         count_query = count_query.where(CaptureEvent.content.ilike(pattern))
+    if start_date:
+        start_dt = datetime.combine(start_date, time.min, tzinfo=timezone.utc)
+        query = query.where(CaptureEvent.timestamp >= start_dt)
+        count_query = count_query.where(CaptureEvent.timestamp >= start_dt)
+    if end_date:
+        end_dt = datetime.combine(end_date, time.max, tzinfo=timezone.utc)
+        query = query.where(CaptureEvent.timestamp <= end_dt)
+        count_query = count_query.where(CaptureEvent.timestamp <= end_dt)
 
     # Get total count
     total_result = await db.execute(count_query)

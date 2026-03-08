@@ -77,6 +77,21 @@ class Settings(BaseSettings):
     # Email
     sendgrid_api_key: str | None = None
 
+    # Twilio SMS
+    twilio_account_sid: str | None = None
+    twilio_auth_token: str | None = None
+    twilio_from_number: str | None = None
+
+    # SIS Integrations
+    clever_client_id: str | None = None
+    clever_client_secret: str | None = None
+    classlink_client_id: str | None = None
+    classlink_client_secret: str | None = None
+
+    # Yoti Age Verification
+    yoti_client_sdk_id: str | None = None
+    yoti_pem_file_path: str | None = None
+
     # GCP
     gcp_project_id: str | None = None
 
@@ -96,6 +111,10 @@ class Settings(BaseSettings):
     oauth_apple_team_id: str | None = None
     oauth_apple_key_id: str | None = None
     oauth_redirect_base_url: str = "http://localhost:8000"
+
+    # Federated SSO
+    oauth_google_workspace_domain: str | None = None
+    oauth_microsoft_tenant_id: str | None = None
 
     # App
     app_name: str = "Bhapi AI Portal"

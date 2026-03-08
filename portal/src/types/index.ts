@@ -102,6 +102,7 @@ export interface Alert {
   actioned: boolean;
   related_member_id?: string;
   related_event_id?: string;
+  snoozed_until?: string | null;
   created_at: string;
 }
 
@@ -148,6 +149,17 @@ export interface SpendSummary {
   member_breakdown: MemberSpendBreakdown[];
   provider_breakdown: ProviderBreakdown[];
   records: SpendRecord[];
+}
+
+export interface BudgetThreshold {
+  id: string;
+  group_id: string;
+  member_id: string | null;
+  type: "soft" | "hard";
+  amount: number;
+  currency: string;
+  notify_at: number[] | null;
+  created_at: string;
 }
 
 // ─── Reports ────────────────────────────────────────────────────────────────
@@ -216,6 +228,20 @@ export interface DashboardData {
     high_severity_count: number;
     trend: "increasing" | "stable" | "decreasing";
   };
+  activity_trend: TrendDataPoint[];
+  risk_breakdown: CategoryCount[];
+  spend_trend: TrendDataPoint[];
+}
+
+export interface TrendDataPoint {
+  date: string;
+  count: number;
+  amount: number;
+}
+
+export interface CategoryCount {
+  category: string;
+  count: number;
 }
 
 // ─── Settings ───────────────────────────────────────────────────────────────
@@ -257,6 +283,33 @@ export interface UpdateGroupSettingsRequest {
 export interface UpdateProfileRequest {
   display_name?: string;
   email?: string;
+}
+
+// ─── Consent ───────────────────────────────────────────────────────────────
+
+export type ConsentType =
+  | "coppa"
+  | "gdpr"
+  | "lgpd"
+  | "au_privacy"
+  | "monitoring"
+  | "ai_interaction"
+  | "data_collection";
+
+export interface ConsentRecord {
+  id: string;
+  group_id: string;
+  member_id: string;
+  consent_type: ConsentType;
+  parent_user_id: string | null;
+  given_at: string;
+  withdrawn_at: string | null;
+  created_at: string;
+}
+
+export interface RecordConsentRequest {
+  consent_type: ConsentType;
+  evidence?: string;
 }
 
 // ─── Auth ───────────────────────────────────────────────────────────────────
@@ -353,4 +406,84 @@ export interface ContactInquiryRequest {
   account_type: "school" | "club";
   estimated_members: EstimatedMembers;
   message?: string;
+}
+
+// ─── Blocking ──────────────────────────────────────────────────────────────
+
+export interface BlockRule {
+  id: string;
+  group_id: string;
+  member_id: string;
+  platforms: string[] | null;
+  reason: string | null;
+  active: boolean;
+  created_by: string;
+  expires_at: string | null;
+  created_at: string;
+}
+
+export interface BlockStatus {
+  blocked: boolean;
+  rules: BlockRule[];
+}
+
+// ─── Analytics ─────────────────────────────────────────────────────────────
+
+export interface TrendData {
+  group_id: string;
+  activity: {
+    direction: string;
+    current_avg: number;
+    previous_avg: number;
+  };
+  risk_events: {
+    direction: string;
+    current_count: number;
+    previous_count: number;
+  };
+}
+
+export interface UsagePattern {
+  by_platform: Record<string, number>;
+  by_hour: Record<string, number>;
+  by_day_of_week: Record<string, number>;
+  total_events: number;
+}
+
+export interface MemberBaseline {
+  member_id: string;
+  member_name: string;
+  total_events: number;
+  primary_platform: string;
+  avg_daily: number;
+}
+
+// ─── Integrations ──────────────────────────────────────────────────────────
+
+export interface SISConnection {
+  id: string;
+  group_id: string;
+  provider: string;
+  status: string;
+  last_synced: string | null;
+  created_at: string;
+}
+
+// ─── Compliance (Phase 8) ──────────────────────────────────────────────────
+
+export interface AppealRecord {
+  id: string;
+  risk_event_id: string;
+  status: string;
+  reason: string;
+  resolution: string | null;
+  resolution_notes: string | null;
+  created_at: string;
+}
+
+export interface TransparencyReport {
+  classification_approach: string;
+  categories: string[];
+  data_sources: string[];
+  rights: string[];
 }

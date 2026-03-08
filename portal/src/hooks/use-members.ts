@@ -8,6 +8,7 @@ import type {
   PaginatedResponse,
   InviteMemberRequest,
   UpdateMemberRequest,
+  RecordConsentRequest,
 } from "@/types";
 
 export const memberKeys = {
@@ -85,6 +86,65 @@ export function useRemoveMember() {
 
   return useMutation({
     mutationFn: (memberId: string) => membersApi.remove(groupId, memberId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: memberKeys.lists() });
+    },
+  });
+}
+
+export function useRecordConsent() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const groupId = user?.group_id ?? "";
+
+  return useMutation({
+    mutationFn: ({
+      memberId,
+      data,
+    }: {
+      memberId: string;
+      data: RecordConsentRequest;
+    }) => membersApi.recordConsent(groupId, memberId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: memberKeys.lists() });
+    },
+  });
+}
+
+export function useBulkUpdateMembers() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const groupId = user?.group_id ?? "";
+
+  return useMutation({
+    mutationFn: async ({
+      memberIds,
+      data,
+    }: {
+      memberIds: string[];
+      data: UpdateMemberRequest;
+    }) => {
+      await Promise.all(
+        memberIds.map((id) => membersApi.update(groupId, id, data))
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: memberKeys.lists() });
+    },
+  });
+}
+
+export function useBulkRemoveMembers() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const groupId = user?.group_id ?? "";
+
+  return useMutation({
+    mutationFn: async (memberIds: string[]) => {
+      await Promise.all(
+        memberIds.map((id) => membersApi.remove(groupId, id))
+      );
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: memberKeys.lists() });
     },

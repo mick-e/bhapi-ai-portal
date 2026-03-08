@@ -7,6 +7,8 @@ import {
   LayoutDashboard,
   Users,
   Activity,
+  ShieldAlert,
+  ShieldCheck,
   Bell,
   CreditCard,
   FileBarChart,
@@ -15,6 +17,9 @@ import {
   Menu,
   X,
   ChevronDown,
+  Ban,
+  BarChart3,
+  Plug,
 } from "lucide-react";
 import { BhapiLogo } from "@/components/BhapiLogo";
 import { useAuth } from "@/hooks/use-auth";
@@ -24,8 +29,13 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/members", label: "Members", icon: Users },
   { href: "/activity", label: "Activity", icon: Activity },
+  { href: "/risks", label: "Risks", icon: ShieldAlert },
   { href: "/alerts", label: "Alerts", icon: Bell },
   { href: "/spend", label: "Spend", icon: CreditCard },
+  { href: "/consent", label: "Consent", icon: ShieldCheck },
+  { href: "/blocking", label: "Blocking", icon: Ban },
+  { href: "/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/integrations", label: "Integrations", icon: Plug },
   { href: "/reports", label: "Reports", icon: FileBarChart },
   { href: "/settings", label: "Settings", icon: Settings },
 ];

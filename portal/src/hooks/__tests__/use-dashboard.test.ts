@@ -38,6 +38,9 @@ const mockData: DashboardData = {
     high_severity_count: 0,
     trend: "stable",
   },
+  activity_trend: [],
+  risk_breakdown: [],
+  spend_trend: [],
 };
 
 function createWrapper() {

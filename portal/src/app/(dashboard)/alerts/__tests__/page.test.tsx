@@ -76,6 +76,14 @@ const mockAlertsResponse: PaginatedResponse<Alert> = {
 
 const mockMutate = vi.fn();
 
+vi.mock("@/contexts/ToastContext", () => ({
+  useToast: vi.fn(() => ({
+    addToast: vi.fn(),
+    removeToast: vi.fn(),
+    toasts: [],
+  })),
+}));
+
 vi.mock("@/hooks/use-alerts", () => ({
   alertKeys: {
     all: ["alerts"],
@@ -102,6 +110,11 @@ vi.mock("@/hooks/use-alerts", () => ({
   useMarkAllAlertsRead: () => ({
     mutate: vi.fn(),
     isPending: false,
+  }),
+  useSnoozeAlert: () => ({
+    mutate: vi.fn(),
+    isPending: false,
+    variables: null,
   }),
 }));
 

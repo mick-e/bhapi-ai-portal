@@ -108,7 +108,7 @@ class ThresholdResponse(BaseSchema):
 class CheckoutRequest(BaseSchema):
     """Create Stripe checkout session request."""
 
-    plan_type: str = Field(pattern="^(family)$")
+    plan_type: str = Field(pattern="^(family|school|club)$")
     billing_cycle: str = Field(default="monthly", pattern="^(monthly|annual)$")
 
 

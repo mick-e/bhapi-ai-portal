@@ -118,3 +118,17 @@ class BudgetThreshold(Base, UUIDMixin, TimestampMixin):
     notify_at: Mapped[list | None] = mapped_column(
         JSONType, nullable=True, default=lambda: [50, 80, 100]
     )
+
+
+class FiredThresholdAlert(Base, UUIDMixin, TimestampMixin):
+    """Tracks which threshold alerts have been fired to survive restarts."""
+
+    __tablename__ = "fired_threshold_alerts"
+
+    threshold_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("budget_thresholds.id"), nullable=False
+    )
+    percentage_level: Mapped[int] = mapped_column(Integer, nullable=False)
+    period_start: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )

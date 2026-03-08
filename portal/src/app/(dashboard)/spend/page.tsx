@@ -11,15 +11,20 @@ import {
   RefreshCw,
   ChevronLeft,
   ChevronRight,
+  Settings2,
+  X,
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { useSpendSummary, useSpendRecords } from "@/hooks/use-spend";
+import { useSpendSummary, useSpendRecords, useCreateBudgetThreshold } from "@/hooks/use-spend";
+import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/contexts/ToastContext";
 import type { SpendRecord } from "@/types";
 
 export default function SpendPage() {
   const [period, setPeriod] = useState<"day" | "week" | "month">("month");
   const [recordsPage, setRecordsPage] = useState(1);
+  const [showBudgetModal, setShowBudgetModal] = useState(false);
   const recordsPageSize = 20;
 
   const {
@@ -94,6 +99,14 @@ export default function SpendPage() {
             <option value="week">This week</option>
             <option value="month">This month</option>
           </select>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setShowBudgetModal(true)}
+          >
+            <Settings2 className="h-4 w-4" />
+            Set Budget
+          </Button>
         </div>
       </div>
 
@@ -280,11 +293,146 @@ export default function SpendPage() {
           )}
         </Card>
       </div>
+
+      {showBudgetModal && (
+        <SetBudgetModal
+          currentBudget={s.budget_usd}
+          onClose={() => setShowBudgetModal(false)}
+        />
+      )}
     </div>
   );
 }
 
 // ─── Sub-components ─────────────────────────────────────────────────────────
+
+function SetBudgetModal({
+  currentBudget,
+  onClose,
+}: {
+  currentBudget: number;
+  onClose: () => void;
+}) {
+  const { user } = useAuth();
+  const { addToast } = useToast();
+  const createThreshold = useCreateBudgetThreshold();
+  const [amount, setAmount] = useState(currentBudget > 0 ? String(currentBudget) : "");
+  const [thresholdType, setThresholdType] = useState<"soft" | "hard">("soft");
+  const [notifyAt, setNotifyAt] = useState("50,80,100");
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const parsedAmount = parseFloat(amount);
+    if (!parsedAmount || parsedAmount <= 0) {
+      addToast("Please enter a valid budget amount", "error");
+      return;
+    }
+
+    const notifyValues = notifyAt
+      .split(",")
+      .map((v) => parseInt(v.trim()))
+      .filter((v) => !isNaN(v) && v > 0 && v <= 100);
+
+    createThreshold.mutate(
+      {
+        group_id: user!.group_id!,
+        type: thresholdType,
+        amount: parsedAmount,
+        notify_at: notifyValues.length > 0 ? notifyValues : [50, 80, 100],
+      },
+      {
+        onSuccess: () => {
+          addToast("Budget threshold saved", "success");
+          onClose();
+        },
+        onError: (err) =>
+          addToast((err as Error).message || "Failed to save budget", "error"),
+      }
+    );
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold text-gray-900">Set Budget Threshold</h2>
+          <button
+            onClick={onClose}
+            className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            aria-label="Close"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+          <div>
+            <label htmlFor="budget-amount" className="block text-sm font-medium text-gray-700">
+              Monthly Budget (USD)
+            </label>
+            <div className="relative mt-1">
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">$</span>
+              <input
+                id="budget-amount"
+                type="number"
+                min="0"
+                step="0.01"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="100.00"
+                className="block w-full rounded-lg border border-gray-300 py-2 pl-7 pr-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="threshold-type" className="block text-sm font-medium text-gray-700">
+              Threshold Type
+            </label>
+            <select
+              id="threshold-type"
+              value={thresholdType}
+              onChange={(e) => setThresholdType(e.target.value as "soft" | "hard")}
+              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+            >
+              <option value="soft">Soft limit (notify only)</option>
+              <option value="hard">Hard limit (block usage)</option>
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="notify-at" className="block text-sm font-medium text-gray-700">
+              Alert at percentages
+            </label>
+            <input
+              id="notify-at"
+              type="text"
+              value={notifyAt}
+              onChange={(e) => setNotifyAt(e.target.value)}
+              placeholder="50,80,100"
+              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+            />
+            <p className="mt-1 text-xs text-gray-400">
+              Comma-separated percentages (e.g. 50, 80, 100)
+            </p>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-2">
+            <Button variant="secondary" size="sm" type="button" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button size="sm" type="submit" isLoading={createThreshold.isPending}>
+              Save Budget
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
 
 function StatCard({
   label,
