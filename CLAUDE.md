@@ -286,3 +286,4 @@ All custom exceptions inherit from `src.exceptions.BhapiException`:
 19. **Stripe webhooks persist** — `handle_webhook_event()` creates/updates Subscription rows in DB for created/updated/cancelled/payment_failed events
 20. **Content excerpts encrypted** — Stored via `encrypt_credential()`, decrypted on read. TTL cleanup job runs daily.
 21. **i18n static export** — No server components or next-intl server features. Uses client-side `LocaleContext` with dynamic JSON imports.
+22. **No dynamic routes with static export** — `output: "export"` does not support `[id]` route segments. Use query parameters instead (e.g., `/members/detail?id=xxx` not `/members/[id]`). Any page using `useSearchParams()` must be wrapped in a `<Suspense>` boundary.
