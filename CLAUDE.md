@@ -5,7 +5,7 @@ AI safety and governance platform for families, schools, and clubs. Monitors chi
 
 **Platform URL:** bhapi.ai
 **Stack:** FastAPI (Python) backend + Next.js React TypeScript frontend
-**Version:** 1.0.0 (MVP complete)
+**Version:** 2.0.0 (Beta complete)
 
 ## Key Commands
 
@@ -20,16 +20,16 @@ cd portal && npm run dev
 
 ### Testing
 ```bash
-# All backend tests (566+ tests)
+# All backend tests (750+ tests)
 pytest tests/ -v
 
-# E2E tests (in-memory SQLite, no keys needed)
+# E2E tests (337 tests, in-memory SQLite, no keys needed)
 pytest tests/e2e/ -v
 
 # Unit tests
 pytest tests/unit/ -v
 
-# Security tests
+# Security tests (66 tests)
 pytest tests/security/ -v
 
 # Frontend (59+ tests)
@@ -58,14 +58,18 @@ docker compose up --build
 | Module | Prefix | Description |
 |--------|--------|-------------|
 | `auth/` | `/api/v1/auth` | Registration, login, password reset, email verification, API keys, contact inquiry |
-| `groups/` | `/api/v1/groups` | Groups, members, invitations, consent (COPPA/GDPR/LGPD) |
-| `capture/` | `/api/v1/capture` | Event ingestion from extension/DNS/API, enriched listing |
-| `risk/` | `/api/v1/risk` | PII detection, safety classification, rules engine |
-| `alerts/` | `/api/v1/alerts` | Notifications, email delivery, digest batching, re-notification |
-| `billing/` | `/api/v1/billing` | Stripe subscriptions, checkout, billing portal, LLM spend tracking (OpenAI/Anthropic/Google/Microsoft) |
+| `groups/` | `/api/v1/groups` | Groups, members, invitations, consent (COPPA/GDPR/LGPD), member cap enforcement |
+| `capture/` | `/api/v1/capture` | Event ingestion from extension/DNS/API, enriched listing, consent enforcement |
+| `risk/` | `/api/v1/risk` | PII detection, safety classification, rules engine, content excerpt encryption + TTL |
+| `alerts/` | `/api/v1/alerts` | Notifications, email delivery, digest batching, re-notification (persistent) |
+| `billing/` | `/api/v1/billing` | Stripe subscriptions/checkout/portal, per-seat pricing, LLM spend (OpenAI/Anthropic/Google/Microsoft/xAI), API key revocation |
 | `reporting/` | `/api/v1/reports` | Reports, PDF/CSV export, scheduling |
 | `portal/` | `/api/v1/portal` | BFF dashboard aggregation, group settings |
-| `compliance/` | `/api/v1/compliance` | GDPR/COPPA/LGPD data rights, deletion, export |
+| `compliance/` | `/api/v1/compliance` | GDPR/COPPA/LGPD data rights, EU AI Act transparency/appeals, COPPA certification |
+| `integrations/` | `/api/v1/integrations` | Clever + ClassLink SIS, Yoti age verification, Google Workspace + Entra SSO |
+| `blocking/` | `/api/v1/blocking` | Automated AI session blocking, block rules CRUD, extension polling |
+| `analytics/` | `/api/v1/analytics` | Trends, usage patterns, member baselines |
+| `sms/` | (internal) | Twilio SMS notifications with rate limiting |
 | `email/` | (internal) | SendGrid email service, templated emails |
 | `jobs/` | `/internal` | Background job runner, scheduled tasks |
 
@@ -82,16 +86,23 @@ docker compose up --build
 - Next.js App Router with Tailwind CSS
 - React Query for data fetching
 - WCAG 2.1 AA accessible (ARIA labels, keyboard navigation, skip-to-content)
-- Pages: dashboard, members, activity, alerts, spend, reports, settings
+- Pages: dashboard, members, activity, alerts, spend, reports, settings, blocking, analytics, integrations, compliance/transparency, compliance/appeals, consent, risks
 - **Brand**: Orange `#FF6B35` primary, Teal `#0D9488` accent, Inter font
 - **Logo**: `BhapiLogo` component (`portal/src/components/BhapiLogo.tsx`) — plain `<img>` tag rendering `/logo.png` (orange wordmark + smile arc). NEVER use `next/image` — static export (`output: "export"`) breaks it
 - **WCAG AA**: Buttons use `bg-primary-600` (not `bg-primary`), text links use `text-primary-700` for contrast compliance
 - **Static assets**: `portal/public/logo.png` (wordmark), `icon.png` (circular app icon), `favicon.ico` (generated from icon.png). No SVG assets — use only the PNG images from Downloads
 
 ### Browser Extension (`extension/`)
-- Manifest V3 (Chrome + Firefox)
+- Manifest V3 (Chrome + Firefox + Safari scaffold)
 - Content scripts for AI platform DOM monitoring
 - HMAC-signed event submission to capture gateway
+- Block status polling and overlay injection for session blocking
+
+### i18n (`portal/messages/`)
+- 6 languages: English, French, Spanish, German, Portuguese (PT-BR), Italian
+- Client-side locale detection via `portal/src/i18n.ts`
+- React context with `useTranslations()` hook via `portal/src/contexts/LocaleContext.tsx`
+- Language selector in settings page
 
 ## Architecture: Hybrid 2-Service Model
 
@@ -128,7 +139,7 @@ Estimated effort per extraction: 1-3 days.
 5. auth-service — only if shared across multiple Bhapi products
 6. group-service — only if SIS integration adds significant complexity
 
-## Key Features (MVP)
+## Key Features (Beta)
 
 ### Risk Pipeline
 - Capture events → PII detection → safety classification → rules engine → risk events → alerts
@@ -148,9 +159,10 @@ Estimated effort per extraction: 1-3 days.
 - Re-notification for critical/high unacknowledged alerts
 
 ### LLM Spend Tracking
-- Provider connectors: OpenAI, Anthropic, Google, Microsoft
+- Provider connectors: OpenAI, Anthropic, Google, Microsoft, xAI (Grok)
 - Credentials encrypted at rest (Fernet dev/test, Cloud KMS production)
 - Budget thresholds with alerts at configurable percentages (50/80/100%)
+- API key revocation via provider admin APIs (OpenAI, Anthropic)
 
 ### Reporting
 - PDF (ReportLab) + CSV generation
@@ -159,8 +171,26 @@ Estimated effort per extraction: 1-3 days.
 
 ### Compliance
 - Data deletion workflow (cascade soft-delete across all tables)
-- Data export workflow (ZIP with JSON exports, 7-day expiry)
+- Data export workflow (ZIP with JSON exports, 7-day auto-cleanup)
 - Consent records with audit trail
+- EU AI Act: algorithmic transparency, human review requests, appeal submission/resolution
+- COPPA: verifiable parental consent (5 methods), audit reports, compliance status checks
+
+### Integrations
+- Clever + ClassLink SIS: OAuth2 roster sync, auto member provisioning
+- Yoti age verification: session-based flow with callback
+- Google Workspace + Microsoft Entra: federated SSO with tenant isolation
+- Twilio SMS: rate-limited notifications (10/min/group)
+
+### Blocking
+- Automated AI session blocking based on risk events or manual rules
+- Extension polls `/blocking/check/{member_id}` and injects overlay
+- Block rules: per-member, per-platform, with optional expiry
+
+### Analytics
+- Weekly rolling averages, risk trend direction (increasing/decreasing/stable)
+- Usage patterns by time-of-day/day-of-week
+- Per-member behavior baselines
 
 ## Exception Handling
 
@@ -178,7 +208,7 @@ All custom exceptions inherit from `src.exceptions.BhapiException`:
 ## Database
 
 - **ORM:** SQLAlchemy 2.x async (asyncpg for PostgreSQL, aiosqlite for SQLite in tests)
-- **Migrations:** Alembic (4 migrations: initial schema, content column, compound indexes, api_keys table)
+- **Migrations:** Alembic (6 migrations: initial schema, content column, compound indexes, api_keys table, alert snoozed_until, beta schema changes)
 - **Production:** PostgreSQL 16
 - **Tests:** In-memory SQLite
 
@@ -211,6 +241,15 @@ All custom exceptions inherit from `src.exceptions.BhapiException`:
 | `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret | Production |
 | `SENDGRID_API_KEY` | SendGrid for email delivery | Production |
 | `GCP_PROJECT_ID` | Google Cloud project (enables Cloud KMS) | Production |
+| `TWILIO_ACCOUNT_SID` | Twilio account SID for SMS | Production |
+| `TWILIO_AUTH_TOKEN` | Twilio auth token | Production |
+| `TWILIO_FROM_NUMBER` | Twilio sender phone number | Production |
+| `CLEVER_CLIENT_ID` | Clever SIS OAuth client ID | Production |
+| `CLEVER_CLIENT_SECRET` | Clever SIS OAuth client secret | Production |
+| `CLASSLINK_CLIENT_ID` | ClassLink OneRoster client ID | Production |
+| `CLASSLINK_CLIENT_SECRET` | ClassLink OneRoster client secret | Production |
+| `YOTI_CLIENT_SDK_ID` | Yoti age verification SDK ID | Production |
+| `YOTI_PEM_FILE_PATH` | Path to Yoti PEM key file | Production |
 
 ## Code Conventions
 
@@ -237,9 +276,13 @@ All custom exceptions inherit from `src.exceptions.BhapiException`:
 9. **Capture events API** — returns paginated `{items, total, page, page_size, total_pages}`, not flat list
 10. **Email domain validation** — `.test` TLD rejected; use `.com` in test emails
 11. **API Keys** — `bhapi_sk_` prefix, SHA-256 hashed in DB, full key shown only on creation
-12. **Billing checkout** — Only `family` plan is self-serve via Stripe; `school`/`club` require contacting sales
+12. **Billing checkout** — All plans self-serve via Stripe; school/club use per-seat pricing with member count as quantity
 16. **Registration** — School/club account types show a contact inquiry form (not registration). Only family accounts can self-register. Contact inquiries go to `POST /api/v1/auth/contact-inquiry` (public, no auth) → emails sales@bhapi.ai
 17. **Async SQLAlchemy refresh** — `db.refresh(obj)` expires relationships. Always pass relationship names: `await db.refresh(group, ["members"])` to avoid `MissingGreenlet` errors when accessing relationships after refresh
 13. **Dashboard no-group** — New users without a group see a "Create your first group" onboarding flow instead of an error; `User.group_id` is nullable
 14. **next/image + static export** — `next.config.js` uses `output: "export"` with `images: { unoptimized: true }`. Use plain `<img>` tags (NOT `next/image`) for images. `BhapiLogo` uses `<img>` with inline `style` fallback so it never renders oversized even without CSS
 15. **Brand assets are PNG only** — Logo (`logo.png`) and icon (`icon.png`) are actual PNG files from user's Downloads. NEVER create custom SVG logos/favicons. Generate `.ico` from `icon.png` via Pillow. Source files: `bhapi logo@2x.png` (wordmark+smile), `bhapi app icon circle.png` (circular icon)
+18. **Family member cap** — `MAX_FAMILY_MEMBERS = 5` enforced in `add_member()` and `accept_invitation()`. School/club have no cap.
+19. **Stripe webhooks persist** — `handle_webhook_event()` creates/updates Subscription rows in DB for created/updated/cancelled/payment_failed events
+20. **Content excerpts encrypted** — Stored via `encrypt_credential()`, decrypted on read. TTL cleanup job runs daily.
+21. **i18n static export** — No server components or next-intl server features. Uses client-side `LocaleContext` with dynamic JSON imports.
