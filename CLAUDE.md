@@ -20,10 +20,10 @@ cd portal && npm run dev
 
 ### Testing
 ```bash
-# All backend tests (750+ tests)
+# All backend tests (689 tests)
 pytest tests/ -v
 
-# E2E tests (337 tests, in-memory SQLite, no keys needed)
+# E2E tests (371 collected, in-memory SQLite, no keys needed)
 pytest tests/e2e/ -v
 
 # Unit tests
