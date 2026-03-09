@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.middleware import get_current_user
 from src.database import get_db
-from src.dependencies import resolve_group_id as _gid
+from src.dependencies import require_active_trial_or_subscription, resolve_group_id as _gid
 from src.reporting.models import ReportExport, ScheduledReport
 from src.reporting.schemas import ReportRequest, ScheduleConfig
 from src.reporting.service import (
@@ -22,7 +22,7 @@ from src.reporting.service import (
 )
 from src.schemas import GroupContext
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_active_trial_or_subscription)])
 
 CONTENT_TYPES = {
     "pdf": "application/pdf",

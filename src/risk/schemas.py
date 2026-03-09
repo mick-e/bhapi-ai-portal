@@ -27,6 +27,7 @@ class RiskEventResponse(BaseSchema):
     category: str
     severity: str
     confidence: float
+    classifier_source: str = "keyword"
     details: dict | None
     acknowledged: bool
     acknowledged_by: UUID | None

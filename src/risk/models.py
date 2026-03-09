@@ -29,6 +29,7 @@ class RiskEvent(Base, UUIDMixin, TimestampMixin):
     severity: Mapped[str] = mapped_column(String(20), nullable=False, index=True)  # critical, high, medium, low
     confidence: Mapped[float] = mapped_column(Float, nullable=False)
     details: Mapped[dict | None] = mapped_column(JSONType, nullable=True)
+    classifier_source: Mapped[str] = mapped_column(String(50), default="keyword", server_default="keyword")
     acknowledged: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     acknowledged_by: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), nullable=True

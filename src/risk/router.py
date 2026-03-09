@@ -8,7 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.middleware import get_current_user
 from src.database import get_db
-from src.dependencies import resolve_group_id as _gid
+from src.dependencies import require_active_trial_or_subscription, resolve_group_id as _gid
+from src.exceptions import ValidationError
 from src.groups.models import GroupMember
 from src.risk.schemas import (
     RiskConfigResponse,
@@ -28,7 +29,7 @@ from src.risk.service import (
 )
 from src.schemas import GroupContext
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_active_trial_or_subscription)])
 
 
 @router.get("/events", response_model=RiskEventListResponse)
@@ -117,6 +118,26 @@ async def get_config(
     """Get all risk category configurations for a group."""
     configs = await get_risk_config(db, _gid(group_id, auth))
     return [risk_config_to_response(c) for c in configs]
+
+
+@router.post("/classify")
+async def classify_text(
+    data: dict,
+    auth: GroupContext = Depends(get_current_user),
+):
+    """Classify text content and return risk assessment (preview/testing)."""
+    from src.risk.classifier import classify_content
+
+    text = data.get("text", "")
+    if not text:
+        raise ValidationError("Text is required")
+    result = await classify_content(text)
+    return {
+        "severity": result.severity,
+        "categories": result.categories,
+        "confidence": result.confidence,
+        "source": result.source,
+    }
 
 
 @router.patch("/config/{category}", response_model=RiskConfigResponse)

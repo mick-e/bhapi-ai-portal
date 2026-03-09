@@ -37,6 +37,21 @@ async def create_alert(db: AsyncSession, data: AlertCreate) -> Alert:
         severity=data.severity,
         channel=data.channel,
     )
+
+    # Broadcast to SSE for real-time notification
+    try:
+        from src.alerts.sse import sse_manager
+
+        await sse_manager.broadcast(alert.group_id, "new_alert", {
+            "id": str(alert.id),
+            "group_id": str(alert.group_id),
+            "severity": alert.severity,
+            "title": alert.title if hasattr(alert, "title") else "",
+            "created_at": str(alert.created_at) if hasattr(alert, "created_at") else "",
+        })
+    except Exception:
+        pass  # SSE failure must never block alert creation
+
     return alert
 
 

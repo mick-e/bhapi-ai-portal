@@ -1,5 +1,6 @@
 """Alerts API endpoints."""
 
+import asyncio
 from datetime import date, datetime, time, timedelta, timezone
 from uuid import UUID
 
@@ -7,6 +8,7 @@ from fastapi import APIRouter, Body, Depends, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.responses import StreamingResponse
 
 from src.alerts.models import Alert
 from src.alerts.schemas import (
@@ -18,13 +20,14 @@ from src.alerts.service import (
     get_preferences,
     update_preferences,
 )
+from src.alerts.sse import sse_manager
 from src.auth.middleware import get_current_user
 from src.database import get_db
-from src.dependencies import resolve_group_id as _gid
+from src.dependencies import require_active_trial_or_subscription, resolve_group_id as _gid
 from src.groups.models import GroupMember
 from src.schemas import GroupContext
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_active_trial_or_subscription)])
 
 # Backend → frontend severity mapping
 _SEVERITY_MAP = {
@@ -130,6 +133,41 @@ async def list_alerts_endpoint(
         "page_size": page_size,
         "total_pages": total_pages,
     }
+
+
+@router.get("/stream")
+async def alert_stream(
+    group_id: UUID = Query(...),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """SSE endpoint for real-time alert notifications."""
+    queue = sse_manager.connect(group_id)
+
+    async def event_generator():
+        try:
+            # Send initial keepalive
+            yield ": keepalive\n\n"
+            while True:
+                try:
+                    message = await asyncio.wait_for(queue.get(), timeout=30.0)
+                    yield message
+                except asyncio.TimeoutError:
+                    yield ": keepalive\n\n"
+        except asyncio.CancelledError:
+            pass
+        finally:
+            sse_manager.disconnect(group_id, queue)
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 # Static paths MUST come before /{alert_id}

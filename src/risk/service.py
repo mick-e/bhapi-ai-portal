@@ -32,6 +32,7 @@ async def create_risk_event(
     classification: RiskClassification,
     capture_event_id: UUID | None = None,
     details: dict | None = None,
+    classifier_source: str = "keyword",
 ) -> RiskEvent:
     """Persist a risk classification as a risk event."""
     event = RiskEvent(
@@ -42,6 +43,7 @@ async def create_risk_event(
         category=classification.category,
         severity=classification.severity,
         confidence=classification.confidence,
+        classifier_source=classifier_source,
         details={
             "reasoning": classification.reasoning,
             **(details or {}),
@@ -285,6 +287,7 @@ def risk_event_to_response(event: RiskEvent) -> RiskEventResponse:
         category=event.category,
         severity=event.severity,
         confidence=event.confidence,
+        classifier_source=event.classifier_source,
         details=event.details,
         acknowledged=event.acknowledged,
         acknowledged_by=event.acknowledged_by,

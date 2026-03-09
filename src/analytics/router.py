@@ -8,10 +8,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.analytics.service import get_member_baselines, get_trends, get_usage_patterns
 from src.auth.middleware import get_current_user
 from src.database import get_db
-from src.dependencies import resolve_group_id as _gid
+from src.dependencies import require_active_trial_or_subscription, resolve_group_id as _gid
 from src.schemas import GroupContext
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_active_trial_or_subscription)])
 
 
 @router.get("/trends")

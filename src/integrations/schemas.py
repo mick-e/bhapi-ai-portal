@@ -10,7 +10,7 @@ from src.schemas import BaseSchema
 
 class SISConnectRequest(BaseSchema):
     group_id: UUID
-    provider: str = Field(pattern="^(clever|classlink)$")
+    provider: str = Field(pattern="^(clever|classlink|powerschool|canvas)$")
     access_token: str = Field(min_length=1)
     config: dict | None = None
 
