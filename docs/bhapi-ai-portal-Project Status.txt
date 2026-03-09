@@ -1,0 +1,98 @@
+● bhapi-ai-portal — Project Status Report
+
+  Status: MVP COMPLETE (v1.0.0) — 95% Ready
+
+  All code is written, tested, and deployment-ready. Only operational/admin tasks remain before go-live.
+
+  ---
+  What's Done
+
+  Core Features (11 modules, 10,849 lines Python)
+
+  ┌─────────────────────────────────────────────────────────────────────────────────────────┬────────┐
+  │                                         Module                                          │ Status │
+  ├─────────────────────────────────────────────────────────────────────────────────────────┼────────┤
+  │ Auth — Email/password, OAuth SSO (Google/MS/Apple), API keys, JWT sessions, MFA-ready   │ Done   │
+  ├─────────────────────────────────────────────────────────────────────────────────────────┼────────┤
+  │ Groups — Multi-tenant (Family/School/Club), invitations, consent (COPPA/GDPR/LGPD)      │ Done   │
+  ├─────────────────────────────────────────────────────────────────────────────────────────┼────────┤
+  │ Capture — Browser extension (Manifest V3), DNS proxy, LLM provider API ingestion        │ Done   │
+  ├─────────────────────────────────────────────────────────────────────────────────────────┼────────┤
+  │ Risk — PII detection (GCP DLP), safety classification (12 categories), rules engine     │ Done   │
+  ├─────────────────────────────────────────────────────────────────────────────────────────┼────────┤
+  │ Alerts — In-portal + email notifications, digest batching, re-notification for critical │ Done   │
+  ├─────────────────────────────────────────────────────────────────────────────────────────┼────────┤
+  │ Billing — Stripe subscriptions, LLM spend tracking (5 providers), budget thresholds     │ Done   │
+  ├─────────────────────────────────────────────────────────────────────────────────────────┼────────┤
+  │ Reporting — PDF/CSV generation, scheduling (weekly/monthly), ZIP export                 │ Done   │
+  ├─────────────────────────────────────────────────────────────────────────────────────────┼────────┤
+  │ Portal BFF — Dashboard aggregation layer                                                │ Done   │
+  ├─────────────────────────────────────────────────────────────────────────────────────────┼────────┤
+  │ Compliance — GDPR Art.17 erasure, Art.20 portability, audit logging                     │ Done   │
+  ├─────────────────────────────────────────────────────────────────────────────────────────┼────────┤
+  │ Email — SendGrid integration (12+ templates), graceful dev fallback                     │ Done   │
+  ├─────────────────────────────────────────────────────────────────────────────────────────┼────────┤
+  │ Jobs — Background cron runner (5-min), risk processing, spend sync, deletion worker     │ Done   │
+  └─────────────────────────────────────────────────────────────────────────────────────────┴────────┘
+
+  Frontend (Next.js 15 + React 19)
+
+  - 8 pages: Landing, Dashboard, Members, Activity, Alerts, Spend, Reports, Settings
+  - WCAG 2.1 AA accessible, mobile responsive (320px+)
+
+  Browser Extension
+
+  - Chrome + Firefox (Manifest V3), detects ChatGPT/Gemini/Copilot/Claude/Grok
+  - Built and packaged: extension/bhapi-extension.zip
+
+  Testing & CI
+
+  - 36 test files, 133+ test functions (E2E, security, unit)
+  - GitHub Actions CI (backend + frontend + extension + Docker builds)
+  - Security tests: auth, data isolation, injection, rate limiting
+
+  Infrastructure
+
+  - Docker multi-stage build, render.yaml (2 services + PostgreSQL)
+  - Security middleware stack (CORS, rate limiting, JWT, security headers, HSTS)
+  - 4 Alembic migrations with compound indexes
+  - Comprehensive docs: spec (670 lines), DPIA, pentest plan, launch checklist
+
+  ---
+  Outstanding (Pre-Launch)
+
+  ┌───────────────────────────────────────────────┬───────────┬───────────┬───────────┐
+  │                     Task                      │   Type    │ Timeline  │ Blocking? │
+  ├───────────────────────────────────────────────┼───────────┼───────────┼───────────┤
+  │ OAuth credentials (Google/MS/Apple)           │ Admin     │ 1-2 hrs   │ Yes       │
+  ├───────────────────────────────────────────────┼───────────┼───────────┼───────────┤
+  │ Stripe products & prices setup                │ Admin     │ 1-2 hrs   │ Yes       │
+  ├───────────────────────────────────────────────┼───────────┼───────────┼───────────┤
+  │ SendGrid domain verification                  │ Admin/DNS │ 1-2 hrs   │ Yes       │
+  ├───────────────────────────────────────────────┼───────────┼───────────┼───────────┤
+  │ Legal/DPO sign-off on DPIA + privacy/terms    │ Legal     │ 1-2 weeks │ Yes       │
+  ├───────────────────────────────────────────────┼───────────┼───────────┼───────────┤
+  │ Penetration testing (CREST-certified)         │ Security  │ 3-4 weeks │ Yes       │
+  ├───────────────────────────────────────────────┼───────────┼───────────┼───────────┤
+  │ Render production deploy                      │ Ops       │ 1-2 hrs   │ Yes       │
+  ├───────────────────────────────────────────────┼───────────┼───────────┼───────────┤
+  │ DNS + TLS (CNAME to Render)                   │ Ops       │ 30 min    │ Yes       │
+  ├───────────────────────────────────────────────┼───────────┼───────────┼───────────┤
+  │ Browser extension submission (Chrome/Firefox) │ Admin     │ 1-5 days  │ No        │
+  ├───────────────────────────────────────────────┼───────────┼───────────┼───────────┤
+  │ Monitoring/alerting (Sentry, WAF)             │ Ops       │ 1-2 hrs   │ No        │
+  └───────────────────────────────────────────────┴───────────┴───────────┴───────────┘
+
+  Uncommitted Changes
+
+  - src/auth/models.py — lazy loading tweak (lazy="select" for api_keys)
+  - Untracked: docs/bhapi-post-mvp-roadmap.docx, extension/bhapi-extension.zip, portal/next-env.d.ts
+
+  ---
+  Recommended Next Steps
+
+  1. This week: Finalize pricing model, request OAuth credentials, create Stripe products, verify SendGrid DNS
+  2. Next 1-2 weeks: Deploy staging, schedule pentest, get legal sign-off
+  3. Week 3: Remediate findings, deploy production, configure DNS, submit extension, launch
+
+  Bottom line: Zero code changes needed — it's all operational setup, legal review, and security testing from here.

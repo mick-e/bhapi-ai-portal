@@ -162,7 +162,8 @@ async def test_get_group_settings_returns_stored_values(db):
     assert result.auto_block_critical is False
     assert result.prompt_logging is False
     assert result.pii_detection is False
-    assert result.plan == "family"
+    # plan is now derived from subscription/trial status, not settings JSON
+    assert result.plan == "free"
     assert result.notifications.critical_safety is True
     assert result.notifications.risk_warnings is False
     assert result.notifications.spend_alerts is True

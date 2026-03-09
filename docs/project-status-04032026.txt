@@ -1,0 +1,91 @@
+  Littledata-MVP (AI Risk Platform) — littledata.ai
+
+  Current State: v0.9.3 — Production, Actively Maintained
+
+  What's Done:
+  - 58 backend modules, ~967 API endpoints, 26 frontend pages
+  - 8 compliance frameworks: EU AI Act, UK AI, Irish AI Bill, ISO 42001, NIST RMF, GDPR, OWASP Agentic Top 10, SOC2/HIPAA/DORA/NIS2
+  - v0.9.3 (Mar 4): 8 new regulatory gap modules — AI Literacy, SoA Generator, GDPR Art.22, EDPB DPIA, Liability Directive, Explainability/XAI, Model Registry, Business Continuity
+  - v0.9.2 (Mar 3): Login redesign, 40+ React Query hook fixes, CI cleanup
+  - v0.9.1 (Feb 20): 267 new tests, 7 security tests, 2 prod bug fixes
+  - v0.9.0 (Feb 19): OWASP Agentic Security (150 controls), LLM Code Security module
+  - 2,680+ tests — all passing (backend, frontend, E2E, security, integration, Playwright)
+  - All security vulnerabilities patched, 0 Dependabot alerts
+  - Auto-deploys from master via Render
+
+  Outstanding (Minor):
+  - Version numbers in pyproject.toml and package.json still show 0.9.0 (cosmetic — code is 0.9.3)
+  - CSP unsafe-inline accepted risk (React/recharts inline styles)
+  - No critical TODOs/FIXMEs in codebase
+
+  Verdict: Production-grade, no blockers. Ready for feature expansion.
+
+  ---
+  BHAPI-AI-Portal (Family AI Governance) — bhapi.ai
+
+  Current State: v1.0.0 — MVP Complete, Pre-Launch
+
+  What's Done:
+  - 11 backend modules: auth, groups, capture, risk, alerts, billing, reporting, portal, compliance, email, jobs
+  - AI activity monitoring across 5 platforms (ChatGPT, Gemini, Copilot, Claude, Grok)
+  - Risk pipeline: PII detection → safety classification → rules engine → alerts
+  - Stripe billing (family self-serve, school/club contact sales)
+  - GDPR/COPPA/LGPD/AU Privacy compliance with consent enforcement
+  - Browser extension (Manifest V3, Chrome/Firefox)
+  - Next.js 15 + React 19 dashboard
+  - 566 backend tests + 59 frontend tests — all passing
+  - Docker + Render deployment configured
+  - Comprehensive docs: product spec, DPIA, pentest plan, production checklist
+
+  Outstanding (Launch Blockers):
+
+  ┌─────────────────────────────────────┬────────────────────────────────────────┐
+  │                Item                 │                 Status                 │
+  ├─────────────────────────────────────┼────────────────────────────────────────┤
+  │ OAuth credentials (Google/MS/Apple) │ Framework ready, credentials needed    │
+  ├─────────────────────────────────────┼────────────────────────────────────────┤
+  │ Stripe live keys                    │ Using test keys currently              │
+  ├─────────────────────────────────────┼────────────────────────────────────────┤
+  │ SendGrid API key                    │ Templates ready, key needed            │
+  ├─────────────────────────────────────┼────────────────────────────────────────┤
+  │ DPIA finalization                   │ Drafted, needs legal/DPO approval      │
+  ├─────────────────────────────────────┼────────────────────────────────────────┤
+  │ Penetration testing                 │ Plan written, execution pending        │
+  ├─────────────────────────────────────┼────────────────────────────────────────┤
+  │ Legal documents                     │ Templates present, finalization needed │
+  └─────────────────────────────────────┴────────────────────────────────────────┘
+
+  Verdict: Feature-complete MVP. Needs credential setup and compliance sign-off before go-live.
+
+  ---
+  BHAPI (GitHub Analytics) — Supporting Platform
+
+  Current State: v0.2.0 — Production-Hardened
+
+  What's Done:
+  - GitHub org analytics, DORA metrics, contributor rankings, trend analysis
+  - Scheduled reports (PDF/CSV), webhooks, email delivery
+  - React 19 dashboard with charts, tables, sparklines
+  - 64 backend + 27 frontend tests, all passing
+  - Rate limiting, structured logging, Redis caching (optional)
+
+  Outstanding: Nothing critical. Feature-complete for its scope.
+
+  ---
+  Cross-Project Summary
+
+  ┌────────────┬────────────────┬──────────────────────────┬───────┐
+  │            │ littledata-mvp │     bhapi-ai-portal      │ bhapi │
+  ├────────────┼────────────────┼──────────────────────────┼───────┤
+  │ Version    │ 0.9.3          │ 1.0.0                    │ 0.2.0 │
+  ├────────────┼────────────────┼──────────────────────────┼───────┤
+  │ Tests      │ 2,680+         │ 625+                     │ 91    │
+  ├────────────┼────────────────┼──────────────────────────┼───────┤
+  │ Prod Ready │ Yes, live      │ Yes, pending credentials │ Yes   │
+  ├────────────┼────────────────┼──────────────────────────┼───────┤
+  │ Blockers   │ None           │ OAuth/Stripe/DPIA        │ None  │
+  ├────────────┼────────────────┼──────────────────────────┼───────┤
+  │ Tech Debt  │ Low            │ Low                      │ Low   │
+  └────────────┴────────────────┴──────────────────────────┴───────┘
+
+  All three projects are in good shape with clean codebases and comprehensive test coverage.

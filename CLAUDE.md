@@ -1,58 +1,35 @@
 # Bhapi Family AI Governance Portal
 
-## Overview
-AI safety and governance platform for families, schools, and clubs. Monitors children's AI tool usage across ChatGPT, Gemini, Copilot, Claude, and Grok with real-time risk alerting, PII protection, and spend management.
+## 1. Project Overview
 
-**Platform URL:** bhapi.ai
-**Stack:** FastAPI (Python) backend + Next.js React TypeScript frontend
+AI safety governance platform at **bhapi.ai** for parents, school admins, and club managers monitoring children's AI usage across ChatGPT, Gemini, Copilot, Claude, and Grok.
+
+**Optimizes for:** Child safety, regulatory compliance (COPPA/GDPR/LGPD), real-time alerting, data privacy.
+**Stack:** FastAPI (Python 3.11) + Next.js 15 (TypeScript) + PostgreSQL 16
 **Version:** 2.0.0 (Beta complete)
 
-## Key Commands
+## 2. Tech Stack
 
-### Development
-```bash
-# Backend
-uvicorn src.main:app --reload --port 8000
+**Backend:** Python 3.11, FastAPI, SQLAlchemy 2.x async (asyncpg/aiosqlite), Alembic, Pydantic v2, structlog, httpx
+**Frontend:** Next.js 15 App Router (static export), TypeScript, Tailwind CSS, React Query, Lucide icons
+**Infra:** PostgreSQL 16, Redis (optional — disabled in tests, in-memory rate limiter fallback), Stripe, SendGrid, Twilio
+**Extension:** Manifest V3 (Chrome + Firefox + Safari scaffold)
 
-# Frontend (portal/)
-cd portal && npm run dev
-```
+### Do Not Introduce
+- **No `next/image`** — breaks static export (`output: "export"`). Use plain `<img>` tags. `BhapiLogo` uses `<img>` with inline `style` fallback
+- **No dynamic `[id]` routes** — `output: "export"` doesn't support them. Use query parameters (`/members/detail?id=xxx`). Pages with `useSearchParams()` must be wrapped in `<Suspense>`
+- **No server components or next-intl server features** — uses client-side `LocaleContext` with dynamic JSON imports
+- **No SVG logos** — brand assets are PNG only (see UI section)
+- **No alternative ORMs** — SQLAlchemy async only
+- **No raw `HTTPException`** — raise `BhapiException` subclasses
+- **No cross-module internal imports** — use public interfaces in `__init__.py`
+- **No component libraries** (shadcn, MUI, Chakra) — custom components in `portal/src/components/ui/`
 
-### Testing
-```bash
-# All backend tests (710 tests)
-pytest tests/ -v
+## 3. Architecture
 
-# E2E tests (371 collected, in-memory SQLite, no keys needed)
-pytest tests/e2e/ -v
-
-# Unit tests
-pytest tests/unit/ -v
-
-# Security tests (66 tests)
-pytest tests/security/ -v
-
-# Frontend (59+ tests)
-cd portal && npx vitest run
-cd portal && npx tsc --noEmit
-```
-
-### Build
-```bash
-docker compose up --build
-```
-
-## Project Structure
-
-### Backend (`src/`)
-- `src/main.py` — FastAPI app factory, middleware, router registration
-- `src/config.py` — Pydantic Settings (env-based), production validation
-- `src/database.py` — SQLAlchemy async engine, session factory, soft-delete filter
-- `src/encryption.py` — Credential encryption (Fernet dev/test, Cloud KMS production)
-- `src/dependencies.py` — FastAPI DI (`DbSession`, `AuthContext`, `Pagination`)
-- `src/exceptions.py` — Exception hierarchy (`BhapiException` base)
-- `src/constants.py` — Shared constants
-- `src/redis_client.py` — Redis connection with graceful degradation
+### 2-Service Model
+- **core-api:** All 15 modules served from single FastAPI app (`src/main.py`)
+- **jobs:** Background cron runner for risk processing, email delivery, spend sync
 
 ### Modules
 | Module | Prefix | Description |
@@ -73,6 +50,12 @@ docker compose up --build
 | `email/` | (internal) | SendGrid email service, templated emails |
 | `jobs/` | `/internal` | Background job runner, scheduled tasks |
 
+### Module Communication Rules
+1. Modules NEVER import from each other's internal files (models.py, service.py)
+2. Cross-module communication goes through public interfaces in `__init__.py`
+3. Shared data uses Pydantic schemas defined in each module's `schemas.py`
+4. Each module only queries its own database tables
+
 ### Middleware Stack (LIFO order)
 1. Security headers (CSP, HSTS, X-Frame-Options, Permissions-Policy)
 2. TimingMiddleware (request duration + correlation IDs via X-Request-ID)
@@ -82,118 +65,7 @@ docker compose up --build
 6. GZipMiddleware (compression)
 7. CORSMiddleware (configurable via CORS_ORIGINS env var)
 
-### Frontend (`portal/`)
-- Next.js App Router with Tailwind CSS
-- React Query for data fetching
-- WCAG 2.1 AA accessible (ARIA labels, keyboard navigation, skip-to-content)
-- Pages: dashboard, members, activity, alerts, spend, reports, settings, blocking, analytics, integrations, compliance/transparency, compliance/appeals, consent, risks
-- **Brand**: Orange `#FF6B35` primary, Teal `#0D9488` accent, Inter font
-- **Logo**: `BhapiLogo` component (`portal/src/components/BhapiLogo.tsx`) — plain `<img>` tag rendering `/logo.png` (orange wordmark + smile arc). NEVER use `next/image` — static export (`output: "export"`) breaks it
-- **WCAG AA**: Buttons use `bg-primary-600` (not `bg-primary`), text links use `text-primary-700` for contrast compliance
-- **Static assets**: `portal/public/logo.png` (wordmark), `icon.png` (circular app icon), `favicon.ico` (generated from icon.png). No SVG assets — use only the PNG images from Downloads
-
-### Browser Extension (`extension/`)
-- Manifest V3 (Chrome + Firefox + Safari scaffold)
-- Content scripts for AI platform DOM monitoring
-- HMAC-signed event submission to capture gateway
-- Block status polling and overlay injection for session blocking
-
-### i18n (`portal/messages/`)
-- 6 languages: English, French, Spanish, German, Portuguese (PT-BR), Italian
-- Client-side locale detection via `portal/src/i18n.ts`
-- React context with `useTranslations()` hook via `portal/src/contexts/LocaleContext.tsx`
-- Language selector in settings page
-
-## Architecture: Hybrid 2-Service Model
-
-### Current Deployment (MVP)
-- **Service 1 (core-api):** All modules served from single FastAPI app
-- **Service 2 (jobs):** Background cron runner for risk processing, email delivery, spend sync
-- **Database:** PostgreSQL (Cloud SQL / Render)
-- **Cache:** Redis (optional, in-memory fallback for rate limiting)
-
-### Module Communication Rules
-1. Modules NEVER import from each other's internal files (models.py, service.py)
-2. Cross-module communication goes through public interfaces in __init__.py
-3. Shared data uses Pydantic schemas defined in each module's schemas.py
-4. Each module only queries its own database tables
-
-### Microservice Extraction Playbook
-
-When a module needs independent scaling, extract it:
-
-1. Create new Cloud Run service with the module's code as its own FastAPI app
-2. Replace direct function calls with HTTP client calls (use shared Pydantic schemas as contracts)
-3. Split database tables if needed (or keep shared DB with separate connection pools)
-4. Update Pub/Sub subscriptions — new service subscribes to same topics
-5. Add service-to-service auth — internal JWT or API key
-6. Update Cloud Run service mesh — routing rules, health checks
-
-Estimated effort per extraction: 1-3 days.
-
-### Extraction Priority (when scale demands)
-1. capture-gateway — highest event volume, independent scaling profile
-2. alert-service — delivery latency sensitive, independent retry logic
-3. billing-service — Stripe webhook processing, LLM API polling cycles
-4. reporting-service — CPU-intensive PDF generation, can be async worker
-5. auth-service — only if shared across multiple Bhapi products
-6. group-service — only if SIS integration adds significant complexity
-
-## Key Features (Beta)
-
-### Risk Pipeline
-- Capture events → PII detection → safety classification → rules engine → risk events → alerts
-- Keywords-based classification with configurable Vertex AI/Gemini fallback
-- Age-band sensitivity scaling (under-8 most conservative, 17+ most lenient)
-- Categories: self-harm, violence, academic dishonesty, bullying/harassment
-
-### Consent Enforcement
-- COPPA (US, <13), GDPR (EU, <16), LGPD (Brazil, <18), AU Privacy (<16)
-- Capture events blocked until guardian consent recorded
-- Consent endpoint: POST /api/v1/groups/{group_id}/members/{member_id}/consent
-
-### Email Delivery
-- SendGrid integration with graceful degradation (logged in dev/test)
-- Templates: alert notification, invitation, verification, password reset, reports
-- Digest modes: immediate, hourly, daily
-- Re-notification for critical/high unacknowledged alerts
-
-### LLM Spend Tracking
-- Provider connectors: OpenAI, Anthropic, Google, Microsoft, xAI (Grok)
-- Credentials encrypted at rest (Fernet dev/test, Cloud KMS production)
-- Budget thresholds with alerts at configurable percentages (50/80/100%)
-- API key revocation via provider admin APIs (OpenAI, Anthropic)
-
-### Reporting
-- PDF (ReportLab) + CSV generation
-- Report types: safety, spend, activity, compliance
-- Scheduled report delivery via email
-
-### Compliance
-- Data deletion workflow (cascade soft-delete across all tables)
-- Data export workflow (ZIP with JSON exports, 7-day auto-cleanup)
-- Consent records with audit trail
-- EU AI Act: algorithmic transparency, human review requests, appeal submission/resolution
-- COPPA: verifiable parental consent (5 methods), audit reports, compliance status checks
-
-### Integrations
-- Clever + ClassLink SIS: OAuth2 roster sync, auto member provisioning
-- Yoti age verification: session-based flow with callback
-- Google Workspace + Microsoft Entra: federated SSO with tenant isolation
-- Twilio SMS: rate-limited notifications (10/min/group)
-
-### Blocking
-- Automated AI session blocking based on risk events or manual rules
-- Extension polls `/blocking/check/{member_id}` and injects overlay
-- Block rules: per-member, per-platform, with optional expiry
-
-### Analytics
-- Weekly rolling averages, risk trend direction (increasing/decreasing/stable)
-- Usage patterns by time-of-day/day-of-week
-- Per-member behavior baselines
-
-## Exception Handling
-
+### Exception Hierarchy
 All custom exceptions inherit from `src.exceptions.BhapiException`:
 
 | Exception | Code | Status |
@@ -205,27 +77,135 @@ All custom exceptions inherit from `src.exceptions.BhapiException`:
 | `ConflictError` | `CONFLICT` | 409 |
 | `RateLimitError` | `RATE_LIMITED` | 429 |
 
-## Database
-
+### Database
 - **ORM:** SQLAlchemy 2.x async (asyncpg for PostgreSQL, aiosqlite for SQLite in tests)
 - **Migrations:** Alembic (6 migrations: initial schema, content column, compound indexes, api_keys table, alert snoozed_until, beta schema changes)
-- **Production:** PostgreSQL 16
-- **Tests:** In-memory SQLite
+- **Mixins:** `UUIDMixin` (UUID PK), `TimestampMixin` (`created_at` + `updated_at`), `SoftDeleteMixin` (`deleted_at` with auto-filtering)
+- Content excerpts stored encrypted via `encrypt_credential()`, decrypted on read. TTL cleanup job runs daily.
 
-### Mixins
-- `UUIDMixin` — UUID primary key
-- `TimestampMixin` — `created_at` + `updated_at`
-- `SoftDeleteMixin` — `deleted_at` with auto-filtering
+## 4. Coding Conventions
 
-### Compound Indexes (migration 003)
-- `alerts(group_id, severity, created_at)` — severity-filtered alert listings
-- `alerts(group_id, status, created_at)` — unread/pending alert queries
-- `capture_events(group_id, member_id, timestamp)` — per-member activity
-- `capture_events(group_id, platform, timestamp)` — platform filtering
-- `risk_events(group_id, severity, created_at)` — risk dashboard
-- `spend_records(group_id, period_start, period_end)` — spend summaries
+### Python Backend
+- **Async everywhere** — SQLAlchemy async, httpx
+- **Dependency injection** — `AuthContext` + `DbSession` from `src/dependencies.py`
+- **Validation** — Pydantic schemas for all request/response
+- **Logging** — `structlog.get_logger()` with correlation IDs (never `print`)
+- **Errors** — raise `BhapiException` subclasses, never raw `HTTPException`
+- **Datetimes** — always timezone-aware
+- **Credentials** — always encrypted via `src/encryption.py`
+- **Async refresh** — `db.refresh(obj)` expires relationships. Always pass relationship names: `await db.refresh(group, ["members"])` to avoid `MissingGreenlet` errors
+- **ReportLab** — use unique names for custom styles (the "Bullet" name conflicts)
+- **API keys** — `bhapi_sk_` prefix, SHA-256 hashed in DB, full key shown only on creation
+- **Auth tokens** — session tokens must have `type: "session"` field
 
-## Environment Variables
+### TypeScript Frontend
+- **`"use client"`** as first line of every page/component
+- **Default exports** for pages
+- **Inline sub-components** — only extract to `components/ui/` if reused 3+ pages
+- **Data fetching** — React Query hooks (`useQuery`, `useMutation`)
+- **Icons** — Lucide only
+- **Hooks** — never place hooks after early returns (Rules of Hooks)
+
+## 5. UI and Design System
+
+- **Brand:** Orange `#FF6B35` primary, Teal `#0D9488` accent, Inter font
+- **WCAG AA contrast:** Buttons use `bg-primary-600` (not `bg-primary`), text links use `text-primary-700`
+- **UI components:** `portal/src/components/ui/` — Card, Button (variants/sizes/isLoading), Input
+- **Logo:** PNG only. `BhapiLogo` component (`portal/src/components/BhapiLogo.tsx`) renders `/logo.png` via plain `<img>`. NEVER create SVG logos/favicons
+- **Static assets:** `portal/public/logo.png` (wordmark+smile), `icon.png` (circular app icon), `favicon.ico` (generated from `icon.png` via Pillow)
+- **Source files:** `bhapi logo@2x.png` (wordmark+smile), `bhapi app icon circle.png` (circular icon)
+
+## 6. Content and Copy Guidance
+
+- **Audience:** Non-technical parents and school admins
+- **Tone:** Reassuring, clear, jargon-free
+- **Error messages:** Actionable ("Please add a family member") not technical ("group_id null")
+- **Button labels:** Verb-first ("Create Group", "View Activity")
+- **Empty states:** Always show helpful prompt. New users without a group see "Create your first group" onboarding, not an error (`User.group_id` is nullable)
+- **i18n:** 6 languages (EN, FR, ES, DE, PT-BR, IT) via `useTranslations()` hook, client-side only. All strings in `portal/messages/`
+
+## 7. Testing and Quality Bar
+
+### Commands
+```bash
+pytest tests/ -v              # All backend (710 tests)
+pytest tests/e2e/ -v          # E2E (371 tests, in-memory SQLite, no keys needed)
+pytest tests/unit/ -v          # Unit tests
+pytest tests/security/ -v     # Security (66 tests)
+cd portal && npx vitest run   # Frontend (59+ tests)
+cd portal && npx tsc --noEmit # Type check (MUST run separately)
+```
+
+### Definition of Done
+Every endpoint needs: happy path + auth/403 + validation/422 + edge cases. Every page needs loading + error states. Both `pytest` and `tsc` must pass before merge.
+
+### Critical Warnings
+- **vitest does NOT run tsc** — type errors silently pass vitest but break Docker builds. Always run `tsc --noEmit` separately
+- **Test fixture** — use `test_session` (not `async_db`) for DB session in tests
+- **Email validation** — `.test` TLD is rejected; always use `.com` in test emails
+
+## 8. File and Component Placement
+
+### Backend Module
+```
+src/<module>/
+  __init__.py    # Public interface
+  router.py      # FastAPI endpoints
+  service.py     # Business logic
+  models.py      # SQLAlchemy models
+  schemas.py     # Pydantic schemas
+```
+Register router in `src/main.py`.
+
+### Backend Tests
+- Unit: `tests/unit/test_<module>.py`
+- E2E: `tests/e2e/test_<module>.py`
+- Security: `tests/security/test_<module>_security.py`
+
+### Frontend
+- Page: `portal/src/app/(dashboard)/<name>/page.tsx`
+- Hook: `portal/src/hooks/use-<feature>.ts`
+- UI component: `portal/src/components/ui/<Name>.tsx` (only if reused 3+ pages)
+- Translations: all 6 files in `portal/messages/`
+
+### Migration
+```bash
+alembic revision --autogenerate -m "description"
+```
+
+## 9. Safe-change Rules
+
+### Never change without explicit request
+- Middleware stack order, soft-delete filter, encryption scheme
+- Production Alembic migrations, `next.config.js` (static export constraint)
+- Stripe webhook handler, HMAC validation, consent enforcement
+- `BhapiLogo` component, `__init__.py` public interfaces
+
+### Approach with caution
+- **Auth token structure** — `type: "session"` is load-bearing
+- **`BudgetThreshold` model** — uses `type` field (not `threshold_type`), has no `period` field
+- **Capture events API** — returns paginated `{items, total, page, page_size, total_pages}`, not flat list (contract with extension)
+- **Registration flow** — Family: self-register via `POST /register`. School/club: contact inquiry form → `POST /api/v1/auth/contact-inquiry` (public) → emails sales@bhapi.ai → sales creates account → owner uses Stripe checkout
+- **Family member cap** — `MAX_FAMILY_MEMBERS = 5` enforced in `add_member()` and `accept_invitation()`. School/club have no cap
+- **Billing checkout** — All plans self-serve via Stripe once account exists. School/club use per-seat pricing with member count as quantity
+- **Stripe webhooks persist** — `handle_webhook_event()` creates/updates Subscription rows for created/updated/cancelled/payment_failed events
+
+## 10. Commands
+
+```bash
+# Development
+uvicorn src.main:app --reload --port 8000    # Backend
+cd portal && npm run dev                      # Frontend
+
+# Build
+docker compose up --build
+
+# Migrations
+alembic upgrade head                          # Apply all
+alembic revision --autogenerate -m "desc"     # Create new
+```
+
+## Appendix: Environment Variables
 
 | Variable | Description | Required |
 |----------|-------------|----------|
@@ -251,39 +231,10 @@ All custom exceptions inherit from `src.exceptions.BhapiException`:
 | `YOTI_CLIENT_SDK_ID` | Yoti age verification SDK ID | Production |
 | `YOTI_PEM_FILE_PATH` | Path to Yoti PEM key file | Production |
 
-## Code Conventions
-
-- Async everywhere (SQLAlchemy async, httpx)
-- Pydantic schemas for all request/response validation
-- `AuthContext` + `DbSession` dependency injection
-- API prefix: `/api/v1/`
-- Auth: JWT bearer + session cookie (`bhapi_session`)
-- Raise `BhapiException` subclasses (not raw `HTTPException`)
-- Use `structlog.get_logger()` for logging with correlation IDs
-- No cross-module imports (use public interfaces)
-- LLM credentials always encrypted via `src/encryption.py`
-
-## Important Gotchas
-
-1. **Vitest doesn't run tsc** — type errors pass vitest but fail Docker builds
-2. **ReportLab "Bullet" style** — use unique names for custom styles
-3. **Redis optional** — disabled in tests, in-memory rate limiter used as fallback
-4. **Datetime timezone** — always use timezone-aware datetimes
-5. **Session auth tokens** — must have `type: "session"` field
-6. **React Rules of Hooks** — never put hooks after early returns
-7. **Test fixture** — use `test_session` (not `async_db`) for DB session in tests
-8. **BudgetThreshold** — uses `type` field (not `threshold_type`), has no `period` field
-9. **Capture events API** — returns paginated `{items, total, page, page_size, total_pages}`, not flat list
-10. **Email domain validation** — `.test` TLD rejected; use `.com` in test emails
-11. **API Keys** — `bhapi_sk_` prefix, SHA-256 hashed in DB, full key shown only on creation
-12. **Billing checkout** — All plans self-serve via Stripe checkout once an account exists; school/club use per-seat pricing with member count as quantity. Note: school/club accounts are created by sales (see #16), then the account owner uses self-serve Stripe checkout.
-13. **Dashboard no-group** — New users without a group see a "Create your first group" onboarding flow instead of an error; `User.group_id` is nullable
-14. **next/image + static export** — `next.config.js` uses `output: "export"` with `images: { unoptimized: true }`. Use plain `<img>` tags (NOT `next/image`) for images. `BhapiLogo` uses `<img>` with inline `style` fallback so it never renders oversized even without CSS
-15. **Brand assets are PNG only** — Logo (`logo.png`) and icon (`icon.png`) are actual PNG files from user's Downloads. NEVER create custom SVG logos/favicons. Generate `.ico` from `icon.png` via Pillow. Source files: `bhapi logo@2x.png` (wordmark+smile), `bhapi app icon circle.png` (circular icon)
-16. **Registration flow** — Family accounts self-register via `POST /register`. School/club submit a contact inquiry form → `POST /api/v1/auth/contact-inquiry` (public, no auth) → emails sales@bhapi.ai → sales creates the account → owner then uses Stripe checkout (#12) to subscribe.
-17. **Async SQLAlchemy refresh** — `db.refresh(obj)` expires relationships. Always pass relationship names: `await db.refresh(group, ["members"])` to avoid `MissingGreenlet` errors when accessing relationships after refresh
-18. **Family member cap** — `MAX_FAMILY_MEMBERS = 5` enforced in `add_member()` and `accept_invitation()`. School/club have no cap.
-19. **Stripe webhooks persist** — `handle_webhook_event()` creates/updates Subscription rows in DB for created/updated/cancelled/payment_failed events
-20. **Content excerpts encrypted** — Stored via `encrypt_credential()`, decrypted on read. TTL cleanup job runs daily.
-21. **i18n static export** — No server components or next-intl server features. Uses client-side `LocaleContext` with dynamic JSON imports.
-22. **No dynamic routes with static export** — `output: "export"` does not support `[id]` route segments. Use query parameters instead (e.g., `/members/detail?id=xxx` not `/members/[id]`). Any page using `useSearchParams()` must be wrapped in a `<Suspense>` boundary.
+### Compound Indexes (migration 003)
+- `alerts(group_id, severity, created_at)` — severity-filtered alert listings
+- `alerts(group_id, status, created_at)` — unread/pending alert queries
+- `capture_events(group_id, member_id, timestamp)` — per-member activity
+- `capture_events(group_id, platform, timestamp)` — platform filtering
+- `risk_events(group_id, severity, created_at)` — risk dashboard
+- `spend_records(group_id, period_start, period_end)` — spend summaries
