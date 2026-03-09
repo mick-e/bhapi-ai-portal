@@ -27,7 +27,7 @@ import {
   useGenerateApiKey,
   useRevokeApiKey,
 } from "@/hooks/use-settings";
-import { useCreateCheckout } from "@/hooks/use-billing";
+import { useCreateCheckout, useBillingPortal } from "@/hooks/use-billing";
 import { useToast } from "@/contexts/ToastContext";
 import type {
   SafetyLevel,
@@ -153,10 +153,7 @@ export default function SettingsPage() {
           )}
 
           {activeTab === "billing" && settings && (
-            <BillingTab
-              plan={settings.plan}
-              monthlyBudget={settings.monthly_budget_usd}
-            />
+            <BillingTab plan={settings.plan} />
           )}
 
           {activeTab === "api-keys" && <ApiKeysTab />}
@@ -465,38 +462,17 @@ function SafetyTab({
 
 // ─── Billing Tab ────────────────────────────────────────────────────────────
 
-function BillingTab({
-  plan,
-  monthlyBudget,
-}: {
-  plan: string;
-  monthlyBudget: number;
-}) {
-  const [budget, setBudget] = useState(String(monthlyBudget));
-  const updateSettings = useUpdateGroupSettings();
-  const { addToast } = useToast();
-  const [showUpgrade, setShowUpgrade] = useState(false);
+function BillingTab({ plan }: { plan: string }) {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
   const checkout = useCreateCheckout();
-
-  useEffect(() => {
-    setBudget(String(monthlyBudget));
-  }, [monthlyBudget]);
-
-  function handleSave() {
-    const budgetNum = parseFloat(budget);
-    if (isNaN(budgetNum) || budgetNum < 0) return;
-    updateSettings.mutate(
-      { monthly_budget_usd: budgetNum },
-      {
-        onSuccess: () => addToast("Billing settings updated", "success"),
-        onError: (err) => addToast((err as Error).message || "Failed to update billing", "error"),
-      }
-    );
-  }
+  const portal = useBillingPortal();
 
   function handleUpgrade() {
     checkout.mutate({ plan_type: "family", billing_cycle: billingCycle });
+  }
+
+  function handleManage() {
+    portal.mutate();
   }
 
   const planLabels: Record<string, { name: string; description: string }> = {
@@ -507,19 +483,26 @@ function BillingTab({
   };
 
   const planInfo = planLabels[plan] || planLabels.free;
+  const isPaid = plan !== "free";
 
   return (
     <Card
       title="Billing"
       description="Manage your subscription and payment methods"
     >
-      <div className="max-w-lg space-y-6">
+      <div className="max-w-xl space-y-6">
         {checkout.isError && (
           <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
             {(checkout.error as Error)?.message || "Failed to start checkout"}
           </div>
         )}
+        {portal.isError && (
+          <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
+            {(portal.error as Error)?.message || "Failed to open billing portal"}
+          </div>
+        )}
 
+        {/* Current Plan */}
         <div className="rounded-lg bg-primary-50 p-4">
           <div className="flex items-center justify-between">
             <div>
@@ -530,84 +513,108 @@ function BillingTab({
                 {planInfo.description}
               </p>
             </div>
-            {plan === "free" && (
-              <Button size="sm" onClick={() => setShowUpgrade(true)}>
-                Upgrade
+            {isPaid && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={handleManage}
+                isLoading={portal.isPending}
+              >
+                Manage Subscription
               </Button>
             )}
           </div>
         </div>
 
-        {showUpgrade && (
-          <div className="rounded-lg border border-primary-200 bg-white p-4 space-y-4">
-            <h4 className="text-sm font-semibold text-gray-900">
-              Upgrade to Family Plan
-            </h4>
-            <p className="text-xs text-gray-500">
-              Unlimited members, advanced safety rules, full compliance suite.
-            </p>
+        {/* Upgrade Section — visible for free plan */}
+        {!isPaid && (
+          <div className="rounded-lg border border-gray-200 bg-white p-5 space-y-5">
+            <div>
+              <h4 className="text-base font-semibold text-gray-900">
+                Upgrade to Family Plan
+              </h4>
+              <p className="mt-1 text-sm text-gray-500">
+                Unlimited members, advanced safety rules, full compliance suite, and priority support.
+              </p>
+            </div>
+
+            {/* Billing Cycle Toggle */}
             <div className="flex gap-3">
               <button
                 onClick={() => setBillingCycle("monthly")}
-                className={`flex-1 rounded-lg border p-3 text-center text-sm transition-colors ${
+                className={`flex-1 rounded-lg border p-4 text-center transition-colors ${
                   billingCycle === "monthly"
-                    ? "border-primary bg-primary-50 font-medium text-primary"
-                    : "border-gray-200 text-gray-600 hover:border-gray-300"
+                    ? "border-primary bg-primary-50 ring-2 ring-primary/20"
+                    : "border-gray-200 hover:border-gray-300"
                 }`}
               >
-                Monthly
+                <p className={`text-sm font-medium ${
+                  billingCycle === "monthly" ? "text-primary" : "text-gray-700"
+                }`}>
+                  Monthly
+                </p>
+                <p className="mt-1 text-2xl font-bold text-gray-900">
+                  $9.99
+                </p>
+                <p className="text-xs text-gray-500">per month</p>
               </button>
               <button
                 onClick={() => setBillingCycle("annual")}
-                className={`flex-1 rounded-lg border p-3 text-center text-sm transition-colors ${
+                className={`flex-1 rounded-lg border p-4 text-center transition-colors relative ${
                   billingCycle === "annual"
-                    ? "border-primary bg-primary-50 font-medium text-primary"
-                    : "border-gray-200 text-gray-600 hover:border-gray-300"
+                    ? "border-primary bg-primary-50 ring-2 ring-primary/20"
+                    : "border-gray-200 hover:border-gray-300"
                 }`}
               >
-                Annual
-                <span className="ml-1 text-xs text-green-600">(save 20%)</span>
+                <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-700">
+                  Save 20%
+                </span>
+                <p className={`text-sm font-medium ${
+                  billingCycle === "annual" ? "text-primary" : "text-gray-700"
+                }`}>
+                  Annual
+                </p>
+                <p className="mt-1 text-2xl font-bold text-gray-900">
+                  $95.88
+                </p>
+                <p className="text-xs text-gray-500">per year ($7.99/mo)</p>
               </button>
             </div>
-            <div className="flex gap-2">
-              <Button
-                onClick={handleUpgrade}
-                isLoading={checkout.isPending}
-              >
-                <CreditCard className="h-4 w-4" />
-                Continue to Checkout
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => setShowUpgrade(false)}
-              >
-                Cancel
-              </Button>
-            </div>
+
+            {/* Checkout Button */}
+            <Button
+              onClick={handleUpgrade}
+              isLoading={checkout.isPending}
+              className="w-full"
+            >
+              <CreditCard className="h-4 w-4" />
+              Subscribe Now
+            </Button>
+
+            <p className="text-center text-xs text-gray-400">
+              Secure payment via Stripe. Cancel anytime.
+            </p>
           </div>
         )}
 
-        <div>
-          <h4 className="text-sm font-medium text-gray-700">
-            Monthly budget
-          </h4>
-          <Input
-            type="number"
-            value={budget}
-            onChange={(e) => setBudget(e.target.value)}
-            placeholder="Monthly budget in USD"
-            helperText="Set to 0 for unlimited"
-          />
-        </div>
-        <div className="pt-2">
-          <Button
-            onClick={handleSave}
-            isLoading={updateSettings.isPending}
-            disabled={budget === String(monthlyBudget)}
-          >
-            Update Billing
-          </Button>
-        </div>
+        {/* Manage subscription for paid users */}
+        {isPaid && (
+          <div className="rounded-lg border border-gray-200 bg-white p-5 space-y-3">
+            <h4 className="text-sm font-semibold text-gray-900">
+              Subscription Management
+            </h4>
+            <p className="text-sm text-gray-500">
+              Update your payment method, change your billing cycle, download invoices, or cancel your subscription.
+            </p>
+            <Button
+              onClick={handleManage}
+              isLoading={portal.isPending}
+              variant="ghost"
+            >
+              Open Billing Portal
+            </Button>
+          </div>
+        )}
       </div>
     </Card>
   );
