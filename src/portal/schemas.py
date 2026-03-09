@@ -141,6 +141,10 @@ class GroupSettingsResponse(BaseSchema):
     notifications: NotificationPreferences = Field(default_factory=NotificationPreferences)
     monthly_budget_usd: float = 0.0
     plan: str = "free"
+    trial_active: bool = True
+    trial_days_remaining: int = 14
+    trial_end: str | None = None
+    trial_locked: bool = False
 
 
 class UpdateGroupSettingsRequest(BaseSchema):

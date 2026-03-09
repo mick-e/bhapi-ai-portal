@@ -2,7 +2,7 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, Response
+from fastapi import APIRouter, Depends, Query, Request, Response
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -70,10 +70,10 @@ def _set_session_cookie(response: Response, session_token: str) -> None:
 async def _create_auth_response(
     db: AsyncSession, user_id: str, response: Response,
 ) -> AuthResponse:
-    """Create access token + session cookie and return AuthResponse with user data."""
-    access_token = create_access_token({"sub": user_id})
+    """Create session token (used as both access token and cookie) and return AuthResponse."""
     session_token = await create_session(db, UUID(user_id))
     _set_session_cookie(response, session_token)
+    access_token = session_token
 
     # Fetch user + group context for the response
     uid = UUID(user_id)
@@ -123,8 +123,24 @@ async def login(data: LoginRequest, response: Response, db: AsyncSession = Depen
 
 
 @router.post("/logout", status_code=204)
-async def logout(response: Response, db: AsyncSession = Depends(get_db)):
+async def logout(
+    request: Request,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+):
     """Logout and invalidate session."""
+    from src.auth.service import invalidate_session
+
+    # Invalidate session from Bearer header
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        await invalidate_session(db, auth_header[7:])
+
+    # Invalidate session from cookie
+    session_cookie = request.cookies.get(SESSION_COOKIE_NAME)
+    if session_cookie:
+        await invalidate_session(db, session_cookie)
+
     response.delete_cookie(SESSION_COOKIE_NAME)
     return None
 
@@ -313,12 +329,11 @@ async def oauth_callback(
     # Find or create user
     user = await find_or_create_oauth_user(db, user_info)
 
-    # Create access token and session
-    app_access_token = create_access_token({"sub": str(user.id)})
+    # Create session token (used for both Bearer and cookie auth)
     session_token = await create_session(db, user.id)
 
     # Build redirect to frontend with token
-    redirect_url = f"{settings.oauth_redirect_base_url}/oauth/callback?token={app_access_token}&state={state}"
+    redirect_url = f"{settings.oauth_redirect_base_url}/oauth/callback?token={session_token}&state={state}"
 
     redirect = RedirectResponse(url=redirect_url, status_code=302)
     _set_session_cookie(redirect, session_token)

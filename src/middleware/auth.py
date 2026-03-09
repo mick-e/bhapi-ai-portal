@@ -23,7 +23,10 @@ PUBLIC_PREFIXES = (
     "/api/v1/auth/oauth",
     "/api/v1/auth/password/reset",
     "/api/v1/auth/verify-email",
+    "/api/v1/auth/contact-inquiry",
     "/api/v1/billing/webhooks",
+    "/api/v1/capture/pair",
+    "/api/v1/alerts/stream",
 )
 
 

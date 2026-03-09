@@ -1,5 +1,7 @@
 """Auth dependency for endpoint-level authentication."""
 
+import hashlib
+from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import Depends, Request
@@ -19,15 +21,18 @@ async def get_current_user(
     """Extract and validate user identity from JWT bearer or session cookie.
 
     Returns a GroupContext with the authenticated user's ID.
-    Verifies the user still exists in the database.
+    Verifies the user still exists in the database and the session is valid.
     """
     user_id: str | None = None
+    raw_token: str | None = None
 
     # Try Authorization header first
     auth_header = request.headers.get("Authorization", "")
     if auth_header.startswith("Bearer "):
-        token = auth_header[7:]
-        payload = decode_token(token)
+        raw_token = auth_header[7:]
+        payload = decode_token(raw_token)
+        if payload.get("type") != "session":
+            raise UnauthorizedError("Invalid token type")
         user_id = payload.get("sub")
         if not user_id:
             raise UnauthorizedError("Invalid token: missing subject")
@@ -35,6 +40,7 @@ async def get_current_user(
         # Try session cookie
         session_cookie = request.cookies.get(SESSION_COOKIE_NAME)
         if session_cookie:
+            raw_token = session_cookie
             payload = decode_token(session_cookie)
             if payload.get("type") != "session":
                 raise UnauthorizedError("Invalid session token")
@@ -44,6 +50,21 @@ async def get_current_user(
 
     if not user_id:
         raise UnauthorizedError("Authentication required")
+
+    # Validate token against session table (ensures logout/password-change invalidation)
+    if raw_token:
+        from sqlalchemy import select
+        from src.auth.models import Session
+
+        token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
+        session_result = await db.execute(
+            select(Session).where(
+                Session.token_hash == token_hash,
+                Session.expires_at > datetime.now(timezone.utc),
+            )
+        )
+        if not session_result.scalar_one_or_none():
+            raise UnauthorizedError("Session expired or invalidated")
 
     # Verify user exists and fetch primary group in a single query.
     # Uses a LEFT JOIN so we get the user row even if they have no groups.

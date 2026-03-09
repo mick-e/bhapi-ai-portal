@@ -408,6 +408,10 @@ async def get_group_settings(db: AsyncSession, group_id: UUID, user_id: UUID) ->
         report_notifications=notif_data.get("report_notifications", True),
     )
 
+    # Trial status
+    from src.billing.trial import get_trial_status
+    trial = await get_trial_status(db, group_id)
+
     return GroupSettingsResponse(
         group_id=group.id,
         group_name=group.name,
@@ -418,7 +422,11 @@ async def get_group_settings(db: AsyncSession, group_id: UUID, user_id: UUID) ->
         pii_detection=settings.get("pii_detection", True),
         notifications=notifications,
         monthly_budget_usd=budget,
-        plan=settings.get("plan", "free"),
+        plan=trial.plan,
+        trial_active=trial.is_active,
+        trial_days_remaining=trial.days_remaining,
+        trial_end=trial.trial_end.isoformat() if trial.trial_end else None,
+        trial_locked=trial.is_locked,
     )
 
 

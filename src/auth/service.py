@@ -146,6 +146,16 @@ async def invalidate_session(db: AsyncSession, token: str) -> None:
         await db.flush()
 
 
+async def invalidate_all_sessions(db: AsyncSession, user_id: UUID) -> None:
+    """Invalidate all sessions for a user (e.g. after password change)."""
+    result = await db.execute(select(Session).where(Session.user_id == user_id))
+    sessions = result.scalars().all()
+    for s in sessions:
+        await db.delete(s)
+    if sessions:
+        await db.flush()
+
+
 async def delete_user_account(db: AsyncSession, user_id: UUID) -> None:
     """Soft-delete a user account and all associated data."""
     user = await get_user_by_id(db, user_id)
@@ -324,12 +334,29 @@ async def send_reset_email(user: User) -> bool:
     )
 
 
+_used_reset_tokens: set[str] = set()
+
+
 async def reset_password(db: AsyncSession, token: str, new_password: str) -> User:
     """Reset a user's password using a reset token."""
+    # Check if this token has already been used
+    payload = decode_token(token)
+    jti = payload.get("jti")
+    if jti and jti in _used_reset_tokens:
+        raise UnauthorizedError("Reset token already used")
+
     user_id = verify_reset_token(token)
     user = await get_user_by_id(db, user_id)
 
     user.password_hash = hash_password(new_password)
+
+    # Mark token as used
+    if jti:
+        _used_reset_tokens.add(jti)
+
+    # Invalidate all existing sessions for this user
+    await invalidate_all_sessions(db, user_id)
+
     await db.flush()
     await db.refresh(user)
 
