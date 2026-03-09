@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   Users,
@@ -24,6 +24,7 @@ import {
 import { BhapiLogo } from "@/components/BhapiLogo";
 import { useAuth } from "@/hooks/use-auth";
 import { useAlerts } from "@/hooks/use-alerts";
+import { useTrialStatus } from "@/hooks/use-billing";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -46,13 +47,29 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
 
   // Fetch unread alert count for the notification badge
   const { data: alertsData } = useAlerts({ read: false, page_size: 1 });
   const unreadCount = alertsData?.total ?? 0;
+
+  // Trial status
+  const { data: trial } = useTrialStatus();
+  const isLocked = trial?.is_locked ?? false;
+  const isTrial = trial?.is_trial ?? false;
+  const daysRemaining = trial?.days_remaining ?? 14;
+  const showWarningBanner = isTrial && !isLocked && daysRemaining <= 3 && !bannerDismissed;
+
+  // Redirect locked users to billing
+  useEffect(() => {
+    if (isLocked && pathname !== "/settings") {
+      router.replace("/settings?tab=billing");
+    }
+  }, [isLocked, pathname, router]);
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -227,6 +244,37 @@ export default function DashboardLayout({
             </div>
           </div>
         </header>
+
+        {/* Trial banners */}
+        {isLocked && (
+          <div className="bg-red-600 px-4 py-3 text-center text-sm font-medium text-white">
+            Your free trial has expired. Safety monitoring is paused.{" "}
+            <Link href="/settings?tab=billing" className="underline font-bold">
+              Subscribe now
+            </Link>{" "}
+            or email{" "}
+            <a href="mailto:contactus@bhapi.io" className="underline font-bold">
+              contactus@bhapi.io
+            </a>
+          </div>
+        )}
+        {showWarningBanner && (
+          <div className="bg-amber-500 px-4 py-2.5 text-center text-sm font-medium text-white flex items-center justify-center gap-2">
+            <span>
+              Your trial ends in {daysRemaining} day{daysRemaining !== 1 ? "s" : ""}.{" "}
+              <Link href="/settings?tab=billing" className="underline font-bold">
+                Subscribe now
+              </Link>
+            </span>
+            <button
+              onClick={() => setBannerDismissed(true)}
+              className="ml-2 rounded p-0.5 hover:bg-amber-600"
+              aria-label="Dismiss trial banner"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
 
         {/* Page content */}
         <main id="main-content" className="flex-1 overflow-y-auto p-4 lg:p-8">{children}</main>

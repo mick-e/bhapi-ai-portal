@@ -31,6 +31,7 @@ import type {
   UpdateProfileRequest,
   TrendData,
   TransparencyReport,
+  TrialStatus,
   UsagePattern,
   User,
   BudgetThreshold,
@@ -98,6 +99,19 @@ export async function apiFetch<T>(
       localStorage.removeItem("bhapi_user");
       window.location.href = "/login";
       return undefined as T;
+    }
+
+    // Redirect to billing when trial has expired
+    if (response.status === 403 && typeof window !== "undefined") {
+      try {
+        const body = await response.clone().json();
+        if (body?.code === "TRIAL_EXPIRED") {
+          window.location.href = "/settings?tab=billing";
+          return undefined as T;
+        }
+      } catch {
+        // Not a JSON body — fall through to default error
+      }
     }
 
     throw new ApiRequestError(response.status, detail);
@@ -427,6 +441,10 @@ export const apiKeysApi = {
 // ─── Billing Checkout ────────────────────────────────────────────────────────
 
 export const billingApi = {
+  getTrialStatus(): Promise<TrialStatus> {
+    return api.get<TrialStatus>("/api/v1/billing/trial-status");
+  },
+
   createCheckout(data: CheckoutRequest): Promise<CheckoutResponse> {
     return api.post<CheckoutResponse>("/api/v1/billing/checkout", data);
   },

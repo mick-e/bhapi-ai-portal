@@ -261,6 +261,20 @@ export interface GroupSettings {
   notifications: NotificationPreferences;
   monthly_budget_usd: number;
   plan: "free" | "starter" | "pro" | "enterprise";
+  trial_active: boolean;
+  trial_days_remaining: number;
+  trial_end: string | null;
+  trial_locked: boolean;
+}
+
+export interface TrialStatus {
+  is_active: boolean;
+  is_trial: boolean;
+  is_locked: boolean;
+  days_remaining: number;
+  trial_end: string | null;
+  plan: string;
+  contact_email: string;
 }
 
 export interface NotificationPreferences {

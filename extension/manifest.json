@@ -11,6 +11,7 @@
   "host_permissions": [
     "https://chatgpt.com/*",
     "https://*.chatgpt.com/*",
+    "https://chat.openai.com/*",
     "https://gemini.google.com/*",
     "https://copilot.microsoft.com/*",
     "https://claude.ai/*",
@@ -57,6 +58,17 @@
         "https://x.com/i/grok*"
       ],
       "js": ["content/monitor.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://chat.openai.com/*",
+        "https://gemini.google.com/*",
+        "https://claude.ai/*",
+        "https://copilot.microsoft.com/*",
+        "https://grok.com/*"
+      ],
+      "js": ["src/blocking.js"],
       "run_at": "document_idle"
     }
   ],

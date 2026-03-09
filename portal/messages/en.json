@@ -86,7 +86,30 @@
     "allSet": "You're all set!",
     "groupCreated": "Your group has been created. Head to Members to invite your first members, or explore the dashboard.",
     "enterGroupName": "Please enter a group name.",
-    "failedToCreateGroup": "Failed to create group."
+    "failedToCreateGroup": "Failed to create group.",
+    "wizardWelcome": "Welcome to bhapi!",
+    "wizardSubtitle": "Complete these steps to start monitoring AI usage.",
+    "wizardCreateGroup": "Create Your Group",
+    "wizardCreateGroupDesc": "Set up a family, school, or club group to get started.",
+    "wizardAddMembers": "Add Members",
+    "wizardAddMembersDesc": "Invite family members, students, or participants.",
+    "wizardInstallExtension": "Install Browser Extension",
+    "wizardInstallExtensionDesc": "Install the bhapi extension to start monitoring AI usage.",
+    "wizardConfigureAlerts": "Set Up Alerts",
+    "wizardConfigureAlertsDesc": "Choose how you want to be notified about AI activity.",
+    "wizardComplete": "{count} of {total} complete",
+    "wizardDismiss": "Dismiss"
+  },
+  "extension": {
+    "title": "Install Browser Extension",
+    "description": "The bhapi browser extension monitors AI platform usage and enforces blocking rules on your family members' devices.",
+    "chrome": "Chrome",
+    "firefox": "Firefox",
+    "safari": "Safari",
+    "setupInstructions": "Setup Instructions for {browser}",
+    "needSetupCode": "Need a Setup Code?",
+    "setupCodeDescription": "Go to the Members page, select a member, and click \"Generate Setup Code\" to create a pairing code for their device.",
+    "goToMembers": "Go to Members"
   },
   "members": {
     "title": "Members",

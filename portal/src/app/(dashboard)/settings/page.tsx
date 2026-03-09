@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   User,
   Bell,
@@ -13,6 +14,9 @@ import {
   RefreshCw,
   CheckCircle2,
   Settings,
+  Mail,
+  Clock,
+  Lock,
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -27,7 +31,7 @@ import {
   useGenerateApiKey,
   useRevokeApiKey,
 } from "@/hooks/use-settings";
-import { useCreateCheckout, useBillingPortal } from "@/hooks/use-billing";
+import { useCreateCheckout, useBillingPortal, useTrialStatus } from "@/hooks/use-billing";
 import { useToast } from "@/contexts/ToastContext";
 import type {
   SafetyLevel,
@@ -50,8 +54,18 @@ const tabs: { value: SettingsTab; label: string; icon: typeof Settings }[] = [
 ];
 
 export default function SettingsPage() {
+  return (
+    <Suspense>
+      <SettingsPageInner />
+    </Suspense>
+  );
+}
+
+function SettingsPageInner() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<SettingsTab>("profile");
+  const searchParams = useSearchParams();
+  const initialTab = (searchParams.get("tab") as SettingsTab) || "profile";
+  const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab);
 
   const {
     data: settings,
@@ -466,6 +480,12 @@ function BillingTab({ plan }: { plan: string }) {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
   const checkout = useCreateCheckout();
   const portal = useBillingPortal();
+  const { data: trial } = useTrialStatus();
+
+  const isTrial = trial?.is_trial ?? true;
+  const isLocked = trial?.is_locked ?? false;
+  const daysRemaining = trial?.days_remaining ?? 14;
+  const isPaid = trial ? !trial.is_trial && trial.is_active : plan !== "free";
 
   function handleUpgrade() {
     checkout.mutate({ plan_type: "family", billing_cycle: billingCycle });
@@ -475,15 +495,7 @@ function BillingTab({ plan }: { plan: string }) {
     portal.mutate();
   }
 
-  const planLabels: Record<string, { name: string; description: string }> = {
-    free: { name: "Free Plan", description: "Up to 5 members, basic safety features" },
-    starter: { name: "Starter Plan", description: "Up to 15 members, advanced safety" },
-    pro: { name: "Pro Plan", description: "Unlimited members, full compliance" },
-    enterprise: { name: "Enterprise", description: "Custom limits, dedicated support" },
-  };
-
-  const planInfo = planLabels[plan] || planLabels.free;
-  const isPaid = plan !== "free";
+  const trialProgress = Math.min(100, ((14 - daysRemaining) / 14) * 100);
 
   return (
     <Card
@@ -502,18 +514,70 @@ function BillingTab({ plan }: { plan: string }) {
           </div>
         )}
 
-        {/* Current Plan */}
-        <div className="rounded-lg bg-primary-50 p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-semibold text-primary-900">
-                {planInfo.name}
-              </p>
-              <p className="mt-0.5 text-xs text-primary-700">
-                {planInfo.description}
-              </p>
+        {/* Locked State */}
+        {isLocked && (
+          <div className="rounded-lg border border-red-200 bg-red-50 p-5 space-y-3">
+            <div className="flex items-start gap-3">
+              <Lock className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <h4 className="text-base font-semibold text-red-900">
+                  Your free trial has expired
+                </h4>
+                <p className="mt-1 text-sm text-red-700">
+                  Subscribe below to continue using Bhapi, or email{" "}
+                  <a
+                    href="mailto:contactus@bhapi.io"
+                    className="font-medium underline"
+                  >
+                    contactus@bhapi.io
+                  </a>{" "}
+                  to request an extension.
+                </p>
+              </div>
             </div>
-            {isPaid && (
+          </div>
+        )}
+
+        {/* Active Trial */}
+        {isTrial && !isLocked && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-5 space-y-3">
+            <div className="flex items-start gap-3">
+              <Clock className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <h4 className="text-base font-semibold text-amber-900">
+                  Free Trial — {daysRemaining} day{daysRemaining !== 1 ? "s" : ""} remaining
+                </h4>
+                <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-amber-200">
+                  <div
+                    className="h-full rounded-full bg-amber-500 transition-all"
+                    style={{ width: `${trialProgress}%` }}
+                  />
+                </div>
+                <p className="mt-1 text-xs text-amber-700">
+                  {14 - daysRemaining} of 14 days used
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Paid Plan Badge */}
+        {isPaid && (
+          <div className="rounded-lg bg-primary-50 p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5 text-primary" />
+                <div>
+                  <p className="text-sm font-semibold text-primary-900">
+                    {trial?.plan
+                      ? trial.plan.charAt(0).toUpperCase() + trial.plan.slice(1) + " Plan"
+                      : "Active Plan"}
+                  </p>
+                  <p className="mt-0.5 text-xs text-primary-700">
+                    Your subscription is active
+                  </p>
+                </div>
+              </div>
               <Button
                 size="sm"
                 variant="ghost"
@@ -522,16 +586,16 @@ function BillingTab({ plan }: { plan: string }) {
               >
                 Manage Subscription
               </Button>
-            )}
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Upgrade Section — visible for free plan */}
+        {/* Pricing Cards — visible for trial and locked */}
         {!isPaid && (
           <div className="rounded-lg border border-gray-200 bg-white p-5 space-y-5">
             <div>
               <h4 className="text-base font-semibold text-gray-900">
-                Upgrade to Family Plan
+                Subscribe to Bhapi
               </h4>
               <p className="mt-1 text-sm text-gray-500">
                 Unlimited members, advanced safety rules, full compliance suite, and priority support.
@@ -613,6 +677,19 @@ function BillingTab({ plan }: { plan: string }) {
             >
               Open Billing Portal
             </Button>
+          </div>
+        )}
+
+        {/* Contact */}
+        {!isPaid && (
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <Mail className="h-4 w-4" />
+            <span>
+              Questions? Email{" "}
+              <a href="mailto:contactus@bhapi.io" className="text-primary-700 underline">
+                contactus@bhapi.io
+              </a>
+            </span>
           </div>
         )}
       </div>

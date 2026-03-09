@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Users,
   Activity,
@@ -24,6 +24,7 @@ import { ActivityChart } from "@/components/charts/ActivityChart";
 import { RiskBreakdown } from "@/components/charts/RiskBreakdown";
 import { SpendChart } from "@/components/charts/SpendChart";
 import type { Alert, CaptureEvent } from "@/types";
+import OnboardingWizard from "@/components/OnboardingWizard";
 
 function CreateGroupPrompt() {
   const { user } = useAuth();
@@ -199,6 +200,16 @@ function StepPreview({
 export default function DashboardPage() {
   const { user } = useAuth();
   const { data, isLoading, isError, error, refetch } = useDashboardSummary();
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  useEffect(() => {
+    try {
+      const dismissed = localStorage.getItem("bhapi_onboarding_dismissed");
+      if (!dismissed) setShowOnboarding(true);
+    } catch {
+      setShowOnboarding(true);
+    }
+  }, []);
 
   // If user has no group, show onboarding
   const noGroup = !user?.group_id;
@@ -250,6 +261,16 @@ export default function DashboardPage() {
           Overview of your group&apos;s AI activity and safety
         </p>
       </div>
+
+      {showOnboarding && (
+        <OnboardingWizard
+          hasGroup={!!user?.group_id}
+          memberCount={summary.total_members ?? 0}
+          hasExtension={false}
+          hasAlerts={summary.alert_summary.unread_count > 0}
+          onDismiss={() => setShowOnboarding(false)}
+        />
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

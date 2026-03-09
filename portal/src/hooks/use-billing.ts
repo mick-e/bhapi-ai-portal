@@ -1,8 +1,16 @@
 "use client";
 
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { billingApi } from "@/lib/api-client";
-import type { CheckoutRequest, CheckoutResponse } from "@/types";
+import type { CheckoutRequest, CheckoutResponse, TrialStatus } from "@/types";
+
+export function useTrialStatus() {
+  return useQuery<TrialStatus>({
+    queryKey: ["trial-status"],
+    queryFn: () => billingApi.getTrialStatus(),
+    staleTime: 60_000,
+  });
+}
 
 export function useCreateCheckout() {
   return useMutation<CheckoutResponse, Error, CheckoutRequest>({
