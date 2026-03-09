@@ -11,6 +11,22 @@ from src.database import Base
 from src.models import JSONType, TimestampMixin, UUIDMixin
 
 
+class SetupCode(Base, UUIDMixin, TimestampMixin):
+    """One-time setup code for pairing a browser extension to a group member."""
+
+    __tablename__ = "setup_codes"
+
+    group_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("groups.id"), nullable=False)
+    member_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("group_members.id"), nullable=False)
+    code: Mapped[str] = mapped_column(String(10), unique=True, index=True, nullable=False)
+    signing_secret: Mapped[str] = mapped_column(String(255), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    used: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    device_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_by: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+
+
 class CaptureEvent(Base, UUIDMixin, TimestampMixin):
     """Captured AI interaction event."""
 
@@ -26,6 +42,10 @@ class CaptureEvent(Base, UUIDMixin, TimestampMixin):
     event_metadata: Mapped[dict | None] = mapped_column("event_metadata", JSONType, nullable=True)
     risk_processed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     source_channel: Mapped[str] = mapped_column(String(20), nullable=False, default="extension")  # extension, dns, api
+    content_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
+    content_type: Mapped[str | None] = mapped_column(String(50), nullable=True)  # "prompt", "response", "conversation"
+    content_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)  # SHA-256 for dedup
+    enhanced_monitoring: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
 
     __table_args__ = (
         Index("ix_capture_events_group_member_ts", "group_id", "member_id", "timestamp"),

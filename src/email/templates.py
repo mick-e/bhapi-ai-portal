@@ -331,3 +331,135 @@ covering <strong>{period}</strong> is ready to download.</p>
     )
 
     return subject, _wrap(body), plain
+
+
+# ---------------------------------------------------------------------------
+# 7. Trial reminder (X days remaining)
+# ---------------------------------------------------------------------------
+def trial_reminder(
+    *,
+    display_name: str,
+    group_name: str,
+    days_remaining: int,
+    subscribe_url: str,
+) -> tuple[str, str, str]:
+    """Trial expiry reminder email (sent at 3 days remaining)."""
+    subject = f"Your Bhapi free trial ends in {days_remaining} day{'s' if days_remaining != 1 else ''}"
+
+    body = f"""\
+<h2 style="margin-top:0;">Hi {display_name},</h2>
+
+<p>Your free trial for <strong>{group_name}</strong> on Bhapi ends in
+<strong>{days_remaining} day{'s' if days_remaining != 1 else ''}</strong>.</p>
+
+<p>Subscribe now to keep protecting your family's AI interactions without interruption.</p>
+
+<div style="text-align:center;margin:24px 0;">
+  <a href="{subscribe_url}" style="display:inline-block;background:#FF6B35;color:#fff;padding:12px 32px;
+     text-decoration:none;border-radius:6px;font-weight:bold;">Subscribe Now</a>
+</div>
+
+<p style="color:#888;font-size:13px;">
+  If you have questions, reply to this email or contact
+  <a href="mailto:contactus@bhapi.io" style="color:#6366f1;">contactus@bhapi.io</a>.
+</p>
+"""
+
+    plain = (
+        f"Hi {display_name},\n\n"
+        f"Your free trial for {group_name} ends in {days_remaining} day{'s' if days_remaining != 1 else ''}.\n\n"
+        f"Subscribe now: {subscribe_url}\n\n"
+        "Questions? Email contactus@bhapi.io\n"
+    )
+
+    return subject, _wrap(body), plain
+
+
+# ---------------------------------------------------------------------------
+# 8. Trial expiring tomorrow
+# ---------------------------------------------------------------------------
+def trial_expiring_tomorrow(
+    *,
+    display_name: str,
+    group_name: str,
+    subscribe_url: str,
+) -> tuple[str, str, str]:
+    """Trial expires tomorrow email."""
+    subject = "Your Bhapi free trial expires tomorrow"
+
+    body = f"""\
+<h2 style="margin-top:0;">Hi {display_name},</h2>
+
+<div style="background:#fff7ed;border-left:4px solid #ea580c;padding:12px 16px;border-radius:4px;margin-bottom:16px;">
+  <strong style="color:#ea580c;">Your trial expires tomorrow</strong>
+</div>
+
+<p>Your free trial for <strong>{group_name}</strong> ends tomorrow. After that,
+monitoring and safety features will be paused until you subscribe.</p>
+
+<div style="text-align:center;margin:24px 0;">
+  <a href="{subscribe_url}" style="display:inline-block;background:#FF6B35;color:#fff;padding:12px 32px;
+     text-decoration:none;border-radius:6px;font-weight:bold;">Subscribe Now</a>
+</div>
+
+<p style="color:#888;font-size:13px;">
+  Need more time? Contact
+  <a href="mailto:contactus@bhapi.io" style="color:#6366f1;">contactus@bhapi.io</a>
+  to request a trial extension.
+</p>
+"""
+
+    plain = (
+        f"Hi {display_name},\n\n"
+        f"Your free trial for {group_name} expires tomorrow.\n\n"
+        f"Subscribe now: {subscribe_url}\n\n"
+        "Need more time? Email contactus@bhapi.io\n"
+    )
+
+    return subject, _wrap(body), plain
+
+
+# ---------------------------------------------------------------------------
+# 9. Trial expired
+# ---------------------------------------------------------------------------
+def trial_expired(
+    *,
+    display_name: str,
+    group_name: str,
+    contact_email: str,
+    subscribe_url: str,
+) -> tuple[str, str, str]:
+    """Trial expired email."""
+    subject = "Your Bhapi free trial has expired"
+
+    body = f"""\
+<h2 style="margin-top:0;">Hi {display_name},</h2>
+
+<div style="background:#fef2f2;border-left:4px solid #dc2626;padding:12px 16px;border-radius:4px;margin-bottom:16px;">
+  <strong style="color:#dc2626;">Your free trial has expired</strong>
+</div>
+
+<p>Your free trial for <strong>{group_name}</strong> has ended. Safety monitoring
+and all protected features are now paused.</p>
+
+<p>Subscribe to restore full access immediately:</p>
+
+<div style="text-align:center;margin:24px 0;">
+  <a href="{subscribe_url}" style="display:inline-block;background:#FF6B35;color:#fff;padding:12px 32px;
+     text-decoration:none;border-radius:6px;font-weight:bold;">Subscribe Now</a>
+</div>
+
+<p style="color:#888;font-size:13px;">
+  Need help or want to request an extension? Email
+  <a href="mailto:{contact_email}" style="color:#6366f1;">{contact_email}</a>.
+</p>
+"""
+
+    plain = (
+        f"Hi {display_name},\n\n"
+        f"Your free trial for {group_name} has expired.\n\n"
+        f"Subscribe now: {subscribe_url}\n\n"
+        f"Need help? Email {contact_email}\n"
+    )
+
+    return subject, _wrap(body), plain

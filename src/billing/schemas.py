@@ -125,6 +125,18 @@ class PortalResponse(BaseSchema):
     url: str
 
 
+class TrialStatusResponse(BaseSchema):
+    """Trial status for the current group."""
+
+    is_active: bool
+    is_trial: bool
+    is_locked: bool
+    days_remaining: int
+    trial_end: datetime | None
+    plan: str
+    contact_email: str = "contactus@bhapi.io"
+
+
 class EnvelopeCreate(BaseSchema):
     """Create a spend envelope (budget allocation)."""
 

@@ -9,19 +9,35 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.auth.middleware import get_current_user
 from src.capture.schemas import (
     CaptureEventResponse,
+    ContentCaptureRequest,
     DeviceRegisterRequest,
     DeviceResponse,
     EventPayload,
+    PairRequest,
+    PairResponse,
+    SetupCodeCreate,
+    SetupCodeResponse,
 )
-from src.capture.service import ingest_event, list_devices, list_events_enriched, register_device
+from src.capture.service import (
+    create_content_capture,
+    create_setup_code,
+    exchange_setup_code,
+    get_decrypted_content,
+    ingest_event,
+    list_devices,
+    list_events_enriched,
+    register_device,
+)
 from src.capture.validators import verify_hmac_signature
 from src.config import get_settings
 from src.database import get_db
-from src.dependencies import resolve_group_id as _gid
+from src.dependencies import require_active_trial_or_subscription, resolve_group_id as _gid
 from src.exceptions import UnauthorizedError
 from src.schemas import GroupContext
 
 router = APIRouter()
+
+_trial_dep = Depends(require_active_trial_or_subscription)
 
 
 async def _validate_hmac(request: Request, x_bhapi_signature: str | None = Header(None)) -> None:
@@ -43,7 +59,7 @@ async def _validate_hmac(request: Request, x_bhapi_signature: str | None = Heade
         raise UnauthorizedError("Invalid HMAC signature")
 
 
-@router.post("/events", response_model=CaptureEventResponse, status_code=201)
+@router.post("/events", response_model=CaptureEventResponse, status_code=201, dependencies=[_trial_dep])
 async def capture_event(
     payload: EventPayload,
     auth: GroupContext = Depends(get_current_user),
@@ -55,7 +71,7 @@ async def capture_event(
     return event
 
 
-@router.post("/dns-events", response_model=CaptureEventResponse, status_code=201)
+@router.post("/dns-events", response_model=CaptureEventResponse, status_code=201, dependencies=[_trial_dep])
 async def capture_dns_event(
     payload: EventPayload,
     auth: GroupContext = Depends(get_current_user),
@@ -66,7 +82,7 @@ async def capture_dns_event(
     return event
 
 
-@router.post("/api-events", response_model=CaptureEventResponse, status_code=201)
+@router.post("/api-events", response_model=CaptureEventResponse, status_code=201, dependencies=[_trial_dep])
 async def capture_api_event(
     payload: EventPayload,
     auth: GroupContext = Depends(get_current_user),
@@ -77,7 +93,49 @@ async def capture_api_event(
     return event
 
 
-@router.get("/events")
+@router.post("/content", status_code=201, dependencies=[_trial_dep])
+async def capture_content(
+    data: ContentCaptureRequest,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Capture AI conversation content with encryption (requires enhanced monitoring)."""
+    event = await create_content_capture(
+        db=db,
+        group_id=data.group_id,
+        member_id=data.member_id,
+        platform=data.platform,
+        content=data.content,
+        content_type=data.content_type,
+        event_type=data.event_type,
+        metadata=data.metadata,
+    )
+    return {
+        "id": str(event.id),
+        "group_id": str(event.group_id),
+        "member_id": str(event.member_id),
+        "platform": event.platform,
+        "content_type": getattr(event, "content_type", None),
+        "enhanced_monitoring": getattr(event, "enhanced_monitoring", True),
+        "created_at": event.timestamp.isoformat() if event.timestamp else "",
+    }
+
+
+@router.get("/content/{event_id}", dependencies=[_trial_dep])
+async def get_content(
+    event_id: UUID,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Retrieve decrypted content for a capture event (audit logged)."""
+    content = await get_decrypted_content(db, event_id)
+    if content is None:
+        from src.exceptions import NotFoundError
+        raise NotFoundError("Content", str(event_id))
+    return {"event_id": str(event_id), "content": content}
+
+
+@router.get("/events", dependencies=[_trial_dep])
 async def list_capture_events(
     group_id: UUID | None = Query(None),
     member_id: UUID | None = Query(None),
@@ -102,7 +160,26 @@ async def list_capture_events(
     )
 
 
-@router.post("/devices/register", response_model=DeviceResponse, status_code=201)
+@router.post("/setup-codes", response_model=SetupCodeResponse, status_code=201, dependencies=[_trial_dep])
+async def create_setup_code_endpoint(
+    data: SetupCodeCreate,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Generate a one-time setup code for extension pairing."""
+    return await create_setup_code(db, data, auth.user_id)
+
+
+@router.post("/pair", response_model=PairResponse)
+async def pair_extension(
+    data: PairRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Exchange a setup code for pairing credentials (no auth required)."""
+    return await exchange_setup_code(db, data.setup_code)
+
+
+@router.post("/devices/register", response_model=DeviceResponse, status_code=201, dependencies=[_trial_dep])
 async def register_device_endpoint(
     data: DeviceRegisterRequest,
     auth: GroupContext = Depends(get_current_user),
@@ -112,7 +189,7 @@ async def register_device_endpoint(
     return await register_device(db, data)
 
 
-@router.get("/devices", response_model=list[DeviceResponse])
+@router.get("/devices", response_model=list[DeviceResponse], dependencies=[_trial_dep])
 async def list_devices_endpoint(
     group_id: UUID | None = Query(None),
     auth: GroupContext = Depends(get_current_user),

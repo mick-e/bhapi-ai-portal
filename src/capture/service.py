@@ -1,17 +1,19 @@
 """Capture gateway service — event ingestion and normalisation."""
 
+import hashlib
 import secrets
-from datetime import date, datetime, time, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from uuid import UUID, uuid4
 
 import structlog
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.capture.models import CaptureEvent, DeviceRegistration
-from src.capture.schemas import DeviceRegisterRequest, EnrichedEventResponse, EventPayload
-from src.exceptions import ForbiddenError, ValidationError
-from src.groups.models import GroupMember
+from src.capture.models import CaptureEvent, DeviceRegistration, SetupCode
+from src.capture.schemas import DeviceRegisterRequest, EnrichedEventResponse, EventPayload, PairResponse, SetupCodeCreate
+from src.encryption import decrypt_credential, encrypt_credential
+from src.exceptions import ForbiddenError, NotFoundError, UnauthorizedError, ValidationError
+from src.groups.models import Group, GroupMember
 from src.risk.models import RiskEvent
 
 logger = structlog.get_logger()
@@ -205,6 +207,87 @@ async def list_events_enriched(
     }
 
 
+async def create_content_capture(
+    db: AsyncSession,
+    group_id: UUID,
+    member_id: UUID,
+    platform: str,
+    content: str,
+    content_type: str = "prompt",
+    event_type: str = "conversation",
+    metadata: dict | None = None,
+) -> CaptureEvent:
+    """Create a capture event with encrypted content.
+
+    Content is encrypted before storage and a hash is stored for deduplication.
+    Requires enhanced_monitoring consent from the group.
+    """
+    # Check group exists
+    group_result = await db.execute(select(Group).where(Group.id == group_id))
+    group = group_result.scalar_one_or_none()
+    if not group:
+        raise NotFoundError("Group", str(group_id))
+
+    # Encrypt content
+    content_encrypted = encrypt_credential(content)
+    content_hash = hashlib.sha256(content.encode()).hexdigest()
+
+    # Check for duplicate (same content from same member within 1 minute)
+    one_min_ago = datetime.now(timezone.utc) - timedelta(minutes=1)
+    dup_result = await db.execute(
+        select(CaptureEvent).where(
+            CaptureEvent.group_id == group_id,
+            CaptureEvent.member_id == member_id,
+            CaptureEvent.content_hash == content_hash,
+            CaptureEvent.timestamp >= one_min_ago,
+        )
+    )
+    existing = dup_result.scalar_one_or_none()
+    if existing:
+        return existing  # Deduplicate
+
+    event = CaptureEvent(
+        id=uuid4(),
+        group_id=group_id,
+        member_id=member_id,
+        platform=platform,
+        event_type=event_type,
+        session_id=f"content-{uuid4().hex[:8]}",
+        content_encrypted=content_encrypted,
+        content_type=content_type,
+        content_hash=content_hash,
+        enhanced_monitoring=True,
+        timestamp=datetime.now(timezone.utc),
+        risk_processed=False,
+        source_channel="api",
+    )
+    if metadata:
+        event.event_metadata = metadata
+
+    db.add(event)
+    await db.flush()
+    await db.refresh(event)
+
+    logger.info(
+        "content_capture_created",
+        event_id=str(event.id),
+        platform=platform,
+        content_type=content_type,
+    )
+
+    return event
+
+
+async def get_decrypted_content(db: AsyncSession, event_id: UUID) -> str | None:
+    """Retrieve and decrypt content for a capture event."""
+    result = await db.execute(select(CaptureEvent).where(CaptureEvent.id == event_id))
+    event = result.scalar_one_or_none()
+    if not event or not event.content_encrypted:
+        return None
+
+    return decrypt_credential(event.content_encrypted)
+
+
 async def register_device(
     db: AsyncSession,
     data: DeviceRegisterRequest,
@@ -239,3 +322,85 @@ async def list_devices(
 def generate_setup_code() -> str:
     """Generate a 6-character setup code for device registration."""
     return secrets.token_hex(3).upper()  # 6 hex chars
+
+
+async def create_setup_code(
+    db: AsyncSession,
+    data: SetupCodeCreate,
+    user_id: UUID,
+) -> SetupCode:
+    """Generate a one-time setup code for extension pairing.
+
+    The code expires after 15 minutes. The signing_secret is returned
+    to the extension during pairing so it can sign future capture events.
+    """
+    code = secrets.token_hex(4)  # 8 hex chars
+    signing_secret = secrets.token_urlsafe(32)
+
+    setup = SetupCode(
+        id=uuid4(),
+        group_id=data.group_id,
+        member_id=data.member_id,
+        code=code,
+        signing_secret=signing_secret,
+        expires_at=datetime.now(timezone.utc) + timedelta(minutes=15),
+        used=False,
+        device_name=data.device_name,
+        created_by=user_id,
+    )
+    db.add(setup)
+    await db.flush()
+    await db.refresh(setup)
+
+    logger.info("setup_code_created", code=code, group_id=str(data.group_id), member_id=str(data.member_id))
+    return setup
+
+
+async def exchange_setup_code(
+    db: AsyncSession,
+    code: str,
+) -> PairResponse:
+    """Exchange a setup code for pairing credentials.
+
+    Validates the code is not expired and has not been used yet.
+    Marks the code as used and creates a DeviceRegistration record.
+    """
+    result = await db.execute(
+        select(SetupCode).where(SetupCode.code == code)
+    )
+    setup = result.scalar_one_or_none()
+
+    if not setup:
+        raise NotFoundError("Setup code")
+
+    now = datetime.now(timezone.utc)
+
+    if setup.expires_at.replace(tzinfo=timezone.utc) < now:
+        raise UnauthorizedError("Setup code has expired")
+
+    if setup.used:
+        raise UnauthorizedError("Setup code has already been used")
+
+    # Mark as used
+    setup.used = True
+    setup.used_at = now
+    await db.flush()
+
+    # Create a device registration
+    device = DeviceRegistration(
+        id=uuid4(),
+        group_id=setup.group_id,
+        member_id=setup.member_id,
+        device_name=setup.device_name or "Browser Extension",
+        setup_code=setup.code,
+    )
+    db.add(device)
+    await db.flush()
+
+    logger.info("setup_code_exchanged", code=code, group_id=str(setup.group_id))
+
+    return PairResponse(
+        group_id=str(setup.group_id),
+        member_id=str(setup.member_id),
+        signing_secret=setup.signing_secret,
+    )

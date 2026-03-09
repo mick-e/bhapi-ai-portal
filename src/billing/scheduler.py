@@ -64,7 +64,9 @@ async def sync_all_accounts(db: AsyncSession) -> dict:
     """Sync spend for all active LLM accounts.
 
     Returns a summary dict with counts of synced, errored, and skipped accounts.
+    Implements exponential backoff for failed accounts.
     """
+    now = datetime.now(timezone.utc)
     result = await db.execute(
         select(LLMAccount).where(LLMAccount.status == "active")
     )
@@ -73,8 +75,27 @@ async def sync_all_accounts(db: AsyncSession) -> dict:
     summary = {"total": len(accounts), "synced": 0, "errored": 0, "skipped": 0}
 
     for account in accounts:
+        # Skip accounts in backoff period
+        # Normalize naive datetimes (SQLite) to UTC-aware for comparison
+        next_retry = account.next_retry_at
+        if next_retry and next_retry.tzinfo is None:
+            next_retry = next_retry.replace(tzinfo=timezone.utc)
+        if next_retry and next_retry > now:
+            summary["skipped"] += 1
+            logger.debug(
+                "account_sync_skipped_backoff",
+                account_id=str(account.id),
+                provider=account.provider,
+                next_retry_at=account.next_retry_at.isoformat(),
+            )
+            continue
+
         try:
             count = await sync_account(db, account)
+            # On success, clear error state
+            account.last_error = None
+            account.retry_count = 0
+            account.next_retry_at = None
             summary["synced"] += 1
             logger.info(
                 "account_synced",
@@ -84,11 +105,18 @@ async def sync_all_accounts(db: AsyncSession) -> dict:
             )
         except Exception as exc:
             summary["errored"] += 1
+            # Update error tracking with exponential backoff
+            account.last_error = str(exc)[:500]
+            account.retry_count = (account.retry_count or 0) + 1
+            backoff_minutes = min(2 ** account.retry_count, 60)
+            account.next_retry_at = now + timedelta(minutes=backoff_minutes)
             logger.error(
                 "account_sync_error",
                 account_id=str(account.id),
                 provider=account.provider,
                 error=str(exc),
+                retry_count=account.retry_count,
+                next_retry_at=account.next_retry_at.isoformat(),
             )
             # Mark account as error state for auth failures
             if isinstance(exc, AuthenticationError):

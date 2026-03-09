@@ -50,6 +50,12 @@ def get_registered_jobs() -> dict[str, JobDefinition]:
     return dict(_JOB_REGISTRY)
 
 
+async def _auto_block_check(db: AsyncSession) -> dict:
+    """Evaluate automated blocking rules."""
+    from src.blocking.service import evaluate_auto_block_rules
+    return await evaluate_auto_block_rules(db)
+
+
 def _init_registry() -> None:
     """Initialize the job registry with all known jobs. Lazy-loaded."""
     if _JOB_REGISTRY:
@@ -124,6 +130,21 @@ def _init_registry() -> None:
         "Delete expired data export files",
         "daily",
         cleanup_expired_exports,
+    )
+
+    register_job(
+        "auto_block_check",
+        "Evaluate automated blocking rules",
+        "every_5m",
+        _auto_block_check,
+    )
+
+    from src.billing.trial_reminders import send_trial_reminders
+    register_job(
+        "trial_reminders",
+        "Send trial expiry reminder emails",
+        "daily",
+        send_trial_reminders,
     )
 
 

@@ -20,6 +20,7 @@ from src.billing.schemas import (
     SubscriptionStatus,
     ThresholdConfig,
     ThresholdResponse,
+    TrialStatusResponse,
 )
 from src.billing.service import (
     connect_llm_account,
@@ -35,7 +36,7 @@ from src.billing.service import (
 )
 from src.billing.stripe_client import StripeError, handle_webhook_event, verify_webhook_signature
 from src.database import get_db
-from src.dependencies import resolve_group_id as _gid
+from src.dependencies import resolve_group_id as _gid, resolve_group_id_verified as _gid_verified
 from src.exceptions import ValidationError as BhapiValidationError
 from src.groups.models import GroupMember
 from src.schemas import GroupContext
@@ -66,8 +67,22 @@ async def get_subscription_status(
     db: AsyncSession = Depends(get_db),
 ):
     """Get current subscription status for a group."""
-    subscription = await get_subscription(db, _gid(group_id, auth))
+    subscription = await get_subscription(db, await _gid_verified(group_id, auth, db))
     return subscription
+
+
+# ─── Trial Status ────────────────────────────────────────────────────────────
+
+
+@router.get("/trial-status", response_model=TrialStatusResponse)
+async def get_trial_status_endpoint(
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get trial/subscription status for the current group."""
+    from src.billing.trial import get_trial_status
+    gid = _gid(None, auth)
+    return await get_trial_status(db, gid)
 
 
 # ─── Stripe Checkout & Portal ────────────────────────────────────────────────
@@ -179,6 +194,18 @@ async def disconnect_account(
     return account
 
 
+@router.post("/llm-accounts/{account_id}/sync")
+async def trigger_sync(
+    account_id: UUID,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Manually trigger spend sync for an LLM account."""
+    from src.billing.service import sync_spend_with_retry
+    result = await sync_spend_with_retry(db, account_id)
+    return result
+
+
 @router.post("/llm-accounts/{account_id}/revoke")
 async def revoke_account_key(
     account_id: UUID,
@@ -195,6 +222,21 @@ async def revoke_account_key(
         "provider_revoked": revoked,
         "credentials_cleared": True,
     }
+
+
+# ─── Sync Status ──────────────────────────────────────────────────────────────
+
+
+@router.get("/sync-status")
+async def get_sync_status_endpoint(
+    group_id: UUID | None = Query(None),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get LLM account sync health status."""
+    from src.billing.service import get_sync_status
+    gid = _gid(group_id, auth)
+    return await get_sync_status(db, gid)
 
 
 # ─── Spend Tracking (BFF for frontend) ────────────────────────────────────────
@@ -225,7 +267,7 @@ async def get_spend(
     db: AsyncSession = Depends(get_db),
 ):
     """Get aggregated spend summary matching frontend SpendSummary shape."""
-    gid = _gid(group_id, auth)
+    gid = await _gid_verified(group_id, auth, db)
     period_start, period_end, period_label = _period_range(period)
 
     # Total spend in period
@@ -371,7 +413,7 @@ async def get_spend_records(
     db: AsyncSession = Depends(get_db),
 ):
     """Get paginated spend records matching frontend PaginatedResponse."""
-    gid = _gid(group_id, auth)
+    gid = await _gid_verified(group_id, auth, db)
 
     # Members lookup
     members_result = await db.execute(

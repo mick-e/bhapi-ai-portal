@@ -69,6 +69,19 @@ class RateLimitError(BhapiException):
         super().__init__(message, "RATE_LIMITED", status.HTTP_429_TOO_MANY_REQUESTS)
 
 
+class TrialExpiredError(BhapiException):
+    """Free trial has expired."""
+
+    def __init__(
+        self,
+        message: str = (
+            "Your free trial has expired. Please subscribe or contact "
+            "contactus@bhapi.io for an extension."
+        ),
+    ):
+        super().__init__(message, "TRIAL_EXPIRED", status.HTTP_403_FORBIDDEN)
+
+
 async def bhapi_exception_handler(request: Request, exc: BhapiException) -> JSONResponse:
     """Handle BhapiException and return JSON response."""
     return JSONResponse(

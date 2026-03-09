@@ -81,6 +81,63 @@ class EnrichedEventResponse(BaseSchema):
     timestamp: datetime
 
 
+class ContentCaptureRequest(BaseSchema):
+    """Enhanced capture event with content."""
+
+    group_id: UUID
+    member_id: UUID
+    platform: str
+    event_type: str = "conversation"
+    content: str  # Plain text content to be encrypted
+    content_type: str = "prompt"  # prompt, response, conversation
+    metadata: dict | None = None
+
+
+class ContentCaptureResponse(BaseSchema):
+    """Content capture response."""
+
+    id: UUID
+    group_id: UUID
+    member_id: UUID
+    platform: str
+    content_type: str | None
+    enhanced_monitoring: bool
+    created_at: datetime
+
+
+class SetupCodeCreate(BaseSchema):
+    """Request to create a setup code for extension pairing."""
+
+    group_id: UUID
+    member_id: UUID
+    device_name: str | None = None
+
+
+class SetupCodeResponse(BaseSchema):
+    """Response after creating a setup code."""
+
+    id: UUID
+    code: str
+    group_id: UUID
+    member_id: UUID
+    expires_at: datetime
+    created_at: datetime
+
+
+class PairRequest(BaseSchema):
+    """Request to pair an extension using a setup code."""
+
+    setup_code: str
+
+
+class PairResponse(BaseSchema):
+    """Response after successfully pairing an extension."""
+
+    group_id: str
+    member_id: str
+    signing_secret: str
+
+
 class DeviceRegisterRequest(BaseSchema):
     """Device registration request."""
 

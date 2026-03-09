@@ -406,6 +406,77 @@ async def update_seat_count(db: AsyncSession, group_id: UUID) -> bool:
     return False
 
 
+async def get_sync_status(db: AsyncSession, group_id: UUID) -> dict:
+    """Get sync health status for all LLM accounts in a group."""
+    accounts = await list_llm_accounts(db, group_id)
+    statuses = []
+    for acc in accounts:
+        statuses.append({
+            "account_id": str(acc.id),
+            "provider": acc.provider,
+            "status": "error" if acc.last_sync_error else "healthy",
+            "last_sync_error": acc.last_sync_error,
+            "retry_count": getattr(acc, "retry_count", 0) or 0,
+            "next_retry_at": acc.next_retry_at.isoformat() if getattr(acc, "next_retry_at", None) else None,
+        })
+    healthy = sum(1 for s in statuses if s["status"] == "healthy")
+    return {
+        "group_id": str(group_id),
+        "total_accounts": len(statuses),
+        "healthy": healthy,
+        "unhealthy": len(statuses) - healthy,
+        "accounts": statuses,
+    }
+
+
+async def sync_spend_with_retry(db: AsyncSession, account_id: UUID) -> dict:
+    """Sync spend for an LLM account with exponential backoff on failure."""
+    from datetime import datetime, timedelta, timezone
+
+    result = await db.execute(select(LLMAccount).where(LLMAccount.id == account_id))
+    account = result.scalar_one_or_none()
+    if not account:
+        raise NotFoundError("LLM Account", str(account_id))
+
+    # Check if we should retry yet
+    if account.next_retry_at and account.next_retry_at > datetime.now(timezone.utc):
+        return {
+            "status": "waiting",
+            "account_id": str(account_id),
+            "next_retry_at": account.next_retry_at.isoformat(),
+            "retry_count": account.retry_count,
+        }
+
+    try:
+        # Attempt sync (provider-specific logic)
+        from src.billing.spend_sync import sync_provider_spend
+        sync_result = await sync_provider_spend(db, account)
+
+        # Success — reset retry state
+        account.last_sync_error = None
+        account.retry_count = 0
+        account.next_retry_at = None
+        await db.flush()
+
+        return {"status": "synced", "account_id": str(account_id), **sync_result}
+    except Exception as exc:
+        # Failure — exponential backoff
+        account.retry_count = (account.retry_count or 0) + 1
+        account.last_sync_error = str(exc)[:500]
+        # Backoff: 1m, 2m, 4m, 8m, 16m, 32m, max 60m
+        backoff_minutes = min(2 ** (account.retry_count - 1), 60)
+        account.next_retry_at = datetime.now(timezone.utc) + timedelta(minutes=backoff_minutes)
+        await db.flush()
+
+        return {
+            "status": "error",
+            "account_id": str(account_id),
+            "error": str(exc)[:200],
+            "retry_count": account.retry_count,
+            "next_retry_at": account.next_retry_at.isoformat(),
+        }
+
+
 async def list_thresholds(
     db: AsyncSession, group_id: UUID
 ) -> list[BudgetThreshold]:
