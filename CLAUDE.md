@@ -6,14 +6,14 @@ AI safety governance platform at **bhapi.ai** for parents, school admins, and cl
 
 **Optimizes for:** Child safety, regulatory compliance (COPPA/GDPR/LGPD), real-time alerting, data privacy.
 **Stack:** FastAPI (Python 3.11) + Next.js 15 (TypeScript) + PostgreSQL 16
-**Version:** 2.0.0 (Beta complete)
+**Version:** 2.1.0 (Post-MVP features complete)
 
 ## 2. Tech Stack
 
 **Backend:** Python 3.11, FastAPI, SQLAlchemy 2.x async (asyncpg/aiosqlite), Alembic, Pydantic v2, structlog, httpx
 **Frontend:** Next.js 15 App Router (static export), TypeScript, Tailwind CSS, React Query, Lucide icons
 **Infra:** PostgreSQL 16, Redis (optional — disabled in tests, in-memory rate limiter fallback), Stripe, SendGrid, Twilio
-**Extension:** Manifest V3 (Chrome + Firefox + Safari scaffold)
+**Extension:** Manifest V3 (Chrome + Firefox + Safari)
 
 ### Do Not Introduce
 - **No `next/image`** — breaks static export (`output: "export"`). Use plain `<img>` tags. `BhapiLogo` uses `<img>` with inline `style` fallback
@@ -28,7 +28,7 @@ AI safety governance platform at **bhapi.ai** for parents, school admins, and cl
 ## 3. Architecture
 
 ### 2-Service Model
-- **core-api:** All 15 modules served from single FastAPI app (`src/main.py`)
+- **core-api:** All 18 modules served from single FastAPI app (`src/main.py`, 154 routes)
 - **jobs:** Background cron runner for risk processing, email delivery, spend sync
 
 ### Modules
@@ -37,17 +37,19 @@ AI safety governance platform at **bhapi.ai** for parents, school admins, and cl
 | `auth/` | `/api/v1/auth` | Registration, login, password reset, email verification, API keys, contact inquiry |
 | `groups/` | `/api/v1/groups` | Groups, members, invitations, consent (COPPA/GDPR/LGPD), member cap enforcement |
 | `capture/` | `/api/v1/capture` | Event ingestion from extension/DNS/API, enriched listing, consent enforcement |
-| `risk/` | `/api/v1/risk` | PII detection, safety classification, rules engine, content excerpt encryption + TTL |
+| `risk/` | `/api/v1/risk` | PII detection, safety classification, rules engine, content excerpt encryption + TTL, safety scores, deepfake detection |
 | `alerts/` | `/api/v1/alerts` | Notifications, email delivery, digest batching, re-notification (persistent) |
-| `billing/` | `/api/v1/billing` | Stripe subscriptions/checkout/portal, per-seat pricing, LLM spend (OpenAI/Anthropic/Google/Microsoft/xAI), API key revocation |
+| `billing/` | `/api/v1/billing` | Stripe subscriptions/checkout/portal, per-seat pricing, LLM spend (OpenAI/Anthropic/Google/Microsoft/xAI), API key revocation, tiered plans, vendor risk |
 | `reporting/` | `/api/v1/reports` | Reports, PDF/CSV export, scheduling |
 | `portal/` | `/api/v1/portal` | BFF dashboard aggregation, group settings |
 | `compliance/` | `/api/v1/compliance` | GDPR/COPPA/LGPD data rights, EU AI Act transparency/appeals, COPPA certification |
-| `integrations/` | `/api/v1/integrations` | Clever + ClassLink SIS, Yoti age verification, Google Workspace + Entra SSO |
-| `blocking/` | `/api/v1/blocking` | Automated AI session blocking, block rules CRUD, extension polling |
-| `analytics/` | `/api/v1/analytics` | Trends, usage patterns, member baselines |
+| `integrations/` | `/api/v1/integrations` | Clever + ClassLink SIS, Yoti age verification, Google Workspace + Entra SSO, directory sync, auto-provisioning |
+| `blocking/` | `/api/v1/blocking` | Automated AI session blocking, block rules CRUD, extension polling, parent approval flow, DNS blocking |
+| `analytics/` | `/api/v1/analytics` | Trends, usage patterns, member baselines, anomaly detection, peer comparison |
 | `sms/` | (internal) | Twilio SMS notifications with rate limiting |
 | `email/` | (internal) | SendGrid email service, templated emails |
+| `literacy/` | `/api/v1/literacy` | AI literacy modules, quizzes, assessments, progress tracking |
+| `groups/school_router` | `/api/v1/school` | School admin: classes, class members, safeguarding reports |
 | `jobs/` | `/internal` | Background job runner, scheduled tasks |
 
 ### Module Communication Rules
@@ -79,7 +81,7 @@ All custom exceptions inherit from `src.exceptions.BhapiException`:
 
 ### Database
 - **ORM:** SQLAlchemy 2.x async (asyncpg for PostgreSQL, aiosqlite for SQLite in tests)
-- **Migrations:** Alembic (6 migrations: initial schema, content column, compound indexes, api_keys table, alert snoozed_until, beta schema changes)
+- **Migrations:** Alembic (9 migrations: initial schema, content column, compound indexes, api_keys table, alert snoozed_until, beta schema changes, block approvals, class groups, literacy tables)
 - **Mixins:** `UUIDMixin` (UUID PK), `TimestampMixin` (`created_at` + `updated_at`), `SoftDeleteMixin` (`deleted_at` with auto-filtering)
 - Content excerpts stored encrypted via `encrypt_credential()`, decrypted on read. TTL cleanup job runs daily.
 
@@ -128,10 +130,10 @@ All custom exceptions inherit from `src.exceptions.BhapiException`:
 
 ### Commands
 ```bash
-pytest tests/ -v              # All backend (710 tests)
-pytest tests/e2e/ -v          # E2E (371 tests, in-memory SQLite, no keys needed)
-pytest tests/unit/ -v          # Unit tests
-pytest tests/security/ -v     # Security (66 tests)
+pytest tests/ -v              # All backend (1053 tests)
+pytest tests/e2e/ -v          # E2E (556 tests, in-memory SQLite, no keys needed)
+pytest tests/unit/ -v          # Unit tests (348 tests)
+pytest tests/security/ -v     # Security (149 tests)
 cd portal && npx vitest run   # Frontend (59+ tests)
 cd portal && npx tsc --noEmit # Type check (MUST run separately)
 ```
@@ -230,6 +232,8 @@ alembic revision --autogenerate -m "desc"     # Create new
 | `CLASSLINK_CLIENT_SECRET` | ClassLink OneRoster client secret | Production |
 | `YOTI_CLIENT_SDK_ID` | Yoti age verification SDK ID | Production |
 | `YOTI_PEM_FILE_PATH` | Path to Yoti PEM key file | Production |
+| `DEEPFAKE_PROVIDER` | Deepfake detection provider (hive/sensity) | No |
+| `DEEPFAKE_API_KEY` | API key for deepfake detection service | No |
 
 ### Compound Indexes (migration 003)
 - `alerts(group_id, severity, created_at)` — severity-filtered alert listings
