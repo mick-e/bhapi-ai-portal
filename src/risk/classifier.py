@@ -36,16 +36,22 @@ KEYWORD_PATTERNS = {
             r"\b(drugs?|cocaine|heroin|meth)\s+(?:buy|sell|make|cook)\b",
             r"\b(hack|exploit|breach)\s+(?:into|password|account)\b",
             r"\b(bully|harass|threaten)\b",
+            r"\b(deepfake|deep\s*fake|face\s*swap|undress\s*ai|nudify|deepnude)\b",
+            r"\b(synthetic\s*media|face\s*morph|ai[- ]generated\s*(?:image|video|photo))\b",
         ],
-        "categories": ["safety", "policy_violation"],
+        "categories": ["safety", "policy_violation", "DEEPFAKE_CONTENT"],
     },
     "medium": {
         "patterns": [
             r"\b(porn|explicit|nsfw|xxx)\b",
             r"\b(cheat|plagiari[sz]e|homework\s+for\s+me)\b",
             r"\b(fake\s+id|fake\s+identity)\b",
+            r"\b(i\s+love\s+you|you'?re\s+my\s+only\s+friend|don'?t\s+leave\s+me)\b",
+            r"\b(i\s+need\s+you|you\s+understand\s+me\s+better\s+than\s+anyone)\b",
+            r"\b(i\s+can'?t\s+live\s+without\s+you|i\s+wish\s+you\s+were\s+real)\b",
+            r"\b(you'?re\s+my\s+best\s+friend|please\s+don'?t\s+go)\b",
         ],
-        "categories": ["inappropriate_content", "academic_integrity"],
+        "categories": ["inappropriate_content", "academic_integrity", "EMOTIONAL_DEPENDENCY"],
     },
 }
 

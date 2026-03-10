@@ -1,5 +1,6 @@
 """Analytics service — trend analysis, usage patterns, member baselines."""
 
+import math
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
@@ -162,3 +163,169 @@ async def get_member_baselines(db: AsyncSession, group_id: UUID, days: int = 30)
         })
 
     return baselines
+
+
+async def detect_anomalies(
+    db: AsyncSession, group_id: UUID, threshold_sd: float = 2.0
+) -> dict:
+    """Detect members with usage >threshold_sd standard deviations from baseline.
+
+    Compares a recent 7-day window against a 30-day baseline to find anomalous
+    usage spikes or drops.
+
+    Returns dict with group_id, threshold_sd, and list of anomalies.
+    """
+    now = datetime.now(timezone.utc)
+    baseline_start = now - timedelta(days=30)
+    recent_start = now - timedelta(days=7)
+
+    members_result = await db.execute(
+        select(GroupMember).where(GroupMember.group_id == group_id)
+    )
+    members = list(members_result.scalars().all())
+
+    anomalies = []
+    for member in members:
+        # Get daily counts for the baseline period (30 days)
+        daily_result = await db.execute(
+            select(
+                func.date(CaptureEvent.timestamp).label("day"),
+                func.count(CaptureEvent.id).label("count"),
+            ).where(
+                CaptureEvent.group_id == group_id,
+                CaptureEvent.member_id == member.id,
+                CaptureEvent.timestamp >= baseline_start,
+            ).group_by(func.date(CaptureEvent.timestamp))
+        )
+        daily_rows = daily_result.all()
+        daily_counts = [int(row[1]) for row in daily_rows]
+
+        # Need at least a few data points for meaningful statistics
+        if len(daily_counts) < 3:
+            continue
+
+        baseline_mean = sum(daily_counts) / len(daily_counts)
+        variance = sum((c - baseline_mean) ** 2 for c in daily_counts) / len(daily_counts)
+        baseline_sd = math.sqrt(variance)
+
+        if baseline_sd == 0:
+            # No variance — skip unless there are no events at all
+            continue
+
+        # Recent 7-day average
+        recent_result = await db.execute(
+            select(func.count(CaptureEvent.id)).where(
+                CaptureEvent.group_id == group_id,
+                CaptureEvent.member_id == member.id,
+                CaptureEvent.timestamp >= recent_start,
+            )
+        )
+        recent_total = recent_result.scalar() or 0
+        recent_daily_avg = recent_total / 7.0
+
+        # How many SDs from baseline?
+        deviation = (recent_daily_avg - baseline_mean) / baseline_sd
+        abs_deviation = abs(deviation)
+
+        if abs_deviation >= threshold_sd:
+            direction = "above" if deviation > 0 else "below"
+            severity = "critical" if abs_deviation >= threshold_sd * 1.5 else "warning"
+
+            anomalies.append({
+                "member_id": str(member.id),
+                "member_name": member.display_name,
+                "recent_daily_avg": round(recent_daily_avg, 2),
+                "baseline_daily_avg": round(baseline_mean, 2),
+                "standard_deviations": round(abs_deviation, 2),
+                "direction": direction,
+                "severity": severity,
+            })
+
+    logger.info(
+        "anomaly_detection_complete",
+        group_id=str(group_id),
+        anomaly_count=len(anomalies),
+    )
+
+    return {
+        "group_id": str(group_id),
+        "threshold_sd": threshold_sd,
+        "anomalies": anomalies,
+    }
+
+
+async def get_peer_comparison(
+    db: AsyncSession, group_id: UUID, days: int = 30
+) -> dict:
+    """Get percentile ranks for each member within their group.
+
+    Returns dict with group_id, period_days, and list of member comparisons
+    including event_count, percentile, and usage_level classification.
+    """
+    now = datetime.now(timezone.utc)
+    start = now - timedelta(days=days)
+
+    members_result = await db.execute(
+        select(GroupMember).where(GroupMember.group_id == group_id)
+    )
+    members = list(members_result.scalars().all())
+
+    if not members:
+        return {
+            "group_id": str(group_id),
+            "period_days": days,
+            "members": [],
+        }
+
+    # Get event counts per member
+    member_counts: list[tuple[str, str, int]] = []
+    for member in members:
+        count_result = await db.execute(
+            select(func.count(CaptureEvent.id)).where(
+                CaptureEvent.group_id == group_id,
+                CaptureEvent.member_id == member.id,
+                CaptureEvent.timestamp >= start,
+            )
+        )
+        count = count_result.scalar() or 0
+        member_counts.append((str(member.id), member.display_name, count))
+
+    # Sort by count to calculate percentiles
+    sorted_counts = sorted([c for _, _, c in member_counts])
+    total_members = len(sorted_counts)
+
+    def calc_percentile(value: int) -> float:
+        """Calculate percentile rank using the 'less than' method."""
+        if total_members <= 1:
+            return 50.0
+        below = sum(1 for c in sorted_counts if c < value)
+        return round((below / total_members) * 100, 1)
+
+    def classify_usage(percentile: float) -> str:
+        if percentile >= 90:
+            return "very_high"
+        elif percentile >= 60:
+            return "high"
+        elif percentile >= 30:
+            return "moderate"
+        return "low"
+
+    comparison = []
+    for member_id, member_name, event_count in member_counts:
+        percentile = calc_percentile(event_count)
+        comparison.append({
+            "member_id": member_id,
+            "member_name": member_name,
+            "event_count": event_count,
+            "percentile": percentile,
+            "usage_level": classify_usage(percentile),
+        })
+
+    # Sort by percentile descending for display
+    comparison.sort(key=lambda x: x["percentile"], reverse=True)
+
+    return {
+        "group_id": str(group_id),
+        "period_days": days,
+        "members": comparison,
+    }

@@ -12,6 +12,8 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
+  Shield,
+  Users,
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -22,6 +24,9 @@ import {
   useConnectSIS,
   useSyncConnection,
   useDisconnectSIS,
+  useSSOConfigs,
+  useUpdateSSOConfig,
+  useTriggerDirectorySync,
 } from "@/hooks/use-integrations";
 import { useToast } from "@/contexts/ToastContext";
 
@@ -50,6 +55,10 @@ export default function IntegrationsPage() {
     refetch,
   } = useConnections(groupId);
 
+  const { data: ssoConfigs } = useSSOConfigs(groupId);
+  const updateSSOConfig = useUpdateSSOConfig();
+  const triggerDirectorySync = useTriggerDirectorySync();
+
   const connectSIS = useConnectSIS();
   const syncConnection = useSyncConnection();
   const disconnectSIS = useDisconnectSIS();
@@ -58,6 +67,42 @@ export default function IntegrationsPage() {
   const [provider, setProvider] = useState("clever");
   const [accessToken, setAccessToken] = useState("");
   const [confirmDisconnect, setConfirmDisconnect] = useState<string | null>(null);
+
+  function handleToggleAutoProvision(configId: string, currentValue: boolean) {
+    if (!groupId) return;
+    updateSSOConfig.mutate(
+      {
+        configId,
+        groupId,
+        data: { auto_provision_members: !currentValue },
+      },
+      {
+        onSuccess: () =>
+          addToast(
+            `Auto-provisioning ${!currentValue ? "enabled" : "disabled"}`,
+            "success"
+          ),
+        onError: (err) =>
+          addToast((err as Error).message || "Failed to update SSO config", "error"),
+      }
+    );
+  }
+
+  function handleDirectorySync(configId: string) {
+    if (!groupId) return;
+    triggerDirectorySync.mutate(
+      { configId, groupId },
+      {
+        onSuccess: (data) =>
+          addToast(
+            `Directory sync complete: ${data.synced} synced, ${data.skipped} skipped`,
+            "success"
+          ),
+        onError: (err) =>
+          addToast((err as Error).message || "Directory sync failed", "error"),
+      }
+    );
+  }
 
   function handleConnect() {
     if (!groupId || !accessToken.trim()) return;
@@ -316,6 +361,109 @@ export default function IntegrationsPage() {
             </Card>
           );
         })}
+      </div>
+
+      {/* SSO Configuration */}
+      <div className="mt-10">
+        <div className="mb-4">
+          <h2 className="text-lg font-bold text-gray-900">
+            Single Sign-On (SSO)
+          </h2>
+          <p className="mt-1 text-sm text-gray-500">
+            Manage SSO configurations and automatic member provisioning
+          </p>
+        </div>
+
+        {(!ssoConfigs || ssoConfigs.length === 0) ? (
+          <Card>
+            <div className="py-12 text-center">
+              <Shield className="mx-auto h-12 w-12 text-gray-300" />
+              <p className="mt-4 text-sm text-gray-500">
+                No SSO providers configured
+              </p>
+              <p className="mt-1 text-xs text-gray-400">
+                Set up Google Workspace or Microsoft Entra SSO to enable
+                automatic member provisioning
+              </p>
+            </div>
+          </Card>
+        ) : (
+          <div className="space-y-4">
+            {ssoConfigs.map((config) => {
+              const providerLabel =
+                config.provider === "google_workspace"
+                  ? "Google Workspace"
+                  : "Microsoft Entra";
+              return (
+                <Card key={config.id}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-50">
+                        <Shield className="h-5 w-5 text-teal-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900">
+                          {providerLabel}
+                        </p>
+                        <div className="mt-0.5 flex items-center gap-3 text-xs text-gray-500">
+                          {config.tenant_id && (
+                            <span>Domain: {config.tenant_id}</span>
+                          )}
+                          <span className="flex items-center gap-1">
+                            <Users className="h-3 w-3" />
+                            Auto-provision:{" "}
+                            {config.auto_provision_members ? "On" : "Off"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={config.auto_provision_members}
+                        aria-label={`Toggle auto-provisioning for ${providerLabel}`}
+                        onClick={() =>
+                          handleToggleAutoProvision(
+                            config.id,
+                            config.auto_provision_members
+                          )
+                        }
+                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+                          config.auto_provision_members
+                            ? "bg-teal-500"
+                            : "bg-gray-200"
+                        }`}
+                      >
+                        <span
+                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                            config.auto_provision_members
+                              ? "translate-x-5"
+                              : "translate-x-0"
+                          }`}
+                        />
+                      </button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleDirectorySync(config.id)}
+                        isLoading={
+                          triggerDirectorySync.isPending &&
+                          triggerDirectorySync.variables?.configId === config.id
+                        }
+                        aria-label={`Sync directory for ${providerLabel}`}
+                      >
+                        <RotateCw className="h-4 w-4" />
+                        Sync Directory
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

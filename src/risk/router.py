@@ -12,11 +12,21 @@ from src.dependencies import require_active_trial_or_subscription, resolve_group
 from src.exceptions import ValidationError
 from src.groups.models import GroupMember
 from src.risk.schemas import (
+    GroupScoreResponse,
+    MemberScoreItem,
     RiskConfigResponse,
     RiskConfigUpdate,
     RiskEventAcknowledge,
     RiskEventListResponse,
     RiskEventResponse,
+    SafetyScoreResponse,
+    ScoreHistoryEntry,
+    ScoreHistoryResponse,
+)
+from src.risk.score import (
+    calculate_group_score,
+    calculate_member_score,
+    get_score_history,
 )
 from src.risk.service import (
     acknowledge_risk_event,
@@ -151,3 +161,73 @@ async def update_config(
     """Update risk configuration for a specific category."""
     config = await update_risk_config(db, _gid(group_id, auth), category, data)
     return risk_config_to_response(config)
+
+
+# ---------------------------------------------------------------------------
+# Safety score endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.get("/score", response_model=SafetyScoreResponse)
+async def get_member_score(
+    group_id: UUID | None = Query(None, description="Group ID"),
+    member_id: UUID = Query(..., description="Member ID"),
+    days: int = Query(30, ge=1, le=365, description="Lookback period in days"),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get the safety score for a single member."""
+    result = await calculate_member_score(db, _gid(group_id, auth), member_id, days)
+    return SafetyScoreResponse(
+        score=result.score,
+        trend=result.trend,
+        top_categories=result.top_categories,
+        risk_count_by_severity=result.risk_count_by_severity,
+        member_id=result.member_id,
+        group_id=result.group_id,
+    )
+
+
+@router.get("/score/group", response_model=GroupScoreResponse)
+async def get_group_score(
+    group_id: UUID | None = Query(None, description="Group ID"),
+    days: int = Query(30, ge=1, le=365, description="Lookback period in days"),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get the aggregate safety score for a group."""
+    result = await calculate_group_score(db, _gid(group_id, auth), days)
+    return GroupScoreResponse(
+        average_score=result.average_score,
+        group_id=result.group_id,
+        member_scores=[
+            MemberScoreItem(
+                member_id=ms.member_id,
+                score=ms.score,
+                trend=ms.trend,
+            )
+            for ms in result.member_scores
+        ],
+    )
+
+
+@router.get("/score/history", response_model=ScoreHistoryResponse)
+async def get_member_score_history(
+    group_id: UUID | None = Query(None, description="Group ID"),
+    member_id: UUID = Query(..., description="Member ID"),
+    days: int = Query(30, ge=1, le=365, description="Number of days of history"),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get daily score history for a member over N days."""
+    gid = _gid(group_id, auth)
+    entries = await get_score_history(db, gid, member_id, days)
+    return ScoreHistoryResponse(
+        member_id=member_id,
+        group_id=gid,
+        days=days,
+        history=[
+            ScoreHistoryEntry(date=e.date, score=e.score)
+            for e in entries
+        ],
+    )

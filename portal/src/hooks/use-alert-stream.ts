@@ -20,7 +20,7 @@ export function useAlertStream({ groupId, enabled = true, onAlert }: UseAlertStr
   const [connected, setConnected] = useState(false);
   const [lastEvent, setLastEvent] = useState<AlertEvent | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
-  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const connect = useCallback(() => {
     if (!groupId || !enabled) return;

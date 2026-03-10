@@ -295,6 +295,7 @@ export interface UpdateGroupSettingsRequest {
   notifications?: Partial<NotificationPreferences>;
   monthly_budget_usd?: number;
   sms_enabled?: boolean;
+  digest_mode?: string;
 }
 
 export interface UpdateProfileRequest {
@@ -445,6 +446,26 @@ export interface BlockStatus {
   rules: BlockRule[];
 }
 
+export interface BlockApproval {
+  id: string;
+  group_id: string;
+  block_rule_id: string;
+  member_id: string;
+  reason: string;
+  status: string;
+  decided_by: string | null;
+  decided_at: string | null;
+  decision_note: string | null;
+  created_at: string;
+}
+
+export interface BlockEffectiveness {
+  total_rules: number;
+  blocked_count: number;
+  total_events: number;
+  block_rate_pct: number;
+}
+
 // ─── Analytics ─────────────────────────────────────────────────────────────
 
 export interface TrendData {
@@ -476,6 +497,36 @@ export interface MemberBaseline {
   avg_daily: number;
 }
 
+export interface AnomalyItem {
+  member_id: string;
+  member_name: string;
+  recent_daily_avg: number;
+  baseline_daily_avg: number;
+  standard_deviations: number;
+  direction: "above" | "below";
+  severity: "warning" | "critical";
+}
+
+export interface AnomalyResponse {
+  group_id: string;
+  threshold_sd: number;
+  anomalies: AnomalyItem[];
+}
+
+export interface PeerComparisonItem {
+  member_id: string;
+  member_name: string;
+  event_count: number;
+  percentile: number;
+  usage_level: "low" | "moderate" | "high" | "very_high";
+}
+
+export interface PeerComparisonResponse {
+  group_id: string;
+  period_days: number;
+  members: PeerComparisonItem[];
+}
+
 // ─── Integrations ──────────────────────────────────────────────────────────
 
 export interface SISConnection {
@@ -484,6 +535,15 @@ export interface SISConnection {
   provider: string;
   status: string;
   last_synced: string | null;
+  created_at: string;
+}
+
+export interface SSOConfig {
+  id: string;
+  group_id: string;
+  provider: string;
+  tenant_id: string | null;
+  auto_provision_members: boolean;
   created_at: string;
 }
 

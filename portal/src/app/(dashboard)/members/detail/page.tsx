@@ -3,6 +3,7 @@
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
   Activity,
@@ -22,7 +23,7 @@ import { useRiskEvents } from "@/hooks/use-alerts";
 import { useSpendRecords } from "@/hooks/use-spend";
 import { useBlockCheck, useCreateBlockRule, useRevokeBlockRule } from "@/hooks/use-blocking";
 import { useAuth } from "@/hooks/use-auth";
-import { integrationsApi } from "@/lib/api-client";
+import { apiFetch, integrationsApi } from "@/lib/api-client";
 import { useToast } from "@/contexts/ToastContext";
 
 export default function MemberDetailPage() {
@@ -61,6 +62,21 @@ function MemberDetailContent() {
   const { data: spendData } = useSpendRecords({
     member_id: memberId,
     page_size: 5,
+  });
+
+  const { data: safetyScore } = useQuery<{
+    score: number;
+    trend: string;
+    top_categories: string[];
+    risk_count_by_severity: Record<string, number>;
+    member_id: string;
+    group_id: string;
+  }>({
+    queryKey: ["safety-score", "member", memberId],
+    queryFn: () =>
+      apiFetch(`/api/v1/risk/score?member_id=${memberId}`),
+    enabled: !!memberId,
+    refetchInterval: 60_000,
   });
 
   const { data: blockStatus } = useBlockCheck(groupId || null, memberId);
@@ -162,6 +178,56 @@ function MemberDetailContent() {
         <StatCard icon={<CreditCard className="h-5 w-5 text-accent" />} label="Total Spend" value={`$${totalSpend.toFixed(2)}`} />
         <StatCard icon={<Clock className="h-5 w-5 text-gray-500" />} label="Last Active" value={member.last_active ? formatRelativeTime(member.last_active) : "Never"} />
       </div>
+
+      {/* Safety Score Gauge */}
+      {safetyScore && (
+        <div className="mb-8">
+          <Card title="Safety Score">
+            <div className="flex items-center gap-8">
+              <CircularScoreGauge score={safetyScore.score} />
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-gray-700">Trend:</span>
+                  <span className={`text-sm font-semibold ${
+                    safetyScore.trend === "improving"
+                      ? "text-green-600"
+                      : safetyScore.trend === "declining"
+                        ? "text-red-600"
+                        : "text-gray-500"
+                  }`}>
+                    {safetyScore.trend.charAt(0).toUpperCase() + safetyScore.trend.slice(1)}
+                  </span>
+                </div>
+                {safetyScore.top_categories.length > 0 && (
+                  <div className="mt-3">
+                    <p className="text-xs font-medium text-gray-500">Top risk categories</p>
+                    <div className="mt-1 flex flex-wrap gap-1.5">
+                      {safetyScore.top_categories.map((cat) => (
+                        <span
+                          key={cat}
+                          className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600"
+                        >
+                          {cat.replace(/_/g, " ")}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <div className="mt-3 grid grid-cols-4 gap-2">
+                  {(["critical", "high", "medium", "low"] as const).map((sev) => (
+                    <div key={sev} className="text-center">
+                      <p className="text-lg font-bold text-gray-900">
+                        {safetyScore.risk_count_by_severity[sev] ?? 0}
+                      </p>
+                      <p className="text-xs capitalize text-gray-500">{sev}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
 
       {/* Age Verification & Blocking Controls */}
       <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -333,6 +399,68 @@ function MemberDetailContent() {
           )}
         </Card>
       </div>
+    </div>
+  );
+}
+
+function CircularScoreGauge({ score }: { score: number }) {
+  const radius = 50;
+  const stroke = 8;
+  const normalizedRadius = radius - stroke / 2;
+  const circumference = 2 * Math.PI * normalizedRadius;
+  const progress = Math.max(0, Math.min(100, score));
+  const strokeDashoffset = circumference - (progress / 100) * circumference;
+
+  const color =
+    score >= 80 ? "#16a34a" : score >= 50 ? "#d97706" : "#dc2626";
+  const bgLabel =
+    score >= 80 ? "Safe" : score >= 50 ? "Caution" : "At Risk";
+
+  return (
+    <div className="relative flex flex-shrink-0 flex-col items-center">
+      <svg width={radius * 2} height={radius * 2}>
+        <circle
+          cx={radius}
+          cy={radius}
+          r={normalizedRadius}
+          fill="none"
+          stroke="#e5e7eb"
+          strokeWidth={stroke}
+        />
+        <circle
+          cx={radius}
+          cy={radius}
+          r={normalizedRadius}
+          fill="none"
+          stroke={color}
+          strokeWidth={stroke}
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+          transform={`rotate(-90 ${radius} ${radius})`}
+          style={{ transition: "stroke-dashoffset 0.5s ease" }}
+        />
+        <text
+          x={radius}
+          y={radius - 6}
+          textAnchor="middle"
+          dominantBaseline="central"
+          className="text-2xl font-bold"
+          fill={color}
+        >
+          {score.toFixed(0)}
+        </text>
+        <text
+          x={radius}
+          y={radius + 14}
+          textAnchor="middle"
+          dominantBaseline="central"
+          className="text-xs"
+          fill="#6b7280"
+        >
+          {bgLabel}
+        </text>
+      </svg>
     </div>
   );
 }

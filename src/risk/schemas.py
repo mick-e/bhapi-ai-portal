@@ -80,3 +80,58 @@ class ContentExcerptResponse(BaseSchema):
     encryption_key_id: str | None
     expires_at: datetime
     created_at: datetime
+
+
+# ---------------------------------------------------------------------------
+# Safety score schemas
+# ---------------------------------------------------------------------------
+
+
+class SafetyScoreResponse(BaseSchema):
+    """Safety score for a single member."""
+
+    score: float = Field(ge=0, le=100, description="Safety score 0-100 (100 = safest)")
+    trend: str = Field(
+        pattern="^(improving|declining|stable)$",
+        description="Score trend direction",
+    )
+    top_categories: list[str] = Field(description="Most frequent risk categories")
+    risk_count_by_severity: dict[str, int] = Field(
+        description="Risk event counts by severity level"
+    )
+    member_id: UUID
+    group_id: UUID
+
+
+class MemberScoreItem(BaseSchema):
+    """Individual member score within a group score response."""
+
+    member_id: UUID
+    score: float = Field(ge=0, le=100)
+    trend: str
+
+
+class GroupScoreResponse(BaseSchema):
+    """Aggregate safety score for a group."""
+
+    average_score: float = Field(ge=0, le=100, description="Average safety score")
+    group_id: UUID
+    member_scores: list[MemberScoreItem] = Field(
+        description="Individual member scores"
+    )
+
+
+class ScoreHistoryEntry(BaseSchema):
+    """A single day's score in the history."""
+
+    date: str = Field(description="Date in YYYY-MM-DD format")
+    score: float = Field(ge=0, le=100, description="Safety score for this day")
+
+
+class ScoreHistoryResponse(BaseSchema):
+    """Daily score history over a time period."""
+
+    member_id: UUID
+    group_id: UUID
+    days: int
+    history: list[ScoreHistoryEntry]

@@ -69,6 +69,12 @@ async def process_event(
     pii_classifications = await _layer_pii_detection(content, config)
     all_classifications.extend(pii_classifications)
 
+    # --- Layer 1.5: Deepfake Detection ---
+    media_urls = capture_event_data.get("media_urls", [])
+    if media_urls:
+        deepfake_classifications = await _layer_deepfake_detection(media_urls)
+        all_classifications.extend(deepfake_classifications)
+
     # --- Layer 2: Safety Classification ---
     safety_classifications = await _layer_safety_classification(content)
     all_classifications.extend(safety_classifications)
@@ -80,10 +86,12 @@ async def process_event(
     # --- Layer 4: Merge, De-duplicate, Emit ---
     merged = _merge_classifications(all_classifications)
 
+    deepfake_count = len(media_urls) if media_urls else 0
     logger.info(
         "risk_pipeline_complete",
         content_length=len(content),
         pii_count=len(pii_classifications),
+        deepfake_urls=deepfake_count,
         safety_count=len(safety_classifications),
         rules_count=len(rules_classifications),
         final_count=len(merged),
@@ -123,6 +131,36 @@ async def _layer_pii_detection(
             reasoning=f"Detected PII: {', '.join(sorted(entity_types))} ({len(entities)} instance(s))",
         )
     ]
+
+
+async def _layer_deepfake_detection(
+    media_urls: list[str],
+) -> list[RiskClassification]:
+    """Layer 1.5: Analyse media URLs for deepfake content."""
+    import os
+
+    if not os.getenv("DEEPFAKE_API_KEY"):
+        return []
+
+    try:
+        from src.risk.deepfake_detector import analyze_media
+
+        classifications = []
+        for url in media_urls[:5]:  # Limit to 5 URLs per event
+            result = await analyze_media(url)
+            if result.is_deepfake:
+                classifications.append(
+                    RiskClassification(
+                        category="DEEPFAKE_CONTENT",
+                        severity="high",
+                        confidence=round(result.confidence, 3),
+                        reasoning=f"Deepfake detected by {result.provider} (confidence: {result.confidence:.1%})",
+                    )
+                )
+        return classifications
+    except Exception as exc:
+        logger.error("deepfake_detection_error", error=str(exc))
+        return []
 
 
 async def _layer_safety_classification(

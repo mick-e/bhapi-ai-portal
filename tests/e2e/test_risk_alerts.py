@@ -370,8 +370,8 @@ async def test_get_risk_config_defaults(risk_client):
     )
     assert resp.status_code == 200
     configs = resp.json()
-    # Should have a config for each of the 12 risk categories
-    assert len(configs) == 12
+    # Should have a config for each of the 14 risk categories
+    assert len(configs) == 14
     categories = {c["category"] for c in configs}
     assert "SELF_HARM" in categories
     assert "VIOLENCE" in categories

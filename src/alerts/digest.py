@@ -3,6 +3,7 @@
 Digest modes:
 - hourly: Collects alerts from the past hour, sends to users with hourly preference
 - daily: Collects alerts from the past 24 hours, sends to users with daily preference
+- weekly: Collects alerts from the past 7 days, sends to users with weekly preference
 
 Each user receives a single digest email per window, grouped by severity then category.
 """
@@ -41,6 +42,16 @@ async def run_daily_digest(db: AsyncSession) -> int:
     now = datetime.now(timezone.utc)
     window_start = now - timedelta(hours=24)
     return await _run_digest(db, window_start, now, "daily")
+
+
+async def run_weekly_digest(db: AsyncSession) -> int:
+    """Collect and send weekly digest emails.
+
+    Returns the number of digest emails sent.
+    """
+    now = datetime.now(timezone.utc)
+    window_start = now - timedelta(days=7)
+    return await _run_digest(db, window_start, now, "weekly")
 
 
 async def _run_digest(

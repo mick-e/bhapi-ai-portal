@@ -6,11 +6,21 @@ from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.middleware import get_current_user
+from src.blocking.approval import (
+    approve_unblock,
+    deny_unblock,
+    list_pending_approvals,
+    request_unblock,
+)
 from src.blocking.schemas import (
     AutoBlockRuleCreate,
     AutoBlockRuleRequest,
     AutoBlockRuleResponse,
     AutoBlockRuleUpdate,
+    BlockApprovalDecision,
+    BlockApprovalRequest,
+    BlockApprovalResponse,
+    BlockEffectivenessResponse,
     BlockRuleCreate,
     BlockRuleResponse,
     BlockStatus,
@@ -22,6 +32,7 @@ from src.blocking.service import (
     delete_auto_block_rule,
     evaluate_group_auto_block_rules,
     get_active_blocks,
+    get_block_effectiveness,
     list_active_auto_block_rules,
     list_active_rules,
     list_auto_block_rules,
@@ -144,3 +155,74 @@ async def evaluate_rules(
     """Evaluate all auto-blocking rules for a group."""
     triggered = await evaluate_group_auto_block_rules(db, group_id)
     return {"triggered_rules": triggered, "count": len(triggered)}
+
+
+# --- Approval workflow endpoints ---
+
+
+@router.post("/approval-request", response_model=BlockApprovalResponse, status_code=201)
+async def create_approval_request(
+    data: BlockApprovalRequest,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Submit an unblock request for approval."""
+    return await request_unblock(
+        db,
+        group_id=data.group_id,
+        block_rule_id=data.block_rule_id,
+        member_id=data.member_id,
+        reason=data.reason,
+    )
+
+
+@router.post("/approve/{approval_id}", response_model=BlockApprovalResponse)
+async def approve_request(
+    approval_id: UUID,
+    data: BlockApprovalDecision,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Approve an unblock request."""
+    return await approve_unblock(
+        db,
+        approval_id=approval_id,
+        decided_by=auth.user_id,
+        decision_note=data.decision_note,
+    )
+
+
+@router.post("/deny/{approval_id}", response_model=BlockApprovalResponse)
+async def deny_request(
+    approval_id: UUID,
+    data: BlockApprovalDecision,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Deny an unblock request."""
+    return await deny_unblock(
+        db,
+        approval_id=approval_id,
+        decided_by=auth.user_id,
+        decision_note=data.decision_note,
+    )
+
+
+@router.get("/pending-approvals", response_model=list[BlockApprovalResponse])
+async def get_pending_approvals(
+    group_id: UUID = Query(...),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List pending unblock requests for a group."""
+    return await list_pending_approvals(db, group_id)
+
+
+@router.get("/effectiveness", response_model=BlockEffectivenessResponse)
+async def get_effectiveness(
+    group_id: UUID = Query(...),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get blocking effectiveness metrics for a group."""
+    return await get_block_effectiveness(db, group_id)

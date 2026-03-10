@@ -82,6 +82,41 @@ class AutoBlockRuleResponse(BaseSchema):
     created_at: datetime
 
 
+class BlockApprovalRequest(BaseSchema):
+    """Request to unblock a member."""
+    group_id: UUID
+    block_rule_id: UUID
+    member_id: UUID
+    reason: str
+
+
+class BlockApprovalDecision(BaseSchema):
+    """Decision on an unblock request."""
+    decision_note: str | None = None
+
+
+class BlockApprovalResponse(BaseSchema):
+    """Response for a block approval."""
+    id: UUID
+    group_id: UUID
+    block_rule_id: UUID
+    member_id: UUID
+    reason: str
+    status: str
+    decided_by: UUID | None = None
+    decided_at: datetime | None = None
+    decision_note: str | None = None
+    created_at: datetime
+
+
+class BlockEffectivenessResponse(BaseSchema):
+    """Block effectiveness metrics."""
+    total_rules: int
+    blocked_count: int
+    total_events: int
+    block_rate_pct: float
+
+
 class AutoBlockRuleUpdate(BaseSchema):
     name: str | None = None
     trigger_type: Literal["risk_event_count", "spend_threshold", "time_of_day"] | None = None

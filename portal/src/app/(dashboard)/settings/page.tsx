@@ -282,6 +282,7 @@ function NotificationsTab({
   const [prefs, setPrefs] = useState<NotificationPreferences>(notifications);
   const [smsEnabled, setSmsEnabled] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [digestFrequency, setDigestFrequency] = useState("daily");
   const updateSettings = useUpdateGroupSettings();
   const updateProfile = useUpdateProfile();
   const { addToast } = useToast();
@@ -296,7 +297,7 @@ function NotificationsTab({
 
   function handleSave() {
     updateSettings.mutate(
-      { notifications: prefs, sms_enabled: smsEnabled },
+      { notifications: prefs, sms_enabled: smsEnabled, digest_mode: digestFrequency },
       {
         onSuccess: () => addToast("Notification preferences saved", "success"),
         onError: (err) => addToast((err as Error).message || "Failed to save preferences", "error"),
@@ -310,6 +311,27 @@ function NotificationsTab({
   return (
     <Card title="Notifications" description="Choose what alerts you receive">
       <div className="max-w-lg space-y-6">
+        {/* Digest Frequency Selector */}
+        <div>
+          <label htmlFor="digest-frequency" className="mb-1.5 block text-sm font-medium text-gray-700">
+            Digest frequency
+          </label>
+          <select
+            id="digest-frequency"
+            value={digestFrequency}
+            onChange={(e) => setDigestFrequency(e.target.value)}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+          >
+            <option value="immediate">Immediate (real-time alerts)</option>
+            <option value="hourly">Hourly digest</option>
+            <option value="daily">Daily digest</option>
+            <option value="weekly">Weekly digest</option>
+          </select>
+          <p className="mt-1.5 text-xs text-gray-500">
+            Choose how often you receive batched alert summaries by email.
+          </p>
+        </div>
+
         <NotificationToggle
           label="Critical safety alerts"
           description="Immediate notification for blocked or dangerous content"
@@ -478,6 +500,7 @@ function SafetyTab({
 
 function BillingTab({ plan }: { plan: string }) {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
+  const [showPlans, setShowPlans] = useState(false);
   const checkout = useCreateCheckout();
   const portal = useBillingPortal();
   const { data: trial } = useTrialStatus();
@@ -678,6 +701,99 @@ function BillingTab({ plan }: { plan: string }) {
               Open Billing Portal
             </Button>
           </div>
+        )}
+
+        {/* Plan Comparison */}
+        <div className="rounded-lg border border-gray-200 bg-white p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-semibold text-gray-900">
+              Compare Plans
+            </h4>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowPlans(!showPlans)}
+            >
+              {showPlans ? "Hide" : "Show"} Details
+            </Button>
+          </div>
+          {showPlans && (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              {/* Family */}
+              <div className={`rounded-lg border p-4 ${plan === "family" ? "border-primary bg-primary-50" : "border-gray-200"}`}>
+                <h5 className="text-sm font-bold text-gray-900">Family</h5>
+                <p className="mt-1 text-2xl font-bold text-gray-900">
+                  {billingCycle === "monthly" ? "$9.99" : "$99.99"}
+                </p>
+                <p className="text-xs text-gray-500">{billingCycle === "monthly" ? "/month" : "/year"}</p>
+                {plan === "family" && (
+                  <span className="mt-2 inline-block rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-white">
+                    Current Plan
+                  </span>
+                )}
+                <ul className="mt-3 space-y-1.5 text-xs text-gray-600">
+                  <li>Up to 5 family members</li>
+                  <li>Real-time AI alerts</li>
+                  <li>Safety scores</li>
+                  <li>Spend tracking & budgets</li>
+                  <li>Content blocking</li>
+                  <li>PDF & CSV reports</li>
+                </ul>
+              </div>
+              {/* School */}
+              <div className={`rounded-lg border p-4 ${plan === "school" ? "border-primary bg-primary-50" : "border-gray-200"}`}>
+                <h5 className="text-sm font-bold text-gray-900">School Starter</h5>
+                <p className="mt-1 text-2xl font-bold text-gray-900">
+                  {billingCycle === "monthly" ? "$2.99" : "$29.99"}
+                </p>
+                <p className="text-xs text-gray-500">per student/{billingCycle === "monthly" ? "month" : "year"}</p>
+                {plan === "school" && (
+                  <span className="mt-2 inline-block rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-white">
+                    Current Plan
+                  </span>
+                )}
+                <ul className="mt-3 space-y-1.5 text-xs text-gray-600">
+                  <li>Everything in Family</li>
+                  <li>SIS integration</li>
+                  <li>Class-level grouping</li>
+                  <li>Safeguarding reports</li>
+                  <li>Federated SSO</li>
+                  <li>Behaviour analytics</li>
+                </ul>
+              </div>
+              {/* Enterprise */}
+              <div className={`rounded-lg border p-4 ${plan === "enterprise" ? "border-primary bg-primary-50" : "border-gray-200"}`}>
+                <h5 className="text-sm font-bold text-gray-900">Enterprise</h5>
+                <p className="mt-1 text-2xl font-bold text-gray-900">Custom</p>
+                <p className="text-xs text-gray-500">contact us</p>
+                {plan === "enterprise" && (
+                  <span className="mt-2 inline-block rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-white">
+                    Current Plan
+                  </span>
+                )}
+                <ul className="mt-3 space-y-1.5 text-xs text-gray-600">
+                  <li>Everything in School</li>
+                  <li>Unlimited groups</li>
+                  <li>Dedicated manager</li>
+                  <li>Custom taxonomy</li>
+                  <li>API access</li>
+                  <li>Priority SLA</li>
+                </ul>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Change Plan Button (for paid users) */}
+        {isPaid && (
+          <Button
+            onClick={handleManage}
+            isLoading={portal.isPending}
+            variant="secondary"
+            className="w-full"
+          >
+            Change Plan
+          </Button>
         )}
 
         {/* Contact */}

@@ -2,13 +2,17 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { blockingApi } from "@/lib/api-client";
-import type { BlockRule, BlockStatus } from "@/types";
+import type { BlockApproval, BlockEffectiveness, BlockRule, BlockStatus } from "@/types";
 
 export const blockingKeys = {
   all: ["blocking"] as const,
   rules: (groupId: string) => [...blockingKeys.all, "rules", groupId] as const,
   check: (groupId: string, memberId: string) =>
     [...blockingKeys.all, "check", groupId, memberId] as const,
+  pendingApprovals: (groupId: string) =>
+    [...blockingKeys.all, "pending-approvals", groupId] as const,
+  effectiveness: (groupId: string) =>
+    [...blockingKeys.all, "effectiveness", groupId] as const,
 };
 
 export function useBlockRules(groupId: string | null) {
@@ -52,6 +56,53 @@ export function useRevokeBlockRule() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
         queryKey: blockingKeys.rules(variables.groupId),
+      });
+    },
+  });
+}
+
+export function usePendingApprovals(groupId: string | null) {
+  return useQuery<BlockApproval[]>({
+    queryKey: blockingKeys.pendingApprovals(groupId || ""),
+    queryFn: () => blockingApi.pendingApprovals(groupId!),
+    enabled: !!groupId,
+  });
+}
+
+export function useBlockEffectiveness(groupId: string | null) {
+  return useQuery<BlockEffectiveness>({
+    queryKey: blockingKeys.effectiveness(groupId || ""),
+    queryFn: () => blockingApi.effectiveness(groupId!),
+    enabled: !!groupId,
+  });
+}
+
+export function useApproveUnblock() {
+  const queryClient = useQueryClient();
+
+  return useMutation<BlockApproval, Error, { approvalId: string; groupId: string; decision_note?: string }>({
+    mutationFn: ({ approvalId, decision_note }) =>
+      blockingApi.approveUnblock(approvalId, { decision_note }),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: blockingKeys.pendingApprovals(variables.groupId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: blockingKeys.rules(variables.groupId),
+      });
+    },
+  });
+}
+
+export function useDenyUnblock() {
+  const queryClient = useQueryClient();
+
+  return useMutation<BlockApproval, Error, { approvalId: string; groupId: string; decision_note?: string }>({
+    mutationFn: ({ approvalId, decision_note }) =>
+      blockingApi.denyUnblock(approvalId, { decision_note }),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: blockingKeys.pendingApprovals(variables.groupId),
       });
     },
   });

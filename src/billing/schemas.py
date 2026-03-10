@@ -137,6 +137,17 @@ class TrialStatusResponse(BaseSchema):
     contact_email: str = "contactus@bhapi.io"
 
 
+class VendorRiskResponse(BaseSchema):
+    """Vendor risk assessment response."""
+
+    provider: str
+    name: str
+    overall_score: int
+    grade: str
+    category_scores: dict[str, int]
+    recommendations: list[str]
+
+
 class EnvelopeCreate(BaseSchema):
     """Create a spend envelope (budget allocation)."""
 

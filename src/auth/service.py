@@ -337,6 +337,53 @@ async def send_reset_email(user: User) -> bool:
 _used_reset_tokens: set[str] = set()
 
 
+async def try_sso_auto_provision(db: AsyncSession, user: User) -> None:
+    """Check if user's email domain matches an SSO config and auto-provision.
+
+    Called after OAuth login to automatically add the user as a group member
+    when the group has SSO auto-provisioning enabled for the user's domain.
+    """
+    domain = user.email.split("@")[-1] if "@" in user.email else None
+    if not domain:
+        return
+
+    from sqlalchemy import select
+    from src.integrations.sso_models import SSOConfig
+
+    # Find SSO configs where the tenant_id matches the user's email domain
+    result = await db.execute(
+        select(SSOConfig).where(
+            SSOConfig.tenant_id == domain,
+            SSOConfig.auto_provision_members.is_(True),
+        )
+    )
+    sso_configs = list(result.scalars().all())
+
+    if not sso_configs:
+        return
+
+    from src.integrations.sso_provisioner import auto_provision_member
+
+    for sso_config in sso_configs:
+        try:
+            await auto_provision_member(
+                db=db,
+                group_id=sso_config.group_id,
+                sso_user_info={
+                    "email": user.email,
+                    "display_name": user.display_name,
+                    "external_id": str(user.id),
+                },
+            )
+        except Exception as exc:
+            logger.error(
+                "sso_auto_provision_failed",
+                user_id=str(user.id),
+                sso_config_id=str(sso_config.id),
+                error=str(exc),
+            )
+
+
 async def reset_password(db: AsyncSession, token: str, new_password: str) -> User:
     """Reset a user's password using a reset token."""
     # Check if this token has already been used

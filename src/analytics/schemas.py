@@ -31,3 +31,33 @@ class MemberBaselineResponse(BaseSchema):
     avg_risk_score: float
     primary_platform: str
     trend_direction: str
+
+
+class AnomalyItem(BaseSchema):
+    member_id: str
+    member_name: str
+    recent_daily_avg: float
+    baseline_daily_avg: float
+    standard_deviations: float
+    direction: str  # "above" or "below"
+    severity: str  # "warning" or "critical"
+
+
+class AnomalyResponse(BaseSchema):
+    group_id: str
+    threshold_sd: float
+    anomalies: list[AnomalyItem]
+
+
+class PeerComparisonItem(BaseSchema):
+    member_id: str
+    member_name: str
+    event_count: int
+    percentile: float
+    usage_level: str  # "low", "moderate", "high", "very_high"
+
+
+class PeerComparisonResponse(BaseSchema):
+    group_id: str
+    period_days: int
+    members: list[PeerComparisonItem]

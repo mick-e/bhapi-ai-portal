@@ -1,7 +1,10 @@
 import type {
+  AnomalyResponse,
   ApiError,
   ApiKeyItem,
   AppealRecord,
+  BlockApproval,
+  BlockEffectiveness,
   BlockRule,
   BlockStatus,
   CheckoutRequest,
@@ -17,10 +20,12 @@ import type {
   UpdateMemberRequest,
   CaptureEvent,
   MemberBaseline,
+  PeerComparisonResponse,
   RiskEvent,
   AcknowledgeRiskRequest,
   Alert,
   SISConnection,
+  SSOConfig,
   SpendSummary,
   SpendRecord,
   Report,
@@ -496,6 +501,26 @@ export const blockingApi = {
   revoke(ruleId: string): Promise<BlockRule> {
     return api.delete<BlockRule>(`/api/v1/blocking/rules/${ruleId}`);
   },
+
+  requestUnblock(data: { group_id: string; block_rule_id: string; member_id: string; reason: string }): Promise<BlockApproval> {
+    return api.post<BlockApproval>("/api/v1/blocking/approval-request", data);
+  },
+
+  approveUnblock(approvalId: string, data?: { decision_note?: string }): Promise<BlockApproval> {
+    return api.post<BlockApproval>(`/api/v1/blocking/approve/${approvalId}`, data || {});
+  },
+
+  denyUnblock(approvalId: string, data?: { decision_note?: string }): Promise<BlockApproval> {
+    return api.post<BlockApproval>(`/api/v1/blocking/deny/${approvalId}`, data || {});
+  },
+
+  pendingApprovals(groupId: string): Promise<BlockApproval[]> {
+    return api.get<BlockApproval[]>(`/api/v1/blocking/pending-approvals${qs({ group_id: groupId })}`);
+  },
+
+  effectiveness(groupId: string): Promise<BlockEffectiveness> {
+    return api.get<BlockEffectiveness>(`/api/v1/blocking/effectiveness${qs({ group_id: groupId })}`);
+  },
 };
 
 // ─── Analytics ───────────────────────────────────────────────────────────────
@@ -511,6 +536,14 @@ export const analyticsApi = {
 
   memberBaselines(groupId: string, days?: number): Promise<MemberBaseline[]> {
     return api.get<MemberBaseline[]>(`/api/v1/analytics/member-baselines${qs({ group_id: groupId, days: days || 30 })}`);
+  },
+
+  anomalies(groupId: string, thresholdSd?: number): Promise<AnomalyResponse> {
+    return api.get<AnomalyResponse>(`/api/v1/analytics/anomalies${qs({ group_id: groupId, threshold_sd: thresholdSd || 2.0 })}`);
+  },
+
+  peerComparison(groupId: string, days?: number): Promise<PeerComparisonResponse> {
+    return api.get<PeerComparisonResponse>(`/api/v1/analytics/peer-comparison${qs({ group_id: groupId, days: days || 30 })}`);
   },
 };
 
@@ -551,5 +584,17 @@ export const integrationsApi = {
 
   startAgeVerification(groupId: string, memberId: string): Promise<{ session_url: string }> {
     return api.post<{ session_url: string }>(`/api/v1/integrations/age-verify/start${qs({ group_id: groupId, member_id: memberId })}`);
+  },
+
+  listSSOConfigs(groupId: string): Promise<SSOConfig[]> {
+    return api.get<SSOConfig[]>(`/api/v1/integrations/sso${qs({ group_id: groupId })}`);
+  },
+
+  updateSSOConfig(configId: string, data: { auto_provision_members?: boolean; tenant_id?: string }): Promise<SSOConfig> {
+    return api.patch<SSOConfig>(`/api/v1/integrations/sso/${configId}`, data);
+  },
+
+  triggerDirectorySync(configId: string): Promise<{ synced: number; skipped: number; errors: number }> {
+    return api.post<{ synced: number; skipped: number; errors: number }>(`/api/v1/integrations/sso/${configId}/sync`);
   },
 };

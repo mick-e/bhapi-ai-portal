@@ -1,0 +1,110 @@
+[
+  {
+    "id": 1,
+    "priority": 1,
+    "action": {
+      "type": "modifyHeaders",
+      "requestHeaders": [
+        {
+          "header": "X-Bhapi-Extension",
+          "operation": "set",
+          "value": "safari/2.0.0"
+        }
+      ]
+    },
+    "condition": {
+      "urlFilter": "||chat.openai.com",
+      "resourceTypes": ["xmlhttprequest", "main_frame", "sub_frame"]
+    }
+  },
+  {
+    "id": 2,
+    "priority": 1,
+    "action": {
+      "type": "modifyHeaders",
+      "requestHeaders": [
+        {
+          "header": "X-Bhapi-Extension",
+          "operation": "set",
+          "value": "safari/2.0.0"
+        }
+      ]
+    },
+    "condition": {
+      "urlFilter": "||chatgpt.com",
+      "resourceTypes": ["xmlhttprequest", "main_frame", "sub_frame"]
+    }
+  },
+  {
+    "id": 3,
+    "priority": 1,
+    "action": {
+      "type": "modifyHeaders",
+      "requestHeaders": [
+        {
+          "header": "X-Bhapi-Extension",
+          "operation": "set",
+          "value": "safari/2.0.0"
+        }
+      ]
+    },
+    "condition": {
+      "urlFilter": "||gemini.google.com",
+      "resourceTypes": ["xmlhttprequest", "main_frame", "sub_frame"]
+    }
+  },
+  {
+    "id": 4,
+    "priority": 1,
+    "action": {
+      "type": "modifyHeaders",
+      "requestHeaders": [
+        {
+          "header": "X-Bhapi-Extension",
+          "operation": "set",
+          "value": "safari/2.0.0"
+        }
+      ]
+    },
+    "condition": {
+      "urlFilter": "||copilot.microsoft.com",
+      "resourceTypes": ["xmlhttprequest", "main_frame", "sub_frame"]
+    }
+  },
+  {
+    "id": 5,
+    "priority": 1,
+    "action": {
+      "type": "modifyHeaders",
+      "requestHeaders": [
+        {
+          "header": "X-Bhapi-Extension",
+          "operation": "set",
+          "value": "safari/2.0.0"
+        }
+      ]
+    },
+    "condition": {
+      "urlFilter": "||claude.ai",
+      "resourceTypes": ["xmlhttprequest", "main_frame", "sub_frame"]
+    }
+  },
+  {
+    "id": 6,
+    "priority": 1,
+    "action": {
+      "type": "modifyHeaders",
+      "requestHeaders": [
+        {
+          "header": "X-Bhapi-Extension",
+          "operation": "set",
+          "value": "safari/2.0.0"
+        }
+      ]
+    },
+    "condition": {
+      "urlFilter": "||grok.com",
+      "resourceTypes": ["xmlhttprequest", "main_frame", "sub_frame"]
+    }
+  }
+]

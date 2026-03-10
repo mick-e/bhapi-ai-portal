@@ -432,6 +432,49 @@ async def _evaluate_time_of_day(
     return False
 
 
+async def get_block_effectiveness(db: AsyncSession, group_id: UUID) -> dict:
+    """Calculate blocking effectiveness metrics for a group."""
+    from src.capture.models import CaptureEvent
+
+    # Total active block rules
+    rules_result = await db.execute(
+        select(func.count()).select_from(BlockRule).where(
+            BlockRule.group_id == group_id,
+            BlockRule.active.is_(True),
+        )
+    )
+    total_rules = rules_result.scalar() or 0
+
+    # Count of blocked members (distinct member_ids with active rules)
+    blocked_result = await db.execute(
+        select(func.count(BlockRule.member_id.distinct())).where(
+            BlockRule.group_id == group_id,
+            BlockRule.active.is_(True),
+        )
+    )
+    blocked_count = blocked_result.scalar() or 0
+
+    # Total capture events for the group
+    events_result = await db.execute(
+        select(func.count()).select_from(CaptureEvent).where(
+            CaptureEvent.group_id == group_id,
+        )
+    )
+    total_events = events_result.scalar() or 0
+
+    # Calculate block rate percentage
+    block_rate_pct = 0.0
+    if total_events > 0:
+        block_rate_pct = round((blocked_count / max(total_events, 1)) * 100, 2)
+
+    return {
+        "total_rules": total_rules,
+        "blocked_count": blocked_count,
+        "total_events": total_events,
+        "block_rate_pct": block_rate_pct,
+    }
+
+
 async def evaluate_group_auto_block_rules(
     db: AsyncSession, group_id: UUID
 ) -> list[str]:

@@ -262,6 +262,36 @@ async def delete_sso_config(
     return {"status": "deleted", "config_id": str(config_id)}
 
 
+@router.post("/sso/{config_id}/sync")
+async def trigger_directory_sync(
+    config_id: UUID,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Manually trigger directory sync for an SSO config."""
+    result = await db.execute(
+        select(SSOConfig).where(SSOConfig.id == config_id)
+    )
+    config = result.scalar_one_or_none()
+    if not config:
+        raise NotFoundError("SSO Config", str(config_id))
+    await _verify_group_access(auth, config.group_id, db)
+
+    from src.integrations.directory_sync import (
+        sync_entra_directory,
+        sync_google_directory,
+    )
+
+    if config.provider == "google_workspace":
+        summary = await sync_google_directory(db, config.id)
+    elif config.provider == "microsoft_entra":
+        summary = await sync_entra_directory(db, config.id)
+    else:
+        raise ValidationError(f"Directory sync not supported for provider: {config.provider}")
+
+    return summary
+
+
 @router.post("/age-verify/callback")
 async def age_verify_callback(
     group_id: UUID = Query(...),

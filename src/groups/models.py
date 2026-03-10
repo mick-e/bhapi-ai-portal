@@ -56,3 +56,40 @@ class Invitation(Base, UUIDMixin, TimestampMixin):
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
     group: Mapped["Group"] = relationship(back_populates="invitations")
+
+
+class ClassGroup(Base, UUIDMixin, TimestampMixin):
+    """A class within a school group."""
+
+    __tablename__ = "class_groups"
+
+    group_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("groups.id"), nullable=False, index=True
+    )
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    grade_level: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    teacher_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
+    )
+    academic_year: Mapped[str | None] = mapped_column(String(20), nullable=True)
+
+    # Relationships
+    class_members: Mapped[list["ClassGroupMember"]] = relationship(
+        back_populates="class_group", lazy="selectin"
+    )
+
+
+class ClassGroupMember(Base, UUIDMixin, TimestampMixin):
+    """A member assigned to a class group."""
+
+    __tablename__ = "class_group_members"
+
+    class_group_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("class_groups.id"), nullable=False, index=True
+    )
+    member_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("group_members.id"), nullable=False, index=True
+    )
+
+    # Relationships
+    class_group: Mapped["ClassGroup"] = relationship(back_populates="class_members")

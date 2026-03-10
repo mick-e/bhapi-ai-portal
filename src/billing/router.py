@@ -46,6 +46,41 @@ webhook_logger = structlog.get_logger()
 router = APIRouter()
 
 
+# ─── Plans (public) ──────────────────────────────────────────────────────────
+
+
+@router.get("/plans")
+async def get_plans():
+    """Get available plan tiers (public, no auth required)."""
+    from src.billing.plans import get_all_plans
+
+    return {"plans": get_all_plans()}
+
+
+# ─── Vendor Risk ─────────────────────────────────────────────────────────────
+
+
+@router.get("/vendor-risk")
+async def get_all_vendor_risk():
+    """Get risk assessments for all AI vendors."""
+    from src.billing.vendor_risk import get_all_vendor_risks
+
+    risks = get_all_vendor_risks()
+    return {"vendors": [r.model_dump() for r in risks]}
+
+
+@router.get("/vendor-risk/{provider}")
+async def get_vendor_risk(provider: str):
+    """Get risk assessment for a specific AI vendor."""
+    from src.billing.vendor_risk import calculate_vendor_risk
+    from src.exceptions import NotFoundError
+
+    risk = calculate_vendor_risk(provider)
+    if not risk:
+        raise NotFoundError(f"Unknown vendor: {provider}")
+    return risk.model_dump()
+
+
 # ─── Subscriptions ───────────────────────────────────────────────────────────
 
 

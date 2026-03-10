@@ -23,6 +23,9 @@ from src.config import (
     UPSTREAM_PORT,
 )
 
+# Blocking API base URL (derived from capture API URL)
+BLOCKING_API_URL = CAPTURE_API_URL.rsplit("/capture", 1)[0] + "/blocking"
+
 logger = structlog.get_logger()
 
 
@@ -31,6 +34,8 @@ class DNSProxy:
 
     def __init__(self):
         self.http_client = httpx.AsyncClient(timeout=5.0)
+        self._block_cache: dict[str, tuple[bool, float]] = {}
+        self._block_cache_ttl = 60.0  # seconds
 
     async def handle_query(self, data: bytes, addr: tuple) -> bytes:
         """Forward DNS query to upstream and log if monitored."""
@@ -41,6 +46,12 @@ class DNSProxy:
             # Check if this is a monitored AI domain
             platform = self._match_platform(domain)
             if platform and GROUP_ID and MEMBER_ID:
+                # Check if domain is blocked for this member
+                is_blocked = await self._check_blocked(GROUP_ID, MEMBER_ID)
+                if is_blocked:
+                    logger.info("dns_query_blocked", domain=domain, platform=platform)
+                    return self._build_nxdomain(data)
+
                 asyncio.create_task(self._report_query(domain, platform, addr[0]))
 
         # Forward to upstream DNS
@@ -69,6 +80,51 @@ class DNSProxy:
             if domain == monitored_domain or domain.endswith("." + monitored_domain):
                 return platform
         return None
+
+    async def _check_blocked(self, group_id: str, member_id: str) -> bool:
+        """Check if member is blocked via the blocking API, with 60s TTL cache."""
+        import time
+
+        cache_key = f"{group_id}:{member_id}"
+        now = time.monotonic()
+
+        # Check cache first
+        if cache_key in self._block_cache:
+            cached_blocked, cached_at = self._block_cache[cache_key]
+            if now - cached_at < self._block_cache_ttl:
+                return cached_blocked
+
+        try:
+            headers = {}
+            if AUTH_TOKEN:
+                headers["Authorization"] = f"Bearer {AUTH_TOKEN}"
+
+            url = f"{BLOCKING_API_URL}/check/{member_id}?group_id={group_id}"
+            response = await self.http_client.get(url, headers=headers)
+            if response.status_code == 200:
+                result = response.json()
+                is_blocked = result.get("blocked", False)
+                self._block_cache[cache_key] = (is_blocked, now)
+                return is_blocked
+        except Exception as e:
+            logger.warning("block_check_failed", error=str(e))
+
+        # On failure, assume not blocked (fail open)
+        self._block_cache[cache_key] = (False, now)
+        return False
+
+    def _build_nxdomain(self, query_data: bytes) -> bytes:
+        """Build an NXDOMAIN response for a blocked domain."""
+        # Copy the query and modify flags to indicate NXDOMAIN
+        if len(query_data) < 12:
+            return query_data
+        response = bytearray(query_data)
+        # Set QR bit (response) and RCODE=3 (NXDOMAIN)
+        response[2] = 0x81  # QR=1, Opcode=0, AA=0, TC=0, RD=1
+        response[3] = 0x83  # RA=1, Z=0, RCODE=3 (NXDOMAIN)
+        # Zero out answer, authority, additional counts
+        response[6:12] = b'\x00\x00\x00\x00\x00\x00'
+        return bytes(response)
 
     async def _forward_query(self, data: bytes) -> bytes:
         """Forward DNS query to upstream resolver via TCP."""

@@ -9,6 +9,10 @@ import {
   Plus,
   Trash2,
   Clock,
+  CheckCircle,
+  XCircle,
+  BarChart3,
+  Shield,
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -18,6 +22,10 @@ import {
   useBlockRules,
   useCreateBlockRule,
   useRevokeBlockRule,
+  usePendingApprovals,
+  useBlockEffectiveness,
+  useApproveUnblock,
+  useDenyUnblock,
 } from "@/hooks/use-blocking";
 import { useToast } from "@/contexts/ToastContext";
 
@@ -34,8 +42,13 @@ export default function BlockingPage() {
     refetch,
   } = useBlockRules(groupId);
 
+  const { data: pendingApprovals } = usePendingApprovals(groupId);
+  const { data: effectiveness } = useBlockEffectiveness(groupId);
+
   const createRule = useCreateBlockRule();
   const revokeRule = useRevokeBlockRule();
+  const approveUnblock = useApproveUnblock();
+  const denyUnblock = useDenyUnblock();
 
   const [showForm, setShowForm] = useState(false);
   const [memberId, setMemberId] = useState("");
@@ -84,6 +97,30 @@ export default function BlockingPage() {
     );
   }
 
+  function handleApprove(approvalId: string) {
+    if (!groupId) return;
+    approveUnblock.mutate(
+      { approvalId, groupId },
+      {
+        onSuccess: () => addToast("Unblock request approved", "success"),
+        onError: (err) =>
+          addToast((err as Error).message || "Failed to approve", "error"),
+      }
+    );
+  }
+
+  function handleDeny(approvalId: string) {
+    if (!groupId) return;
+    denyUnblock.mutate(
+      { approvalId, groupId },
+      {
+        onSuccess: () => addToast("Unblock request denied", "success"),
+        onError: (err) =>
+          addToast((err as Error).message || "Failed to deny", "error"),
+      }
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -117,6 +154,7 @@ export default function BlockingPage() {
   }
 
   const activeRules = (rules || []).filter((r) => r.active);
+  const pending = pendingApprovals || [];
 
   return (
     <div>
@@ -137,6 +175,130 @@ export default function BlockingPage() {
           New Rule
         </Button>
       </div>
+
+      {/* Effectiveness Charts */}
+      {effectiveness && (
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-4">
+          <Card>
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg bg-orange-50 p-2">
+                <Shield className="h-5 w-5 text-orange-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Active Rules</p>
+                <p className="text-xl font-semibold text-gray-900">
+                  {effectiveness.total_rules}
+                </p>
+              </div>
+            </div>
+          </Card>
+          <Card>
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg bg-red-50 p-2">
+                <Ban className="h-5 w-5 text-red-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Members Blocked</p>
+                <p className="text-xl font-semibold text-gray-900">
+                  {effectiveness.blocked_count}
+                </p>
+              </div>
+            </div>
+          </Card>
+          <Card>
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg bg-blue-50 p-2">
+                <BarChart3 className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Total Events</p>
+                <p className="text-xl font-semibold text-gray-900">
+                  {effectiveness.total_events}
+                </p>
+              </div>
+            </div>
+          </Card>
+          <Card>
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg bg-teal-50 p-2">
+                <Shield className="h-5 w-5 text-teal-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Block Rate</p>
+                <p className="text-xl font-semibold text-gray-900">
+                  {effectiveness.block_rate_pct}%
+                </p>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Pending Approvals Queue */}
+      {pending.length > 0 && (
+        <Card title="Pending Unblock Requests" className="mb-6">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100">
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">
+                    Member
+                  </th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">
+                    Reason
+                  </th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">
+                    Requested
+                  </th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {pending.map((approval) => (
+                  <tr
+                    key={approval.id}
+                    className="border-b border-gray-50 last:border-0"
+                  >
+                    <td className="px-4 py-3 font-medium text-gray-900">
+                      {approval.member_id}
+                    </td>
+                    <td className="px-4 py-3 text-gray-600">
+                      {approval.reason}
+                    </td>
+                    <td className="px-4 py-3 text-gray-500">
+                      {new Date(approval.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={() => handleApprove(approval.id)}
+                          isLoading={approveUnblock.isPending}
+                        >
+                          <CheckCircle className="h-4 w-4" />
+                          Approve
+                        </Button>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          onClick={() => handleDeny(approval.id)}
+                          isLoading={denyUnblock.isPending}
+                        >
+                          <XCircle className="h-4 w-4" />
+                          Deny
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
 
       {/* Create Form */}
       {showForm && (

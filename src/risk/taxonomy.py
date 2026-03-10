@@ -19,6 +19,7 @@ CSAM_ADJACENT = "CSAM_ADJACENT"
 ADULT_CONTENT = "ADULT_CONTENT"
 SCAM_MANIPULATION = "SCAM_MANIPULATION"
 PII_EXPOSURE = "PII_EXPOSURE"
+DEEPFAKE_CONTENT = "DEEPFAKE_CONTENT"
 
 # ---------------------------------------------------------------------------
 # Medium severity — warrants review, batched notification
@@ -26,6 +27,7 @@ PII_EXPOSURE = "PII_EXPOSURE"
 ACADEMIC_DISHONESTY = "ACADEMIC_DISHONESTY"
 BULLYING_HARASSMENT = "BULLYING_HARASSMENT"
 SPEND_ANOMALY = "SPEND_ANOMALY"
+EMOTIONAL_DEPENDENCY = "EMOTIONAL_DEPENDENCY"
 
 # ---------------------------------------------------------------------------
 # Low severity — informational, included in weekly digest
@@ -65,6 +67,10 @@ RISK_CATEGORIES: dict[str, dict[str, str]] = {
         "severity": "high",
         "description": "Personal identifiable information shared with an AI platform",
     },
+    DEEPFAKE_CONTENT: {
+        "severity": "high",
+        "description": "AI-generated deepfake, face swap, or synthetic media content detected",
+    },
     ACADEMIC_DISHONESTY: {
         "severity": "medium",
         "description": "Using AI to complete homework, essays, or exams without attribution",
@@ -76,6 +82,10 @@ RISK_CATEGORIES: dict[str, dict[str, str]] = {
     SPEND_ANOMALY: {
         "severity": "medium",
         "description": "Unusual spending patterns on AI platform subscriptions or API usage",
+    },
+    EMOTIONAL_DEPENDENCY: {
+        "severity": "medium",
+        "description": "Patterns suggesting emotional dependency on AI companions or chatbots",
     },
     EXCESSIVE_USAGE: {
         "severity": "low",

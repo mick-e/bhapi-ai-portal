@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Users,
   Activity,
@@ -13,13 +14,14 @@ import {
   RefreshCw,
   Plus,
   CheckCircle,
+  Shield,
 } from "lucide-react";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useDashboardSummary } from "@/hooks/use-dashboard";
 import { useAuth } from "@/hooks/use-auth";
-import { groupsApi } from "@/lib/api-client";
+import { apiFetch, groupsApi } from "@/lib/api-client";
 import { ActivityChart } from "@/components/charts/ActivityChart";
 import { RiskBreakdown } from "@/components/charts/RiskBreakdown";
 import { SpendChart } from "@/components/charts/SpendChart";
@@ -320,6 +322,9 @@ export default function DashboardPage() {
         />
       </div>
 
+      {/* Safety Score */}
+      <SafetyScoreCard />
+
       {/* Charts */}
       <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Card title="Activity Trend" description="Interactions over the last 7 days">
@@ -453,6 +458,72 @@ export default function DashboardPage() {
 }
 
 // ─── Sub-components ─────────────────────────────────────────────────────────
+
+function SafetyScoreCard() {
+  const { data, isLoading } = useQuery<{
+    average_score: number;
+    group_id: string;
+    member_scores: { member_id: string; score: number; trend: string }[];
+  }>({
+    queryKey: ["safety-score", "group"],
+    queryFn: () => apiFetch("/api/v1/risk/score/group"),
+    refetchInterval: 60_000,
+  });
+
+  const score = data?.average_score ?? 0;
+  const scoreColor =
+    score >= 80
+      ? "text-green-600"
+      : score >= 50
+        ? "text-amber-500"
+        : "text-red-600";
+  const bgColor =
+    score >= 80
+      ? "bg-green-50"
+      : score >= 50
+        ? "bg-amber-50"
+        : "bg-red-50";
+
+  if (isLoading) {
+    return (
+      <div className="mt-6 rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+          <span className="text-sm text-gray-500">Loading safety score...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!data) return null;
+
+  return (
+    <div className="mt-6 rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className={`flex h-12 w-12 items-center justify-center rounded-full ${bgColor}`}>
+            <Shield className={`h-6 w-6 ${scoreColor}`} />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-gray-500">Group Safety Score</p>
+            <p className={`text-3xl font-bold ${scoreColor}`}>
+              {score.toFixed(0)}
+              <span className="text-base font-normal text-gray-400">/100</span>
+            </p>
+          </div>
+        </div>
+        <div className="text-right">
+          <p className="text-xs text-gray-500">
+            {data.member_scores.length} member{data.member_scores.length !== 1 ? "s" : ""} with activity
+          </p>
+          <p className={`mt-1 text-sm font-medium ${scoreColor}`}>
+            {score >= 80 ? "Looking good" : score >= 50 ? "Needs attention" : "Action required"}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function SummaryCard({
   title,

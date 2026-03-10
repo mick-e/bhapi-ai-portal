@@ -222,6 +222,12 @@ def _register_routers(app: FastAPI) -> None:
     from src.analytics.router import router as analytics_router
     app.include_router(analytics_router, prefix="/api/v1/analytics", tags=["Analytics"])
 
+    from src.groups.school_router import router as school_router
+    app.include_router(school_router, prefix="/api/v1/school", tags=["School"])
+
+    from src.literacy.router import router as literacy_router
+    app.include_router(literacy_router, prefix="/api/v1/literacy", tags=["Literacy"])
+
 
 _PORTAL_CANDIDATES = [
     Path("/app/portal/out"),

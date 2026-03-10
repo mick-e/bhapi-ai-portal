@@ -56,12 +56,33 @@ async def _auto_block_check(db: AsyncSession) -> dict:
     return await evaluate_auto_block_rules(db)
 
 
+async def _anomaly_check(db: AsyncSession) -> dict:
+    """Detect anomalous member usage patterns and create alerts."""
+    from src.analytics.service import detect_anomalies
+    from src.groups.models import Group
+    from sqlalchemy import select
+
+    groups_result = await db.execute(select(Group))
+    groups = list(groups_result.scalars().all())
+    total_anomalies = 0
+    for group in groups:
+        anomalies = await detect_anomalies(db, group.id)
+        total_anomalies += len(anomalies)
+    return {"anomalies_detected": total_anomalies}
+
+
+async def _directory_sync(db: AsyncSession) -> dict:
+    """Sync members from SSO directory providers."""
+    from src.integrations.directory_sync import run_directory_sync
+    return await run_directory_sync(db)
+
+
 def _init_registry() -> None:
     """Initialize the job registry with all known jobs. Lazy-loaded."""
     if _JOB_REGISTRY:
         return
 
-    from src.alerts.digest import run_daily_digest, run_hourly_digest
+    from src.alerts.digest import run_daily_digest, run_hourly_digest, run_weekly_digest
     from src.alerts.scheduler import run_renotification_check
     from src.billing.scheduler import sync_all_accounts
     from src.billing.threshold_checker import check_all_group_thresholds
@@ -88,6 +109,12 @@ def _init_registry() -> None:
         "Send daily alert digest emails",
         "daily",
         run_daily_digest,
+    )
+    register_job(
+        "weekly_digest",
+        "Send weekly alert digest emails",
+        "weekly",
+        run_weekly_digest,
     )
     register_job(
         "spend_sync",
@@ -145,6 +172,20 @@ def _init_registry() -> None:
         "Send trial expiry reminder emails",
         "daily",
         send_trial_reminders,
+    )
+
+    register_job(
+        "anomaly_check",
+        "Detect anomalous member usage patterns",
+        "daily",
+        _anomaly_check,
+    )
+
+    register_job(
+        "directory_sync",
+        "Sync members from SSO directory providers",
+        "daily",
+        _directory_sync,
     )
 
 
