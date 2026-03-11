@@ -10,8 +10,12 @@ from src.auth.middleware import get_current_user
 from src.database import get_db
 from src.dependencies import require_active_trial_or_subscription, resolve_group_id as _gid
 from src.exceptions import ValidationError
+from src.risk.deepfake_guidance import get_deepfake_guidance
 from src.groups.models import GroupMember
 from src.risk.schemas import (
+    DependencyHistoryEntry,
+    DependencyHistoryResponse,
+    DependencyScoreResponse,
     GroupScoreResponse,
     MemberScoreItem,
     RiskConfigResponse,
@@ -231,3 +235,75 @@ async def get_member_score_history(
             for e in entries
         ],
     )
+
+
+# ---------------------------------------------------------------------------
+# Emotional dependency endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.get("/dependency-score", response_model=DependencyScoreResponse)
+async def get_dependency_score(
+    group_id: UUID | None = Query(None, description="Group ID"),
+    member_id: UUID = Query(..., description="Member ID"),
+    days: int = Query(30, ge=1, le=365, description="Lookback period in days"),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get the emotional dependency score for a member."""
+    from src.risk.emotional_dependency import calculate_dependency_score
+
+    gid = _gid(group_id, auth)
+    result = await calculate_dependency_score(db, gid, member_id, days)
+    return DependencyScoreResponse(
+        score=result.score,
+        session_duration_score=result.session_duration_score,
+        frequency_score=result.frequency_score,
+        attachment_language_score=result.attachment_language_score,
+        time_pattern_score=result.time_pattern_score,
+        trend=result.trend,
+        risk_factors=result.risk_factors,
+        platform_breakdown=result.platform_breakdown,
+        recommendation=result.recommendation,
+    )
+
+
+@router.get("/dependency-score/history", response_model=DependencyHistoryResponse)
+async def get_dependency_score_history(
+    group_id: UUID | None = Query(None, description="Group ID"),
+    member_id: UUID = Query(..., description="Member ID"),
+    days: int = Query(90, ge=7, le=365, description="Number of days of history"),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get weekly dependency score history for a member."""
+    from src.risk.emotional_dependency import get_dependency_history
+
+    gid = _gid(group_id, auth)
+    entries = await get_dependency_history(db, gid, member_id, days)
+    return DependencyHistoryResponse(
+        member_id=member_id,
+        group_id=gid,
+        days=days,
+        history=[
+            DependencyHistoryEntry(
+                week_start=e["week_start"],
+                week_end=e["week_end"],
+                score=e["score"],
+            )
+            for e in entries
+        ],
+    )
+
+
+# ---------------------------------------------------------------------------
+# Public endpoints (no auth)
+# ---------------------------------------------------------------------------
+
+public_router = APIRouter()
+
+
+@public_router.get("/deepfake-guidance")
+async def deepfake_guidance_endpoint():
+    """Return parent-facing deepfake education content. Public, no auth required."""
+    return await get_deepfake_guidance()

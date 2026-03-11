@@ -111,3 +111,40 @@ class AppealResponse(BaseSchema):
     resolution_notes: str | None
     resolved_at: datetime | None
     created_at: datetime
+
+
+# ---------------------------------------------------------------------------
+# COPPA 2026 Dashboard
+# ---------------------------------------------------------------------------
+
+
+class COPPAChecklistItemResponse(BaseSchema):
+    """Single COPPA checklist item."""
+
+    id: str
+    label: str
+    description: str
+    status: str  # complete, incomplete, warning, not_applicable
+    evidence: str
+    action_url: str
+    regulation_ref: str
+
+
+class COPPAComplianceReportResponse(BaseSchema):
+    """Full COPPA compliance assessment response."""
+
+    group_id: str
+    group_name: str
+    score: float
+    status: str  # compliant, partial, non_compliant
+    checklist: list[COPPAChecklistItemResponse]
+    assessed_at: str
+    last_review: str | None
+
+
+class COPPAReviewResponse(BaseSchema):
+    """Response after marking annual review complete."""
+
+    group_id: str
+    reviewed_at: str
+    status: str

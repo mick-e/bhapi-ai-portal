@@ -204,8 +204,9 @@ def _register_routers(app: FastAPI) -> None:
     from src.compliance.router import router as compliance_router
     app.include_router(compliance_router, prefix="/api/v1/compliance", tags=["Compliance"])
 
-    from src.risk.router import router as risk_router
+    from src.risk.router import router as risk_router, public_router as risk_public_router
     app.include_router(risk_router, prefix="/api/v1/risk", tags=["Risk"])
+    app.include_router(risk_public_router, prefix="/api/v1/risk", tags=["Risk"])
 
     from src.jobs.router import router as jobs_router
     app.include_router(jobs_router, prefix="/internal", tags=["Jobs"])

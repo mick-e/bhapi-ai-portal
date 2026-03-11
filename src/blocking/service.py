@@ -432,6 +432,132 @@ async def _evaluate_time_of_day(
     return False
 
 
+async def set_bedtime_mode(
+    db: AsyncSession,
+    group_id: UUID,
+    member_id: UUID,
+    start_hour: int,
+    end_hour: int,
+    tz: str = "UTC",
+) -> AutoBlockRule:
+    """Create or update a bedtime mode rule for a member.
+
+    Uses time_of_day auto-block with reason 'Bedtime mode'.
+    """
+    if start_hour < 0 or start_hour > 23 or end_hour < 0 or end_hour > 23:
+        from src.exceptions import ValidationError
+        raise ValidationError("Hours must be between 0 and 23")
+
+    # Check for existing bedtime rule
+    existing_result = await db.execute(
+        select(AutoBlockRule).where(
+            AutoBlockRule.group_id == group_id,
+            AutoBlockRule.member_id == member_id,
+            AutoBlockRule.trigger_type == "time_of_day",
+            AutoBlockRule.name == "Bedtime mode",
+        )
+    )
+    existing = existing_result.scalar_one_or_none()
+
+    schedule_start = f"{start_hour:02d}:00"
+    schedule_end = f"{end_hour:02d}:00"
+
+    if existing:
+        existing.schedule_start = schedule_start
+        existing.schedule_end = schedule_end
+        existing.trigger_config = {
+            "start_hour": start_hour,
+            "end_hour": end_hour,
+            "timezone": tz,
+        }
+        existing.enabled = True
+        existing.active = True
+        await db.flush()
+        await db.refresh(existing)
+        logger.info("bedtime_mode_updated", member_id=str(member_id))
+        return existing
+
+    # Resolve group owner for the created_by FK
+    from src.groups.models import Group
+    g_result = await db.execute(select(Group).where(Group.id == group_id))
+    g = g_result.scalar_one_or_none()
+    owner_id = g.owner_id if g else group_id
+
+    rule = AutoBlockRule(
+        id=uuid4(),
+        group_id=group_id,
+        member_id=member_id,
+        name="Bedtime mode",
+        trigger_type="time_of_day",
+        trigger_config={
+            "start_hour": start_hour,
+            "end_hour": end_hour,
+            "timezone": tz,
+        },
+        schedule_start=schedule_start,
+        schedule_end=schedule_end,
+        action="block_all",
+        active=True,
+        enabled=True,
+        created_by=owner_id,
+    )
+    db.add(rule)
+    await db.flush()
+    await db.refresh(rule)
+    logger.info("bedtime_mode_created", member_id=str(member_id))
+    return rule
+
+
+async def get_bedtime_mode(
+    db: AsyncSession, group_id: UUID, member_id: UUID
+) -> AutoBlockRule | None:
+    """Get current bedtime mode config for a member."""
+    result = await db.execute(
+        select(AutoBlockRule).where(
+            AutoBlockRule.group_id == group_id,
+            AutoBlockRule.member_id == member_id,
+            AutoBlockRule.trigger_type == "time_of_day",
+            AutoBlockRule.name == "Bedtime mode",
+        )
+    )
+    return result.scalar_one_or_none()
+
+
+async def delete_bedtime_mode(
+    db: AsyncSession, group_id: UUID, member_id: UUID
+) -> None:
+    """Disable bedtime mode for a member.
+
+    Also deactivates any active blocks created by this rule.
+    """
+    result = await db.execute(
+        select(AutoBlockRule).where(
+            AutoBlockRule.group_id == group_id,
+            AutoBlockRule.member_id == member_id,
+            AutoBlockRule.trigger_type == "time_of_day",
+            AutoBlockRule.name == "Bedtime mode",
+        )
+    )
+    rule = result.scalar_one_or_none()
+    if not rule:
+        raise NotFoundError("Bedtime mode rule", f"member {member_id}")
+
+    # Deactivate and unlink any blocks created by this rule
+    blocks_result = await db.execute(
+        select(BlockRule).where(
+            BlockRule.auto_rule_id == rule.id,
+        )
+    )
+    for block in blocks_result.scalars().all():
+        block.active = False
+        block.auto_rule_id = None
+
+    await db.flush()
+    await db.delete(rule)
+    await db.flush()
+    logger.info("bedtime_mode_deleted", member_id=str(member_id))
+
+
 async def get_block_effectiveness(db: AsyncSession, group_id: UUID) -> dict:
     """Calculate blocking effectiveness metrics for a group."""
     from src.capture.models import CaptureEvent

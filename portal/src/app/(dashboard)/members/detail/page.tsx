@@ -14,6 +14,18 @@ import {
   RefreshCw,
   Ban,
   ShieldCheck,
+  Heart,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  ChevronDown,
+  ChevronUp,
+  Info,
+  Timer,
+  Moon,
+  Monitor,
+  Trophy,
+  Award,
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -22,7 +34,12 @@ import { useActivity } from "@/hooks/use-activity";
 import { useRiskEvents } from "@/hooks/use-alerts";
 import { useSpendRecords } from "@/hooks/use-spend";
 import { useBlockCheck, useCreateBlockRule, useRevokeBlockRule } from "@/hooks/use-blocking";
+import { useDependencyScore, useDependencyHistory } from "@/hooks/use-dependency";
+import { useSummaries } from "@/hooks/use-summaries";
+import { useTimeBudget, useUpdateTimeBudget, useTimeBudgetHistory } from "@/hooks/use-time-budget";
+import { useBedtimeMode, useUpdateBedtime, useDeleteBedtime } from "@/hooks/use-time-budget";
 import { useAuth } from "@/hooks/use-auth";
+import { useDeviceSummary, useRewards } from "@/hooks/use-rewards";
 import { apiFetch, integrationsApi } from "@/lib/api-client";
 import { useToast } from "@/contexts/ToastContext";
 
@@ -82,7 +99,27 @@ function MemberDetailContent() {
   const { data: blockStatus } = useBlockCheck(groupId || null, memberId);
   const createBlock = useCreateBlockRule();
   const revokeBlock = useRevokeBlockRule();
+  const { data: dependencyData } = useDependencyScore(memberId);
+  const { data: dependencyHistory } = useDependencyHistory(memberId);
+  const { data: summariesData } = useSummaries({
+    member_id: memberId,
+    page_size: 5,
+  });
+  const { data: timeBudget } = useTimeBudget(groupId || null, memberId);
+  const { data: usageHistory } = useTimeBudgetHistory(groupId || null, memberId);
+  const updateTimeBudget = useUpdateTimeBudget();
+  const { data: bedtimeConfig } = useBedtimeMode(groupId || null, memberId);
+  const updateBedtime = useUpdateBedtime();
+  const deleteBedtime = useDeleteBedtime();
+  const { data: deviceSummary } = useDeviceSummary(memberId);
+  const { data: rewards } = useRewards(memberId);
   const [ageVerifying, setAgeVerifying] = useState(false);
+  const [depLearnMore, setDepLearnMore] = useState(false);
+  const [editingBudget, setEditingBudget] = useState(false);
+  const [weekdayMin, setWeekdayMin] = useState(60);
+  const [weekendMin, setWeekendMin] = useState(120);
+  const [bedStart, setBedStart] = useState(21);
+  const [bedEnd, setBedEnd] = useState(7);
 
   if (!memberId) {
     return (
@@ -323,6 +360,313 @@ function MemberDetailContent() {
         </Card>
       </div>
 
+      {/* Emotional Dependency */}
+      {dependencyData && dependencyData.score > 0 && (
+        <div className="mb-8">
+          <Card title="Emotional Dependency">
+            <div className="flex items-start gap-8">
+              <DependencyGauge score={dependencyData.score} />
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-gray-700">Trend:</span>
+                  <span className={`inline-flex items-center gap-1 text-sm font-semibold ${
+                    dependencyData.trend === "improving"
+                      ? "text-green-600"
+                      : dependencyData.trend === "worsening"
+                        ? "text-red-600"
+                        : "text-gray-500"
+                  }`}>
+                    {dependencyData.trend === "improving" && <TrendingDown className="h-4 w-4" />}
+                    {dependencyData.trend === "worsening" && <TrendingUp className="h-4 w-4" />}
+                    {dependencyData.trend === "stable" && <Minus className="h-4 w-4" />}
+                    {dependencyData.trend.charAt(0).toUpperCase() + dependencyData.trend.slice(1)}
+                  </span>
+                </div>
+
+                {dependencyData.risk_factors.length > 0 && (
+                  <div className="mt-3">
+                    <p className="text-xs font-medium text-gray-500">Risk factors</p>
+                    <div className="mt-1 flex flex-wrap gap-1.5">
+                      {dependencyData.risk_factors.map((factor, i) => (
+                        <span
+                          key={i}
+                          className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700"
+                        >
+                          {factor}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {Object.keys(dependencyData.platform_breakdown).length > 0 && (
+                  <div className="mt-3 grid grid-cols-3 gap-2">
+                    {Object.entries(dependencyData.platform_breakdown).map(([platform, count]) => (
+                      <div key={platform} className="text-center">
+                        <p className="text-lg font-bold text-gray-900">{count}</p>
+                        <p className="text-xs capitalize text-gray-500">{platform}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Weekly history sparkline */}
+                {dependencyHistory && dependencyHistory.history.length > 1 && (
+                  <div className="mt-4">
+                    <p className="text-xs font-medium text-gray-500">Weekly trend</p>
+                    <DependencySparkline history={dependencyHistory.history} />
+                  </div>
+                )}
+
+                {/* Learn More expandable */}
+                <button
+                  onClick={() => setDepLearnMore(!depLearnMore)}
+                  className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary-700 hover:text-primary-800"
+                >
+                  <Info className="h-4 w-4" />
+                  {depLearnMore ? "Show less" : "Learn more"}
+                  {depLearnMore ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                </button>
+                {depLearnMore && (
+                  <div className="mt-3 rounded-lg bg-gray-50 p-4 text-sm text-gray-600">
+                    <p className="font-medium text-gray-800">What is emotional dependency?</p>
+                    <p className="mt-1">
+                      AI companion platforms can form strong emotional bonds with children.
+                      While some interaction is normal, excessive reliance may indicate
+                      your child is substituting AI relationships for real human connection.
+                    </p>
+                    <p className="mt-2 font-medium text-gray-800">What you can do</p>
+                    <ul className="mt-1 list-inside list-disc space-y-1">
+                      <li>Talk openly about the difference between AI and human friendships</li>
+                      <li>Encourage in-person social activities and hobbies</li>
+                      <li>Set healthy time limits for companion AI platforms</li>
+                      <li>Monitor late-night usage patterns</li>
+                      <li>Seek professional guidance if scores remain high</li>
+                    </ul>
+                    <p className="mt-3 italic text-gray-500">
+                      {dependencyData.recommendation}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* AI Screen Time & Bedtime */}
+      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Card title="AI Screen Time">
+          <div className="flex items-center gap-4">
+            <TimerGauge
+              minutesUsed={timeBudget?.minutes_used ?? 0}
+              budgetMinutes={timeBudget?.budget_minutes ?? 0}
+            />
+            <div className="flex-1">
+              {timeBudget?.enabled ? (
+                <>
+                  <p className="text-sm text-gray-600">
+                    {timeBudget.minutes_used} / {timeBudget.budget_minutes} min today
+                  </p>
+                  {timeBudget.exceeded && (
+                    <p className="mt-1 text-xs font-medium text-red-600">Budget exceeded</p>
+                  )}
+                  {timeBudget.warn && !timeBudget.exceeded && (
+                    <p className="mt-1 text-xs font-medium text-amber-600">Approaching limit</p>
+                  )}
+                  <p className="mt-1 text-xs text-gray-400">
+                    Weekday: {timeBudget.weekday_minutes}m &middot; Weekend: {timeBudget.weekend_minutes}m
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm text-gray-500">No time budget set</p>
+              )}
+            </div>
+          </div>
+
+          {/* 7-day usage bar chart */}
+          {usageHistory && usageHistory.length > 0 && (
+            <div className="mt-4">
+              <p className="mb-2 text-xs font-medium text-gray-500">Last 7 days</p>
+              <div className="flex items-end gap-1" style={{ height: 60 }}>
+                {[...usageHistory].reverse().map((day) => {
+                  const maxMin = Math.max(...usageHistory.map((d) => d.budget_minutes || 60));
+                  const pct = maxMin > 0 ? Math.min(100, (day.minutes_used / maxMin) * 100) : 0;
+                  return (
+                    <div
+                      key={day.date}
+                      className={`flex-1 rounded-t ${day.exceeded ? "bg-red-400" : "bg-primary"}`}
+                      style={{ height: `${Math.max(4, pct)}%` }}
+                      title={`${day.date}: ${day.minutes_used}/${day.budget_minutes} min`}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Edit budget */}
+          {editingBudget ? (
+            <div className="mt-4 space-y-2">
+              <div className="flex gap-2">
+                <label className="text-xs text-gray-500">
+                  Weekday (min)
+                  <input
+                    type="number"
+                    min={0}
+                    value={weekdayMin}
+                    onChange={(e) => setWeekdayMin(Number(e.target.value))}
+                    className="mt-0.5 block w-full rounded border border-gray-300 px-2 py-1 text-sm"
+                  />
+                </label>
+                <label className="text-xs text-gray-500">
+                  Weekend (min)
+                  <input
+                    type="number"
+                    min={0}
+                    value={weekendMin}
+                    onChange={(e) => setWeekendMin(Number(e.target.value))}
+                    className="mt-0.5 block w-full rounded border border-gray-300 px-2 py-1 text-sm"
+                  />
+                </label>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  isLoading={updateTimeBudget.isPending}
+                  onClick={() => {
+                    updateTimeBudget.mutate(
+                      {
+                        groupId: groupId!,
+                        memberId,
+                        data: {
+                          weekday_minutes: weekdayMin,
+                          weekend_minutes: weekendMin,
+                        },
+                      },
+                      {
+                        onSuccess: () => {
+                          addToast("Screen time updated", "success");
+                          setEditingBudget(false);
+                        },
+                        onError: () => addToast("Failed to update", "error"),
+                      }
+                    );
+                  }}
+                >
+                  Save
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setEditingBudget(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <Button
+              variant="secondary"
+              size="sm"
+              className="mt-3"
+              onClick={() => {
+                setWeekdayMin(timeBudget?.weekday_minutes ?? 60);
+                setWeekendMin(timeBudget?.weekend_minutes ?? 120);
+                setEditingBudget(true);
+              }}
+            >
+              <Timer className="h-4 w-4" />
+              {timeBudget?.enabled ? "Edit Budget" : "Set Budget"}
+            </Button>
+          )}
+        </Card>
+
+        <Card title="Bedtime Mode">
+          <div className="flex items-center gap-3">
+            <Moon className="h-5 w-5 text-indigo-500" />
+            <div className="flex-1">
+              {bedtimeConfig?.enabled ? (
+                <>
+                  <p className="text-sm font-medium text-gray-700">
+                    Active: {bedtimeConfig.start_hour}:00 &ndash; {bedtimeConfig.end_hour}:00
+                  </p>
+                  <p className="mt-0.5 text-xs text-gray-400">
+                    AI blocked during bedtime hours
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm text-gray-500">Bedtime mode not active</p>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-4 space-y-2">
+            <div className="flex gap-2">
+              <label className="text-xs text-gray-500">
+                Start hour
+                <select
+                  value={bedStart}
+                  onChange={(e) => setBedStart(Number(e.target.value))}
+                  className="mt-0.5 block w-full rounded border border-gray-300 px-2 py-1 text-sm"
+                >
+                  {Array.from({ length: 24 }, (_, i) => (
+                    <option key={i} value={i}>{i}:00</option>
+                  ))}
+                </select>
+              </label>
+              <label className="text-xs text-gray-500">
+                End hour
+                <select
+                  value={bedEnd}
+                  onChange={(e) => setBedEnd(Number(e.target.value))}
+                  className="mt-0.5 block w-full rounded border border-gray-300 px-2 py-1 text-sm"
+                >
+                  {Array.from({ length: 24 }, (_, i) => (
+                    <option key={i} value={i}>{i}:00</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                isLoading={updateBedtime.isPending}
+                onClick={() => {
+                  updateBedtime.mutate(
+                    {
+                      groupId: groupId!,
+                      memberId,
+                      data: { start_hour: bedStart, end_hour: bedEnd },
+                    },
+                    {
+                      onSuccess: () => addToast("Bedtime mode updated", "success"),
+                      onError: () => addToast("Failed to set bedtime", "error"),
+                    }
+                  );
+                }}
+              >
+                {bedtimeConfig?.enabled ? "Update Bedtime" : "Enable Bedtime"}
+              </Button>
+              {bedtimeConfig?.enabled && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  isLoading={deleteBedtime.isPending}
+                  onClick={() => {
+                    deleteBedtime.mutate(
+                      { groupId: groupId!, memberId },
+                      {
+                        onSuccess: () => addToast("Bedtime mode disabled", "success"),
+                        onError: () => addToast("Failed to disable", "error"),
+                      }
+                    );
+                  }}
+                >
+                  Disable
+                </Button>
+              )}
+            </div>
+          </div>
+        </Card>
+      </div>
+
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card title="Recent Activity">
           {recentActivity.length === 0 ? (
@@ -367,6 +711,57 @@ function MemberDetailContent() {
         </Card>
       </div>
 
+      {/* Recent Summaries */}
+      <div className="mt-6">
+        <Card
+          title="Recent Summaries"
+          footer={
+            <Link
+              href={`/activity/summaries?member_id=${memberId}`}
+              className="inline-flex items-center gap-1 text-sm font-medium text-primary-700 hover:text-primary-800"
+            >
+              View all summaries
+            </Link>
+          }
+        >
+          {(!summariesData || summariesData.items.length === 0) ? (
+            <p className="py-4 text-center text-sm text-gray-500">No conversation summaries yet</p>
+          ) : (
+            <div className="space-y-3">
+              {summariesData.items.slice(0, 5).map((summary) => (
+                <div
+                  key={summary.id}
+                  className={`rounded-lg p-3 ${summary.action_needed ? "border-l-4 border-l-amber-400 bg-amber-50" : "bg-gray-50"}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-gray-900">{summary.platform}</span>
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                        summary.emotional_tone === "positive" ? "bg-green-100 text-green-700" :
+                        summary.emotional_tone === "concerned" ? "bg-amber-100 text-amber-700" :
+                        summary.emotional_tone === "distressed" ? "bg-red-100 text-red-700" :
+                        "bg-gray-100 text-gray-700"
+                      }`}>
+                        {summary.emotional_tone}
+                      </span>
+                    </div>
+                    <span className="text-xs text-gray-400">{summary.date}</span>
+                  </div>
+                  <p className="mt-1 text-xs text-gray-600 line-clamp-2">{summary.summary_text}</p>
+                  {summary.risk_flags.length > 0 && (
+                    <div className="mt-1.5 flex flex-wrap gap-1">
+                      {summary.risk_flags.map((flag, i) => (
+                        <span key={i} className="rounded-full bg-red-50 px-2 py-0.5 text-xs text-red-700">{flag}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      </div>
+
       <div className="mt-6">
         <Card title="Recent Spend">
           {recentSpend.length === 0 ? (
@@ -395,6 +790,111 @@ function MemberDetailContent() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+        </Card>
+      </div>
+
+      {/* Devices Section (F12) */}
+      <div className="mt-6">
+        <Card title="Devices">
+          {!deviceSummary ? (
+            <p className="py-4 text-center text-sm text-gray-500">No device data available</p>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center gap-6">
+                <div className="flex items-center gap-2">
+                  <Monitor className="h-5 w-5 text-gray-500" />
+                  <div>
+                    <p className="text-xs text-gray-500">Total Time</p>
+                    <p className="text-lg font-bold text-gray-900">{deviceSummary.total_minutes} min</p>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Sessions</p>
+                  <p className="text-lg font-bold text-gray-900">{deviceSummary.session_count}</p>
+                </div>
+              </div>
+
+              {deviceSummary.device_breakdown.length > 0 && (
+                <div>
+                  <h4 className="mb-2 text-xs font-medium uppercase tracking-wider text-gray-500">By Device</h4>
+                  <div className="space-y-2">
+                    {deviceSummary.device_breakdown.map((dev) => (
+                      <div key={dev.device_id} className="flex items-center justify-between rounded-lg border border-gray-100 p-3">
+                        <div className="flex items-center gap-2">
+                          <Monitor className="h-4 w-4 text-gray-400" />
+                          <span className="text-sm text-gray-700">{dev.device_name}</span>
+                        </div>
+                        <div className="flex items-center gap-4 text-sm">
+                          <span className="text-gray-500">{dev.minutes} min</span>
+                          <span className="text-gray-400">{dev.sessions} sessions</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {deviceSummary.platform_breakdown.length > 0 && (
+                <div>
+                  <h4 className="mb-2 text-xs font-medium uppercase tracking-wider text-gray-500">By Platform</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {deviceSummary.platform_breakdown.map((plat) => (
+                      <div key={plat.platform} className="rounded-lg bg-gray-50 px-3 py-2">
+                        <p className="text-sm font-medium text-gray-700 capitalize">{plat.platform}</p>
+                        <p className="text-xs text-gray-500">{plat.minutes} min / {plat.sessions} sessions</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </Card>
+      </div>
+
+      {/* Rewards Section (F14) */}
+      <div className="mt-6">
+        <Card title="Rewards">
+          {!rewards || rewards.length === 0 ? (
+            <div className="py-6 text-center">
+              <Trophy className="mx-auto h-10 w-10 text-gray-300" />
+              <p className="mt-2 text-sm text-gray-500">No rewards earned yet</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {rewards.map((reward) => (
+                <div key={reward.id} className="flex items-center justify-between rounded-lg border border-gray-100 p-3">
+                  <div className="flex items-center gap-3">
+                    <div className={`flex h-9 w-9 items-center justify-center rounded-full ${
+                      reward.reward_type === "badge" ? "bg-amber-100" : "bg-green-100"
+                    }`}>
+                      {reward.reward_type === "badge" ? (
+                        <Award className="h-4 w-4 text-amber-600" />
+                      ) : (
+                        <Clock className="h-4 w-4 text-green-600" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{reward.trigger_description}</p>
+                      <p className="text-xs text-gray-500">
+                        {reward.reward_type === "extra_time"
+                          ? `+${reward.value} minutes extra time`
+                          : `Badge: Tier ${reward.value}`}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-gray-400">
+                      {new Date(reward.earned_at).toLocaleDateString()}
+                    </p>
+                    {reward.redeemed && (
+                      <span className="text-xs text-gray-400">Redeemed</span>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </Card>
@@ -476,6 +976,142 @@ function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string
         </div>
       </div>
     </div>
+  );
+}
+
+function TimerGauge({ minutesUsed, budgetMinutes }: { minutesUsed: number; budgetMinutes: number }) {
+  const radius = 36;
+  const stroke = 6;
+  const normalizedRadius = radius - stroke / 2;
+  const circumference = 2 * Math.PI * normalizedRadius;
+  const pct = budgetMinutes > 0 ? Math.min(100, (minutesUsed / budgetMinutes) * 100) : 0;
+  const offset = circumference - (pct / 100) * circumference;
+  const color = pct >= 100 ? "#dc2626" : pct >= 75 ? "#d97706" : "#0d9488";
+
+  return (
+    <div className="flex flex-shrink-0 flex-col items-center">
+      <svg width={radius * 2} height={radius * 2}>
+        <circle cx={radius} cy={radius} r={normalizedRadius} fill="none" stroke="#e5e7eb" strokeWidth={stroke} />
+        <circle
+          cx={radius} cy={radius} r={normalizedRadius} fill="none"
+          stroke={color} strokeWidth={stroke}
+          strokeDasharray={circumference} strokeDashoffset={offset}
+          strokeLinecap="round"
+          transform={`rotate(-90 ${radius} ${radius})`}
+          style={{ transition: "stroke-dashoffset 0.5s ease" }}
+        />
+        <text x={radius} y={radius - 4} textAnchor="middle" dominantBaseline="central" className="text-sm font-bold" fill={color}>
+          {Math.round(pct)}%
+        </text>
+        <text x={radius} y={radius + 10} textAnchor="middle" dominantBaseline="central" className="text-[9px]" fill="#6b7280">
+          used
+        </text>
+      </svg>
+    </div>
+  );
+}
+
+function DependencyGauge({ score }: { score: number }) {
+  const radius = 50;
+  const stroke = 8;
+  const normalizedRadius = radius - stroke / 2;
+  const circumference = 2 * Math.PI * normalizedRadius;
+  const progress = Math.max(0, Math.min(100, score));
+  const strokeDashoffset = circumference - (progress / 100) * circumference;
+
+  // Green 0-40, Amber 41-60, Red 61-100
+  const color =
+    score <= 40 ? "#16a34a" : score <= 60 ? "#d97706" : "#dc2626";
+  const label =
+    score <= 40 ? "Low" : score <= 60 ? "Moderate" : "High";
+
+  return (
+    <div className="relative flex flex-shrink-0 flex-col items-center">
+      <svg width={radius * 2} height={radius * 2}>
+        <circle
+          cx={radius}
+          cy={radius}
+          r={normalizedRadius}
+          fill="none"
+          stroke="#e5e7eb"
+          strokeWidth={stroke}
+        />
+        <circle
+          cx={radius}
+          cy={radius}
+          r={normalizedRadius}
+          fill="none"
+          stroke={color}
+          strokeWidth={stroke}
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+          transform={`rotate(-90 ${radius} ${radius})`}
+          style={{ transition: "stroke-dashoffset 0.5s ease" }}
+        />
+        <text
+          x={radius}
+          y={radius - 6}
+          textAnchor="middle"
+          dominantBaseline="central"
+          className="text-2xl font-bold"
+          fill={color}
+        >
+          {score}
+        </text>
+        <text
+          x={radius}
+          y={radius + 14}
+          textAnchor="middle"
+          dominantBaseline="central"
+          className="text-xs"
+          fill="#6b7280"
+        >
+          {label}
+        </text>
+      </svg>
+      <div className="mt-1 flex items-center gap-1 text-xs text-gray-400">
+        <Heart className="h-3 w-3" />
+        Dependency
+      </div>
+    </div>
+  );
+}
+
+function DependencySparkline({ history }: { history: { week_start: string; week_end: string; score: number }[] }) {
+  if (history.length < 2) return null;
+
+  const maxScore = Math.max(...history.map((h) => h.score), 100);
+  const width = 200;
+  const height = 40;
+  const padding = 4;
+  const drawWidth = width - padding * 2;
+  const drawHeight = height - padding * 2;
+
+  const points = history.map((h, i) => {
+    const x = padding + (i / (history.length - 1)) * drawWidth;
+    const y = padding + drawHeight - (h.score / maxScore) * drawHeight;
+    return `${x},${y}`;
+  });
+
+  return (
+    <svg width={width} height={height} className="mt-1">
+      <polyline
+        points={points.join(" ")}
+        fill="none"
+        stroke="#d97706"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {history.map((h, i) => {
+        const x = padding + (i / (history.length - 1)) * drawWidth;
+        const y = padding + drawHeight - (h.score / maxScore) * drawHeight;
+        return (
+          <circle key={i} cx={x} cy={y} r={2} fill="#d97706" />
+        );
+      })}
+    </svg>
   );
 }
 

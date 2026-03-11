@@ -28,15 +28,27 @@ import { SpendChart } from "@/components/charts/SpendChart";
 import type { Alert, CaptureEvent } from "@/types";
 import OnboardingWizard from "@/components/OnboardingWizard";
 
+interface ChildEntry {
+  name: string;
+  dateOfBirth: string;
+}
+
 function CreateGroupPrompt() {
   const { user } = useAuth();
   const [step, setStep] = useState(1);
   const [name, setName] = useState("");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [children, setChildren] = useState<ChildEntry[]>([
+    { name: "", dateOfBirth: "" },
+  ]);
+  const [safetyLevel, setSafetyLevel] = useState<
+    "strict" | "moderate" | "permissive"
+  >("moderate");
+  const [selectedBrowser, setSelectedBrowser] = useState<string>("chrome");
 
   const groupType = user?.account_type || "family";
-  const totalSteps = 3;
+  const totalSteps = 5;
 
   async function handleCreate() {
     if (!name.trim()) {
@@ -47,58 +59,99 @@ function CreateGroupPrompt() {
     setError(null);
     try {
       await groupsApi.create({ name: name.trim(), type: groupType });
-      window.location.reload();
+      setStep(2);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create group.");
+    } finally {
       setCreating(false);
     }
   }
 
+  function addChild() {
+    setChildren([...children, { name: "", dateOfBirth: "" }]);
+  }
+
+  function updateChild(index: number, field: keyof ChildEntry, value: string) {
+    const updated = [...children];
+    updated[index] = { ...updated[index], [field]: value };
+    setChildren(updated);
+  }
+
+  function removeChild(index: number) {
+    if (children.length > 1) {
+      setChildren(children.filter((_, i) => i !== index));
+    }
+  }
+
+  const safetyOptions = [
+    {
+      value: "strict" as const,
+      label: "Strict",
+      description:
+        "Block all flagged content immediately. Best for younger children (under 10).",
+      icon: Shield,
+      color: "text-red-600 bg-red-50 ring-red-200",
+    },
+    {
+      value: "moderate" as const,
+      label: "Moderate",
+      description:
+        "Alert on risky content but allow most interactions. Recommended for ages 10-15.",
+      icon: Shield,
+      color: "text-amber-600 bg-amber-50 ring-amber-200",
+    },
+    {
+      value: "permissive" as const,
+      label: "Permissive",
+      description:
+        "Monitor and log only. Suitable for older teens with established trust.",
+      icon: Shield,
+      color: "text-green-600 bg-green-50 ring-green-200",
+    },
+  ];
+
+  const browsers = [
+    { value: "chrome", label: "Google Chrome" },
+    { value: "firefox", label: "Mozilla Firefox" },
+    { value: "safari", label: "Safari" },
+    { value: "edge", label: "Microsoft Edge" },
+  ];
+
+  const setupCode = "BHAPI-" + Math.random().toString(36).substring(2, 8).toUpperCase();
+
   return (
     <div className="flex flex-col items-center justify-center py-16">
       <div className="mx-auto w-full max-w-lg rounded-xl bg-white p-8 shadow-sm ring-1 ring-gray-200">
-        {/* Progress */}
-        <div className="mb-6 flex items-center justify-center gap-2">
-          {[1, 2, 3].map((s) => (
+        {/* Progress bar */}
+        <div className="mb-2 flex items-center justify-center gap-2">
+          {[1, 2, 3, 4, 5].map((s) => (
             <div
               key={s}
-              className={`h-2 w-12 rounded-full transition-colors ${
+              className={`h-2 flex-1 rounded-full transition-colors ${
                 s <= step ? "bg-primary" : "bg-gray-200"
               }`}
             />
           ))}
         </div>
+        <p className="mb-6 text-center text-xs text-gray-400">
+          Step {step} of {totalSteps}
+        </p>
 
+        {/* Step 1: Welcome + create group */}
         {step === 1 && (
-          <div className="text-center">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary-100">
-              <Plus className="h-7 w-7 text-primary-600" />
-            </div>
-            <h2 className="mt-4 text-xl font-bold text-gray-900">
-              Welcome to Bhapi
-            </h2>
-            <p className="mt-2 text-sm text-gray-500">
-              Let&apos;s set up your {groupType} group to start monitoring AI usage and keeping everyone safe.
-            </p>
-            <div className="mt-6 space-y-3 text-left">
-              <StepPreview icon="1" title="Create your group" description="Name your group and configure basic settings" />
-              <StepPreview icon="2" title="Safety overview" description="Understand how Bhapi protects your members" />
-              <StepPreview icon="3" title="Invite members" description="Add family members, students, or club participants" />
-            </div>
-            <Button onClick={() => setStep(2)} className="mt-6 w-full">
-              Get Started
-            </Button>
-          </div>
-        )}
-
-        {step === 2 && (
           <div>
-            <h2 className="text-xl font-bold text-gray-900">
-              Create your group
-            </h2>
-            <p className="mt-1 text-sm text-gray-500">
-              Step {step} of {totalSteps}
-            </p>
+            <div className="text-center">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary-100">
+                <Plus className="h-7 w-7 text-primary-600" />
+              </div>
+              <h2 className="mt-4 text-xl font-bold text-gray-900">
+                Welcome to Bhapi
+              </h2>
+              <p className="mt-2 text-sm text-gray-500">
+                Let&apos;s set up your {groupType} group to start monitoring AI
+                usage and keeping everyone safe.
+              </p>
+            </div>
 
             <div className="mt-6 space-y-4">
               {error && (
@@ -107,7 +160,10 @@ function CreateGroupPrompt() {
                 </div>
               )}
               <div>
-                <label htmlFor="group-name" className="block text-sm font-medium text-gray-700">
+                <label
+                  htmlFor="group-name"
+                  className="block text-sm font-medium text-gray-700"
+                >
                   Group name
                 </label>
                 <input
@@ -115,18 +171,27 @@ function CreateGroupPrompt() {
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder={groupType === "family" ? "The Smith Family" : groupType === "school" ? "Oakwood Academy" : "My Club"}
+                  placeholder={
+                    groupType === "family"
+                      ? "The Smith Family"
+                      : groupType === "school"
+                        ? "Oakwood Academy"
+                        : "My Club"
+                  }
                   className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
                   onKeyDown={(e) => e.key === "Enter" && handleCreate()}
                 />
               </div>
 
               <div className="rounded-lg bg-gray-50 p-4">
-                <h3 className="text-sm font-semibold text-gray-900">What Bhapi monitors</h3>
+                <h3 className="text-sm font-semibold text-gray-900">
+                  What Bhapi monitors
+                </h3>
                 <ul className="mt-2 space-y-1.5 text-xs text-gray-600">
                   <li className="flex items-start gap-2">
                     <CheckCircle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-green-500" />
-                    AI interactions on ChatGPT, Gemini, Copilot, Claude, and Grok
+                    AI interactions on ChatGPT, Gemini, Copilot, Claude, and
+                    Grok
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-green-500" />
@@ -144,14 +209,12 @@ function CreateGroupPrompt() {
               </div>
             </div>
 
-            <div className="mt-6 flex justify-between">
-              <Button variant="secondary" onClick={() => setStep(1)}>
-                Back
-              </Button>
+            <div className="mt-6">
               <Button
                 onClick={handleCreate}
                 isLoading={creating}
                 disabled={!name.trim()}
+                className="w-full"
               >
                 Create Group
               </Button>
@@ -159,7 +222,217 @@ function CreateGroupPrompt() {
           </div>
         )}
 
+        {/* Step 2: Add children */}
+        {step === 2 && (
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">
+              Add children
+            </h2>
+            <p className="mt-1 text-sm text-gray-500">
+              Add the children you want to monitor. You can add more later.
+            </p>
+
+            <div className="mt-6 space-y-4">
+              {children.map((child, i) => (
+                <div
+                  key={i}
+                  className="rounded-lg border border-gray-200 p-4"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-gray-500">
+                      Child {i + 1}
+                    </span>
+                    {children.length > 1 && (
+                      <button
+                        onClick={() => removeChild(i)}
+                        className="text-xs text-red-500 hover:text-red-700"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                  <div className="mt-2 grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600">
+                        Name
+                      </label>
+                      <input
+                        type="text"
+                        value={child.name}
+                        onChange={(e) =>
+                          updateChild(i, "name", e.target.value)
+                        }
+                        placeholder="Child's name"
+                        className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600">
+                        Date of birth
+                      </label>
+                      <input
+                        type="date"
+                        value={child.dateOfBirth}
+                        onChange={(e) =>
+                          updateChild(i, "dateOfBirth", e.target.value)
+                        }
+                        className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              <button
+                onClick={addChild}
+                className="flex w-full items-center justify-center gap-1 rounded-lg border-2 border-dashed border-gray-300 py-2 text-sm text-gray-500 hover:border-primary-400 hover:text-primary-600"
+              >
+                <Plus className="h-4 w-4" />
+                Add another child
+              </button>
+            </div>
+
+            <div className="mt-6 flex justify-between">
+              <Button variant="secondary" onClick={() => setStep(1)}>
+                Back
+              </Button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setStep(3)}
+                  className="text-sm text-gray-500 hover:text-gray-700"
+                >
+                  Skip for now
+                </button>
+                <Button onClick={() => setStep(3)}>Next</Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Step 3: Safety level */}
         {step === 3 && (
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">
+              Choose safety level
+            </h2>
+            <p className="mt-1 text-sm text-gray-500">
+              Set the default safety level for your group. You can adjust per
+              member later.
+            </p>
+
+            <div className="mt-6 space-y-3">
+              {safetyOptions.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => setSafetyLevel(option.value)}
+                  className={`flex w-full items-start gap-3 rounded-lg border p-4 text-left transition-colors ${
+                    safetyLevel === option.value
+                      ? "border-primary-500 bg-primary-50 ring-1 ring-primary-500"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <div
+                    className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full ring-1 ${option.color}`}
+                  >
+                    <option.icon className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {option.label}
+                    </p>
+                    <p className="mt-0.5 text-xs text-gray-500">
+                      {option.description}
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-6 flex justify-between">
+              <Button variant="secondary" onClick={() => setStep(2)}>
+                Back
+              </Button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setStep(4)}
+                  className="text-sm text-gray-500 hover:text-gray-700"
+                >
+                  Skip for now
+                </button>
+                <Button onClick={() => setStep(4)}>Next</Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Step 4: Install extension */}
+        {step === 4 && (
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">
+              Install browser extension
+            </h2>
+            <p className="mt-1 text-sm text-gray-500">
+              Install the Bhapi extension to start monitoring AI usage on your
+              children&apos;s devices.
+            </p>
+
+            <div className="mt-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Select browser
+                </label>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  {browsers.map((browser) => (
+                    <button
+                      key={browser.value}
+                      onClick={() => setSelectedBrowser(browser.value)}
+                      className={`rounded-lg border p-3 text-sm transition-colors ${
+                        selectedBrowser === browser.value
+                          ? "border-primary-500 bg-primary-50 font-medium text-primary-700"
+                          : "border-gray-200 text-gray-700 hover:border-gray-300"
+                      }`}
+                    >
+                      {browser.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-lg bg-gray-50 p-4">
+                <p className="text-sm font-medium text-gray-700">
+                  Setup code
+                </p>
+                <div className="mt-2 flex items-center gap-2">
+                  <code className="rounded-md bg-white px-4 py-2 text-lg font-mono font-bold text-primary-700 ring-1 ring-gray-200">
+                    {setupCode}
+                  </code>
+                </div>
+                <p className="mt-2 text-xs text-gray-500">
+                  Enter this code in the extension after installing it on your
+                  child&apos;s browser.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-between">
+              <Button variant="secondary" onClick={() => setStep(3)}>
+                Back
+              </Button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setStep(5)}
+                  className="text-sm text-gray-500 hover:text-gray-700"
+                >
+                  Skip for now
+                </button>
+                <Button onClick={() => setStep(5)}>Next</Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Step 5: Summary */}
+        {step === 5 && (
           <div className="text-center">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
               <CheckCircle className="h-7 w-7 text-green-600" />
@@ -168,8 +441,38 @@ function CreateGroupPrompt() {
               You&apos;re all set!
             </h2>
             <p className="mt-2 text-sm text-gray-500">
-              Your group has been created. Head to Members to invite your first members, or explore the dashboard.
+              Your group has been created with {safetyLevel} safety settings.
+              {children.filter((c) => c.name.trim()).length > 0 &&
+                ` ${children.filter((c) => c.name.trim()).length} child(ren) added.`}
             </p>
+
+            <div className="mt-6 rounded-lg bg-gray-50 p-4 text-left">
+              <h3 className="text-sm font-semibold text-gray-900">
+                Summary
+              </h3>
+              <ul className="mt-2 space-y-1.5 text-xs text-gray-600">
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="h-3.5 w-3.5 text-green-500" />
+                  Group &quot;{name}&quot; created
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="h-3.5 w-3.5 text-green-500" />
+                  Safety level: {safetyLevel}
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="h-3.5 w-3.5 text-green-500" />
+                  {children.filter((c) => c.name.trim()).length} child(ren)
+                  configured
+                </li>
+              </ul>
+            </div>
+
+            <Button
+              onClick={() => window.location.reload()}
+              className="mt-6 w-full"
+            >
+              Go to Dashboard
+            </Button>
           </div>
         )}
       </div>

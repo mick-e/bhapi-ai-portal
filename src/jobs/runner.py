@@ -77,6 +77,68 @@ async def _directory_sync(db: AsyncSession) -> dict:
     return await run_directory_sync(db)
 
 
+async def _dependency_check(db: AsyncSession) -> dict:
+    """Check emotional dependency scores for all groups and create alerts."""
+    from src.groups.models import Group
+    from src.risk.emotional_dependency import check_dependency_alerts
+    from sqlalchemy import select as _select
+
+    groups_result = await db.execute(_select(Group))
+    groups = list(groups_result.scalars().all())
+    total_alerts = 0
+    for group in groups:
+        result = await check_dependency_alerts(db, group.id)
+        total_alerts += result.get("alerts_created", 0)
+    return {"groups_checked": len(groups), "alerts_created": total_alerts}
+
+
+async def _daily_summarization(db: AsyncSession) -> dict:
+    """Generate daily conversation summaries for all members."""
+    import os
+    from datetime import date, timedelta
+    from sqlalchemy import select
+    from src.groups.models import Group, GroupMember
+
+    api_key = os.environ.get("SUMMARY_LLM_API_KEY") or os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        logger.info("daily_summarization_skipped", reason="no_llm_api_key")
+        return {"skipped": True, "reason": "no_llm_api_key"}
+
+    from src.capture.summarizer import generate_daily_summaries
+
+    target_date = date.today() - timedelta(days=1)
+    total_summaries = 0
+
+    groups_result = await db.execute(select(Group))
+    groups = list(groups_result.scalars().all())
+    for group in groups:
+        members_result = await db.execute(
+            select(GroupMember).where(GroupMember.group_id == group.id)
+        )
+        members = list(members_result.scalars().all())
+        for member in members:
+            try:
+                summaries = await generate_daily_summaries(
+                    db, group.id, member.id, target_date
+                )
+                total_summaries += len(summaries)
+            except Exception as exc:
+                logger.error(
+                    "daily_summarization_member_error",
+                    group_id=str(group.id),
+                    member_id=str(member.id),
+                    error=str(exc),
+                )
+
+    return {"summaries_created": total_summaries, "date": target_date.isoformat()}
+
+
+async def _reward_check(db: AsyncSession) -> dict:
+    """Evaluate reward triggers for all group members."""
+    from src.groups.rewards import run_reward_check
+    return await run_reward_check(db)
+
+
 def _init_registry() -> None:
     """Initialize the job registry with all known jobs. Lazy-loaded."""
     if _JOB_REGISTRY:
@@ -186,6 +248,71 @@ def _init_registry() -> None:
         "Sync members from SSO directory providers",
         "daily",
         _directory_sync,
+    )
+
+    from src.compliance.coppa_dashboard import coppa_reminder_job
+    register_job(
+        "coppa_reminder",
+        "Alert on COPPA compliance gaps or overdue annual reviews",
+        "daily",
+        coppa_reminder_job,
+    )
+
+    register_job(
+        "dependency_check",
+        "Check emotional dependency scores and create alerts",
+        "daily",
+        _dependency_check,
+    )
+
+    async def _time_budget_enforce(db: AsyncSession) -> dict:
+        """Enforce time budgets — block exceeded, unblock new day."""
+        from src.blocking.time_budget import enforce_time_budgets
+        return await enforce_time_budgets(db)
+
+    register_job(
+        "time_budget_enforce",
+        "Enforce AI screen time budgets",
+        "every_5m",
+        _time_budget_enforce,
+    )
+
+    register_job(
+        "daily_summarization",
+        "Generate daily AI conversation summaries for parents",
+        "daily",
+        _daily_summarization,
+    )
+
+    # Sprint 5: Family agreement review reminders
+    async def _agreement_review_reminder(db: AsyncSession) -> dict:
+        from src.groups.agreement import agreement_review_reminder
+        return await agreement_review_reminder(db)
+
+    register_job(
+        "agreement_review_reminder",
+        "Remind parents to review family AI agreements",
+        "weekly",
+        _agreement_review_reminder,
+    )
+
+    # Sprint 5: Family weekly safety report
+    async def _family_weekly_report(db: AsyncSession) -> dict:
+        from src.reporting.family_report import run_family_weekly_reports
+        return await run_family_weekly_reports(db)
+
+    register_job(
+        "family_weekly_report",
+        "Generate and send weekly family safety reports",
+        "weekly",
+        _family_weekly_report,
+    )
+
+    register_job(
+        "reward_check",
+        "Evaluate reward triggers for all group members",
+        "daily",
+        _reward_check,
     )
 
 

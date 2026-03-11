@@ -179,6 +179,38 @@ async def update_schedule_endpoint(
     return _schedule_to_frontend(schedule)
 
 
+# ---------------------------------------------------------------------------
+# Weekly Family Report
+# ---------------------------------------------------------------------------
+
+
+@router.get("/weekly-family")
+async def get_weekly_family_report(
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get latest weekly family report data."""
+    from src.dependencies import resolve_group_id as _resolve
+    from src.reporting.family_report import generate_family_weekly_report
+
+    gid = _resolve(None, auth)
+    return await generate_family_weekly_report(db, gid)
+
+
+@router.post("/weekly-family/send", status_code=200)
+async def send_weekly_family_report(
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Trigger on-demand send of the weekly family report."""
+    from src.dependencies import resolve_group_id as _resolve
+    from src.reporting.family_report import send_family_weekly_report
+
+    gid = _resolve(None, auth)
+    sent = await send_family_weekly_report(db, gid)
+    return {"sent": sent}
+
+
 @router.get("/{report_id}/download")
 async def download_report(
     report_id: UUID,

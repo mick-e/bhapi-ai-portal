@@ -101,3 +101,55 @@ class ConsentResponse(BaseSchema):
     given_at: datetime
     withdrawn_at: datetime | None
     created_at: datetime
+
+
+# ─── Privacy (F11) ───────────────────────────────────────────────────────────
+
+
+class VisibilityRequest(BaseSchema):
+    """Set member visibility."""
+
+    visible_to: list[UUID] = Field(default_factory=list)
+
+
+class VisibilityResponse(BaseSchema):
+    """Member visibility response."""
+
+    group_id: UUID
+    member_id: UUID
+    visible_to: list[UUID]
+    is_restricted: bool
+
+
+class ChildSelfViewRequest(BaseSchema):
+    """Enable/configure child self-view."""
+
+    enabled: bool = True
+    sections: list[str] = Field(default_factory=list)
+
+
+class ChildSelfViewResponse(BaseSchema):
+    """Child self-view response."""
+
+    group_id: UUID
+    member_id: UUID
+    enabled: bool
+    sections: list[str]
+
+
+# ─── Rewards (F14) ───────────────────────────────────────────────────────────
+
+
+class RewardResponse(BaseSchema):
+    """Reward response."""
+
+    id: UUID
+    group_id: UUID
+    member_id: UUID
+    reward_type: str
+    trigger: str
+    trigger_description: str
+    value: int
+    earned_at: datetime
+    expires_at: datetime | None
+    redeemed: bool

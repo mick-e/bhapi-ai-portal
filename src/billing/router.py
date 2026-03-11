@@ -81,6 +81,37 @@ async def get_vendor_risk(provider: str):
     return risk.model_dump()
 
 
+# ─── Platform Safety Ratings (public, no auth) ──────────────────────────────
+
+
+@router.get("/platform-safety")
+async def get_all_platform_safety():
+    """Get safety ratings for all AI platforms (public, no auth required)."""
+    from src.billing.platform_safety import get_platform_safety_ratings
+    return {"platforms": get_platform_safety_ratings()}
+
+
+@router.get("/platform-safety/recommend")
+async def get_platform_recommendations(
+    age: int = Query(..., ge=1, le=100, description="Child's age"),
+):
+    """Get age-filtered platform recommendations (public, no auth required)."""
+    from src.billing.platform_safety import get_age_recommendations
+    return {"platforms": get_age_recommendations(age)}
+
+
+@router.get("/platform-safety/{platform}")
+async def get_single_platform_safety(platform: str):
+    """Get safety rating for a specific AI platform (public, no auth required)."""
+    from src.billing.platform_safety import get_platform_safety_rating
+    from src.exceptions import NotFoundError
+
+    rating = get_platform_safety_rating(platform)
+    if not rating:
+        raise NotFoundError(f"Platform '{platform}'")
+    return rating
+
+
 # ─── Subscriptions ───────────────────────────────────────────────────────────
 
 

@@ -1,6 +1,6 @@
 """Capture gateway Pydantic schemas."""
 
-from datetime import datetime
+from datetime import date, datetime
 from uuid import UUID
 
 from pydantic import Field
@@ -157,3 +157,47 @@ class DeviceResponse(BaseSchema):
     setup_code: str
     extension_id: str | None
     registered_at: datetime
+
+
+# ─── Conversation Summary Schemas ────────────────────────────────────────────
+
+
+class ConversationSummaryResponse(BaseSchema):
+    """Conversation summary response for parents."""
+
+    id: UUID
+    group_id: UUID
+    member_id: UUID
+    capture_event_id: UUID | None = None
+    platform: str
+    date: date
+    topics: list = Field(default_factory=list)
+    emotional_tone: str
+    risk_flags: list = Field(default_factory=list)
+    key_quotes: list = Field(default_factory=list)
+    action_needed: bool
+    action_reason: str | None = None
+    summary_text: str
+    detail_level: str
+    llm_model: str
+    content_hash: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class SummaryListRequest(BaseSchema):
+    """Query parameters for listing summaries."""
+
+    group_id: UUID | None = None
+    member_id: UUID | None = None
+    start_date: date | None = None
+    end_date: date | None = None
+    page: int = Field(default=1, ge=1)
+    page_size: int = Field(default=20, ge=1, le=100)
+
+
+class SummarizeRequest(BaseSchema):
+    """Request to trigger manual summarization for an event."""
+
+    event_id: UUID
+    member_age: int | None = None

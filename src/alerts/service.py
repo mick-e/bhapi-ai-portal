@@ -52,6 +52,19 @@ async def create_alert(db: AsyncSession, data: AlertCreate) -> Alert:
     except Exception:
         pass  # SSE failure must never block alert creation
 
+    # Notify emergency contacts on critical alerts
+    if data.severity == "critical":
+        try:
+            from src.groups.emergency_contacts import notify_emergency_contacts
+
+            await notify_emergency_contacts(db, alert.group_id, {
+                "severity": alert.severity,
+                "title": alert.title,
+                "body": alert.body,
+            })
+        except Exception:
+            pass  # Emergency contact failure must never block alert creation
+
     return alert
 
 

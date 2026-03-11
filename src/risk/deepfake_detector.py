@@ -7,6 +7,7 @@ deepfake detection services via the DEEPFAKE_PROVIDER env var.
 from __future__ import annotations
 
 import os
+import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
@@ -128,6 +129,71 @@ class SensityDetector(DeepfakeDetector):
                 provider="sensity",
                 details=data,
             )
+
+
+VOICE_CLONING_PATTERNS: list[str] = [
+    r"\b(clone\s+(?:my|her|his|their|a)\s+voice)\b",
+    r"\b(voice\s+cloning)\b",
+    r"\b(voice\s+sample\s+for\s+(?:ai|cloning|replication))\b",
+    r"\b(voice\s+recording\s+for\s+(?:ai|cloning))\b",
+    r"\b(replicate\s+(?:my|her|his|their)\s+voice)\b",
+    r"\b(text\s+to\s+speech\s+(?:clone|copy|mimic))\b",
+    r"\b(ai\s+voice\s+(?:generator|clone|copy))\b",
+    r"\b(deepfake\s+(?:voice|audio|call))\b",
+]
+
+_VOICE_CLONING_RE = [re.compile(p, re.IGNORECASE) for p in VOICE_CLONING_PATTERNS]
+
+
+@dataclass
+class VoiceCloningRisk:
+    """Result of voice cloning risk assessment."""
+
+    is_risk: bool
+    confidence: float
+    matched_patterns: list[str]
+    recommendation: str
+
+
+def detect_voice_cloning_risk(text: str) -> VoiceCloningRisk:
+    """Check text for voice-cloning-related patterns and return a risk assessment.
+
+    This is a synchronous, keyword-based check — no external API required.
+    """
+    if not text or not text.strip():
+        return VoiceCloningRisk(
+            is_risk=False,
+            confidence=0.0,
+            matched_patterns=[],
+            recommendation="",
+        )
+
+    matched: list[str] = []
+    for regex in _VOICE_CLONING_RE:
+        m = regex.search(text)
+        if m:
+            matched.append(m.group(0))
+
+    if not matched:
+        return VoiceCloningRisk(
+            is_risk=False,
+            confidence=0.0,
+            matched_patterns=[],
+            recommendation="",
+        )
+
+    confidence = min(0.90 + 0.02 * (len(matched) - 1), 1.0)
+
+    return VoiceCloningRisk(
+        is_risk=True,
+        confidence=round(confidence, 3),
+        matched_patterns=matched,
+        recommendation=(
+            "Voice cloning technology can be used for fraud and impersonation. "
+            "Discuss with your child why creating voice clones of others "
+            "without consent is harmful and potentially illegal."
+        ),
+    )
 
 
 def get_detector() -> DeepfakeDetector:

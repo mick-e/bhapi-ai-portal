@@ -116,6 +116,11 @@ class Settings(BaseSettings):
     oauth_google_workspace_domain: str | None = None
     oauth_microsoft_tenant_id: str | None = None
 
+    # Conversation Summarization (optional — feature disabled if API key not set)
+    summary_llm_provider: str = "anthropic"
+    summary_llm_model: str = "claude-sonnet-4-20250514"
+    summary_llm_api_key: str | None = None
+
     # App
     app_name: str = "Bhapi AI Portal"
     app_version: str = "2.0.0"

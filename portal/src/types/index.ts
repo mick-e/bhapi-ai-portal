@@ -466,6 +466,84 @@ export interface BlockEffectiveness {
   block_rate_pct: number;
 }
 
+// ─── Time Budget ──────────────────────────────────────────────────────────
+
+export interface TimeBudget {
+  id: string | null;
+  group_id: string | null;
+  member_id: string | null;
+  weekday_minutes: number;
+  weekend_minutes: number;
+  reset_hour: number;
+  timezone: string;
+  enabled: boolean;
+  warn_at_percent: number;
+  minutes_used: number;
+  budget_minutes: number;
+  remaining: number;
+  exceeded: boolean;
+  warn: boolean;
+}
+
+export interface TimeBudgetUpdate {
+  weekday_minutes: number;
+  weekend_minutes: number;
+  reset_hour?: number;
+  timezone?: string;
+  enabled?: boolean;
+  warn_at_percent?: number;
+}
+
+export interface TimeBudgetUsageItem {
+  date: string;
+  minutes_used: number;
+  budget_minutes: number;
+  exceeded: boolean;
+}
+
+// ─── Bedtime Mode ─────────────────────────────────────────────────────────
+
+export interface BedtimeConfig {
+  enabled: boolean;
+  start_hour: number | null;
+  end_hour: number | null;
+  timezone: string;
+  rule_id: string | null;
+}
+
+export interface BedtimeUpdate {
+  start_hour: number;
+  end_hour: number;
+  timezone?: string;
+}
+
+// ─── Panic Reports ────────────────────────────────────────────────────────
+
+export type PanicCategory = "scary_content" | "weird_request" | "bad_ai_response" | "other";
+
+export interface PanicReport {
+  id: string;
+  group_id: string;
+  member_id: string;
+  category: PanicCategory;
+  message: string | null;
+  platform: string | null;
+  session_id: string | null;
+  parent_response: string | null;
+  parent_responded_at: string | null;
+  resolved: boolean;
+  created_at: string;
+}
+
+export interface PanicReportCreate {
+  group_id: string;
+  member_id: string;
+  category: PanicCategory;
+  message?: string;
+  platform?: string;
+  session_id?: string;
+}
+
 // ─── Analytics ─────────────────────────────────────────────────────────────
 
 export interface TrendData {
@@ -547,6 +625,32 @@ export interface SSOConfig {
   created_at: string;
 }
 
+// ─── Conversation Summaries ────────────────────────────────────────────────
+
+export type EmotionalTone = "neutral" | "positive" | "concerned" | "distressed";
+export type DetailLevel = "full" | "moderate" | "minimal";
+
+export interface ConversationSummary {
+  id: string;
+  group_id: string;
+  member_id: string;
+  capture_event_id: string | null;
+  platform: string;
+  date: string;
+  topics: string[];
+  emotional_tone: EmotionalTone;
+  risk_flags: string[];
+  key_quotes: string[];
+  action_needed: boolean;
+  action_reason: string | null;
+  summary_text: string;
+  detail_level: DetailLevel;
+  llm_model: string;
+  content_hash: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // ─── Compliance (Phase 8) ──────────────────────────────────────────────────
 
 export interface AppealRecord {
@@ -564,4 +668,284 @@ export interface TransparencyReport {
   categories: string[];
   data_sources: string[];
   rights: string[];
+}
+
+// ─── COPPA Dashboard ──────────────────────────────────────────────────────
+
+export interface COPPAChecklistItem {
+  id: string;
+  label: string;
+  description: string;
+  status: "complete" | "incomplete" | "warning" | "not_applicable";
+  evidence: string;
+  action_url: string;
+  regulation_ref: string;
+}
+
+export interface COPPAComplianceReport {
+  group_id: string;
+  group_name: string;
+  score: number;
+  status: "compliant" | "partial" | "non_compliant";
+  checklist: COPPAChecklistItem[];
+  assessed_at: string;
+  last_review: string | null;
+}
+
+export interface COPPAReviewResponse {
+  group_id: string;
+  reviewed_at: string;
+  status: string;
+}
+
+// ─── Platform Safety Ratings ────────────────────────────────────────────────
+
+export interface PlatformSafetyRating {
+  key: string;
+  name: string;
+  overall_grade: string;
+  min_age_recommended: number;
+  has_parental_controls: boolean;
+  has_content_filters: boolean;
+  data_retention_days: number;
+  coppa_compliant: boolean;
+  known_incidents: number;
+  strengths: string[];
+  concerns: string[];
+  last_updated: string;
+}
+
+export interface PlatformSafetyRecommendation extends PlatformSafetyRating {
+  recommendation: "recommended" | "use_with_caution" | "not_recommended";
+}
+
+// ─── Emotional Dependency ──────────────────────────────────────────────────
+
+export interface DependencyScore {
+  score: number;
+  session_duration_score: number;
+  frequency_score: number;
+  attachment_language_score: number;
+  time_pattern_score: number;
+  trend: "improving" | "stable" | "worsening";
+  risk_factors: string[];
+  platform_breakdown: Record<string, number>;
+  recommendation: string;
+}
+
+export interface DependencyHistoryEntry {
+  week_start: string;
+  week_end: string;
+  score: number;
+}
+
+export interface DependencyHistoryResponse {
+  member_id: string;
+  group_id: string;
+  days: number;
+  history: DependencyHistoryEntry[];
+}
+
+// ─── Family Agreement ───────────────────────────────────────────────────────
+
+export interface AgreementRule {
+  category: string;
+  rule_text: string;
+  enabled: boolean;
+}
+
+export interface AgreementSignature {
+  member_id: string;
+  name: string;
+  signed_at: string;
+}
+
+export interface FamilyAgreement {
+  id: string;
+  group_id: string;
+  title: string;
+  template_id: string;
+  rules: AgreementRule[];
+  signed_by_parent: string | null;
+  signed_by_parent_at: string | null;
+  signed_by_members: AgreementSignature[];
+  active: boolean;
+  review_due: string | null;
+  last_reviewed: string | null;
+  created_at: string | null;
+}
+
+export interface AgreementTemplate {
+  title: string;
+  rules: { category: string; text: string }[];
+}
+
+// ─── Emergency Contact ──────────────────────────────────────────────────────
+
+export interface EmergencyContact {
+  id: string;
+  group_id: string;
+  name: string;
+  relationship: string;
+  phone: string | null;
+  email: string | null;
+  notify_on: string[];
+  consent_given: boolean;
+  consent_given_at: string | null;
+  created_at: string | null;
+}
+
+// ─── Family Weekly Report ───────────────────────────────────────────────────
+
+export interface FamilyWeeklyReportMember {
+  member_id: string;
+  display_name: string;
+  role: string;
+  safety_score: number;
+  platforms_used: string[];
+  risk_count: number;
+  events_this_week: number;
+  events_last_week: number;
+  week_change: number;
+}
+
+export interface FamilyWeeklyReport {
+  group_id: string;
+  group_name: string;
+  generated_at: string;
+  period_start: string;
+  period_end: string;
+  family_safety_score: number;
+  member_count: number;
+  members: FamilyWeeklyReportMember[];
+  highlights: {
+    safest_member: string | null;
+    most_improved: string | null;
+  };
+  action_items: {
+    unresolved_alerts: number;
+  };
+}
+
+// ─── Academic Integrity ─────────────────────────────────────────────────────
+
+export interface DailyBreakdownItem {
+  date: string;
+  learning: number;
+  doing: number;
+  unclassified: number;
+}
+
+export interface AcademicReport {
+  member_id: string;
+  period_start: string;
+  period_end: string;
+  total_ai_sessions: number;
+  study_hour_sessions: number;
+  learning_count: number;
+  doing_count: number;
+  unclassified_count: number;
+  learning_ratio: number;
+  top_subjects: string[];
+  daily_breakdown: DailyBreakdownItem[];
+  recommendation: string;
+}
+
+export interface IntentClassification {
+  text: string;
+  intent: "learning" | "doing" | "unclassified";
+}
+
+// ─── Deepfake Guidance ──────────────────────────────────────────────────────
+
+export interface DeepfakeReportingResource {
+  name: string;
+  url: string;
+  description: string;
+}
+
+export interface DeepfakeGuidance {
+  what_is_deepfake: string;
+  reporting_resources: DeepfakeReportingResource[];
+  parent_actions: string[];
+  prevention_tips: string[];
+}
+
+// ─── Privacy (F11) ──────────────────────────────────────────────────────────
+
+export interface MemberVisibility {
+  group_id: string;
+  member_id: string;
+  visible_to: string[];
+  is_restricted: boolean;
+}
+
+export interface SetVisibilityRequest {
+  visible_to: string[];
+}
+
+export interface ChildSelfView {
+  group_id: string;
+  member_id: string;
+  enabled: boolean;
+  sections: string[];
+}
+
+export interface SetChildSelfViewRequest {
+  enabled: boolean;
+  sections: string[];
+}
+
+export interface ChildDashboard {
+  member_id: string;
+  group_id: string;
+  sections: string[];
+  safety_score?: number;
+  sessions_today?: number;
+  literacy?: {
+    modules_completed: number;
+    current_level: string;
+    total_score: number;
+  };
+  rewards?: {
+    items: RewardItem[];
+    extra_time_minutes: number;
+  };
+}
+
+// ─── Device Correlation (F12) ───────────────────────────────────────────────
+
+export interface DeviceBreakdown {
+  device_id: string;
+  device_name: string;
+  minutes: number;
+  sessions: number;
+}
+
+export interface PlatformBreakdown {
+  platform: string;
+  minutes: number;
+  sessions: number;
+}
+
+export interface DeviceSessionSummary {
+  total_minutes: number;
+  session_count: number;
+  device_breakdown: DeviceBreakdown[];
+  platform_breakdown: PlatformBreakdown[];
+}
+
+// ─── Rewards (F14) ──────────────────────────────────────────────────────────
+
+export interface RewardItem {
+  id: string;
+  group_id: string;
+  member_id: string;
+  reward_type: "extra_time" | "badge";
+  trigger: string;
+  trigger_description: string;
+  value: number;
+  earned_at: string;
+  expires_at: string | null;
+  redeemed: boolean;
 }

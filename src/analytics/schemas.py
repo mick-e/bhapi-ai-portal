@@ -1,7 +1,9 @@
 """Analytics schemas."""
 
-from datetime import datetime
+from datetime import date, datetime
 from uuid import UUID
+
+from pydantic import Field
 
 from src.schemas import BaseSchema
 
@@ -61,3 +63,48 @@ class PeerComparisonResponse(BaseSchema):
     group_id: str
     period_days: int
     members: list[PeerComparisonItem]
+
+
+# ---------------------------------------------------------------------------
+# Academic Integrity
+# ---------------------------------------------------------------------------
+
+
+class DailyBreakdownItem(BaseSchema):
+    date: str
+    learning: int
+    doing: int
+    unclassified: int
+
+
+class AcademicReportResponse(BaseSchema):
+    """Academic integrity report for a member."""
+
+    member_id: UUID
+    period_start: date
+    period_end: date
+    total_ai_sessions: int
+    study_hour_sessions: int
+    learning_count: int
+    doing_count: int
+    unclassified_count: int
+    learning_ratio: float = Field(ge=0.0, le=1.0)
+    top_subjects: list[str]
+    daily_breakdown: list[DailyBreakdownItem]
+    recommendation: str
+
+
+class IntentClassificationResponse(BaseSchema):
+    """Result of classifying a single prompt."""
+
+    text: str
+    intent: str = Field(pattern="^(learning|doing|unclassified)$")
+
+
+class StudyHoursConfig(BaseSchema):
+    """Study hours configuration."""
+
+    weekday_start: str = Field(default="15:00", pattern=r"^\d{2}:\d{2}$")
+    weekday_end: str = Field(default="21:00", pattern=r"^\d{2}:\d{2}$")
+    weekend_start: str = Field(default="09:00", pattern=r"^\d{2}:\d{2}$")
+    weekend_end: str = Field(default="21:00", pattern=r"^\d{2}:\d{2}$")

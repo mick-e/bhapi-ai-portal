@@ -17,6 +17,9 @@ import {
   Clock,
   CheckCircle2,
   XCircle,
+  Mail,
+  Heart,
+  TrendingDown,
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -28,6 +31,7 @@ import {
   useReportSchedules,
   useUpdateReportSchedule,
 } from "@/hooks/use-reports";
+import { useFamilyWeeklyReport, useSendFamilyReport } from "@/hooks/use-family-report";
 import type {
   Report,
   ReportType,
@@ -288,6 +292,9 @@ export default function ReportsPage() {
           </Button>
         </div>
       )}
+
+      {/* Weekly Family Report Section */}
+      <WeeklyFamilyReportSection />
 
       {/* Create Report Modal */}
       {showCreateModal && (
@@ -594,6 +601,178 @@ function ScheduleSection() {
             );
           })}
         </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Weekly Family Report Section ────────────────────────────────────────────
+
+function WeeklyFamilyReportSection() {
+  const { data: report, isLoading, isError } = useFamilyWeeklyReport();
+  const sendReport = useSendFamilyReport();
+
+  if (isLoading) {
+    return (
+      <div className="mt-8">
+        <Card title="Weekly Family Safety Report">
+          <div className="flex h-24 items-center justify-center">
+            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+            <span className="ml-2 text-sm text-gray-500">Loading weekly report...</span>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  if (isError || !report) {
+    return (
+      <div className="mt-8">
+        <Card title="Weekly Family Safety Report">
+          <p className="text-sm text-gray-500">
+            No weekly report data available yet. Reports are generated once you have activity data.
+          </p>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-8 space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-gray-900">
+          Weekly Family Safety Report
+        </h2>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => sendReport.mutate()}
+          isLoading={sendReport.isPending}
+        >
+          <Mail className="h-4 w-4" />
+          Email Report
+        </Button>
+      </div>
+
+      {/* Safety score */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-50">
+              <Heart className="h-5 w-5 text-teal-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">
+                {report.family_safety_score}
+              </p>
+              <p className="text-sm text-gray-500">Family Safety Score</p>
+            </div>
+          </div>
+        </div>
+        <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50">
+              <Users className="h-5 w-5 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">
+                {report.member_count}
+              </p>
+              <p className="text-sm text-gray-500">Family Members</p>
+            </div>
+          </div>
+        </div>
+        <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-50">
+              <AlertTriangle className="h-5 w-5 text-amber-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">
+                {report.action_items.unresolved_alerts}
+              </p>
+              <p className="text-sm text-gray-500">Unresolved Alerts</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Per-member breakdown */}
+      <Card title="Member Breakdown">
+        <div className="space-y-3">
+          {report.members.map((m) => (
+            <div
+              key={m.member_id}
+              className="flex items-center justify-between rounded-lg border border-gray-100 p-3"
+            >
+              <div>
+                <p className="text-sm font-medium text-gray-900">{m.display_name}</p>
+                <p className="mt-0.5 text-xs text-gray-500">
+                  {m.platforms_used.length > 0
+                    ? `Platforms: ${m.platforms_used.join(", ")}`
+                    : "No AI usage this week"}
+                </p>
+              </div>
+              <div className="flex items-center gap-4 text-sm">
+                <div className="text-center">
+                  <p className="font-semibold text-gray-900">{m.safety_score}</p>
+                  <p className="text-xs text-gray-500">Safety</p>
+                </div>
+                <div className="text-center">
+                  <p className="font-semibold text-gray-900">{m.events_this_week}</p>
+                  <p className="text-xs text-gray-500">Events</p>
+                </div>
+                <div className="text-center">
+                  <p className={`font-semibold ${m.risk_count > 0 ? "text-red-600" : "text-green-600"}`}>
+                    {m.risk_count}
+                  </p>
+                  <p className="text-xs text-gray-500">Risks</p>
+                </div>
+                <div className="text-center">
+                  {m.week_change > 0 ? (
+                    <p className="text-xs text-amber-600">
+                      <TrendingUp className="inline h-3 w-3" /> +{m.week_change}
+                    </p>
+                  ) : m.week_change < 0 ? (
+                    <p className="text-xs text-green-600">
+                      <TrendingDown className="inline h-3 w-3" /> {m.week_change}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-gray-400">--</p>
+                  )}
+                  <p className="text-xs text-gray-500">Change</p>
+                </div>
+              </div>
+            </div>
+          ))}
+          {report.members.length === 0 && (
+            <p className="text-sm text-gray-500">No member data available.</p>
+          )}
+        </div>
+      </Card>
+
+      {/* Highlights */}
+      {(report.highlights.safest_member || report.highlights.most_improved) && (
+        <Card title="Highlights">
+          <div className="flex flex-wrap gap-4">
+            {report.highlights.safest_member && (
+              <div className="flex items-center gap-2 rounded-lg bg-green-50 px-4 py-2">
+                <Shield className="h-4 w-4 text-green-600" />
+                <span className="text-sm text-green-800">
+                  Safest member: <strong>{report.highlights.safest_member}</strong>
+                </span>
+              </div>
+            )}
+            {report.highlights.most_improved && (
+              <div className="flex items-center gap-2 rounded-lg bg-blue-50 px-4 py-2">
+                <TrendingUp className="h-4 w-4 text-blue-600" />
+                <span className="text-sm text-blue-800">
+                  Most improved: <strong>{report.highlights.most_improved}</strong>
+                </span>
+              </div>
+            )}
+          </div>
+        </Card>
       )}
     </div>
   );

@@ -288,6 +288,103 @@ async def get_decrypted_content(db: AsyncSession, event_id: UUID) -> str | None:
     return decrypt_credential(event.content_encrypted)
 
 
+async def get_member_session_summary(
+    db: AsyncSession,
+    group_id: UUID,
+    member_id: UUID,
+    target_date: date | None = None,
+) -> dict:
+    """Aggregate sessions across all registered devices.
+
+    Returns:
+        {
+            total_minutes: int,
+            session_count: int,
+            device_breakdown: [{device_id, device_name, minutes, sessions}],
+            platform_breakdown: [{platform, minutes, sessions}],
+        }
+    """
+    if target_date is None:
+        target_date = datetime.now(timezone.utc).date()
+
+    start_dt = datetime.combine(target_date, time.min, tzinfo=timezone.utc)
+    end_dt = datetime.combine(target_date, time.max, tzinfo=timezone.utc)
+
+    # Get all capture events for this member on this date
+    result = await db.execute(
+        select(CaptureEvent).where(
+            CaptureEvent.group_id == group_id,
+            CaptureEvent.member_id == member_id,
+            CaptureEvent.timestamp >= start_dt,
+            CaptureEvent.timestamp <= end_dt,
+        ).order_by(CaptureEvent.timestamp)
+    )
+    events = list(result.scalars().all())
+
+    # Count unique sessions
+    session_ids = set()
+    device_stats: dict[str, dict] = {}  # device_id -> {minutes, sessions, device_name}
+    platform_stats: dict[str, dict] = {}  # platform -> {minutes, sessions}
+
+    for event in events:
+        session_ids.add(event.session_id)
+        dev_id = str(event.device_id) if event.device_id else "unknown"
+        platform = event.platform
+
+        if dev_id not in device_stats:
+            device_stats[dev_id] = {"minutes": 0, "sessions": set(), "device_name": "Unknown"}
+        device_stats[dev_id]["sessions"].add(event.session_id)
+
+        if platform not in platform_stats:
+            platform_stats[platform] = {"minutes": 0, "sessions": set()}
+        platform_stats[platform]["sessions"].add(event.session_id)
+
+    # Resolve device names
+    if device_stats:
+        device_ids_to_lookup = [
+            UUID(k) for k in device_stats if k != "unknown"
+        ]
+        if device_ids_to_lookup:
+            dev_result = await db.execute(
+                select(DeviceRegistration).where(
+                    DeviceRegistration.id.in_(device_ids_to_lookup)
+                )
+            )
+            for dev in dev_result.scalars().all():
+                if str(dev.id) in device_stats:
+                    device_stats[str(dev.id)]["device_name"] = dev.device_name
+
+    # Estimate minutes (assume ~2 min per event as approximation)
+    minutes_per_event = 2
+    total_minutes = len(events) * minutes_per_event
+
+    device_breakdown = []
+    for dev_id, stats in device_stats.items():
+        dev_events = sum(1 for e in events if (str(e.device_id) if e.device_id else "unknown") == dev_id)
+        device_breakdown.append({
+            "device_id": dev_id,
+            "device_name": stats["device_name"],
+            "minutes": dev_events * minutes_per_event,
+            "sessions": len(stats["sessions"]),
+        })
+
+    platform_breakdown = []
+    for platform, stats in platform_stats.items():
+        plat_events = sum(1 for e in events if e.platform == platform)
+        platform_breakdown.append({
+            "platform": platform,
+            "minutes": plat_events * minutes_per_event,
+            "sessions": len(stats["sessions"]),
+        })
+
+    return {
+        "total_minutes": total_minutes,
+        "session_count": len(session_ids),
+        "device_breakdown": device_breakdown,
+        "platform_breakdown": platform_breakdown,
+    }
+
+
 async def register_device(
     db: AsyncSession,
     data: DeviceRegisterRequest,

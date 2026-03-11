@@ -1,10 +1,17 @@
 """Analytics API endpoints."""
 
+from datetime import date, timedelta, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.analytics.academic import (
+    classify_prompt_intent,
+    generate_academic_report,
+)
+from src.analytics.schemas import AcademicReportResponse, IntentClassificationResponse
 from src.analytics.service import (
     detect_anomalies,
     get_member_baselines,
@@ -15,6 +22,7 @@ from src.analytics.service import (
 from src.auth.middleware import get_current_user
 from src.database import get_db
 from src.dependencies import require_active_trial_or_subscription, resolve_group_id as _gid
+from src.exceptions import ValidationError
 from src.schemas import GroupContext
 
 router = APIRouter(dependencies=[Depends(require_active_trial_or_subscription)])
@@ -73,3 +81,64 @@ async def anomalies(
 ):
     """Detect anomalous usage patterns."""
     return await detect_anomalies(db, _gid(group_id, auth), threshold_sd)
+
+
+# ---------------------------------------------------------------------------
+# Academic Integrity
+# ---------------------------------------------------------------------------
+
+
+@router.get("/academic", response_model=AcademicReportResponse)
+async def academic_report(
+    group_id: UUID | None = Query(None, description="Group ID"),
+    member_id: UUID = Query(..., description="Member ID"),
+    start_date: date | None = Query(None, description="Period start (YYYY-MM-DD)"),
+    end_date: date | None = Query(None, description="Period end (YYYY-MM-DD)"),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Generate an academic integrity report for a member."""
+    gid = _gid(group_id, auth)
+
+    today = date.today()
+    if end_date is None:
+        end_date = today
+    if start_date is None:
+        start_date = end_date - timedelta(days=7)
+
+    if start_date > end_date:
+        raise ValidationError("start_date must be before end_date")
+
+    report = await generate_academic_report(db, gid, member_id, start_date, end_date)
+
+    return AcademicReportResponse(
+        member_id=report.member_id,
+        period_start=report.period_start,
+        period_end=report.period_end,
+        total_ai_sessions=report.total_ai_sessions,
+        study_hour_sessions=report.study_hour_sessions,
+        learning_count=report.learning_count,
+        doing_count=report.doing_count,
+        unclassified_count=report.unclassified_count,
+        learning_ratio=report.learning_ratio,
+        top_subjects=report.top_subjects,
+        daily_breakdown=[
+            {"date": d["date"], "learning": d["learning"], "doing": d["doing"], "unclassified": d["unclassified"]}
+            for d in report.daily_breakdown
+        ],
+        recommendation=report.recommendation,
+    )
+
+
+class IntentClassifyRequest(BaseModel):
+    text: str
+
+
+@router.get("/academic/intent", response_model=IntentClassificationResponse)
+async def classify_intent(
+    text: str = Query(..., min_length=1, description="Prompt text to classify"),
+    auth: GroupContext = Depends(get_current_user),
+):
+    """Classify a single prompt text for testing purposes."""
+    intent = await classify_prompt_intent(text)
+    return IntentClassificationResponse(text=text, intent=intent)

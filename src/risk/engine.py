@@ -70,6 +70,11 @@ async def process_event(
     all_classifications.extend(pii_classifications)
 
     # --- Layer 1.5: Deepfake Detection ---
+    # Check text content for deepfake/voice-cloning keywords
+    deepfake_text_classifications = _layer_deepfake_text_detection(content)
+    all_classifications.extend(deepfake_text_classifications)
+
+    # If media URLs present, submit to Hive/Sensity API
     media_urls = capture_event_data.get("media_urls", [])
     if media_urls:
         deepfake_classifications = await _layer_deepfake_detection(media_urls)
@@ -91,6 +96,7 @@ async def process_event(
         "risk_pipeline_complete",
         content_length=len(content),
         pii_count=len(pii_classifications),
+        deepfake_text_count=len(deepfake_text_classifications),
         deepfake_urls=deepfake_count,
         safety_count=len(safety_classifications),
         rules_count=len(rules_classifications),
@@ -131,6 +137,30 @@ async def _layer_pii_detection(
             reasoning=f"Detected PII: {', '.join(sorted(entity_types))} ({len(entities)} instance(s))",
         )
     ]
+
+
+def _layer_deepfake_text_detection(
+    content: str,
+) -> list[RiskClassification]:
+    """Layer 1.5a: Check content for deepfake / voice-cloning keywords."""
+    try:
+        from src.risk.deepfake_detector import detect_voice_cloning_risk
+
+        result = detect_voice_cloning_risk(content)
+        if result.is_risk and result.confidence > 0.7:
+            return [
+                RiskClassification(
+                    category="DEEPFAKE_CONTENT",
+                    severity="high",
+                    confidence=result.confidence,
+                    reasoning=(
+                        f"Voice cloning risk detected: {', '.join(result.matched_patterns)}"
+                    ),
+                )
+            ]
+    except Exception as exc:
+        logger.error("deepfake_text_detection_error", error=str(exc))
+    return []
 
 
 async def _layer_deepfake_detection(

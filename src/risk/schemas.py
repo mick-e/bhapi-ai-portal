@@ -135,3 +135,44 @@ class ScoreHistoryResponse(BaseSchema):
     group_id: UUID
     days: int
     history: list[ScoreHistoryEntry]
+
+
+# ---------------------------------------------------------------------------
+# Emotional dependency schemas
+# ---------------------------------------------------------------------------
+
+
+class DependencyScoreResponse(BaseSchema):
+    """Emotional dependency score for a member."""
+
+    score: int = Field(ge=0, le=100, description="Composite dependency score 0-100")
+    session_duration_score: int = Field(ge=0, le=25, description="Session duration sub-score")
+    frequency_score: int = Field(ge=0, le=25, description="Interaction frequency sub-score")
+    attachment_language_score: int = Field(ge=0, le=25, description="Attachment language sub-score")
+    time_pattern_score: int = Field(ge=0, le=25, description="Late-night usage sub-score")
+    trend: str = Field(
+        pattern="^(improving|stable|worsening)$",
+        description="Score trend direction",
+    )
+    risk_factors: list[str] = Field(description="Human-readable risk factor descriptions")
+    platform_breakdown: dict[str, int] = Field(
+        description="Event counts per companion platform"
+    )
+    recommendation: str = Field(description="Parent-friendly guidance")
+
+
+class DependencyHistoryEntry(BaseSchema):
+    """A single week's dependency score in the history."""
+
+    week_start: str = Field(description="Week start date YYYY-MM-DD")
+    week_end: str = Field(description="Week end date YYYY-MM-DD")
+    score: int = Field(ge=0, le=100, description="Dependency score for this week")
+
+
+class DependencyHistoryResponse(BaseSchema):
+    """Weekly dependency score history."""
+
+    member_id: UUID
+    group_id: UUID
+    days: int
+    history: list[DependencyHistoryEntry]

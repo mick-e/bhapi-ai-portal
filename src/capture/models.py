@@ -46,6 +46,9 @@ class CaptureEvent(Base, UUIDMixin, TimestampMixin):
     content_type: Mapped[str | None] = mapped_column(String(50), nullable=True)  # "prompt", "response", "conversation"
     content_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)  # SHA-256 for dedup
     enhanced_monitoring: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    device_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("device_registrations.id"), nullable=True
+    )
 
     __table_args__ = (
         Index("ix_capture_events_group_member_ts", "group_id", "member_id", "timestamp"),

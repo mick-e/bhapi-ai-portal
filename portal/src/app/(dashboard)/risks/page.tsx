@@ -3,6 +3,7 @@
 import { useState } from "react";
 import {
   ShieldAlert,
+  ShieldOff,
   Filter,
   Loader2,
   AlertTriangle,
@@ -10,13 +11,19 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
+  ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 import { DateRangeFilter } from "@/components/DateRangeFilter";
 import { useRiskEvents, useAcknowledgeRisk } from "@/hooks/use-alerts";
+import { useDeepfakeGuidance } from "@/hooks/use-deepfake-guidance";
 import { useToast } from "@/contexts/ToastContext";
 import { useAuth } from "@/hooks/use-auth";
-import type { RiskEvent, RiskSeverity } from "@/types";
+import type { RiskEvent, RiskSeverity, DeepfakeGuidance } from "@/types";
 
 const severityStyles: Record<
   RiskSeverity,
@@ -53,6 +60,7 @@ const categories = [
   "PII_EXPOSURE",
   "SEXUAL_CONTENT",
   "SUBSTANCE_ABUSE",
+  "DEEPFAKE_CONTENT",
 ];
 
 export default function RisksPage() {
@@ -83,6 +91,12 @@ export default function RisksPage() {
   const events = riskData?.items ?? [];
   const totalPages = riskData?.total_pages ?? 1;
   const totalEvents = riskData?.total ?? 0;
+
+  const hasDeepfakeEvents = events.some(
+    (e) => e.category === "DEEPFAKE_CONTENT"
+  );
+
+  const { data: guidance } = useDeepfakeGuidance(hasDeepfakeEvents);
 
   function handleAcknowledge(eventId: string) {
     acknowledgeMutation.mutate(
@@ -191,6 +205,11 @@ export default function RisksPage() {
         </select>
       </div>
 
+      {/* Deepfake Guidance Card */}
+      {hasDeepfakeEvents && guidance && (
+        <DeepfakeGuidanceCard guidance={guidance} />
+      )}
+
       {/* Risk Event List */}
       <div className="space-y-3">
         {events.map((event) => (
@@ -271,6 +290,12 @@ function RiskEventCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
+            {event.category === "DEEPFAKE_CONTENT" && (
+              <span className="flex items-center gap-1 rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-semibold text-white uppercase">
+                <ShieldOff className="h-3 w-3" />
+                Deepfake
+              </span>
+            )}
             <span className="text-sm font-semibold text-gray-900 capitalize">
               {event.category.replace(/_/g, " ").toLowerCase()}
             </span>
@@ -307,6 +332,98 @@ function RiskEventCard({
         </div>
       </div>
     </div>
+  );
+}
+
+function DeepfakeGuidanceCard({ guidance }: { guidance: DeepfakeGuidance }) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <Card className="mb-6 border-l-4 border-l-red-600 bg-red-50">
+      <div>
+        <button
+          type="button"
+          onClick={() => setExpanded(!expanded)}
+          className="flex w-full items-center justify-between text-left"
+        >
+          <div className="flex items-center gap-3">
+            <ShieldOff className="h-6 w-6 text-red-600" />
+            <div>
+              <p className="text-sm font-semibold text-red-900">
+                Deepfake Content Detected
+              </p>
+              <p className="text-sm text-red-700">
+                Synthetic or manipulated media risk identified. Tap to learn
+                more.
+              </p>
+            </div>
+          </div>
+          {expanded ? (
+            <ChevronUp className="h-5 w-5 text-red-600" />
+          ) : (
+            <ChevronDown className="h-5 w-5 text-red-600" />
+          )}
+        </button>
+
+        {expanded && (
+          <div className="mt-4 space-y-4 border-t border-red-200 pt-4">
+            {/* What is a deepfake */}
+            <div>
+              <p className="text-sm font-medium text-gray-900">
+                What is a deepfake?
+              </p>
+              <p className="mt-1 text-sm text-gray-600">
+                {guidance.what_is_deepfake}
+              </p>
+            </div>
+
+            {/* Parent Actions */}
+            <div>
+              <p className="text-sm font-medium text-gray-900">
+                What should you do?
+              </p>
+              <ol className="mt-1 list-inside list-decimal space-y-1">
+                {guidance.parent_actions.map((action, i) => (
+                  <li key={i} className="text-sm text-gray-600">
+                    {action}
+                  </li>
+                ))}
+              </ol>
+            </div>
+
+            {/* Prevention Tips */}
+            <div>
+              <p className="text-sm font-medium text-gray-900">
+                Prevention tips
+              </p>
+              <ul className="mt-1 list-inside list-disc space-y-1">
+                {guidance.prevention_tips.map((tip, i) => (
+                  <li key={i} className="text-sm text-gray-600">
+                    {tip}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Report to NCMEC */}
+            <div className="flex flex-wrap gap-3">
+              {guidance.reporting_resources.map((resource) => (
+                <a
+                  key={resource.name}
+                  href={resource.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-red-300 bg-white px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  {resource.name}
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </Card>
   );
 }
 

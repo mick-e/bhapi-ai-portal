@@ -21,8 +21,11 @@ import {
   useMarkAllAlertsRead,
   useSnoozeAlert,
 } from "@/hooks/use-alerts";
+import { usePanicReports, useRespondToPanic, useQuickResponses } from "@/hooks/use-panic";
+import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/contexts/ToastContext";
-import type { Alert, AlertSeverity } from "@/types";
+import type { Alert, AlertSeverity, PanicReport } from "@/types";
+import { ShieldAlert, MessageCircle } from "lucide-react";
 
 const severityIcons: Record<AlertSeverity, typeof Info> = {
   info: Info,
@@ -62,6 +65,8 @@ const severityStyles: Record<
 };
 
 export default function AlertsPage() {
+  const { user } = useAuth();
+  const groupId = user?.group_id || null;
   const [filterSeverity, setFilterSeverity] = useState<string>("all");
   const [filterType, setFilterType] = useState<string>("all");
   const [page, setPage] = useState(1);
@@ -272,6 +277,118 @@ export default function AlertsPage() {
           </div>
         </div>
       )}
+
+      {/* Panic Reports Section */}
+      <PanicReportsSection groupId={groupId} />
+    </div>
+  );
+}
+
+// ─── Panic Reports Section ─────────────────────────────────────────────────
+
+function PanicReportsSection({ groupId }: { groupId: string | null }) {
+  const { data: panicData } = usePanicReports(groupId);
+  const { data: quickResponseData } = useQuickResponses();
+  const respondMutation = useRespondToPanic();
+  const { addToast } = useToast();
+
+  const reports = panicData?.items ?? [];
+  const quickResponses = quickResponseData?.responses ?? [];
+
+  if (reports.length === 0) return null;
+
+  function handleRespond(reportId: string, response: string) {
+    if (!groupId) return;
+    respondMutation.mutate(
+      { reportId, response, groupId },
+      {
+        onSuccess: () => addToast("Response sent", "success"),
+        onError: (err) => addToast((err as Error).message || "Failed to respond", "error"),
+      }
+    );
+  }
+
+  return (
+    <div className="mt-8">
+      <div className="mb-4 flex items-center gap-2">
+        <ShieldAlert className="h-5 w-5 text-red-600" />
+        <h2 className="text-lg font-bold text-gray-900">Panic Reports</h2>
+        <span className="rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-semibold text-red-700">
+          {reports.filter((r: PanicReport) => !r.resolved).length} unresolved
+        </span>
+      </div>
+
+      <div className="space-y-3">
+        {reports.map((report: PanicReport) => (
+          <div
+            key={report.id}
+            className={`rounded-xl border-l-4 p-4 shadow-sm ring-1 ring-gray-200 ${
+              report.resolved
+                ? "border-l-gray-300 bg-white"
+                : "border-l-red-600 bg-red-50"
+            }`}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <ShieldAlert
+                    className={`h-4 w-4 ${
+                      report.resolved ? "text-gray-400" : "text-red-600"
+                    }`}
+                  />
+                  <span className="text-sm font-semibold text-gray-900">
+                    {report.category.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())}
+                  </span>
+                  {report.platform && (
+                    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
+                      {report.platform}
+                    </span>
+                  )}
+                  {report.resolved && (
+                    <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                      Resolved
+                    </span>
+                  )}
+                </div>
+                {report.message && (
+                  <p className="mt-1 text-sm text-gray-600">{report.message}</p>
+                )}
+                {report.parent_response && (
+                  <div className="mt-2 flex items-start gap-1.5">
+                    <MessageCircle className="mt-0.5 h-3.5 w-3.5 text-teal-500" />
+                    <p className="text-xs text-teal-700">
+                      Parent: {report.parent_response}
+                    </p>
+                  </div>
+                )}
+              </div>
+              <span className="flex-shrink-0 text-xs text-gray-400">
+                {formatRelativeTime(report.created_at)}
+              </span>
+            </div>
+
+            {/* Quick-response buttons for unresolved reports */}
+            {!report.resolved && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {quickResponses.map((response: string) => (
+                  <Button
+                    key={response}
+                    variant="secondary"
+                    size="sm"
+                    isLoading={
+                      respondMutation.isPending &&
+                      respondMutation.variables?.reportId === report.id
+                    }
+                    onClick={() => handleRespond(report.id, response)}
+                  >
+                    {response}
+                  </Button>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

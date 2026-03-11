@@ -20,6 +20,8 @@ from src.compliance.schemas import (
     AppealResponse,
     AppealSubmit,
     AuditEntryResponse,
+    COPPAComplianceReportResponse,
+    COPPAReviewResponse,
     ConsentResponse,
     ConsentWithdrawRequest,
     DataRequestCreate,
@@ -163,6 +165,71 @@ async def coppa_status(
     """Check COPPA compliance status."""
     from src.compliance.coppa import check_coppa_compliance
     return await check_coppa_compliance(db, group_id)
+
+
+# ---------------------------------------------------------------------------
+# COPPA 2026 Dashboard
+# ---------------------------------------------------------------------------
+
+
+@router.get("/coppa/checklist", response_model=COPPAComplianceReportResponse)
+async def coppa_checklist(
+    group_id: UUID = Query(...),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return auto-assessed COPPA compliance checklist for a group."""
+    from src.compliance.coppa_dashboard import assess_coppa_compliance
+    report = await assess_coppa_compliance(db, group_id)
+    return {
+        "group_id": report.group_id,
+        "group_name": report.group_name,
+        "score": report.score,
+        "status": report.status,
+        "checklist": [
+            {
+                "id": item.id,
+                "label": item.label,
+                "description": item.description,
+                "status": item.status,
+                "evidence": item.evidence,
+                "action_url": item.action_url,
+                "regulation_ref": item.regulation_ref,
+            }
+            for item in report.checklist
+        ],
+        "assessed_at": report.assessed_at,
+        "last_review": report.last_review,
+    }
+
+
+@router.get("/coppa/export")
+async def coppa_export(
+    group_id: UUID = Query(...),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Export COPPA compliance evidence as a PDF."""
+    from src.compliance.coppa_dashboard import export_coppa_evidence
+    pdf_bytes = await export_coppa_evidence(db, group_id)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": 'attachment; filename="coppa_evidence.pdf"',
+        },
+    )
+
+
+@router.post("/coppa/review", response_model=COPPAReviewResponse)
+async def coppa_review(
+    group_id: UUID = Query(...),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Mark annual COPPA compliance review as complete."""
+    from src.compliance.coppa_dashboard import mark_annual_review
+    return await mark_annual_review(db, group_id)
 
 
 # ---------------------------------------------------------------------------

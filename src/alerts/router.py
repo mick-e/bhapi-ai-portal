@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import StreamingResponse
 
 from src.alerts.models import Alert
+from src.alerts.panic import PanicReport as _PanicReport  # noqa: F401 — register model
 from src.alerts.schemas import (
     PreferenceResponse,
     PreferenceUpdate,
@@ -212,6 +213,130 @@ async def mark_all_read(
     )
     await db.flush()
     return None
+
+
+# --- Panic Button endpoints ---
+# Static routes MUST come before /{alert_id}
+
+
+class PanicReportCreate(BaseModel):
+    """Create a panic report."""
+    group_id: UUID
+    member_id: UUID
+    category: str = Field(pattern="^(scary_content|weird_request|bad_ai_response|other)$")
+    message: str | None = Field(None, max_length=500)
+    platform: str | None = None
+    session_id: str | None = None
+
+
+class PanicReportResponse(BaseModel):
+    """Panic report response."""
+    id: UUID
+    group_id: UUID
+    member_id: UUID
+    category: str
+    message: str | None = None
+    platform: str | None = None
+    session_id: str | None = None
+    parent_response: str | None = None
+    parent_responded_at: datetime | None = None
+    resolved: bool
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class PanicRespondRequest(BaseModel):
+    """Parent response to a panic report."""
+    response: str = Field(min_length=1, max_length=500)
+
+
+@router.post("/panic", response_model=PanicReportResponse, status_code=201)
+async def create_panic(
+    data: PanicReportCreate,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Child submits a panic report."""
+    from src.alerts.panic import create_panic_report
+
+    report = await create_panic_report(
+        db,
+        group_id=data.group_id,
+        member_id=data.member_id,
+        category=data.category,
+        message=data.message,
+        platform=data.platform,
+        session_id=data.session_id,
+    )
+    return report
+
+
+@router.get("/panic")
+async def list_panics(
+    group_id: UUID | None = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List panic reports for a group."""
+    from src.alerts.panic import list_panic_reports
+
+    gid = _gid(group_id, auth)
+    result = await list_panic_reports(db, gid, page, page_size)
+
+    # Serialize PanicReport objects to dicts
+    items = []
+    for report in result["items"]:
+        items.append({
+            "id": str(report.id),
+            "group_id": str(report.group_id),
+            "member_id": str(report.member_id),
+            "category": report.category,
+            "message": report.message,
+            "platform": report.platform,
+            "session_id": report.session_id,
+            "parent_response": report.parent_response,
+            "parent_responded_at": report.parent_responded_at.isoformat() if report.parent_responded_at else None,
+            "resolved": report.resolved,
+            "created_at": report.created_at.isoformat() if report.created_at else "",
+        })
+
+    return {
+        "items": items,
+        "total": result["total"],
+        "page": result["page"],
+        "page_size": result["page_size"],
+        "total_pages": result["total_pages"],
+    }
+
+
+@router.get("/panic/quick-responses")
+async def get_quick_responses(
+    auth: GroupContext = Depends(get_current_user),
+):
+    """List quick response templates for panic reports."""
+    from src.alerts.panic import PARENT_QUICK_RESPONSES
+
+    return {"responses": PARENT_QUICK_RESPONSES}
+
+
+@router.post("/panic/{report_id}/respond", response_model=PanicReportResponse)
+async def respond_panic(
+    report_id: UUID,
+    data: PanicRespondRequest,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Parent responds to a panic report."""
+    from src.alerts.panic import respond_to_panic
+
+    report = await respond_to_panic(db, report_id, auth.user_id, data.response)
+    return report
+
+
+# --- Dynamic {alert_id} routes MUST come after all static paths ---
 
 
 @router.get("/{alert_id}")

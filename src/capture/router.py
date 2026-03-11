@@ -10,6 +10,7 @@ from src.auth.middleware import get_current_user
 from src.capture.schemas import (
     CaptureEventResponse,
     ContentCaptureRequest,
+    ConversationSummaryResponse,
     DeviceRegisterRequest,
     DeviceResponse,
     EventPayload,
@@ -17,12 +18,15 @@ from src.capture.schemas import (
     PairResponse,
     SetupCodeCreate,
     SetupCodeResponse,
+    SummarizeRequest,
 )
+from src.capture.summary_models import ConversationSummary as _ConversationSummary  # noqa: F401 — register model
 from src.capture.service import (
     create_content_capture,
     create_setup_code,
     exchange_setup_code,
     get_decrypted_content,
+    get_member_session_summary,
     ingest_event,
     list_devices,
     list_events_enriched,
@@ -32,7 +36,7 @@ from src.capture.validators import verify_hmac_signature
 from src.config import get_settings
 from src.database import get_db
 from src.dependencies import require_active_trial_or_subscription, resolve_group_id as _gid
-from src.exceptions import UnauthorizedError
+from src.exceptions import NotFoundError, UnauthorizedError, ValidationError
 from src.schemas import GroupContext
 
 router = APIRouter()
@@ -160,6 +164,19 @@ async def list_capture_events(
     )
 
 
+@router.get("/devices/{member_id}/summary", dependencies=[_trial_dep])
+async def device_session_summary(
+    member_id: UUID,
+    target_date: date | None = Query(None, description="Date for summary (defaults to today)"),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get multi-device session summary for a member."""
+    return await get_member_session_summary(
+        db, _gid(None, auth), member_id, target_date
+    )
+
+
 @router.post("/setup-codes", response_model=SetupCodeResponse, status_code=201, dependencies=[_trial_dep])
 async def create_setup_code_endpoint(
     data: SetupCodeCreate,
@@ -197,3 +214,117 @@ async def list_devices_endpoint(
 ):
     """List registered devices for a group."""
     return await list_devices(db, _gid(group_id, auth))
+
+
+# ─── Conversation Summaries ──────────────────────────────────────────────────
+
+
+@router.get("/summaries", dependencies=[_trial_dep])
+async def list_summaries(
+    group_id: UUID | None = Query(None),
+    member_id: UUID | None = Query(None),
+    start_date: date | None = Query(None),
+    end_date: date | None = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List conversation summaries with filters and pagination."""
+    if not member_id:
+        raise ValidationError("member_id is required")
+
+    from src.capture.summarizer import get_member_summaries
+
+    resolved_group_id = _gid(group_id, auth)
+    result = await get_member_summaries(
+        db=db,
+        group_id=resolved_group_id,
+        member_id=member_id,
+        start_date=start_date,
+        end_date=end_date,
+        page=page,
+        page_size=page_size,
+    )
+
+    # Serialize items
+    items = [
+        ConversationSummaryResponse.model_validate(item)
+        for item in result["items"]
+    ]
+    return {
+        "items": [item.model_dump(mode="json") for item in items],
+        "total": result["total"],
+        "page": result["page"],
+        "page_size": result["page_size"],
+        "total_pages": result["total_pages"],
+    }
+
+
+@router.get("/summaries/{summary_id}", response_model=ConversationSummaryResponse, dependencies=[_trial_dep])
+async def get_summary(
+    summary_id: UUID,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get a single conversation summary."""
+    from sqlalchemy import select
+    from src.capture.summary_models import ConversationSummary
+
+    result = await db.execute(
+        select(ConversationSummary).where(ConversationSummary.id == summary_id)
+    )
+    summary = result.scalar_one_or_none()
+    if not summary:
+        raise NotFoundError("Conversation summary", str(summary_id))
+
+    return summary
+
+
+@router.post("/summarize", dependencies=[_trial_dep], status_code=201)
+async def trigger_summarization(
+    data: SummarizeRequest,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Trigger manual summarization for a capture event."""
+    from sqlalchemy import select
+    from src.capture.models import CaptureEvent
+    from src.capture.summarizer import summarize_conversation
+    from src.encryption import decrypt_credential
+
+    # Look up the capture event
+    result = await db.execute(
+        select(CaptureEvent).where(CaptureEvent.id == data.event_id)
+    )
+    event = result.scalar_one_or_none()
+    if not event:
+        raise NotFoundError("Capture event", str(data.event_id))
+
+    # Get content — prefer encrypted, fall back to plaintext
+    content = None
+    if event.content_encrypted:
+        content = decrypt_credential(event.content_encrypted)
+    elif event.content:
+        content = event.content
+
+    if not content:
+        raise ValidationError(
+            "This capture event has no content to summarize. "
+            "Enable enhanced monitoring to capture conversation content."
+        )
+
+    try:
+        summary = await summarize_conversation(
+            db=db,
+            group_id=event.group_id,
+            member_id=event.member_id,
+            content=content,
+            platform=event.platform,
+            member_age=data.member_age,
+            capture_event_id=event.id,
+        )
+    except RuntimeError as exc:
+        raise ValidationError(str(exc))
+
+    return ConversationSummaryResponse.model_validate(summary).model_dump(mode="json")

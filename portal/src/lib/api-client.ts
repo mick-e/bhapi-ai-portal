@@ -1,4 +1,5 @@
 import type {
+  AcademicReport,
   AnomalyResponse,
   ApiError,
   ApiKeyItem,
@@ -9,21 +10,33 @@ import type {
   BlockStatus,
   CheckoutRequest,
   CheckoutResponse,
+  ChildDashboard,
+  ChildSelfView,
   ContactInquiryRequest,
+  ConversationSummary,
   CreateApiKeyRequest,
   CreateApiKeyResponse,
   CreateGroupRequest,
   DashboardData,
+  DeepfakeGuidance,
+  DeviceSessionSummary,
   Group,
   GroupMember,
+  IntentClassification,
   InviteMemberRequest,
+  MemberVisibility,
   UpdateMemberRequest,
   CaptureEvent,
   MemberBaseline,
   PeerComparisonResponse,
+  PlatformSafetyRating,
+  PlatformSafetyRecommendation,
+  RewardItem,
   RiskEvent,
   AcknowledgeRiskRequest,
   Alert,
+  SetChildSelfViewRequest,
+  SetVisibilityRequest,
   SISConnection,
   SSOConfig,
   SpendSummary,
@@ -302,6 +315,10 @@ export const riskApi = {
   acknowledge(data: AcknowledgeRiskRequest): Promise<RiskEvent> {
     return api.post<RiskEvent>(`/api/v1/risk/events/${data.event_id}/acknowledge`, data);
   },
+
+  getDeepfakeGuidance(): Promise<DeepfakeGuidance> {
+    return api.get<DeepfakeGuidance>("/api/v1/risk/deepfake-guidance");
+  },
 };
 
 // ─── Alerts ─────────────────────────────────────────────────────────────────
@@ -545,6 +562,14 @@ export const analyticsApi = {
   peerComparison(groupId: string, days?: number): Promise<PeerComparisonResponse> {
     return api.get<PeerComparisonResponse>(`/api/v1/analytics/peer-comparison${qs({ group_id: groupId, days: days || 30 })}`);
   },
+
+  academicReport(groupId: string, memberId: string, startDate?: string, endDate?: string): Promise<AcademicReport> {
+    return api.get<AcademicReport>(`/api/v1/analytics/academic${qs({ group_id: groupId, member_id: memberId, start_date: startDate, end_date: endDate })}`);
+  },
+
+  classifyIntent(text: string): Promise<IntentClassification> {
+    return api.get<IntentClassification>(`/api/v1/analytics/academic/intent${qs({ text })}`);
+  },
 };
 
 // ─── Compliance (Phase 8) ────────────────────────────────────────────────────
@@ -560,6 +585,157 @@ export const complianceApi = {
 
   submitAppeal(riskEventId: string, data: { group_id: string; reason: string }): Promise<AppealRecord> {
     return api.post<AppealRecord>(`/api/v1/compliance/appeal/${riskEventId}`, data);
+  },
+};
+
+// ─── Platform Safety (public) ────────────────────────────────────────────────
+
+export const platformSafetyApi = {
+  getAll(): Promise<{ platforms: PlatformSafetyRating[] }> {
+    return api.get<{ platforms: PlatformSafetyRating[] }>("/api/v1/billing/platform-safety");
+  },
+
+  getOne(platform: string): Promise<PlatformSafetyRating> {
+    return api.get<PlatformSafetyRating>(`/api/v1/billing/platform-safety/${platform}`);
+  },
+
+  getRecommendations(age: number): Promise<{ platforms: PlatformSafetyRecommendation[] }> {
+    return api.get<{ platforms: PlatformSafetyRecommendation[] }>(
+      `/api/v1/billing/platform-safety/recommend?age=${age}`
+    );
+  },
+};
+
+// ─── Summaries ──────────────────────────────────────────────────────────────
+
+export const summariesApi = {
+  list(params?: {
+    member_id?: string;
+    start_date?: string;
+    end_date?: string;
+    page?: number;
+    page_size?: number;
+  }): Promise<PaginatedResponse<ConversationSummary>> {
+    const query = qs({
+      member_id: params?.member_id,
+      start_date: params?.start_date,
+      end_date: params?.end_date,
+      page: params?.page,
+      page_size: params?.page_size,
+    });
+    return api.get<PaginatedResponse<ConversationSummary>>(`/api/v1/capture/summaries${query}`);
+  },
+
+  get(summaryId: string): Promise<ConversationSummary> {
+    return api.get<ConversationSummary>(`/api/v1/capture/summaries/${summaryId}`);
+  },
+
+  summarize(data: { event_id: string; member_age?: number }): Promise<ConversationSummary> {
+    return api.post<ConversationSummary>("/api/v1/capture/summarize", data);
+  },
+};
+
+// ─── Family Agreement ────────────────────────────────────────────────────────
+
+export const agreementApi = {
+  getTemplates(): Promise<Record<string, { title: string; rules: { category: string; text: string }[] }>> {
+    return api.get("/api/v1/groups/agreement-templates");
+  },
+
+  getActive(groupId: string) {
+    return api.get(`/api/v1/groups/${groupId}/agreement`);
+  },
+
+  create(groupId: string, data: { template_id: string }) {
+    return api.post(`/api/v1/groups/${groupId}/agreement`, data);
+  },
+
+  update(groupId: string, data: { rules: unknown[] }) {
+    return api.patch(`/api/v1/groups/${groupId}/agreement`, data);
+  },
+
+  sign(groupId: string, data: { member_id: string; name: string }) {
+    return api.post(`/api/v1/groups/${groupId}/agreement/sign`, data);
+  },
+
+  review(groupId: string) {
+    return api.post(`/api/v1/groups/${groupId}/agreement/review`);
+  },
+};
+
+// ─── Emergency Contacts ──────────────────────────────────────────────────────
+
+export const emergencyContactsApi = {
+  list(groupId: string) {
+    return api.get(`/api/v1/groups/${groupId}/emergency-contacts`);
+  },
+
+  add(groupId: string, data: unknown) {
+    return api.post(`/api/v1/groups/${groupId}/emergency-contacts`, data);
+  },
+
+  update(groupId: string, contactId: string, data: unknown) {
+    return api.patch(`/api/v1/groups/${groupId}/emergency-contacts/${contactId}`, data);
+  },
+
+  remove(groupId: string, contactId: string) {
+    return api.delete(`/api/v1/groups/${groupId}/emergency-contacts/${contactId}`);
+  },
+};
+
+// ─── Family Weekly Report ────────────────────────────────────────────────────
+
+export const familyReportApi = {
+  getWeekly() {
+    return api.get("/api/v1/reports/weekly-family");
+  },
+
+  send() {
+    return api.post("/api/v1/reports/weekly-family/send");
+  },
+};
+
+// ─── Privacy (F11) ──────────────────────────────────────────────────────────
+
+export const privacyApi = {
+  getVisibility(groupId: string, memberId: string): Promise<MemberVisibility> {
+    return api.get<MemberVisibility>(`/api/v1/groups/${groupId}/members/${memberId}/visibility`);
+  },
+
+  setVisibility(groupId: string, memberId: string, data: SetVisibilityRequest): Promise<MemberVisibility> {
+    return api.put<MemberVisibility>(`/api/v1/groups/${groupId}/members/${memberId}/visibility`, data);
+  },
+
+  getSelfView(groupId: string, memberId: string): Promise<ChildSelfView> {
+    return api.get<ChildSelfView>(`/api/v1/groups/${groupId}/members/${memberId}/self-view`);
+  },
+
+  setSelfView(groupId: string, memberId: string, data: SetChildSelfViewRequest): Promise<ChildSelfView> {
+    return api.put<ChildSelfView>(`/api/v1/groups/${groupId}/members/${memberId}/self-view`, data);
+  },
+
+  getChildDashboard(memberId: string): Promise<ChildDashboard> {
+    return api.get<ChildDashboard>(`/api/v1/portal/child-dashboard${qs({ member_id: memberId })}`);
+  },
+};
+
+// ─── Device Correlation (F12) ───────────────────────────────────────────────
+
+export const deviceApi = {
+  getSessionSummary(memberId: string, date?: string): Promise<DeviceSessionSummary> {
+    return api.get<DeviceSessionSummary>(`/api/v1/capture/devices/${memberId}/summary${qs({ target_date: date })}`);
+  },
+};
+
+// ─── Rewards (F14) ──────────────────────────────────────────────────────────
+
+export const rewardsApi = {
+  list(groupId: string, memberId: string): Promise<RewardItem[]> {
+    return api.get<RewardItem[]>(`/api/v1/groups/${groupId}/members/${memberId}/rewards`);
+  },
+
+  checkTriggers(groupId: string, memberId: string): Promise<RewardItem[]> {
+    return api.post<RewardItem[]>(`/api/v1/groups/${groupId}/members/${memberId}/rewards/check`);
   },
 };
 

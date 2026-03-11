@@ -38,6 +38,16 @@ KEYWORD_PATTERNS = {
             r"\b(bully|harass|threaten)\b",
             r"\b(deepfake|deep\s*fake|face\s*swap|undress\s*ai|nudify|deepnude)\b",
             r"\b(synthetic\s*media|face\s*morph|ai[- ]generated\s*(?:image|video|photo))\b",
+            # Deepfake / nudify / voice cloning patterns (high severity, 0.90 confidence)
+            r"\b(remove\s+(?:her|his|their)\s+clothes)\b",
+            r"\b(make\s+(?:a\s+)?nude\s+(?:photo|image|picture))\b",
+            r"\b(clone\s+(?:my|her|his)\s+voice)\b",
+            r"\b(voice\s+sample|voice\s+recording\s+for\s+(?:ai|cloning))\b",
+            r"\b(face\s+(?:on|onto)\s+(?:a\s+)?(?:body|video|photo))\b",
+            r"\b(undress\s+(?:ai|app|tool|website))\b",
+            r"\b(put\s+(?:my|her|his)\s+face\s+on)\b",
+            r"\b(ai\s+(?:nude|naked|undress))\b",
+            r"\b(fake\s+(?:nude|naked)\s+(?:photo|image|picture|video))\b",
         ],
         "categories": ["safety", "policy_violation", "DEEPFAKE_CONTENT"],
     },
@@ -50,9 +60,30 @@ KEYWORD_PATTERNS = {
             r"\b(i\s+need\s+you|you\s+understand\s+me\s+better\s+than\s+anyone)\b",
             r"\b(i\s+can'?t\s+live\s+without\s+you|i\s+wish\s+you\s+were\s+real)\b",
             r"\b(you'?re\s+my\s+best\s+friend|please\s+don'?t\s+go)\b",
+            r"\b(you'?re\s+the\s+only\s+one\s+who\s+(?:gets|understands)\s+me)\b",
+            r"\b(i\s+(?:think\s+about|dream\s+about)\s+you\s+all\s+the\s+time)\b",
+            r"\b((?:my\s+)?(?:parents|friends)\s+don'?t\s+understand\s+me\s+like\s+you)\b",
+            r"\b(i\s+(?:feel|am)\s+(?:so\s+)?(?:alone|lonely)\s+without\s+you)\b",
+            r"\b(promise\s+(?:me\s+)?you'?ll\s+(?:never|always))\b",
+            r"\b(i\s+(?:told|tell)\s+you\s+(?:things|stuff)\s+i'?ve?\s+never\s+told\s+anyone)\b",
         ],
         "categories": ["inappropriate_content", "academic_integrity", "EMOTIONAL_DEPENDENCY"],
     },
+}
+
+
+
+# Patterns that should use elevated confidence (0.90) for deepfake/nudify
+_HIGH_CONFIDENCE_PATTERNS = {
+    r"\b(remove\s+(?:her|his|their)\s+clothes)\b",
+    r"\b(make\s+(?:a\s+)?nude\s+(?:photo|image|picture))\b",
+    r"\b(clone\s+(?:my|her|his)\s+voice)\b",
+    r"\b(voice\s+sample|voice\s+recording\s+for\s+(?:ai|cloning))\b",
+    r"\b(face\s+(?:on|onto)\s+(?:a\s+)?(?:body|video|photo))\b",
+    r"\b(undress\s+(?:ai|app|tool|website))\b",
+    r"\b(put\s+(?:my|her|his)\s+face\s+on)\b",
+    r"\b(ai\s+(?:nude|naked|undress))\b",
+    r"\b(fake\s+(?:nude|naked)\s+(?:photo|image|picture|video))\b",
 }
 
 
@@ -64,10 +95,11 @@ def classify_by_keywords(text: str) -> ClassificationResult | None:
         config = KEYWORD_PATTERNS[severity]
         for pattern in config["patterns"]:
             if re.search(pattern, text_lower):
+                confidence = 0.90 if pattern in _HIGH_CONFIDENCE_PATTERNS else 0.85
                 return ClassificationResult(
                     severity=severity,
                     categories=config["categories"],
-                    confidence=0.85,
+                    confidence=confidence,
                     source="keyword",
                     details={"matched_pattern": pattern},
                 )

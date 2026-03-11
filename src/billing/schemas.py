@@ -170,3 +170,31 @@ class EnvelopeResponse(BaseSchema):
     spent: float = 0.0
     remaining: float = 0.0
     created_at: datetime
+
+
+# ---------------------------------------------------------------------------
+# Platform Safety Ratings
+# ---------------------------------------------------------------------------
+
+
+class PlatformSafetyRatingResponse(BaseSchema):
+    """Safety rating for a single AI platform."""
+
+    key: str
+    name: str
+    overall_grade: str
+    min_age_recommended: int
+    has_parental_controls: bool
+    has_content_filters: bool
+    data_retention_days: int
+    coppa_compliant: bool
+    known_incidents: int
+    strengths: list[str]
+    concerns: list[str]
+    last_updated: str
+
+
+class PlatformSafetyRecommendationResponse(PlatformSafetyRatingResponse):
+    """Safety rating with age-based recommendation."""
+
+    recommendation: str  # recommended, use_with_caution, not_recommended

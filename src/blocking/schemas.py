@@ -117,6 +117,64 @@ class BlockEffectivenessResponse(BaseSchema):
     block_rate_pct: float
 
 
+# ─── Time Budget schemas ─────────────────────────────────────────────────────
+
+
+class TimeBudgetUpdate(BaseSchema):
+    """Set/update a time budget for a member."""
+    weekday_minutes: int = 60
+    weekend_minutes: int = 120
+    reset_hour: int = 0
+    timezone: str = "UTC"
+    enabled: bool = True
+    warn_at_percent: int = 75
+
+
+class TimeBudgetResponse(BaseSchema):
+    """Time budget config + today's usage."""
+    id: UUID | None = None
+    group_id: UUID | None = None
+    member_id: UUID | None = None
+    weekday_minutes: int = 0
+    weekend_minutes: int = 0
+    reset_hour: int = 0
+    timezone: str = "UTC"
+    enabled: bool = False
+    warn_at_percent: int = 75
+    minutes_used: int = 0
+    budget_minutes: int = 0
+    remaining: int = 0
+    exceeded: bool = False
+    warn: bool = False
+
+
+class TimeBudgetUsageItem(BaseSchema):
+    """One day of usage history."""
+    date: str
+    minutes_used: int
+    budget_minutes: int
+    exceeded: bool
+
+
+# ─── Bedtime schemas ─────────────────────────────────────────────────────────
+
+
+class BedtimeUpdate(BaseSchema):
+    """Set bedtime hours for a member."""
+    start_hour: int = Field(ge=0, le=23)
+    end_hour: int = Field(ge=0, le=23)
+    timezone: str = "UTC"
+
+
+class BedtimeResponse(BaseSchema):
+    """Bedtime mode config."""
+    enabled: bool = False
+    start_hour: int | None = None
+    end_hour: int | None = None
+    timezone: str = "UTC"
+    rule_id: UUID | None = None
+
+
 class AutoBlockRuleUpdate(BaseSchema):
     name: str | None = None
     trigger_type: Literal["risk_event_count", "spend_threshold", "time_of_day"] | None = None

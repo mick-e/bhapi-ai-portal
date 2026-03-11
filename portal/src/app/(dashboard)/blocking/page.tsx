@@ -13,6 +13,8 @@ import {
   XCircle,
   BarChart3,
   Shield,
+  Timer,
+  Moon,
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -28,6 +30,8 @@ import {
   useDenyUnblock,
 } from "@/hooks/use-blocking";
 import { useToast } from "@/contexts/ToastContext";
+import { useQuery } from "@tanstack/react-query";
+import { apiFetch } from "@/lib/api-client";
 
 export default function BlockingPage() {
   const { user } = useAuth();
@@ -50,6 +54,7 @@ export default function BlockingPage() {
   const approveUnblock = useApproveUnblock();
   const denyUnblock = useDenyUnblock();
 
+  const [activeTab, setActiveTab] = useState<"rules" | "screen-time" | "bedtime">("rules");
   const [showForm, setShowForm] = useState(false);
   const [memberId, setMemberId] = useState("");
   const [platforms, setPlatforms] = useState("");
@@ -158,23 +163,45 @@ export default function BlockingPage() {
 
   return (
     <div>
-      <div className="mb-8 flex items-start justify-between">
+      <div className="mb-6 flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Blocking Rules</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Blocking & Screen Time</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Manage content and platform blocking for group members
-            {activeRules.length > 0 && (
-              <span className="ml-1 text-gray-400">
-                ({activeRules.length} active)
-              </span>
-            )}
+            Manage blocking rules, screen time budgets, and bedtime schedules
           </p>
         </div>
-        <Button onClick={() => setShowForm(!showForm)}>
-          <Plus className="h-4 w-4" />
-          New Rule
-        </Button>
+        {activeTab === "rules" && (
+          <Button onClick={() => setShowForm(!showForm)}>
+            <Plus className="h-4 w-4" />
+            New Rule
+          </Button>
+        )}
       </div>
+
+      {/* Tab bar */}
+      <div className="mb-6 flex gap-1 rounded-lg bg-gray-100 p-1">
+        {([
+          { key: "rules" as const, label: "Block Rules", icon: Ban },
+          { key: "screen-time" as const, label: "Screen Time", icon: Timer },
+          { key: "bedtime" as const, label: "Bedtime", icon: Moon },
+        ]).map(({ key, label, icon: Icon }) => (
+          <button
+            key={key}
+            onClick={() => setActiveTab(key)}
+            className={`flex items-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+              activeTab === key
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            <Icon className="h-4 w-4" />
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === "rules" && (
+        <div>
 
       {/* Effectiveness Charts */}
       {effectiveness && (
@@ -465,6 +492,191 @@ export default function BlockingPage() {
           </div>
         )}
       </Card>
+      </div>
+      )}
+
+      {/* Screen Time tab */}
+      {activeTab === "screen-time" && (
+        <ScreenTimeTab groupId={groupId} />
+      )}
+
+      {/* Bedtime tab */}
+      {activeTab === "bedtime" && (
+        <BedtimeTab groupId={groupId} />
+      )}
     </div>
+  );
+}
+
+// ─── Screen Time Tab ────────────────────────────────────────────────────────
+
+function ScreenTimeTab({ groupId }: { groupId: string | null }) {
+  const { data: members } = useQuery<{ items: Array<{ id: string; display_name: string }> }>({
+    queryKey: ["members-list", groupId],
+    queryFn: () => apiFetch(`/api/v1/groups/${groupId}/members?page_size=50`),
+    enabled: !!groupId,
+  });
+
+  if (!members?.items?.length) {
+    return (
+      <Card>
+        <div className="py-12 text-center">
+          <Timer className="mx-auto h-12 w-12 text-gray-300" />
+          <p className="mt-4 text-sm text-gray-500">No members to configure screen time for</p>
+        </div>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {members.items.map((member) => (
+        <ScreenTimeMemberRow key={member.id} groupId={groupId!} member={member} />
+      ))}
+    </div>
+  );
+}
+
+function ScreenTimeMemberRow({
+  groupId,
+  member,
+}: {
+  groupId: string;
+  member: { id: string; display_name: string };
+}) {
+  const { data: budget } = useQuery({
+    queryKey: ["time-budget", "budget", groupId, member.id],
+    queryFn: () =>
+      apiFetch<{
+        enabled: boolean;
+        weekday_minutes: number;
+        weekend_minutes: number;
+        minutes_used: number;
+        budget_minutes: number;
+        remaining: number;
+        exceeded: boolean;
+        warn: boolean;
+      }>(`/api/v1/blocking/time-budget/${member.id}?group_id=${groupId}`),
+    enabled: !!groupId,
+  });
+
+  const pct = budget?.budget_minutes
+    ? Math.min(100, Math.round((budget.minutes_used / budget.budget_minutes) * 100))
+    : 0;
+
+  return (
+    <Card>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-100 text-sm font-bold text-primary">
+            {member.display_name.charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <p className="text-sm font-medium text-gray-900">{member.display_name}</p>
+            {budget?.enabled ? (
+              <p className="text-xs text-gray-500">
+                {budget.minutes_used} / {budget.budget_minutes} min today
+                {budget.exceeded && <span className="ml-1 font-medium text-red-600">Exceeded</span>}
+                {budget.warn && !budget.exceeded && (
+                  <span className="ml-1 font-medium text-amber-600">Warning</span>
+                )}
+              </p>
+            ) : (
+              <p className="text-xs text-gray-400">No budget set</p>
+            )}
+          </div>
+        </div>
+        {budget?.enabled && (
+          <div className="flex items-center gap-3">
+            <div className="h-2 w-24 rounded-full bg-gray-200">
+              <div
+                className={`h-2 rounded-full ${
+                  pct >= 100 ? "bg-red-500" : pct >= 75 ? "bg-amber-500" : "bg-teal-500"
+                }`}
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            <span className="text-xs font-medium text-gray-600">{pct}%</span>
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+// ─── Bedtime Tab ────────────────────────────────────────────────────────────
+
+function BedtimeTab({ groupId }: { groupId: string | null }) {
+  const { data: members } = useQuery<{ items: Array<{ id: string; display_name: string }> }>({
+    queryKey: ["members-list", groupId],
+    queryFn: () => apiFetch(`/api/v1/groups/${groupId}/members?page_size=50`),
+    enabled: !!groupId,
+  });
+
+  if (!members?.items?.length) {
+    return (
+      <Card>
+        <div className="py-12 text-center">
+          <Moon className="mx-auto h-12 w-12 text-gray-300" />
+          <p className="mt-4 text-sm text-gray-500">No members to configure bedtime for</p>
+        </div>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {members.items.map((member) => (
+        <BedtimeMemberRow key={member.id} groupId={groupId!} member={member} />
+      ))}
+    </div>
+  );
+}
+
+function BedtimeMemberRow({
+  groupId,
+  member,
+}: {
+  groupId: string;
+  member: { id: string; display_name: string };
+}) {
+  const { data: bedtime } = useQuery({
+    queryKey: ["time-budget", "bedtime", groupId, member.id],
+    queryFn: () =>
+      apiFetch<{
+        enabled: boolean;
+        start_hour: number | null;
+        end_hour: number | null;
+        timezone: string;
+      }>(`/api/v1/blocking/bedtime/${member.id}?group_id=${groupId}`),
+    enabled: !!groupId,
+  });
+
+  return (
+    <Card>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-100 text-sm font-bold text-indigo-600">
+            {member.display_name.charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <p className="text-sm font-medium text-gray-900">{member.display_name}</p>
+            {bedtime?.enabled ? (
+              <p className="text-xs text-gray-500">
+                Bedtime: {bedtime.start_hour}:00 &ndash; {bedtime.end_hour}:00
+              </p>
+            ) : (
+              <p className="text-xs text-gray-400">Bedtime not configured</p>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Moon className={`h-4 w-4 ${bedtime?.enabled ? "text-indigo-500" : "text-gray-300"}`} />
+          <span className={`text-xs font-medium ${bedtime?.enabled ? "text-indigo-600" : "text-gray-400"}`}>
+            {bedtime?.enabled ? "Active" : "Off"}
+          </span>
+        </div>
+      </div>
+    </Card>
   );
 }
