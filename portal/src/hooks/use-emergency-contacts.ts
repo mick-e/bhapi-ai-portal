@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api-client";
+import { emergencyContactsApi } from "@/lib/api-client";
 import { useAuth } from "@/hooks/use-auth";
 
 export interface EmergencyContact {
@@ -38,7 +38,7 @@ export function useEmergencyContacts() {
   return useQuery<EmergencyContact[]>({
     queryKey: emergencyContactKeys.list(groupId || undefined),
     queryFn: () =>
-      groupId ? api.get(`/api/v1/groups/${groupId}/emergency-contacts`) : [],
+      groupId ? emergencyContactsApi.list(groupId) as Promise<EmergencyContact[]> : [],
     enabled: !!groupId,
   });
 }
@@ -50,7 +50,7 @@ export function useAddEmergencyContact() {
 
   return useMutation({
     mutationFn: (data: CreateEmergencyContactRequest) =>
-      api.post<EmergencyContact>(`/api/v1/groups/${groupId}/emergency-contacts`, data),
+      emergencyContactsApi.add(groupId!, data) as Promise<EmergencyContact>,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: emergencyContactKeys.all });
     },
@@ -64,7 +64,7 @@ export function useUpdateEmergencyContact() {
 
   return useMutation({
     mutationFn: ({ id, ...data }: { id: string } & Partial<CreateEmergencyContactRequest>) =>
-      api.patch<EmergencyContact>(`/api/v1/groups/${groupId}/emergency-contacts/${id}`, data),
+      emergencyContactsApi.update(groupId!, id, data) as Promise<EmergencyContact>,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: emergencyContactKeys.all });
     },
@@ -78,7 +78,7 @@ export function useRemoveEmergencyContact() {
 
   return useMutation({
     mutationFn: (contactId: string) =>
-      api.delete(`/api/v1/groups/${groupId}/emergency-contacts/${contactId}`),
+      emergencyContactsApi.remove(groupId!, contactId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: emergencyContactKeys.all });
     },

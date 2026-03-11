@@ -83,14 +83,12 @@ vi.mock("@/hooks/use-reports", () => ({
   })),
 }));
 
-function renderPage() {
+function renderWithProviders(ui: React.ReactElement) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
   return render(
-    <QueryClientProvider client={queryClient}>
-      <ReportsPage />
-    </QueryClientProvider>
+    <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>
   );
 }
 
@@ -100,17 +98,17 @@ describe("ReportsPage", () => {
   });
 
   it("renders the page heading", () => {
-    renderPage();
+    renderWithProviders(<ReportsPage />);
     expect(screen.getByText("Reports")).toBeInTheDocument();
   });
 
   it("shows total report count", () => {
-    renderPage();
+    renderWithProviders(<ReportsPage />);
     expect(screen.getByText("(3 total)")).toBeInTheDocument();
   });
 
   it("renders all report cards", () => {
-    renderPage();
+    renderWithProviders(<ReportsPage />);
     expect(
       screen.getByText("Safety Report - January")
     ).toBeInTheDocument();
@@ -121,31 +119,31 @@ describe("ReportsPage", () => {
   });
 
   it("shows status badges", () => {
-    renderPage();
+    renderWithProviders(<ReportsPage />);
     expect(screen.getAllByText("Ready")).toHaveLength(2);
     expect(screen.getByText("Processing")).toBeInTheDocument();
   });
 
   it("shows download buttons for ready reports", () => {
-    renderPage();
+    renderWithProviders(<ReportsPage />);
     const downloadButtons = screen.getAllByText("Download");
     expect(downloadButtons).toHaveLength(2); // Only 2 ready reports
   });
 
   it("calls download on button click", () => {
-    renderPage();
+    renderWithProviders(<ReportsPage />);
     const downloadButtons = screen.getAllByText("Download");
     fireEvent.click(downloadButtons[0]);
     expect(mockDownload).toHaveBeenCalledWith("r1");
   });
 
   it("shows generate report button", () => {
-    renderPage();
+    renderWithProviders(<ReportsPage />);
     expect(screen.getByText("Generate Report")).toBeInTheDocument();
   });
 
   it("opens create modal on button click", () => {
-    renderPage();
+    renderWithProviders(<ReportsPage />);
     // Click the main "Generate Report" button
     const buttons = screen.getAllByText("Generate Report");
     fireEvent.click(buttons[0]);
@@ -155,27 +153,27 @@ describe("ReportsPage", () => {
   });
 
   it("shows type filter dropdown", () => {
-    renderPage();
+    renderWithProviders(<ReportsPage />);
     expect(screen.getByText("Filter by type:")).toBeInTheDocument();
     expect(screen.getByDisplayValue("All types")).toBeInTheDocument();
   });
 
   it("shows quick stats cards", () => {
-    renderPage();
+    renderWithProviders(<ReportsPage />);
     expect(screen.getByText("Reports generated")).toBeInTheDocument();
     expect(screen.getByText("Available for download")).toBeInTheDocument();
     expect(screen.getByText("PDF / CSV")).toBeInTheDocument();
   });
 
   it("shows configure schedule button", () => {
-    renderPage();
+    renderWithProviders(<ReportsPage />);
     expect(
       screen.getByText("Configure Scheduled Reports")
     ).toBeInTheDocument();
   });
 
   it("opens schedule section on button click", () => {
-    renderPage();
+    renderWithProviders(<ReportsPage />);
     fireEvent.click(screen.getByText("Configure Scheduled Reports"));
     expect(screen.getByText("Scheduled Reports")).toBeInTheDocument();
   });

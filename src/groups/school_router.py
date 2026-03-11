@@ -9,6 +9,7 @@ from pydantic import Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.auth.middleware import get_current_user
 from src.database import get_db
 from src.dependencies import require_active_trial_or_subscription
 from src.exceptions import ForbiddenError, NotFoundError, ValidationError
@@ -18,7 +19,7 @@ from src.schemas import BaseSchema, GroupContext
 
 logger = structlog.get_logger()
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_active_trial_or_subscription)])
 
 
 # ─── Schemas ─────────────────────────────────────────────────────────────────
@@ -119,7 +120,7 @@ async def _verify_school_admin(
 
 @router.get("/classes", response_model=list[ClassGroupResponse])
 async def list_classes(
-    auth: GroupContext = Depends(require_active_trial_or_subscription),
+    auth: GroupContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """List all classes in the school group with member counts."""
@@ -151,7 +152,7 @@ async def list_classes(
 @router.post("/classes", response_model=ClassGroupResponse, status_code=201)
 async def create_class(
     data: ClassGroupCreate,
-    auth: GroupContext = Depends(require_active_trial_or_subscription),
+    auth: GroupContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Create a new class in the school group."""
@@ -186,7 +187,7 @@ async def create_class(
 @router.get("/classes/{class_id}/risks", response_model=list[RiskEventResponse])
 async def get_class_risks(
     class_id: UUID,
-    auth: GroupContext = Depends(require_active_trial_or_subscription),
+    auth: GroupContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Get risk events for all members of a class."""
@@ -241,7 +242,7 @@ async def get_class_risks(
 async def add_class_member(
     class_id: UUID,
     data: ClassMemberAdd,
-    auth: GroupContext = Depends(require_active_trial_or_subscription),
+    auth: GroupContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Add an existing group member to a class."""
@@ -306,7 +307,7 @@ async def add_class_member(
 async def remove_class_member(
     class_id: UUID,
     member_id: UUID,
-    auth: GroupContext = Depends(require_active_trial_or_subscription),
+    auth: GroupContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Remove a member from a class."""
@@ -346,7 +347,7 @@ async def remove_class_member(
 
 @router.get("/safeguarding-report", response_model=SafeguardingReportResponse)
 async def get_safeguarding_report(
-    auth: GroupContext = Depends(require_active_trial_or_subscription),
+    auth: GroupContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Generate a 30-day safeguarding summary for the school."""

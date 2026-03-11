@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { DashboardData } from "@/types";
 
@@ -94,6 +94,10 @@ function renderWithProviders(ui: React.ReactElement) {
 }
 
 describe("DashboardPage", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it("renders the dashboard heading", () => {
     renderWithProviders(<DashboardPage />);
     expect(screen.getByText("Dashboard")).toBeInTheDocument();

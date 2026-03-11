@@ -1,10 +1,10 @@
 # Bhapi Family AI Governance Portal — Formal Product Specification
 
-**Document Version:** 1.0  
-**Status:** Draft  
-**Owner:** Mike, CEO — Bhapi  
-**Date:** February 2026  
-**Platform URL:** bhapi.ai  
+**Document Version:** 2.1
+**Status:** Implemented (Post-MVP Complete)
+**Owner:** Mike, CEO — Bhapi
+**Date:** February 2026 (Updated March 2026)
+**Platform URL:** bhapi.ai
 
 ---
 
@@ -603,23 +603,27 @@ The risk classification engine must correctly handle content in all supported la
 
 ## 15. Backlog & Future Phases
 
-The following are explicitly deferred but should be considered in architectural decisions to avoid future rework:
+Items from the original backlog. Most have been implemented as part of the post-MVP roadmap (see `docs/bhapi-post-mvp-roadmap.md`).
 
-- **Tiered pricing:** Free/Basic/Premium tiers with feature gating.
-- **Native mobile apps:** iOS and Android, with push notification support for risk alerts.
-- **Additional language support:** FR, ES, DE, PT, IT as per Section 12.
-- **Automated AI session blocking:** Push block signal from portal to browser extension when hard threshold is reached or admin manually triggers.
-- **SMS notifications:** Via Twilio or similar.
-- **School SIS integration:** Rostering via Clever, ClassLink, or direct CSV import.
-- **Federated SSO for schools:** Microsoft Entra, Google Workspace for Education.
-- **Age verification:** Integration with age assurance providers (e.g. Yoti, Age ID).
-- **AI usage coaching:** Recommendations to family/students on healthy AI usage patterns.
-- **Report scheduling:** Automated delivery of governance reports.
-- **Browser extension for Safari:** Requires Apple Developer entitlements.
-- **Mobile device agent:** Lightweight app to extend DNS proxy coverage to mobile data connections.
-- **Device agent for network monitoring:** Desktop app for families without router-level access.
-- **Vendor risk scoring:** Automated risk assessments of connected LLM providers against compliance frameworks (leveraging Littledata methodology if appropriate).
-- **API for third-party integration:** Allow EdTech platforms to consume Bhapi risk signals.
+### Implemented (v2.1.0)
+- **Tiered pricing:** Family ($9.99/mo), School (per-seat), Enterprise tiers with Stripe plan management — `src/billing/plans.py`
+- **Additional language support:** EN, FR, ES, DE, PT-BR, IT — `portal/messages/`
+- **Automated AI session blocking:** Auto-block rules, time budgets, bedtime mode, parent approval flow — `src/blocking/`
+- **SMS notifications:** Twilio with rate limiting (10/min/group) — `src/sms/`
+- **School SIS integration:** Clever, ClassLink, Canvas, PowerSchool — `src/integrations/`
+- **Federated SSO for schools:** Google Workspace and Microsoft Entra with auto-provisioning — `src/integrations/sso_provisioner.py`
+- **Age verification:** Yoti integration with dev/test mode — `src/integrations/yoti.py`
+- **AI usage coaching:** AI literacy assessment modules — `src/literacy/`
+- **Report scheduling:** Cron-based with PDF/CSV export and email delivery — `src/reporting/`
+- **Browser extension for Safari:** Xcode project with Swift bridge — `extension/safari/`
+- **Vendor risk scoring:** A-F grading across 5 categories — `src/billing/vendor_risk.py`
+
+### Remaining (Deferred)
+- **Native mobile apps:** iOS and Android (React Native evaluation pending)
+- **Mobile device agent:** Lightweight app to extend DNS proxy coverage to mobile data connections
+- **API for third-party integration:** Public API for EdTech platforms (needs partner demand, rate limit tiers, API docs portal)
+- **Community Safety Intelligence Network:** Anonymised threat intelligence aggregation (needs legal review, critical user mass)
+- **Device agent for network monitoring:** Desktop app for families without router-level access
 
 ---
 
@@ -627,16 +631,16 @@ The following are explicitly deferred but should be considered in architectural 
 
 | # | Question | Assumption Made | Status |
 |---|---|---|---|
-| OQ-1 | What is the member cap per Family plan? | TBD in commercial planning | Open |
-| OQ-2 | What is the student cap per School plan? | TBD in commercial planning | Open |
-| OQ-3 | Will the portal share auth with Bhapi social platform via SSO, or separate login? | Separate login with optional SSO bridge | To confirm |
+| OQ-1 | What is the member cap per Family plan? | **5 members** — enforced in `add_member()` and `accept_invitation()` | **Resolved** |
+| OQ-2 | What is the student cap per School plan? | No cap — per-seat billing via Stripe quantity | **Resolved** |
+| OQ-3 | Will the portal share auth with Bhapi social platform via SSO, or separate login? | Separate login. Google Workspace + Microsoft Entra SSO for schools | **Resolved** |
 | OQ-4 | Who is the Data Controller for school/club data — Bhapi or the school/club? | Bhapi as Data Processor, school/club as Controller | Legal review required |
-| OQ-5 | Will xAI (Grok) API provide spend/usage data by MVP? | Partial — monitor API development | Open |
+| OQ-5 | Will xAI (Grok) API provide spend/usage data by MVP? | **Yes** — xAI spend tracking implemented (`src/billing/spend_sync.py`) | **Resolved** |
 | OQ-6 | What is the browser extension content review timeline for Chrome Web Store? | Approximately 2–4 weeks; factor into launch plan | To schedule |
 | OQ-7 | Is there a DPO appointed for the portal? | Must be confirmed prior to DPIA | Open |
-| OQ-8 | Does the EU AI Act high-risk classification apply? | Yes — AI system in education context with children | Legal review required |
+| OQ-8 | Does the EU AI Act high-risk classification apply? | **Yes** — EU AI Act compliance module implemented (`src/compliance/`) | **Resolved** |
 | OQ-9 | What is the backup/recovery RTO and RPO target? | RTO 4 hours, RPO 1 hour assumed | To confirm with engineering |
-| OQ-10 | Will Bhapi act as a COPPA-certified operator? | Subject to evaluation — PRIVO or KidSAFE certification in backlog | Open |
+| OQ-10 | Will Bhapi act as a COPPA-certified operator? | COPPA certification readiness implemented (`src/compliance/coppa.py`). PRIVO/KidSAFE submission pending | **Partially resolved** |
 
 ---
 
@@ -665,5 +669,5 @@ The following are explicitly deferred but should be considered in architectural 
 
 ---
 
-*End of Document — Version 1.0 Draft*  
-*Next review: following engineering scoping session*
+*End of Document — Version 2.1 (Updated March 2026)*
+*MVP and Post-MVP roadmap substantially complete. See `bhapi-post-mvp-roadmap.md` for feature status.*

@@ -1,10 +1,11 @@
 # Bhapi AI Portal — Family Safety Features Implementation Plan
 
-**Version:** 1.0.0
+**Version:** 2.0.0
 **Created:** 2026-03-10
-**Status:** Planning
-**Total Features:** 16 (F1–F16)
-**Estimated Effort:** ~45 developer-days across 7 sprints
+**Updated:** 2026-03-11
+**Status:** Complete
+**Total Features:** 16 (F1–F16) — All implemented
+**Actual Effort:** ~45 developer-days across 7 parallel sprints
 
 ---
 
@@ -12,24 +13,24 @@
 
 | # | Feature | Priority | Sprint | Est. Days | Status | Backend | Frontend | Tests |
 |---|---------|----------|--------|-----------|--------|---------|----------|-------|
-| F1 | AI Conversation Summaries | P0 | 4 | 5 | Not Started | - | - | - |
-| F2 | Emotional Dependency Detection | P0 | 2 | 4 | Not Started | - | - | - |
-| F3 | COPPA 2026 Compliance Dashboard | P0 | 1 | 3 | Not Started | - | - | - |
-| F4 | AI Academic Integrity Dashboard | P1 | 6 | 4 | Not Started | - | - | - |
-| F5 | Family AI Agreement | P1 | 5 | 4 | Not Started | - | - | - |
-| F6 | Smart AI Screen Time | P1 | 3 | 4 | Not Started | - | - | - |
-| F7 | Deepfake & Synthetic Content Protection | P1 | 6 | 3 | Not Started | - | - | - |
-| F8 | Family Safety Weekly Report | P2 | 5 | 3 | Not Started | - | - | - |
-| F9 | Panic Button / Instant Report | P2 | 3 | 3 | Not Started | - | - | - |
-| F10 | AI Platform Safety Ratings | P2 | 1 | 2 | Not Started | - | - | - |
-| F11 | Sibling Privacy Controls | P2 | 7 | 4 | Not Started | - | - | - |
-| F12 | Multi-Device Correlation | P3 | 7 | 2 | Not Started | - | - | - |
-| F13 | Bedtime Mode | P3 | 3 | 1 | Not Started | - | - | - |
-| F14 | AI Usage Allowance Rewards | P3 | 7 | 3 | Not Started | - | - | - |
-| F15 | Emergency Contact Integration | P3 | 5 | 2 | Not Started | - | - | - |
-| F16 | Family Onboarding Wizard | P3 | 1 | 2 | Not Started | - | - | - |
+| F1 | AI Conversation Summaries | P0 | 4 | 5 | Complete | `src/capture/summarizer.py`, `summary_models.py` | Member detail page | 21 unit + E2E |
+| F2 | Emotional Dependency Detection | P0 | 2 | 4 | Complete | `src/risk/dependency.py` | DependencyGauge + sparkline | 11 unit + E2E |
+| F3 | COPPA 2026 Compliance Dashboard | P0 | 1 | 3 | Complete | `src/compliance/coppa.py` | Compliance page | E2E |
+| F4 | AI Academic Integrity Dashboard | P1 | 6 | 4 | Complete | Risk classifier patterns | `portal/academic/page.tsx` | E2E |
+| F5 | Family AI Agreement | P1 | 5 | 4 | Complete | `src/groups/agreement.py` | Settings + member detail | E2E |
+| F6 | Smart AI Screen Time | P1 | 3 | 4 | Complete | `src/blocking/time_budget.py` | TimerGauge + budget editor | E2E |
+| F7 | Deepfake & Synthetic Content Protection | P1 | 6 | 3 | Complete | `src/risk/deepfake_detector.py` | Guidance hook + UI | E2E |
+| F8 | Family Safety Weekly Report | P2 | 5 | 3 | Complete | `src/reporting/family_report.py` | Reports page | E2E |
+| F9 | Panic Button / Instant Report | P2 | 3 | 3 | Complete | `src/alerts/panic.py` | Alerts page + child dashboard | E2E |
+| F10 | AI Platform Safety Ratings | P2 | 1 | 2 | Complete | `src/risk/platform_safety.py` | Safety ratings cards | E2E |
+| F11 | Sibling Privacy Controls | P2 | 7 | 4 | Complete | `src/groups/member_visibility.py` | Privacy tab in settings | E2E |
+| F12 | Multi-Device Correlation | P3 | 7 | 2 | Complete | `src/analytics/device_correlation.py` | Device breakdown on member detail | E2E |
+| F13 | Bedtime Mode | P3 | 3 | 1 | Complete | `src/blocking/time_budget.py` | Bedtime schedule editor | E2E |
+| F14 | AI Usage Allowance Rewards | P3 | 7 | 3 | Complete | `src/groups/rewards.py` | Rewards section on member detail | E2E |
+| F15 | Emergency Contact Integration | P3 | 5 | 2 | Complete | `src/groups/emergency_contacts.py` | Emergency Contacts tab | E2E |
+| F16 | Family Onboarding Wizard | P3 | 1 | 2 | Complete | Existing onboarding flow | Child dashboard (`my-dashboard/page.tsx`) | E2E |
 
-**Legend:** Not Started | In Progress | Complete | Blocked
+**Legend:** ~~Not Started~~ | ~~In Progress~~ | **Complete** | ~~Blocked~~
 
 ---
 

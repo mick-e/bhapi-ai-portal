@@ -140,6 +140,47 @@ class ChildSelfViewResponse(BaseSchema):
 # ─── Rewards (F14) ───────────────────────────────────────────────────────────
 
 
+class AgreementCreateRequest(BaseSchema):
+    """Create agreement from template."""
+
+    template_id: str = ""
+
+
+class AgreementUpdateRequest(BaseSchema):
+    """Update agreement rules."""
+
+    rules: list = Field(default_factory=list)
+
+
+class AgreementSignRequest(BaseSchema):
+    """Sign an agreement."""
+
+    member_id: str
+    name: str = ""
+
+
+class EmergencyContactCreate(BaseSchema):
+    """Create an emergency contact."""
+
+    name: str = Field(min_length=1, max_length=255)
+    relationship: str = "trusted_adult"
+    phone: str | None = None
+    email: str | None = None
+    notify_on: list[str] = Field(default_factory=list)
+    consent_given: bool = False
+
+
+class EmergencyContactUpdate(BaseSchema):
+    """Update an emergency contact."""
+
+    name: str | None = Field(None, max_length=255)
+    relationship: str | None = None
+    phone: str | None = None
+    email: str | None = None
+    notify_on: list[str] | None = None
+    consent_given: bool | None = None
+
+
 class RewardResponse(BaseSchema):
     """Reward response."""
 

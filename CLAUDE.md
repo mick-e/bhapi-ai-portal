@@ -28,7 +28,7 @@ AI safety governance platform at **bhapi.ai** for parents, school admins, and cl
 ## 3. Architecture
 
 ### 2-Service Model
-- **core-api:** All 18 modules served from single FastAPI app (`src/main.py`, 154 routes)
+- **core-api:** All 18 modules served from single FastAPI app (`src/main.py`, 188 routes)
 - **jobs:** Background cron runner for risk processing, email delivery, spend sync
 
 ### Modules
@@ -44,12 +44,13 @@ AI safety governance platform at **bhapi.ai** for parents, school admins, and cl
 | `portal/` | `/api/v1/portal` | BFF dashboard aggregation, group settings |
 | `compliance/` | `/api/v1/compliance` | GDPR/COPPA/LGPD data rights, EU AI Act transparency/appeals, COPPA certification |
 | `integrations/` | `/api/v1/integrations` | Clever + ClassLink SIS, Yoti age verification, Google Workspace + Entra SSO, directory sync, auto-provisioning |
-| `blocking/` | `/api/v1/blocking` | Automated AI session blocking, block rules CRUD, extension polling, parent approval flow, DNS blocking |
+| `blocking/` | `/api/v1/blocking` | Automated AI session blocking, block rules CRUD, extension polling, parent approval flow, DNS blocking, time budgets, bedtime mode |
 | `analytics/` | `/api/v1/analytics` | Trends, usage patterns, member baselines, anomaly detection, peer comparison |
 | `sms/` | (internal) | Twilio SMS notifications with rate limiting |
 | `email/` | (internal) | SendGrid email service, templated emails |
 | `literacy/` | `/api/v1/literacy` | AI literacy modules, quizzes, assessments, progress tracking |
 | `groups/school_router` | `/api/v1/school` | School admin: classes, class members, safeguarding reports |
+| `groups/` (extended) | `/api/v1/groups` | Family agreements, emergency contacts, rewards, member visibility, panic button |
 | `jobs/` | `/internal` | Background job runner, scheduled tasks |
 
 ### Module Communication Rules
@@ -81,7 +82,7 @@ All custom exceptions inherit from `src.exceptions.BhapiException`:
 
 ### Database
 - **ORM:** SQLAlchemy 2.x async (asyncpg for PostgreSQL, aiosqlite for SQLite in tests)
-- **Migrations:** Alembic (9 migrations: initial schema, content column, compound indexes, api_keys table, alert snoozed_until, beta schema changes, block approvals, class groups, literacy tables)
+- **Migrations:** Alembic (16 migrations: initial schema, content column, compound indexes, api_keys table, alert snoozed_until, beta schema changes, block approvals, class groups, literacy tables, conversation summaries, family agreements, time budgets, deepfake/dependency, member visibility, rewards, emergency contacts)
 - **Mixins:** `UUIDMixin` (UUID PK), `TimestampMixin` (`created_at` + `updated_at`), `SoftDeleteMixin` (`deleted_at` with auto-filtering)
 - Content excerpts stored encrypted via `encrypt_credential()`, decrypted on read. TTL cleanup job runs daily.
 
@@ -130,11 +131,11 @@ All custom exceptions inherit from `src.exceptions.BhapiException`:
 
 ### Commands
 ```bash
-pytest tests/ -v              # All backend (1053 tests)
-pytest tests/e2e/ -v          # E2E (556 tests, in-memory SQLite, no keys needed)
-pytest tests/unit/ -v          # Unit tests (348 tests)
-pytest tests/security/ -v     # Security (149 tests)
-cd portal && npx vitest run   # Frontend (59+ tests)
+pytest tests/ -v              # All backend (1435 tests)
+pytest tests/e2e/ -v          # E2E (731 tests, in-memory SQLite, no keys needed)
+pytest tests/unit/ -v          # Unit tests (521 tests)
+pytest tests/security/ -v     # Security (183 tests)
+cd portal && npx vitest run   # Frontend (64 tests)
 cd portal && npx tsc --noEmit # Type check (MUST run separately)
 ```
 

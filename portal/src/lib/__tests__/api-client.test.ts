@@ -80,14 +80,10 @@ describe("apiFetch", () => {
       json: () => Promise.resolve({ detail: "Access denied" }),
     });
 
-    try {
-      await apiFetch("/api/v1/test");
-      expect.fail("Should have thrown");
-    } catch (err) {
-      expect(err).toBeInstanceOf(ApiRequestError);
-      expect((err as ApiRequestError).status).toBe(403);
-      expect((err as ApiRequestError).detail).toBe("Access denied");
-    }
+    const error = await apiFetch("/api/v1/test").catch((err) => err);
+    expect(error).toBeInstanceOf(ApiRequestError);
+    expect(error.status).toBe(403);
+    expect(error.detail).toBe("Access denied");
   });
 
   it("returns undefined for 204 responses", async () => {

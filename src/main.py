@@ -1,5 +1,6 @@
 """FastAPI application factory."""
 
+import time
 from contextlib import asynccontextmanager
 
 from pathlib import Path
@@ -123,9 +124,18 @@ def create_app() -> FastAPI:
 def _register_routers(app: FastAPI) -> None:
     """Register all API routers."""
     # Health endpoints
+    _health_cache: dict = {"last_check_time": 0.0, "last_result": None}
+
     @app.get("/health", tags=["Health"])
     async def health_check():
         from src.redis_client import is_redis_available
+
+        now = time.monotonic()
+        if (
+            _health_cache["last_result"] is not None
+            and now - _health_cache["last_check_time"] < 10
+        ):
+            return _health_cache["last_result"]
 
         # DB connectivity is verified at startup by init_db().
         # In production, the readiness probe provides a deeper check.
@@ -141,13 +151,17 @@ def _register_routers(app: FastAPI) -> None:
         redis_status = "connected" if is_redis_available() else "unavailable"
 
         overall = "healthy" if db_status == "connected" else "degraded"
-        return {
+        result = {
             "status": overall,
             "version": settings.app_version,
             "environment": settings.environment,
             "database": db_status,
             "redis": redis_status,
         }
+
+        _health_cache["last_check_time"] = now
+        _health_cache["last_result"] = result
+        return result
 
     @app.get("/health/live", tags=["Health"])
     async def liveness():

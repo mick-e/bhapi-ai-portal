@@ -1,7 +1,7 @@
 """Add family_agreements table.
 
 Revision ID: 011
-Revises: 009
+Revises: 010
 Create Date: 2026-03-10
 """
 
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 revision = "011"
-down_revision = "009"
+down_revision = "010"
 branch_labels = None
 depends_on = None
 

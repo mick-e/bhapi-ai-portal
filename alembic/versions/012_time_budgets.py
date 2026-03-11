@@ -1,7 +1,7 @@
 """Add time budget tables for AI screen time limits.
 
 Revision ID: 012
-Revises: 009
+Revises: 011
 Create Date: 2026-03-10
 """
 
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 revision = "012"
-down_revision = "009"
+down_revision = "011"
 branch_labels = None
 depends_on = None
 

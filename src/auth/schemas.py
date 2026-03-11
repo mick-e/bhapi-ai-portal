@@ -129,6 +129,13 @@ class ContactInquiryRequest(BaseSchema):
     message: str | None = Field(None, max_length=2000)
 
 
+class UpdateProfileRequest(BaseSchema):
+    """Update user profile request."""
+
+    display_name: str | None = Field(None, min_length=1, max_length=255)
+    email: str | None = None
+
+
 class CreateApiKeyRequest(BaseSchema):
     """Create API key request."""
 

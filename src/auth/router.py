@@ -26,6 +26,7 @@ from src.auth.schemas import (
     PasswordResetRequest,
     RegisterRequest,
     TokenResponse,
+    UpdateProfileRequest,
     UserProfile,
 )
 from src.auth.service import (
@@ -157,16 +158,16 @@ async def get_me(
 
 @router.patch("/me", response_model=UserProfile)
 async def update_me(
-    data: dict,
+    data: UpdateProfileRequest,
     db: AsyncSession = Depends(get_db),
     auth: "GroupContext" = Depends(get_current_user),
 ):
     """Update current user profile."""
     user = await get_user_by_id(db, auth.user_id)
-    if "display_name" in data and data["display_name"]:
-        user.display_name = data["display_name"]
-    if "email" in data and data["email"]:
-        user.email = data["email"]
+    if data.display_name:
+        user.display_name = data.display_name
+    if data.email:
+        user.email = data.email
     await db.flush()
     await db.refresh(user)
     return user_to_profile(user, group_id=auth.group_id, role=auth.role)

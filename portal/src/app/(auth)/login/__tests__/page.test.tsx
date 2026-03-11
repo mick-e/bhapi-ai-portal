@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mock next/navigation
 vi.mock("next/navigation", () => ({
@@ -17,6 +17,10 @@ vi.mock("next/link", () => ({
 import LoginPage from "../page";
 
 describe("LoginPage", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it("renders the login form", () => {
     render(<LoginPage />);
     expect(screen.getByText("Welcome back")).toBeInTheDocument();

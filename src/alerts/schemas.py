@@ -67,6 +67,13 @@ class PreferenceResponse(BaseSchema):
     created_at: datetime
 
 
+class AlertUpdateRequest(BaseSchema):
+    """Update alert read/actioned status."""
+
+    read: bool | None = None
+    actioned: bool | None = None
+
+
 class DigestSummary(BaseSchema):
     """Digest summary for batched notifications."""
 

@@ -2,8 +2,7 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends, Request
-from pydantic import Field
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.middleware import get_current_user
@@ -24,10 +23,15 @@ from src.groups.rewards import (
     list_rewards as list_member_rewards,
 )
 from src.groups.schemas import (
+    AgreementCreateRequest,
+    AgreementSignRequest,
+    AgreementUpdateRequest,
     ChildSelfViewRequest,
     ChildSelfViewResponse,
     ConsentCreate,
     ConsentResponse,
+    EmergencyContactCreate,
+    EmergencyContactUpdate,
     GroupCreate,
     GroupResponse,
     GroupUpdate,
@@ -98,22 +102,21 @@ async def get_agreement(
 @router.post("/{group_id}/agreement", status_code=201)
 async def create_agreement_endpoint(
     group_id: UUID,
-    body: dict = Body(...),
+    body: AgreementCreateRequest,
     auth: GroupContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Create a new agreement from a template."""
     from src.groups.agreement import create_agreement
 
-    template_id = body.get("template_id", "")
-    agreement = await create_agreement(db, group_id, template_id, auth.user_id)
+    agreement = await create_agreement(db, group_id, body.template_id, auth.user_id)
     return _agreement_to_dict(agreement)
 
 
 @router.patch("/{group_id}/agreement")
 async def update_agreement_endpoint(
     group_id: UUID,
-    body: dict = Body(...),
+    body: AgreementUpdateRequest,
     auth: GroupContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -124,14 +127,14 @@ async def update_agreement_endpoint(
     agreement = await get_active_agreement(db, group_id)
     if not agreement:
         raise NotFoundError("Agreement")
-    updated = await update_agreement(db, agreement.id, body.get("rules", []))
+    updated = await update_agreement(db, agreement.id, body.rules)
     return _agreement_to_dict(updated)
 
 
 @router.post("/{group_id}/agreement/sign", status_code=201)
 async def sign_agreement_endpoint(
     group_id: UUID,
-    body: dict = Body(...),
+    body: AgreementSignRequest,
     auth: GroupContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -142,12 +145,7 @@ async def sign_agreement_endpoint(
     agreement = await get_active_agreement(db, group_id)
     if not agreement:
         raise NotFoundError("Agreement")
-    member_id = body.get("member_id")
-    name = body.get("name", "")
-    if not member_id:
-        from src.exceptions import ValidationError
-        raise ValidationError("member_id is required")
-    updated = await sign_agreement(db, agreement.id, UUID(member_id), name)
+    updated = await sign_agreement(db, agreement.id, UUID(body.member_id), body.name)
     return _agreement_to_dict(updated)
 
 
@@ -207,14 +205,14 @@ async def list_emergency_contacts_endpoint(
 @router.post("/{group_id}/emergency-contacts", status_code=201)
 async def add_emergency_contact_endpoint(
     group_id: UUID,
-    body: dict = Body(...),
+    body: EmergencyContactCreate,
     auth: GroupContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Add an emergency contact."""
     from src.groups.emergency_contacts import add_emergency_contact
 
-    contact = await add_emergency_contact(db, group_id, body)
+    contact = await add_emergency_contact(db, group_id, body.model_dump())
     return _contact_to_dict(contact)
 
 
@@ -222,14 +220,14 @@ async def add_emergency_contact_endpoint(
 async def update_emergency_contact_endpoint(
     group_id: UUID,
     contact_id: UUID,
-    body: dict = Body(...),
+    body: EmergencyContactUpdate,
     auth: GroupContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Update an emergency contact."""
     from src.groups.emergency_contacts import update_emergency_contact
 
-    contact = await update_emergency_contact(db, contact_id, body)
+    contact = await update_emergency_contact(db, contact_id, body.model_dump(exclude_none=True))
     return _contact_to_dict(contact)
 
 

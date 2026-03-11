@@ -4,7 +4,7 @@ import asyncio
 from datetime import date, datetime, time, timedelta, timezone
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends, Query
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,6 +13,7 @@ from starlette.responses import StreamingResponse
 from src.alerts.models import Alert
 from src.alerts.panic import PanicReport as _PanicReport  # noqa: F401 — register model
 from src.alerts.schemas import (
+    AlertUpdateRequest,
     PreferenceResponse,
     PreferenceUpdate,
 )
@@ -353,13 +354,13 @@ async def get_alert_endpoint(
 @router.patch("/{alert_id}")
 async def update_alert(
     alert_id: UUID,
-    body: dict = Body(...),
+    body: AlertUpdateRequest,
     auth: GroupContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Update alert read/actioned status (frontend PATCH)."""
     alert = await get_alert(db, alert_id)
-    if body.get("read") or body.get("actioned"):
+    if body.read or body.actioned:
         alert.status = "acknowledged"
         alert.acknowledged_at = datetime.now(timezone.utc)
         alert.acknowledged_by = auth.user_id

@@ -1,7 +1,7 @@
 """Add emergency_contacts table.
 
 Revision ID: 016
-Revises: 011
+Revises: 015
 Create Date: 2026-03-10
 """
 
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 revision = "016"
-down_revision = "011"
+down_revision = "015"
 branch_labels = None
 depends_on = None
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { api } from "@/lib/api-client";
+import { familyReportApi } from "@/lib/api-client";
 
 export interface FamilyWeeklyReport {
   group_id: string;
@@ -39,12 +39,12 @@ export const familyReportKeys = {
 export function useFamilyWeeklyReport() {
   return useQuery<FamilyWeeklyReport>({
     queryKey: familyReportKeys.weekly(),
-    queryFn: () => api.get("/api/v1/reports/weekly-family"),
+    queryFn: () => familyReportApi.getWeekly() as Promise<FamilyWeeklyReport>,
   });
 }
 
 export function useSendFamilyReport() {
   return useMutation({
-    mutationFn: () => api.post<{ sent: boolean }>("/api/v1/reports/weekly-family/send"),
+    mutationFn: () => familyReportApi.send() as Promise<{ sent: boolean }>,
   });
 }

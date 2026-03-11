@@ -1,7 +1,7 @@
 """Add member visibility and child self-view tables.
 
 Revision ID: 014
-Revises: 009
+Revises: 013
 Create Date: 2026-03-10
 """
 
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 revision = "014"
-down_revision = "009"
+down_revision = "013"
 branch_labels = None
 depends_on = None
 

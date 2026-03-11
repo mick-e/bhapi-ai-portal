@@ -3,7 +3,7 @@
 from pathlib import Path
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends, Query
+from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse, Response
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,7 +12,7 @@ from src.auth.middleware import get_current_user
 from src.database import get_db
 from src.dependencies import require_active_trial_or_subscription, resolve_group_id as _gid
 from src.reporting.models import ReportExport, ScheduledReport
-from src.reporting.schemas import ReportRequest, ScheduleConfig
+from src.reporting.schemas import CreateReportRequest, ReportRequest, ScheduleConfig, UpdateScheduleRequest
 from src.reporting.service import (
     create_schedule,
     generate_report,
@@ -65,7 +65,7 @@ def _schedule_to_frontend(schedule: ScheduledReport) -> dict:
 
 @router.post("", status_code=201)
 async def create_report(
-    body: dict = Body(...),
+    body: CreateReportRequest,
     auth: GroupContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -73,14 +73,14 @@ async def create_report(
     gid = _gid(None, auth)
     # Map frontend "safety" back to backend "risk"
     type_map = {"safety": "risk", "activity": "activity", "spend": "spend", "compliance": "compliance"}
-    report_type = type_map.get(body.get("type", ""), body.get("type", "activity"))
+    report_type = type_map.get(body.type, body.type)
 
     data = ReportRequest(
         group_id=gid,
         report_type=report_type,
-        format=body.get("format", "pdf"),
-        period_start=body.get("period_start"),
-        period_end=body.get("period_end"),
+        format=body.format,
+        period_start=body.period_start,
+        period_end=body.period_end,
     )
     export = await generate_report(db, data)
     return _report_to_frontend(export)
@@ -160,20 +160,20 @@ async def list_schedules_endpoint(
 
 @router.put("/schedules")
 async def update_schedule_endpoint(
-    body: dict = Body(...),
+    body: UpdateScheduleRequest,
     auth: GroupContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Update/create a report schedule (frontend PUT /schedules)."""
     gid = _gid(None, auth)
     type_map = {"safety": "risk", "activity": "activity", "spend": "spend", "compliance": "compliance"}
-    report_type = type_map.get(body.get("type", ""), body.get("type", "activity"))
+    report_type = type_map.get(body.type, body.type)
 
     data = ScheduleConfig(
         group_id=gid,
         report_type=report_type,
-        schedule=body.get("schedule", "weekly"),
-        recipients=body.get("recipients", []),
+        schedule=body.schedule,
+        recipients=body.recipients,
     )
     schedule = await create_schedule(db, data)
     return _schedule_to_frontend(schedule)

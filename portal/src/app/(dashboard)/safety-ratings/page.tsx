@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import {
   Shield,
   ShieldCheck,
@@ -18,7 +17,10 @@ import {
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { apiFetch } from "@/lib/api-client";
+import {
+  usePlatformSafetyRatings,
+  usePlatformSafetyRecommendations,
+} from "@/hooks/use-platform-safety";
 import type { PlatformSafetyRating, PlatformSafetyRecommendation } from "@/types";
 
 const gradeColors: Record<string, string> = {
@@ -182,20 +184,9 @@ export default function SafetyRatingsPage() {
   const [ageFilter, setAgeFilter] = useState<number | null>(null);
   const [ageInput, setAgeInput] = useState("");
 
-  const allRatingsQuery = useQuery<{ platforms: PlatformSafetyRating[] }>({
-    queryKey: ["platform-safety", "all"],
-    queryFn: () => apiFetch("/api/v1/billing/platform-safety"),
-    enabled: ageFilter === null,
-  });
+  const allRatingsQuery = usePlatformSafetyRatings(ageFilter === null);
 
-  const filteredQuery = useQuery<{
-    platforms: PlatformSafetyRecommendation[];
-  }>({
-    queryKey: ["platform-safety", "recommend", ageFilter],
-    queryFn: () =>
-      apiFetch(`/api/v1/billing/platform-safety/recommend?age=${ageFilter}`),
-    enabled: ageFilter !== null,
-  });
+  const filteredQuery = usePlatformSafetyRecommendations(ageFilter);
 
   const isLoading =
     ageFilter === null ? allRatingsQuery.isLoading : filteredQuery.isLoading;

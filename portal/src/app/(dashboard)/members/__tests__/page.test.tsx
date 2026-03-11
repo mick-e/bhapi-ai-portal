@@ -117,14 +117,12 @@ vi.mock("@/hooks/use-auth", () => ({
   })),
 }));
 
-function renderPage() {
+function renderWithProviders(ui: React.ReactElement) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
   return render(
-    <QueryClientProvider client={queryClient}>
-      <MembersPage />
-    </QueryClientProvider>
+    <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>
   );
 }
 
@@ -134,39 +132,39 @@ describe("MembersPage", () => {
   });
 
   it("renders the page heading", () => {
-    renderPage();
+    renderWithProviders(<MembersPage />);
     expect(screen.getByText("Members")).toBeInTheDocument();
   });
 
   it("renders member rows", () => {
-    renderPage();
+    renderWithProviders(<MembersPage />);
     expect(screen.getByText("Parent Admin")).toBeInTheDocument();
     expect(screen.getByText("Child One")).toBeInTheDocument();
     expect(screen.getByText("Invited User")).toBeInTheDocument();
   });
 
   it("shows member emails", () => {
-    renderPage();
+    renderWithProviders(<MembersPage />);
     expect(screen.getByText("parent@test.com")).toBeInTheDocument();
     expect(screen.getByText("child1@test.com")).toBeInTheDocument();
     expect(screen.getByText("invited@test.com")).toBeInTheDocument();
   });
 
   it("shows status badges", () => {
-    renderPage();
+    renderWithProviders(<MembersPage />);
     const activeBadges = screen.getAllByText("active");
     expect(activeBadges).toHaveLength(2);
     expect(screen.getByText("invited")).toBeInTheDocument();
   });
 
   it("shows risk badges", () => {
-    renderPage();
+    renderWithProviders(<MembersPage />);
     expect(screen.getAllByText("low")).toHaveLength(2);
     expect(screen.getByText("medium")).toBeInTheDocument();
   });
 
   it("shows active member count", () => {
-    renderPage();
+    renderWithProviders(<MembersPage />);
     expect(screen.getByText("Active members")).toBeInTheDocument();
     // Count text
     const countElements = screen.getAllByText("2");
@@ -174,22 +172,22 @@ describe("MembersPage", () => {
   });
 
   it("shows pending invites count", () => {
-    renderPage();
+    renderWithProviders(<MembersPage />);
     expect(screen.getByText("Pending invites")).toBeInTheDocument();
   });
 
   it("shows total members count", () => {
-    renderPage();
+    renderWithProviders(<MembersPage />);
     expect(screen.getByText("Total members")).toBeInTheDocument();
   });
 
   it("has invite member button", () => {
-    renderPage();
+    renderWithProviders(<MembersPage />);
     expect(screen.getByText("Invite Member")).toBeInTheDocument();
   });
 
   it("opens invite modal on button click", () => {
-    renderPage();
+    renderWithProviders(<MembersPage />);
     fireEvent.click(screen.getByText("Invite Member"));
     expect(screen.getByText("Invite a Member")).toBeInTheDocument();
     expect(
@@ -198,19 +196,19 @@ describe("MembersPage", () => {
   });
 
   it("invite modal has email input and role selector", () => {
-    renderPage();
+    renderWithProviders(<MembersPage />);
     fireEvent.click(screen.getByText("Invite Member"));
     expect(screen.getByPlaceholderText("member@example.com")).toBeInTheDocument();
     expect(screen.getByText("Send Invite")).toBeInTheDocument();
   });
 
   it("has search input", () => {
-    renderPage();
+    renderWithProviders(<MembersPage />);
     expect(screen.getByPlaceholderText("Search members...")).toBeInTheDocument();
   });
 
   it("shows member table headers", () => {
-    renderPage();
+    renderWithProviders(<MembersPage />);
     expect(screen.getByText("Member")).toBeInTheDocument();
     expect(screen.getByText("Role")).toBeInTheDocument();
     expect(screen.getByText("Status")).toBeInTheDocument();
@@ -220,7 +218,7 @@ describe("MembersPage", () => {
   });
 
   it("cancel button closes invite modal", () => {
-    renderPage();
+    renderWithProviders(<MembersPage />);
     fireEvent.click(screen.getByText("Invite Member"));
     expect(screen.getByText("Invite a Member")).toBeInTheDocument();
     fireEvent.click(screen.getByText("Cancel"));

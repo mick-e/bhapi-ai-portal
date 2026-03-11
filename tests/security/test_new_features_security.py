@@ -556,52 +556,38 @@ class TestTrialEnforcementNewRouters:
             "literacy router should enforce trial at router level"
         )
 
-    def test_school_router_uses_per_endpoint_trial(self):
+    def test_school_router_uses_router_level_trial(self):
         """School router should enforce require_active_trial_or_subscription
-        via endpoint parameter dependencies (Depends in signature)."""
-        import inspect
-
+        via router-level dependencies (consistent with other routers)."""
         from src.dependencies import require_active_trial_or_subscription
         from src.groups.school_router import router
 
-        # School router uses per-endpoint trial enforcement in function params
-        found = False
-        for route in router.routes:
-            endpoint = getattr(route, "endpoint", None)
-            if endpoint:
-                sig = inspect.signature(endpoint)
-                for param in sig.parameters.values():
-                    if hasattr(param.default, "dependency"):
-                        if param.default.dependency is require_active_trial_or_subscription:
-                            found = True
-                            break
-            if found:
-                break
-        assert found, (
-            "school router endpoints should enforce trial via parameter dependencies"
+        # School router uses router-level dependency (same pattern as alerts, blocking, etc.)
+        dep_callables = []
+        for dep in router.dependencies:
+            if hasattr(dep, "dependency"):
+                dep_callables.append(dep.dependency)
+        assert require_active_trial_or_subscription in dep_callables, (
+            "school router should enforce trial via router-level dependencies"
         )
 
-    def test_school_router_all_endpoints_have_trial(self):
-        """Every school endpoint should have trial enforcement."""
-        from src.dependencies import require_active_trial_or_subscription
+    def test_school_router_all_endpoints_have_auth(self):
+        """Every school endpoint should have get_current_user auth."""
+        import inspect
+        from src.auth.middleware import get_current_user
         from src.groups.school_router import router
 
         for route in router.routes:
             path = getattr(route, "path", "")
-            route_deps = []
-            for dep in getattr(route, "dependencies", []):
-                if hasattr(dep, "dependency"):
-                    route_deps.append(dep.dependency)
-            # Also check endpoint dependencies (params that use Depends)
             endpoint = getattr(route, "endpoint", None)
             if endpoint:
-                import inspect
                 sig = inspect.signature(endpoint)
+                has_auth = False
                 for param in sig.parameters.values():
                     if hasattr(param.default, "dependency"):
-                        if param.default.dependency is require_active_trial_or_subscription:
-                            route_deps.append(require_active_trial_or_subscription)
-
-            assert require_active_trial_or_subscription in route_deps, (
-                f"School endpoint {path} should enforce trial"
-            )
+                        if param.default.dependency is get_current_user:
+                            has_auth = True
+                            break
+                assert has_auth, (
+                    f"School endpoint {path} should have get_current_user auth"
+                )
