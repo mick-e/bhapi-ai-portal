@@ -131,12 +131,14 @@ All custom exceptions inherit from `src.exceptions.BhapiException`:
 
 ### Commands
 ```bash
-pytest tests/ -v              # All backend (1435 tests)
-pytest tests/e2e/ -v          # E2E (731 tests, in-memory SQLite, no keys needed)
-pytest tests/unit/ -v          # Unit tests (521 tests)
-pytest tests/security/ -v     # Security (183 tests)
-cd portal && npx vitest run   # Frontend (64 tests)
+pytest tests/ -v              # All backend (1314 passed, 138 skipped, 4 xfailed)
+pytest tests/e2e/ -v          # E2E (639 passed, in-memory SQLite, no keys needed)
+pytest tests/unit/ -v          # Unit tests (521 passed)
+pytest tests/security/ -v     # Security (154 passed)
+cd portal && npx vitest run   # Frontend (60+ tests)
 cd portal && npx tsc --noEmit # Type check (MUST run separately)
+# Production E2E (requires PROD_API_KEY in .env.local):
+PROD_BASE_URL=https://bhapi.ai PROD_API_KEY=<token> pytest tests/e2e/test_production.py -v  # 95 tests
 ```
 
 ### Definition of Done

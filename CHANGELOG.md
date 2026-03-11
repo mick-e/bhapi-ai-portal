@@ -25,8 +25,9 @@ All notable changes to the Bhapi AI Portal are documented here.
 - **Doodle pattern hero background**: Landing page hero section with school-themed doodle background image
 - 7 new Alembic migrations (010-016): conversation_summaries, family_agreements, time_budgets, class_groups (already existed as 008), member_visibility, rewards, emergency_contacts
 - 102 new/modified files, ~18,500 lines added
-- Backend test count: 689 → 1435 (731 E2E + 521 unit + 183 security)
-- Frontend test count: 59 → 64
+- Backend test count: 689 → 1314 passed (639 E2E + 521 unit + 154 security)
+- Frontend test count: 59 → 60+
+- Production E2E: 95 tests against live https://bhapi.ai (all passing)
 
 ### Changed
 - Version bumped from 2.0.0 to 2.1.0 across all manifests

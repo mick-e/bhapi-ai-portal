@@ -85,7 +85,7 @@ alembic upgrade head
 ## Testing
 
 ```bash
-# Backend (1435 tests: 731 E2E + 521 unit + 183 security)
+# Backend (1314 passed: 639 E2E + 521 unit + 154 security)
 pytest tests/ -v
 
 # E2E tests (in-memory SQLite, no external keys needed)
@@ -97,11 +97,14 @@ pytest tests/unit/ -v
 # Security tests
 pytest tests/security/ -v
 
-# Frontend (64 tests)
+# Frontend (60+ tests)
 cd portal && npx vitest run
 
 # Type checking (MUST run separately — vitest does NOT run tsc)
 cd portal && npx tsc --noEmit
+
+# Production E2E (95 tests against live https://bhapi.ai)
+PROD_BASE_URL=https://bhapi.ai PROD_API_KEY=<token> pytest tests/e2e/test_production.py -v
 ```
 
 ## Project Structure
@@ -130,7 +133,7 @@ bhapi-ai-portal/
 ├── extension/              # Browser extension (Chrome + Firefox + Safari)
 ├── dns-proxy/              # DNS-level blocking resolver
 ├── alembic/                # Database migrations (16 versions)
-├── tests/                  # Test suite (1435 backend + 64 frontend)
+├── tests/                  # Test suite (1314 backend + 60 frontend + 95 prod)
 ├── docs/                   # Product spec, roadmap, DPIA, security
 ├── deploy/                 # Deployment configuration
 ├── docker-compose.yml      # Local dev (Postgres 16 + Redis 7)
