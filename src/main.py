@@ -140,13 +140,15 @@ def _register_routers(app: FastAPI) -> None:
         # DB connectivity is verified at startup by init_db().
         # In production, the readiness probe provides a deeper check.
         db_status = "connected"
+        db_error = None
         if settings.is_production:
             try:
                 from src.database import engine
                 async with engine.connect() as conn:
                     await conn.execute(select_text("1"))
-            except Exception:
+            except Exception as exc:
                 db_status = "error"
+                db_error = f"{type(exc).__name__}: {exc}"
 
         redis_status = "connected" if is_redis_available() else "unavailable"
 
@@ -158,6 +160,8 @@ def _register_routers(app: FastAPI) -> None:
             "database": db_status,
             "redis": redis_status,
         }
+        if db_error:
+            result["database_error"] = db_error
 
         _health_cache["last_check_time"] = now
         _health_cache["last_result"] = result
