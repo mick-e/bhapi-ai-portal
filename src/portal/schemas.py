@@ -113,6 +113,7 @@ class DashboardResponse(BaseSchema):
     activity_trend: list[TrendDataPoint] = Field(default_factory=list)
     risk_breakdown: list[CategoryCount] = Field(default_factory=list)
     spend_trend: list[TrendDataPoint] = Field(default_factory=list)
+    degraded_sections: list[str] = Field(default_factory=list)
 
 
 # ─── Settings ───────────────────────────────────────────────────────────────

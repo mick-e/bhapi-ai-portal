@@ -34,13 +34,25 @@ async def get_dashboard(db: AsyncSession, group_id: UUID, user_id: UUID) -> Dash
 
     Each section is wrapped in try/except so a single query failure
     (e.g. missing migration column) does not crash the entire dashboard.
+    The degraded_sections list tracks which sections failed to load.
     """
-    # Get group
-    result = await db.execute(select(Group).where(Group.id == group_id))
-    group = result.scalar_one_or_none()
-    if not group:
+    degraded_sections: list[str] = []
+
+    # Get group — allow NotFoundError to propagate (404 is correct),
+    # but catch DB errors to avoid 500s
+    try:
+        result = await db.execute(select(Group).where(Group.id == group_id))
+        group = result.scalar_one_or_none()
+        if not group:
+            from src.exceptions import NotFoundError
+            raise NotFoundError("Group", str(group_id))
+    except Exception as exc:
+        # Re-raise NotFoundError (legitimate 404)
         from src.exceptions import NotFoundError
-        raise NotFoundError("Group", str(group_id))
+        if isinstance(exc, NotFoundError):
+            raise
+        logger.exception("dashboard_group_lookup_failed", group_id=str(group_id))
+        return DashboardResponse(degraded_sections=["all"])
 
     # Time boundaries
     now = datetime.now(timezone.utc)
@@ -49,12 +61,19 @@ async def get_dashboard(db: AsyncSession, group_id: UUID, user_id: UUID) -> Dash
     month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
     # --- Members ---
-    members_result = await db.execute(
-        select(GroupMember).where(GroupMember.group_id == group_id)
-    )
-    members = list(members_result.scalars().all())
-    total_members = len(members)
-    member_names = {m.id: m.display_name for m in members}
+    members: list = []
+    total_members = 0
+    member_names: dict = {}
+    try:
+        members_result = await db.execute(
+            select(GroupMember).where(GroupMember.group_id == group_id)
+        )
+        members = list(members_result.scalars().all())
+        total_members = len(members)
+        member_names = {m.id: m.display_name for m in members}
+    except Exception:
+        logger.exception("dashboard_members_section_failed", group_id=str(group_id))
+        degraded_sections.append("members")
 
     # --- Active members & interactions ---
     active_members = 0
@@ -117,6 +136,7 @@ async def get_dashboard(db: AsyncSession, group_id: UUID, user_id: UUID) -> Dash
         ]
     except Exception:
         logger.exception("dashboard_activity_section_failed", group_id=str(group_id))
+        degraded_sections.append("activity")
 
     # --- Alert Summary ---
     alert_summary = AlertSummary()
@@ -181,6 +201,7 @@ async def get_dashboard(db: AsyncSession, group_id: UUID, user_id: UUID) -> Dash
         )
     except Exception:
         logger.exception("dashboard_alerts_section_failed", group_id=str(group_id))
+        degraded_sections.append("alerts")
 
     # --- Spend Summary ---
     spend_summary = SpendSummary()
@@ -274,6 +295,7 @@ async def get_dashboard(db: AsyncSession, group_id: UUID, user_id: UUID) -> Dash
         )
     except Exception:
         logger.exception("dashboard_spend_section_failed", group_id=str(group_id))
+        degraded_sections.append("spend")
 
     # --- Risk Summary ---
     risk_summary = RiskSummary()
@@ -321,6 +343,7 @@ async def get_dashboard(db: AsyncSession, group_id: UUID, user_id: UUID) -> Dash
         )
     except Exception:
         logger.exception("dashboard_risk_section_failed", group_id=str(group_id))
+        degraded_sections.append("risk")
 
     # --- Activity Trend (last 7 days) ---
     activity_trend: list[TrendDataPoint] = []
@@ -341,6 +364,7 @@ async def get_dashboard(db: AsyncSession, group_id: UUID, user_id: UUID) -> Dash
             ))
     except Exception:
         logger.exception("dashboard_activity_trend_failed", group_id=str(group_id))
+        degraded_sections.append("activity_trend")
 
     # --- Risk Breakdown (by category, last 30 days) ---
     risk_breakdown: list[CategoryCount] = []
@@ -360,6 +384,7 @@ async def get_dashboard(db: AsyncSession, group_id: UUID, user_id: UUID) -> Dash
         ]
     except Exception:
         logger.exception("dashboard_risk_breakdown_failed", group_id=str(group_id))
+        degraded_sections.append("risk_breakdown")
 
     # --- Spend Trend (last 7 days) ---
     spend_trend: list[TrendDataPoint] = []
@@ -380,6 +405,7 @@ async def get_dashboard(db: AsyncSession, group_id: UUID, user_id: UUID) -> Dash
             ))
     except Exception:
         logger.exception("dashboard_spend_trend_failed", group_id=str(group_id))
+        degraded_sections.append("spend_trend")
 
     return DashboardResponse(
         active_members=active_members,
@@ -393,6 +419,7 @@ async def get_dashboard(db: AsyncSession, group_id: UUID, user_id: UUID) -> Dash
         activity_trend=activity_trend,
         risk_breakdown=risk_breakdown,
         spend_trend=spend_trend,
+        degraded_sections=degraded_sections,
     )
 
 

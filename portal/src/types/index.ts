@@ -233,6 +233,7 @@ export interface DashboardData {
   activity_trend: TrendDataPoint[];
   risk_breakdown: CategoryCount[];
   spend_trend: TrendDataPoint[];
+  degraded_sections?: string[];
 }
 
 export interface TrendDataPoint {

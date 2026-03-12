@@ -11,14 +11,27 @@ from src.config import get_settings
 from src.database import Base
 
 # Import ALL models so they register with Base.metadata
-from src.auth.models import User, OAuthConnection, Session  # noqa: F401
-from src.groups.models import Group, GroupMember, Invitation  # noqa: F401
-from src.capture.models import CaptureEvent, DeviceRegistration  # noqa: F401
+from src.auth.models import User, OAuthConnection, ApiKey, Session  # noqa: F401
+from src.groups.models import Group, GroupMember, Invitation, ClassGroup, ClassGroupMember  # noqa: F401
+from src.groups.agreement import FamilyAgreement  # noqa: F401
+from src.groups.emergency_contacts import EmergencyContact  # noqa: F401
+from src.groups.privacy import MemberVisibility, ChildSelfView  # noqa: F401
+from src.groups.rewards import Reward  # noqa: F401
+from src.capture.models import CaptureEvent, DeviceRegistration, SetupCode  # noqa: F401
+from src.capture.summary_models import ConversationSummary  # noqa: F401
 from src.risk.models import RiskEvent, RiskConfig, ContentExcerpt  # noqa: F401
 from src.alerts.models import Alert, NotificationPreference  # noqa: F401
-from src.billing.models import Subscription, LLMAccount, SpendRecord, BudgetThreshold  # noqa: F401
+from src.alerts.panic import PanicReport  # noqa: F401
+from src.billing.models import Subscription, LLMAccount, SpendRecord, BudgetThreshold, FiredThresholdAlert  # noqa: F401
 from src.reporting.models import ScheduledReport, ReportExport  # noqa: F401
 from src.compliance.models import ConsentRecord, DataDeletionRequest, AuditEntry  # noqa: F401
+from src.compliance.eu_ai_act_models import HumanReviewRequest, AppealRecord  # noqa: F401
+from src.blocking.models import BlockRule, AutoBlockRule  # noqa: F401
+from src.blocking.approval_models import BlockApproval  # noqa: F401
+from src.blocking.time_budget import TimeBudget, TimeBudgetUsage  # noqa: F401
+from src.integrations.models import SISConnection  # noqa: F401
+from src.integrations.sso_models import SSOConfig  # noqa: F401
+from src.literacy.models import LiteracyModule, LiteracyQuestion, LiteracyAssessment, LiteracyProgress  # noqa: F401
 
 config = context.config
 

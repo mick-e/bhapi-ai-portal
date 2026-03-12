@@ -534,14 +534,18 @@ export default function DashboardPage() {
   }
 
   if (isError) {
+    const errorMsg = (error as Error)?.message || "";
+    const is404 = errorMsg.includes("not found") || errorMsg.includes("404");
     return (
       <div className="flex h-64 flex-col items-center justify-center text-center">
         <AlertTriangle className="h-10 w-10 text-amber-500" />
         <p className="mt-3 text-sm font-medium text-gray-900">
-          Failed to load dashboard
+          {is404 ? "Your group could not be found" : "Failed to load dashboard"}
         </p>
         <p className="mt-1 text-sm text-gray-500">
-          {(error as Error)?.message || "Something went wrong"}
+          {is404
+            ? "The group may have been deleted or you may not have access."
+            : errorMsg || "An unexpected error occurred. Please try again or contact support."}
         </p>
         <Button
           variant="secondary"
@@ -557,6 +561,7 @@ export default function DashboardPage() {
   }
 
   const summary = data!;
+  const degraded = summary.degraded_sections ?? [];
 
   return (
     <div>
@@ -566,6 +571,27 @@ export default function DashboardPage() {
           Overview of your group&apos;s AI activity and safety
         </p>
       </div>
+
+      {degraded.length > 0 && (
+        <div className="mb-6 flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-amber-600" />
+            <p className="text-sm text-amber-800">
+              {degraded.includes("all")
+                ? "Dashboard data is temporarily unavailable. Showing defaults."
+                : `Some sections could not load: ${degraded.join(", ")}. Data shown may be incomplete.`}
+            </p>
+          </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => refetch()}
+          >
+            <RefreshCw className="h-4 w-4" />
+            Retry
+          </Button>
+        </div>
+      )}
 
       {showOnboarding && (
         <OnboardingWizard

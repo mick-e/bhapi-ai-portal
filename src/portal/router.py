@@ -2,16 +2,20 @@
 
 from uuid import UUID
 
+import structlog
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.middleware import get_current_user
 from src.database import get_db
 from src.dependencies import resolve_group_id as _resolve_group_id
+from src.exceptions import BhapiException
 from src.groups.privacy import get_child_dashboard
 from src.portal.schemas import DashboardResponse, GroupSettingsResponse, UpdateGroupSettingsRequest
 from src.portal.service import get_dashboard, get_group_settings, update_group_settings
 from src.schemas import GroupContext
+
+logger = structlog.get_logger()
 
 router = APIRouter()
 
@@ -23,7 +27,13 @@ async def dashboard(
     db: AsyncSession = Depends(get_db),
 ):
     """Get primary dashboard data (FR-010)."""
-    return await get_dashboard(db, _resolve_group_id(group_id, auth), auth.user_id)
+    try:
+        return await get_dashboard(db, _resolve_group_id(group_id, auth), auth.user_id)
+    except BhapiException:
+        raise
+    except Exception:
+        logger.exception("dashboard_endpoint_failed", user_id=str(auth.user_id))
+        return DashboardResponse(degraded_sections=["all"])
 
 
 @router.get("/settings", response_model=GroupSettingsResponse)
