@@ -171,6 +171,42 @@ def _register_routers(app: FastAPI) -> None:
     async def liveness():
         return {"status": "alive"}
 
+    @app.get("/health/schema", tags=["Health"])
+    async def schema_check():
+        """Temporary diagnostic: check alembic version and key columns."""
+        from src.database import engine
+        results = {}
+        try:
+            async with engine.connect() as conn:
+                # Check alembic version
+                ver = await conn.execute(select_text("SELECT version_num FROM alembic_version"))
+                row = ver.first()
+                results["alembic_version"] = row[0] if row else "none"
+
+                # Check if migration 017 columns exist
+                for table, col in [
+                    ("capture_events", "content_encrypted"),
+                    ("risk_events", "classifier_source"),
+                    ("block_rules", "auto_rule_id"),
+                ]:
+                    try:
+                        await conn.execute(select_text(
+                            f"SELECT {col} FROM {table} LIMIT 0"
+                        ))
+                        results[f"{table}.{col}"] = "exists"
+                    except Exception as e:
+                        results[f"{table}.{col}"] = f"MISSING: {e}"
+
+                # Check if setup_codes table exists
+                try:
+                    await conn.execute(select_text("SELECT id FROM setup_codes LIMIT 0"))
+                    results["setup_codes"] = "exists"
+                except Exception as e:
+                    results["setup_codes"] = f"MISSING: {e}"
+        except Exception as e:
+            results["error"] = str(e)
+        return results
+
     @app.get("/health/ready", tags=["Health"])
     async def readiness():
         if settings.is_production:
