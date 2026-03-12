@@ -1,7 +1,7 @@
 """Beta schema changes — new tables and columns for Beta release.
 
 Revision ID: 006
-Revises: 005_add_alert_snoozed_until
+Revises: 005
 Create Date: 2026-03-07
 """
 
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 revision = "006"
-down_revision = "005_add_alert_snoozed_until"
+down_revision = "005"
 branch_labels = None
 depends_on = None
 
