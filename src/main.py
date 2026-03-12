@@ -145,7 +145,7 @@ def _register_routers(app: FastAPI) -> None:
             try:
                 from src.database import engine
                 async with engine.connect() as conn:
-                    await conn.execute(select_text("1"))
+                    await conn.execute(select_text("SELECT 1"))
             except Exception as exc:
                 db_status = "error"
                 db_error = f"{type(exc).__name__}: {exc}"
@@ -177,7 +177,7 @@ def _register_routers(app: FastAPI) -> None:
             try:
                 from src.database import engine
                 async with engine.connect() as conn:
-                    await conn.execute(select_text("1"))
+                    await conn.execute(select_text("SELECT 1"))
             except Exception:
                 return JSONResponse(
                     status_code=503,
