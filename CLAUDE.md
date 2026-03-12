@@ -148,6 +148,8 @@ Every endpoint needs: happy path + auth/403 + validation/422 + edge cases. Every
 - **vitest does NOT run tsc** — type errors silently pass vitest but break Docker builds. Always run `tsc --noEmit` separately
 - **Test fixture** — use `test_session` (not `async_db`) for DB session in tests
 - **Email validation** — `.test` TLD is rejected; always use `.com` in test emails
+- **Migrations run on deploy** — Dockerfile CMD runs `alembic upgrade head` before starting uvicorn. If you add new model columns/tables, you MUST create an Alembic migration — the deploy will auto-apply it. Never add model columns without a corresponding migration or the production dashboard will crash with "An unexpected error occurred"
+- **Dashboard resilience** — `get_dashboard()` in `src/portal/service.py` wraps each section (activity, alerts, spend, risk, trends) in try/except with structlog. If one section fails (e.g. missing column), the dashboard still loads with defaults for that section instead of showing a full error page
 
 ## 8. File and Component Placement
 
@@ -194,6 +196,7 @@ alembic revision --autogenerate -m "description"
 - **Family member cap** — `MAX_FAMILY_MEMBERS = 5` enforced in `add_member()` and `accept_invitation()`. School/club have no cap
 - **Billing checkout** — All plans self-serve via Stripe once account exists. School/club use per-seat pricing with member count as quantity
 - **Stripe webhooks persist** — `handle_webhook_event()` creates/updates Subscription rows for created/updated/cancelled/payment_failed events
+- **Model columns require migrations** — Adding a column to any SQLAlchemy model WITHOUT a matching Alembic migration will crash production (the ORM generates SQL referencing the column, but PostgreSQL doesn't have it). This is the #1 cause of "Failed to load dashboard" regressions. Always run `alembic revision --autogenerate -m "desc"` after model changes
 
 ## 10. Commands
 

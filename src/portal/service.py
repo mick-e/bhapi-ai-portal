@@ -30,7 +30,11 @@ logger = structlog.get_logger()
 
 
 async def get_dashboard(db: AsyncSession, group_id: UUID, user_id: UUID) -> DashboardResponse:
-    """Aggregate dashboard data for a group (FR-010)."""
+    """Aggregate dashboard data for a group (FR-010).
+
+    Each section is wrapped in try/except so a single query failure
+    (e.g. missing migration column) does not crash the entire dashboard.
+    """
     # Get group
     result = await db.execute(select(Group).where(Group.id == group_id))
     group = result.scalar_one_or_none()
@@ -41,6 +45,7 @@ async def get_dashboard(db: AsyncSession, group_id: UUID, user_id: UUID) -> Dash
     # Time boundaries
     now = datetime.now(timezone.utc)
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    yesterday_start = today_start - timedelta(days=1)
     month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
     # --- Members ---
@@ -49,319 +54,332 @@ async def get_dashboard(db: AsyncSession, group_id: UUID, user_id: UUID) -> Dash
     )
     members = list(members_result.scalars().all())
     total_members = len(members)
-
-    # Active members = members with capture events in last 24h
-    active_result = await db.execute(
-        select(func.count(func.distinct(CaptureEvent.member_id)))
-        .where(
-            CaptureEvent.group_id == group_id,
-            CaptureEvent.timestamp >= now - timedelta(hours=24),
-        )
-    )
-    active_members = active_result.scalar() or 0
-
-    # --- Interactions today ---
-    interactions_result = await db.execute(
-        select(func.count(CaptureEvent.id))
-        .where(
-            CaptureEvent.group_id == group_id,
-            CaptureEvent.timestamp >= today_start,
-        )
-    )
-    interactions_today = interactions_result.scalar() or 0
-
-    # Yesterday's count for trend
-    yesterday_start = today_start - timedelta(days=1)
-    yesterday_result = await db.execute(
-        select(func.count(CaptureEvent.id))
-        .where(
-            CaptureEvent.group_id == group_id,
-            CaptureEvent.timestamp >= yesterday_start,
-            CaptureEvent.timestamp < today_start,
-        )
-    )
-    yesterday_count = yesterday_result.scalar() or 0
-    if yesterday_count > 0:
-        change = ((interactions_today - yesterday_count) / yesterday_count) * 100
-        interactions_trend = f"{change:+.0f}% vs yesterday"
-    else:
-        interactions_trend = "tracking"
-
-    # --- Recent Activity (last 10 events) ---
-    recent_events_result = await db.execute(
-        select(CaptureEvent)
-        .where(CaptureEvent.group_id == group_id)
-        .order_by(CaptureEvent.timestamp.desc())
-        .limit(10)
-    )
-    recent_events = list(recent_events_result.scalars().all())
-
-    # Build member name lookup
     member_names = {m.id: m.display_name for m in members}
 
-    recent_activity = [
-        ActivityFeedItem(
-            id=e.id,
-            group_id=e.group_id,
-            member_id=e.member_id,
-            member_name=member_names.get(e.member_id, "Unknown"),
-            provider=e.platform,
-            model="",
-            event_type=e.event_type,
-            risk_level="low",
-            timestamp=e.timestamp.isoformat() if e.timestamp else "",
+    # --- Active members & interactions ---
+    active_members = 0
+    interactions_today = 0
+    interactions_trend = "tracking"
+    recent_activity: list[ActivityFeedItem] = []
+    try:
+        active_result = await db.execute(
+            select(func.count(func.distinct(CaptureEvent.member_id)))
+            .where(
+                CaptureEvent.group_id == group_id,
+                CaptureEvent.timestamp >= now - timedelta(hours=24),
+            )
         )
-        for e in recent_events
-    ]
+        active_members = active_result.scalar() or 0
+
+        interactions_result = await db.execute(
+            select(func.count(CaptureEvent.id))
+            .where(
+                CaptureEvent.group_id == group_id,
+                CaptureEvent.timestamp >= today_start,
+            )
+        )
+        interactions_today = interactions_result.scalar() or 0
+
+        yesterday_result = await db.execute(
+            select(func.count(CaptureEvent.id))
+            .where(
+                CaptureEvent.group_id == group_id,
+                CaptureEvent.timestamp >= yesterday_start,
+                CaptureEvent.timestamp < today_start,
+            )
+        )
+        yesterday_count = yesterday_result.scalar() or 0
+        if yesterday_count > 0:
+            change = ((interactions_today - yesterday_count) / yesterday_count) * 100
+            interactions_trend = f"{change:+.0f}% vs yesterday"
+
+        # Recent Activity (last 10 events)
+        recent_events_result = await db.execute(
+            select(CaptureEvent)
+            .where(CaptureEvent.group_id == group_id)
+            .order_by(CaptureEvent.timestamp.desc())
+            .limit(10)
+        )
+        recent_events = list(recent_events_result.scalars().all())
+        recent_activity = [
+            ActivityFeedItem(
+                id=e.id,
+                group_id=e.group_id,
+                member_id=e.member_id,
+                member_name=member_names.get(e.member_id, "Unknown"),
+                provider=e.platform,
+                model="",
+                event_type=e.event_type,
+                risk_level="low",
+                timestamp=e.timestamp.isoformat() if e.timestamp else "",
+            )
+            for e in recent_events
+        ]
+    except Exception:
+        logger.exception("dashboard_activity_section_failed", group_id=str(group_id))
 
     # --- Alert Summary ---
-    unread_result = await db.execute(
-        select(func.count(Alert.id))
-        .where(
-            Alert.group_id == group_id,
-            Alert.status != "acknowledged",
+    alert_summary = AlertSummary()
+    try:
+        unread_result = await db.execute(
+            select(func.count(Alert.id))
+            .where(
+                Alert.group_id == group_id,
+                Alert.status != "acknowledged",
+            )
         )
-    )
-    unread_count = unread_result.scalar() or 0
+        unread_count = unread_result.scalar() or 0
 
-    critical_result = await db.execute(
-        select(func.count(Alert.id))
-        .where(
-            Alert.group_id == group_id,
-            Alert.status != "acknowledged",
-            Alert.severity == "critical",
+        critical_result = await db.execute(
+            select(func.count(Alert.id))
+            .where(
+                Alert.group_id == group_id,
+                Alert.status != "acknowledged",
+                Alert.severity == "critical",
+            )
         )
-    )
-    critical_count = critical_result.scalar() or 0
+        critical_count = critical_result.scalar() or 0
 
-    # Recent alerts (last 5)
-    recent_alerts_result = await db.execute(
-        select(Alert)
-        .where(Alert.group_id == group_id)
-        .order_by(Alert.created_at.desc())
-        .limit(5)
-    )
-    recent_alerts = list(recent_alerts_result.scalars().all())
-
-    # Map backend severity to frontend severity
-    severity_map = {
-        "critical": "critical",
-        "high": "error",
-        "medium": "warning",
-        "low": "info",
-        "info": "info",
-    }
-
-    recent_alert_items = [
-        DashboardAlertItem(
-            id=a.id,
-            group_id=a.group_id,
-            type="risk",
-            severity=severity_map.get(a.severity, "info"),
-            title=a.title,
-            message=a.body,
-            member_name=member_names.get(a.member_id, None) if a.member_id else None,
-            read=a.status == "acknowledged",
-            actioned=a.status == "acknowledged",
-            related_member_id=a.member_id,
-            related_event_id=a.risk_event_id,
-            created_at=a.created_at.isoformat() if a.created_at else "",
+        recent_alerts_result = await db.execute(
+            select(Alert)
+            .where(Alert.group_id == group_id)
+            .order_by(Alert.created_at.desc())
+            .limit(5)
         )
-        for a in recent_alerts
-    ]
+        recent_alerts = list(recent_alerts_result.scalars().all())
 
-    alert_summary = AlertSummary(
-        unread_count=unread_count,
-        critical_count=critical_count,
-        recent=recent_alert_items,
-    )
+        severity_map = {
+            "critical": "critical",
+            "high": "error",
+            "medium": "warning",
+            "low": "info",
+            "info": "info",
+        }
+
+        recent_alert_items = [
+            DashboardAlertItem(
+                id=a.id,
+                group_id=a.group_id,
+                type="risk",
+                severity=severity_map.get(a.severity, "info"),
+                title=a.title,
+                message=a.body,
+                member_name=member_names.get(a.member_id, None) if a.member_id else None,
+                read=a.status == "acknowledged",
+                actioned=a.status == "acknowledged",
+                related_member_id=a.member_id,
+                related_event_id=a.risk_event_id,
+                created_at=a.created_at.isoformat() if a.created_at else "",
+            )
+            for a in recent_alerts
+        ]
+
+        alert_summary = AlertSummary(
+            unread_count=unread_count,
+            critical_count=critical_count,
+            recent=recent_alert_items,
+        )
+    except Exception:
+        logger.exception("dashboard_alerts_section_failed", group_id=str(group_id))
 
     # --- Spend Summary ---
-    # This month's total spend
-    month_spend_result = await db.execute(
-        select(func.coalesce(func.sum(SpendRecord.amount), 0.0))
-        .where(
-            SpendRecord.group_id == group_id,
-            SpendRecord.period_start >= month_start,
-        )
-    )
-    month_usd = float(month_spend_result.scalar() or 0.0)
-
-    # Today's spend
-    today_spend_result = await db.execute(
-        select(func.coalesce(func.sum(SpendRecord.amount), 0.0))
-        .where(
-            SpendRecord.group_id == group_id,
-            SpendRecord.period_start >= today_start,
-        )
-    )
-    today_usd = float(today_spend_result.scalar() or 0.0)
-
-    # Budget
-    budget_result = await db.execute(
-        select(BudgetThreshold.amount).where(
-            BudgetThreshold.group_id == group_id,
-            BudgetThreshold.member_id.is_(None),
-        ).order_by(BudgetThreshold.created_at.desc()).limit(1)
-    )
-    budget_usd = float(budget_result.scalar() or 0.0)
-    budget_pct = (month_usd / budget_usd * 100.0) if budget_usd > 0 else 0.0
-
-    # Top provider
-    top_provider_name = ""
-    top_provider_cost = 0.0
-    top_provider_pct = 0.0
-    if month_usd > 0:
-        provider_spend_result = await db.execute(
-            select(
-                LLMAccount.provider,
-                func.coalesce(func.sum(SpendRecord.amount), 0.0).label("total"),
-            )
-            .join(LLMAccount, SpendRecord.llm_account_id == LLMAccount.id)
+    spend_summary = SpendSummary()
+    try:
+        month_spend_result = await db.execute(
+            select(func.coalesce(func.sum(SpendRecord.amount), 0.0))
             .where(
                 SpendRecord.group_id == group_id,
                 SpendRecord.period_start >= month_start,
             )
-            .group_by(LLMAccount.provider)
-            .order_by(func.sum(SpendRecord.amount).desc())
-            .limit(1)
         )
-        row = provider_spend_result.first()
-        if row:
-            top_provider_name = row[0] or ""
-            top_provider_cost = float(row[1])
-            top_provider_pct = (top_provider_cost / month_usd * 100.0) if month_usd > 0 else 0.0
+        month_usd = float(month_spend_result.scalar() or 0.0)
 
-    # Top member
-    top_member_name = ""
-    top_member_cost = 0.0
-    top_member_pct = 0.0
-    if month_usd > 0:
-        member_spend_result = await db.execute(
-            select(
-                SpendRecord.member_id,
-                func.coalesce(func.sum(SpendRecord.amount), 0.0).label("total"),
-            )
+        today_spend_result = await db.execute(
+            select(func.coalesce(func.sum(SpendRecord.amount), 0.0))
             .where(
                 SpendRecord.group_id == group_id,
-                SpendRecord.period_start >= month_start,
-                SpendRecord.member_id.isnot(None),
+                SpendRecord.period_start >= today_start,
             )
-            .group_by(SpendRecord.member_id)
-            .order_by(func.sum(SpendRecord.amount).desc())
-            .limit(1)
         )
-        mrow = member_spend_result.first()
-        if mrow and mrow[0]:
-            top_member_cost = float(mrow[1])
-            top_member_pct = (top_member_cost / month_usd * 100.0) if month_usd > 0 else 0.0
-            top_member_name = member_names.get(mrow[0], "Unknown")
+        today_usd = float(today_spend_result.scalar() or 0.0)
 
-    spend_summary = SpendSummary(
-        today_usd=today_usd,
-        month_usd=month_usd,
-        budget_usd=budget_usd,
-        budget_used_percentage=round(budget_pct, 1),
-        top_provider=top_provider_name,
-        top_provider_cost_usd=round(top_provider_cost, 2),
-        top_provider_percentage=round(top_provider_pct, 1),
-        top_member=top_member_name,
-        top_member_cost_usd=round(top_member_cost, 2),
-        top_member_percentage=round(top_member_pct, 1),
-    )
+        budget_result = await db.execute(
+            select(BudgetThreshold.amount).where(
+                BudgetThreshold.group_id == group_id,
+                BudgetThreshold.member_id.is_(None),
+            ).order_by(BudgetThreshold.created_at.desc()).limit(1)
+        )
+        budget_usd = float(budget_result.scalar() or 0.0)
+        budget_pct = (month_usd / budget_usd * 100.0) if budget_usd > 0 else 0.0
+
+        top_provider_name = ""
+        top_provider_cost = 0.0
+        top_provider_pct = 0.0
+        if month_usd > 0:
+            provider_spend_result = await db.execute(
+                select(
+                    LLMAccount.provider,
+                    func.coalesce(func.sum(SpendRecord.amount), 0.0).label("total"),
+                )
+                .join(LLMAccount, SpendRecord.llm_account_id == LLMAccount.id)
+                .where(
+                    SpendRecord.group_id == group_id,
+                    SpendRecord.period_start >= month_start,
+                )
+                .group_by(LLMAccount.provider)
+                .order_by(func.sum(SpendRecord.amount).desc())
+                .limit(1)
+            )
+            row = provider_spend_result.first()
+            if row:
+                top_provider_name = row[0] or ""
+                top_provider_cost = float(row[1])
+                top_provider_pct = (top_provider_cost / month_usd * 100.0) if month_usd > 0 else 0.0
+
+        top_member_name = ""
+        top_member_cost = 0.0
+        top_member_pct = 0.0
+        if month_usd > 0:
+            member_spend_result = await db.execute(
+                select(
+                    SpendRecord.member_id,
+                    func.coalesce(func.sum(SpendRecord.amount), 0.0).label("total"),
+                )
+                .where(
+                    SpendRecord.group_id == group_id,
+                    SpendRecord.period_start >= month_start,
+                    SpendRecord.member_id.isnot(None),
+                )
+                .group_by(SpendRecord.member_id)
+                .order_by(func.sum(SpendRecord.amount).desc())
+                .limit(1)
+            )
+            mrow = member_spend_result.first()
+            if mrow and mrow[0]:
+                top_member_cost = float(mrow[1])
+                top_member_pct = (top_member_cost / month_usd * 100.0) if month_usd > 0 else 0.0
+                top_member_name = member_names.get(mrow[0], "Unknown")
+
+        spend_summary = SpendSummary(
+            today_usd=today_usd,
+            month_usd=month_usd,
+            budget_usd=budget_usd,
+            budget_used_percentage=round(budget_pct, 1),
+            top_provider=top_provider_name,
+            top_provider_cost_usd=round(top_provider_cost, 2),
+            top_provider_percentage=round(top_provider_pct, 1),
+            top_member=top_member_name,
+            top_member_cost_usd=round(top_member_cost, 2),
+            top_member_percentage=round(top_member_pct, 1),
+        )
+    except Exception:
+        logger.exception("dashboard_spend_section_failed", group_id=str(group_id))
 
     # --- Risk Summary ---
-    risk_today_result = await db.execute(
-        select(func.count(RiskEvent.id))
-        .where(
-            RiskEvent.group_id == group_id,
-            RiskEvent.created_at >= today_start,
+    risk_summary = RiskSummary()
+    try:
+        risk_today_result = await db.execute(
+            select(func.count(RiskEvent.id))
+            .where(
+                RiskEvent.group_id == group_id,
+                RiskEvent.created_at >= today_start,
+            )
         )
-    )
-    total_events_today = risk_today_result.scalar() or 0
+        total_events_today = risk_today_result.scalar() or 0
 
-    high_sev_result = await db.execute(
-        select(func.count(RiskEvent.id))
-        .where(
-            RiskEvent.group_id == group_id,
-            RiskEvent.created_at >= today_start,
-            RiskEvent.severity.in_(["critical", "high"]),
+        high_sev_result = await db.execute(
+            select(func.count(RiskEvent.id))
+            .where(
+                RiskEvent.group_id == group_id,
+                RiskEvent.created_at >= today_start,
+                RiskEvent.severity.in_(["critical", "high"]),
+            )
         )
-    )
-    high_severity_count = high_sev_result.scalar() or 0
+        high_severity_count = high_sev_result.scalar() or 0
 
-    # Trend: compare today vs yesterday
-    yesterday_risk_result = await db.execute(
-        select(func.count(RiskEvent.id))
-        .where(
-            RiskEvent.group_id == group_id,
-            RiskEvent.created_at >= yesterday_start,
-            RiskEvent.created_at < today_start,
+        yesterday_risk_result = await db.execute(
+            select(func.count(RiskEvent.id))
+            .where(
+                RiskEvent.group_id == group_id,
+                RiskEvent.created_at >= yesterday_start,
+                RiskEvent.created_at < today_start,
+            )
         )
-    )
-    yesterday_risk = yesterday_risk_result.scalar() or 0
+        yesterday_risk = yesterday_risk_result.scalar() or 0
 
-    if total_events_today > yesterday_risk:
-        trend = "increasing"
-    elif total_events_today < yesterday_risk:
-        trend = "decreasing"
-    else:
-        trend = "stable"
+        if total_events_today > yesterday_risk:
+            trend = "increasing"
+        elif total_events_today < yesterday_risk:
+            trend = "decreasing"
+        else:
+            trend = "stable"
 
-    risk_summary = RiskSummary(
-        total_events_today=total_events_today,
-        high_severity_count=high_severity_count,
-        trend=trend,
-    )
+        risk_summary = RiskSummary(
+            total_events_today=total_events_today,
+            high_severity_count=high_severity_count,
+            trend=trend,
+        )
+    except Exception:
+        logger.exception("dashboard_risk_section_failed", group_id=str(group_id))
 
     # --- Activity Trend (last 7 days) ---
-    activity_trend = []
-    for i in range(6, -1, -1):
-        day_start = (now - timedelta(days=i)).replace(hour=0, minute=0, second=0, microsecond=0)
-        day_end = day_start + timedelta(days=1)
-        day_count_result = await db.execute(
-            select(func.count(CaptureEvent.id)).where(
-                CaptureEvent.group_id == group_id,
-                CaptureEvent.timestamp >= day_start,
-                CaptureEvent.timestamp < day_end,
+    activity_trend: list[TrendDataPoint] = []
+    try:
+        for i in range(6, -1, -1):
+            day_start = (now - timedelta(days=i)).replace(hour=0, minute=0, second=0, microsecond=0)
+            day_end = day_start + timedelta(days=1)
+            day_count_result = await db.execute(
+                select(func.count(CaptureEvent.id)).where(
+                    CaptureEvent.group_id == group_id,
+                    CaptureEvent.timestamp >= day_start,
+                    CaptureEvent.timestamp < day_end,
+                )
             )
-        )
-        activity_trend.append(TrendDataPoint(
-            date=day_start.strftime("%Y-%m-%d"),
-            count=day_count_result.scalar() or 0,
-        ))
+            activity_trend.append(TrendDataPoint(
+                date=day_start.strftime("%Y-%m-%d"),
+                count=day_count_result.scalar() or 0,
+            ))
+    except Exception:
+        logger.exception("dashboard_activity_trend_failed", group_id=str(group_id))
 
     # --- Risk Breakdown (by category, last 30 days) ---
-    risk_cat_result = await db.execute(
-        select(RiskEvent.category, func.count(RiskEvent.id))
-        .where(
-            RiskEvent.group_id == group_id,
-            RiskEvent.created_at >= now - timedelta(days=30),
+    risk_breakdown: list[CategoryCount] = []
+    try:
+        risk_cat_result = await db.execute(
+            select(RiskEvent.category, func.count(RiskEvent.id))
+            .where(
+                RiskEvent.group_id == group_id,
+                RiskEvent.created_at >= now - timedelta(days=30),
+            )
+            .group_by(RiskEvent.category)
+            .order_by(func.count(RiskEvent.id).desc())
         )
-        .group_by(RiskEvent.category)
-        .order_by(func.count(RiskEvent.id).desc())
-    )
-    risk_breakdown = [
-        CategoryCount(category=row[0], count=row[1])
-        for row in risk_cat_result.all()
-    ]
+        risk_breakdown = [
+            CategoryCount(category=row[0], count=row[1])
+            for row in risk_cat_result.all()
+        ]
+    except Exception:
+        logger.exception("dashboard_risk_breakdown_failed", group_id=str(group_id))
 
     # --- Spend Trend (last 7 days) ---
-    spend_trend = []
-    for i in range(6, -1, -1):
-        day_start = (now - timedelta(days=i)).replace(hour=0, minute=0, second=0, microsecond=0)
-        day_end = day_start + timedelta(days=1)
-        day_spend_result = await db.execute(
-            select(func.coalesce(func.sum(SpendRecord.amount), 0.0)).where(
-                SpendRecord.group_id == group_id,
-                SpendRecord.period_start >= day_start,
-                SpendRecord.period_start < day_end,
+    spend_trend: list[TrendDataPoint] = []
+    try:
+        for i in range(6, -1, -1):
+            day_start = (now - timedelta(days=i)).replace(hour=0, minute=0, second=0, microsecond=0)
+            day_end = day_start + timedelta(days=1)
+            day_spend_result = await db.execute(
+                select(func.coalesce(func.sum(SpendRecord.amount), 0.0)).where(
+                    SpendRecord.group_id == group_id,
+                    SpendRecord.period_start >= day_start,
+                    SpendRecord.period_start < day_end,
+                )
             )
-        )
-        spend_trend.append(TrendDataPoint(
-            date=day_start.strftime("%Y-%m-%d"),
-            amount=round(float(day_spend_result.scalar() or 0.0), 2),
-        ))
+            spend_trend.append(TrendDataPoint(
+                date=day_start.strftime("%Y-%m-%d"),
+                amount=round(float(day_spend_result.scalar() or 0.0), 2),
+            ))
+    except Exception:
+        logger.exception("dashboard_spend_trend_failed", group_id=str(group_id))
 
     return DashboardResponse(
         active_members=active_members,
