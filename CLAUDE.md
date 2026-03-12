@@ -148,8 +148,11 @@ Every endpoint needs: happy path + auth/403 + validation/422 + edge cases. Every
 - **vitest does NOT run tsc** — type errors silently pass vitest but break Docker builds. Always run `tsc --noEmit` separately
 - **Test fixture** — use `test_session` (not `async_db`) for DB session in tests
 - **Email validation** — `.test` TLD is rejected; always use `.com` in test emails
-- **Migrations run on deploy** — Dockerfile CMD runs `alembic upgrade head` before starting uvicorn. If you add new model columns/tables, you MUST create an Alembic migration — the deploy will auto-apply it. Never add model columns without a corresponding migration or the production dashboard will crash with "An unexpected error occurred"
-- **Dashboard resilience** — `get_dashboard()` in `src/portal/service.py` wraps each section (activity, alerts, spend, risk, trends) in try/except with structlog. If one section fails (e.g. missing column), the dashboard still loads with defaults for that section instead of showing a full error page
+- **Migrations run on deploy** — Dockerfile CMD runs `alembic upgrade head` before starting uvicorn (best-effort — app starts even if migrations fail). If you add new model columns/tables, you MUST create an Alembic migration — the deploy will auto-apply it. Never add model columns without a corresponding migration or production will crash with "column does not exist"
+- **Migration files MUST be committed** — Creating a migration file locally is not enough. If the migration `.py` file is not `git add`-ed, committed, and pushed, it will never reach production. After creating a migration, ALWAYS verify it appears in `git status` and include it in your commit. This caused a multi-day production outage (2026-03-12) where all data endpoints returned 500s because migration 017 sat as an untracked file
+- **alembic/env.py must import ALL models** — Every SQLAlchemy model class must be imported in `alembic/env.py` or `alembic revision --autogenerate` won't detect its tables/columns, silently skipping them. When adding a new model, add its import to `env.py` in the same commit
+- **Health check SQL must be valid** — `src/main.py` uses `text("SELECT 1")` for the DB health check. Never use `text("1")` — asyncpg rejects bare expressions and the health check falsely reports `database: "error"`, masking the real DB status
+- **Dashboard resilience** — `get_dashboard()` in `src/portal/service.py` wraps each section (activity, alerts, spend, risk, trends) in try/except with structlog and tracks failures in `degraded_sections`. The router endpoint has a catch-all that returns `DashboardResponse(degraded_sections=["all"])` on unexpected errors. The frontend shows an amber warning banner listing which sections failed
 
 ## 8. File and Component Placement
 
@@ -196,7 +199,7 @@ alembic revision --autogenerate -m "description"
 - **Family member cap** — `MAX_FAMILY_MEMBERS = 5` enforced in `add_member()` and `accept_invitation()`. School/club have no cap
 - **Billing checkout** — All plans self-serve via Stripe once account exists. School/club use per-seat pricing with member count as quantity
 - **Stripe webhooks persist** — `handle_webhook_event()` creates/updates Subscription rows for created/updated/cancelled/payment_failed events
-- **Model columns require migrations** — Adding a column to any SQLAlchemy model WITHOUT a matching Alembic migration will crash production (the ORM generates SQL referencing the column, but PostgreSQL doesn't have it). This is the #1 cause of "Failed to load dashboard" regressions. Always run `alembic revision --autogenerate -m "desc"` after model changes
+- **Model columns require migrations (commit AND push)** — Adding a column to any SQLAlchemy model WITHOUT a matching Alembic migration will crash production (the ORM generates SQL referencing the column, but PostgreSQL doesn't have it). This is the #1 cause of production regressions. After model changes: (1) run `alembic revision --autogenerate -m "desc"`, (2) verify the generated migration file with `git status`, (3) `git add` the migration file, (4) commit and push it. An uncommitted migration is the same as no migration
 
 ## 10. Commands
 
@@ -210,7 +213,8 @@ docker compose up --build
 
 # Migrations
 alembic upgrade head                          # Apply all
-alembic revision --autogenerate -m "desc"     # Create new
+alembic revision --autogenerate -m "desc"     # Create new (MUST commit the file!)
+git status                                    # Verify migration file is tracked
 ```
 
 ## Appendix: Environment Variables
