@@ -25,6 +25,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY src/ src/
 COPY alembic/ alembic/
 COPY alembic.ini alembic.ini
+COPY migration_helpers.py migration_helpers.py
 
 # Copy built frontend (static export)
 COPY --from=frontend-builder /app/portal/out portal/out
