@@ -92,6 +92,20 @@ export default function AnalyticsPage() {
 
   const isLoading = trendsLoading || usageLoading || baselinesLoading || anomaliesLoading || peerLoading;
 
+  if (!groupId) {
+    return (
+      <div className="flex h-64 flex-col items-center justify-center text-center">
+        <BarChart3 className="h-10 w-10 text-gray-300" />
+        <p className="mt-3 text-sm font-medium text-gray-900">
+          No group selected
+        </p>
+        <p className="mt-1 text-sm text-gray-500">
+          Create or join a group to see analytics
+        </p>
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -207,10 +221,10 @@ export default function AnalyticsPage() {
                       : "text-amber-700"
                   }`}
                 >
-                  Recent average is {anomaly.recent_daily_avg.toFixed(1)} events/day
-                  ({anomaly.standard_deviations.toFixed(1)} standard deviations{" "}
+                  Recent average is {(anomaly.recent_daily_avg ?? 0).toFixed(1)} events/day
+                  ({(anomaly.standard_deviations ?? 0).toFixed(1)} standard deviations{" "}
                   {anomaly.direction} baseline of{" "}
-                  {anomaly.baseline_daily_avg.toFixed(1)} events/day)
+                  {(anomaly.baseline_daily_avg ?? 0).toFixed(1)} events/day)
                 </p>
               </div>
               <span
@@ -230,7 +244,7 @@ export default function AnalyticsPage() {
       {tab === "overview" && (
         <>
           {/* Trend Cards */}
-          {trends && (
+          {trends?.activity && trends?.risk_events && (
             <div className="mb-6 grid gap-4 sm:grid-cols-2">
               <Card>
                 <div className="flex items-center justify-between">
@@ -243,7 +257,7 @@ export default function AnalyticsPage() {
                         Activity Trend
                       </p>
                       <p className="text-lg font-bold text-gray-900">
-                        {trends.activity.current_avg.toFixed(1)}
+                        {(trends.activity.current_avg ?? 0).toFixed(1)}
                         <span className="ml-1 text-sm font-normal text-gray-400">
                           avg/day
                         </span>
@@ -251,14 +265,14 @@ export default function AnalyticsPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <TrendIcon direction={trends.activity.direction} />
+                    <TrendIcon direction={trends.activity.direction ?? "stable"} />
                     <span className="text-xs text-gray-500 capitalize">
-                      {trends.activity.direction}
+                      {trends.activity.direction ?? "stable"}
                     </span>
                   </div>
                 </div>
                 <p className="mt-2 text-xs text-gray-400">
-                  Previous period: {trends.activity.previous_avg.toFixed(1)} avg/day
+                  Previous period: {(trends.activity.previous_avg ?? 0).toFixed(1)} avg/day
                 </p>
               </Card>
 
@@ -273,7 +287,7 @@ export default function AnalyticsPage() {
                         Risk Events
                       </p>
                       <p className="text-lg font-bold text-gray-900">
-                        {trends.risk_events.current_count}
+                        {trends.risk_events.current_count ?? 0}
                         <span className="ml-1 text-sm font-normal text-gray-400">
                           events
                         </span>
@@ -281,24 +295,24 @@ export default function AnalyticsPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <TrendIcon direction={trends.risk_events.direction} />
+                    <TrendIcon direction={trends.risk_events.direction ?? "stable"} />
                     <span className="text-xs text-gray-500 capitalize">
-                      {trends.risk_events.direction}
+                      {trends.risk_events.direction ?? "stable"}
                     </span>
                   </div>
                 </div>
                 <p className="mt-2 text-xs text-gray-400">
-                  Previous period: {trends.risk_events.previous_count} events
+                  Previous period: {trends.risk_events.previous_count ?? 0} events
                 </p>
               </Card>
             </div>
           )}
 
           {/* Usage by Platform */}
-          {usage && (
+          {usage?.by_platform && (
             <Card
               title="Usage by Platform"
-              description={`${usage.total_events} total events in the selected period`}
+              description={`${usage.total_events ?? 0} total events in the selected period`}
               className="mb-6"
             >
               {Object.keys(usage.by_platform).length === 0 ? (
@@ -400,7 +414,7 @@ export default function AnalyticsPage() {
           title="Peer Comparison"
           description="How each member's usage compares to the group"
         >
-          {(!peerData || peerData.members.length === 0) ? (
+          {(!peerData?.members || peerData.members.length === 0) ? (
             <div className="py-8 text-center">
               <Users className="mx-auto h-10 w-10 text-gray-300" />
               <p className="mt-3 text-sm text-gray-500">
