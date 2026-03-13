@@ -10,6 +10,8 @@ from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
+from migration_helpers import table_exists, index_exists
+
 # revision identifiers, used by Alembic.
 revision: str = "004"
 down_revision: Union[str, None] = "003"
@@ -18,22 +20,25 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.create_table(
-        "api_keys",
-        sa.Column("id", sa.UUID(), nullable=False),
-        sa.Column("user_id", sa.UUID(), sa.ForeignKey("users.id"), nullable=False),
-        sa.Column("group_id", sa.UUID(), sa.ForeignKey("groups.id"), nullable=False),
-        sa.Column("name", sa.String(255), nullable=True),
-        sa.Column("key_hash", sa.String(255), unique=True, nullable=False),
-        sa.Column("key_prefix", sa.String(20), nullable=False),
-        sa.Column("last_used_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("revoked_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
-        sa.PrimaryKeyConstraint("id"),
-    )
-    op.create_index("ix_api_keys_key_hash", "api_keys", ["key_hash"])
-    op.create_index("ix_api_keys_user_id", "api_keys", ["user_id"])
+    if not table_exists("api_keys"):
+        op.create_table(
+            "api_keys",
+            sa.Column("id", sa.UUID(), nullable=False),
+            sa.Column("user_id", sa.UUID(), sa.ForeignKey("users.id"), nullable=False),
+            sa.Column("group_id", sa.UUID(), sa.ForeignKey("groups.id"), nullable=False),
+            sa.Column("name", sa.String(255), nullable=True),
+            sa.Column("key_hash", sa.String(255), unique=True, nullable=False),
+            sa.Column("key_prefix", sa.String(20), nullable=False),
+            sa.Column("last_used_at", sa.DateTime(timezone=True), nullable=True),
+            sa.Column("revoked_at", sa.DateTime(timezone=True), nullable=True),
+            sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+            sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+            sa.PrimaryKeyConstraint("id"),
+        )
+    if not index_exists("api_keys", "ix_api_keys_key_hash"):
+        op.create_index("ix_api_keys_key_hash", "api_keys", ["key_hash"])
+    if not index_exists("api_keys", "ix_api_keys_user_id"):
+        op.create_index("ix_api_keys_user_id", "api_keys", ["user_id"])
 
 
 def downgrade() -> None:
