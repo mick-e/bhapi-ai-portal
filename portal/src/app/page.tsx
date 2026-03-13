@@ -32,17 +32,16 @@ export default function LandingPage() {
       <section className="relative overflow-hidden">
         {/* Bhapi yellow pattern background */}
         <div
-          className="absolute inset-0 -z-10"
+          className="absolute inset-0 z-0"
           aria-hidden="true"
           style={{
             backgroundImage: "url('/hero-bg.svg')",
             backgroundSize: "cover",
             backgroundPosition: "center",
             backgroundRepeat: "no-repeat",
-            opacity: 1,
           }}
         />
-        <div className="container-narrow py-24 sm:py-32">
+        <div className="container-narrow relative z-10 py-24 sm:py-32">
           <div className="mx-auto max-w-3xl text-center">
             <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">
               AI Safety for{" "}
