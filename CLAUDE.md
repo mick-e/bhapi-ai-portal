@@ -115,8 +115,8 @@ All custom exceptions inherit from `src.exceptions.BhapiException`:
 - **WCAG AA contrast:** Buttons use `bg-primary-600` (not `bg-primary`), text links use `text-primary-700`
 - **UI components:** `portal/src/components/ui/` — Card, Button (variants/sizes/isLoading), Input
 - **Logo:** PNG only. `BhapiLogo` component (`portal/src/components/BhapiLogo.tsx`) renders `/logo.png` via plain `<img>`. NEVER create SVG logos/favicons
-- **Static assets:** `portal/public/logo.png` (wordmark+smile), `icon.png` (circular app icon), `favicon.ico` (generated from `icon.png` via Pillow)
-- **Source files:** `bhapi logo@2x.png` (wordmark+smile), `bhapi app icon circle.png` (circular icon)
+- **Static assets:** `portal/public/logo.png` (wordmark+smile), `icon.png` (circular app icon), `favicon.ico` (generated from `icon.png` via Pillow), `hero-bg.svg` (yellow/beige pattern background for landing page hero section, opacity 0.35)
+- **Source files:** `bhapi logo@2x.png` (wordmark+smile), `bhapi app icon circle.png` (circular icon), `Zoom Bhapi Yellow1.svg` (hero background source)
 
 ## 6. Content and Copy Guidance
 

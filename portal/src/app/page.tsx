@@ -30,16 +30,16 @@ export default function LandingPage() {
 
       {/* Hero Section */}
       <section className="relative overflow-hidden">
-        {/* Doodle pattern background */}
+        {/* Bhapi yellow pattern background */}
         <div
           className="absolute inset-0 -z-10"
           aria-hidden="true"
           style={{
-            backgroundImage: "url('/hero-bg.png')",
+            backgroundImage: "url('/hero-bg.svg')",
             backgroundSize: "cover",
             backgroundPosition: "center",
             backgroundRepeat: "no-repeat",
-            opacity: 0.18,
+            opacity: 0.35,
           }}
         />
         <div className="container-narrow py-24 sm:py-32">
