@@ -31,6 +31,7 @@ PUBLIC_PREFIXES = (
     "/api/v1/capture/pair",
     "/api/v1/alerts/stream",
     "/api/v1/risk/deepfake-guidance",
+    "/api/v1/risk/platform-ratings",
 )
 
 

@@ -528,8 +528,22 @@ export default function DashboardPage() {
     );
   }
 
-  // Show create group prompt if user has no group or if the error is about missing group
+  // Show onboarding wizard overlay when user has no group
   if (noGroup || (isError && (error as Error)?.message?.includes("No group found"))) {
+    if (showOnboarding) {
+      return (
+        <>
+          <CreateGroupPrompt />
+          <OnboardingWizard
+            hasGroup={false}
+            memberCount={0}
+            hasExtension={false}
+            hasAlerts={false}
+            onDismiss={() => setShowOnboarding(false)}
+          />
+        </>
+      );
+    }
     return <CreateGroupPrompt />;
   }
 

@@ -33,6 +33,11 @@ import { GEMINI_SELECTORS, getPromptText as geminiPrompt, countResponses as gemi
 import { COPILOT_SELECTORS, getPromptText as copilotPrompt, countResponses as copilotCount } from "./platforms/copilot";
 import { CLAUDE_SELECTORS, getPromptText as claudePrompt, countResponses as claudeCount } from "./platforms/claude";
 import { GROK_SELECTORS, getPromptText as grokPrompt, countResponses as grokCount } from "./platforms/grok";
+import { CHARACTERAI_SELECTORS, getPromptText as characteraiPrompt, countResponses as characteraiCount } from "./platforms/characterai";
+import { REPLIKA_SELECTORS, getPromptText as replikaPrompt, countResponses as replikaCount } from "./platforms/replika";
+import { PI_SELECTORS, getPromptText as piPrompt, countResponses as piCount } from "./platforms/pi";
+import { PERPLEXITY_SELECTORS, getPromptText as perplexityPrompt, countResponses as perplexityCount } from "./platforms/perplexity";
+import { POE_SELECTORS, getPromptText as poePrompt, countResponses as poeCount } from "./platforms/poe";
 
 // ---------------------------------------------------------------------------
 // Session management
@@ -86,6 +91,16 @@ function getAdapter(platform: PlatformType): PlatformAdapter {
       return { selectors: CLAUDE_SELECTORS, getPromptText: claudePrompt, countResponses: claudeCount };
     case "grok":
       return { selectors: GROK_SELECTORS, getPromptText: grokPrompt, countResponses: grokCount };
+    case "characterai":
+      return { selectors: CHARACTERAI_SELECTORS, getPromptText: characteraiPrompt, countResponses: characteraiCount };
+    case "replika":
+      return { selectors: REPLIKA_SELECTORS, getPromptText: replikaPrompt, countResponses: replikaCount };
+    case "pi":
+      return { selectors: PI_SELECTORS, getPromptText: piPrompt, countResponses: piCount };
+    case "perplexity":
+      return { selectors: PERPLEXITY_SELECTORS, getPromptText: perplexityPrompt, countResponses: perplexityCount };
+    case "poe":
+      return { selectors: POE_SELECTORS, getPromptText: poePrompt, countResponses: poeCount };
   }
 }
 

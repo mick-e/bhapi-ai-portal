@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
+import InstallPrompt from "@/components/InstallPrompt";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -25,6 +26,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={inter.variable}>
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#FF6B35" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="Bhapi" />
+        <link rel="apple-touch-icon" href="/icon.png" />
+      </head>
       <body className={inter.className}>
         <a
           href="#main-content"
@@ -33,6 +42,18 @@ export default function RootLayout({
           Skip to main content
         </a>
         <Providers>{children}</Providers>
+        <InstallPrompt />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js');
+                });
+              }
+            `,
+          }}
+        />
       </body>
     </html>
   );

@@ -70,7 +70,7 @@ class Settings(BaseSettings):
     capture_hmac_enabled: bool = False
 
     # Safety classifier mode: keyword_only, vertex_ai, auto (try vertex_ai, fallback to keyword)
-    safety_classifier_mode: Literal["keyword_only", "vertex_ai", "auto"] = "keyword_only"
+    safety_classifier_mode: Literal["keyword_only", "vertex_ai", "auto"] = "auto"
     vertex_ai_model: str = "gemini-1.5-flash"
     vertex_ai_location: str = "us-central1"
 
@@ -123,7 +123,7 @@ class Settings(BaseSettings):
 
     # App
     app_name: str = "Bhapi AI Portal"
-    app_version: str = "2.0.0"
+    app_version: str = "2.1.0"
 
     @field_validator("secret_key", mode="after")
     @classmethod

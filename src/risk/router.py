@@ -18,6 +18,7 @@ from src.risk.schemas import (
     DependencyScoreResponse,
     GroupScoreResponse,
     MemberScoreItem,
+    PlatformRatingsListResponse,
     RiskConfigResponse,
     RiskConfigUpdate,
     RiskEventAcknowledge,
@@ -301,6 +302,17 @@ async def get_dependency_score_history(
 # ---------------------------------------------------------------------------
 
 public_router = APIRouter()
+
+
+@public_router.get("/platform-ratings", response_model=PlatformRatingsListResponse)
+async def platform_ratings_endpoint(
+    db: AsyncSession = Depends(get_db),
+):
+    """Return safety ratings for monitored AI platforms. Public, no auth required."""
+    from src.risk.platform_ratings import get_platform_ratings
+
+    ratings = await get_platform_ratings(db)
+    return PlatformRatingsListResponse(platforms=ratings)
 
 
 @public_router.get("/deepfake-guidance")

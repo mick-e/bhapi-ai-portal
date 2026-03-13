@@ -10,7 +10,17 @@
 // ---------------------------------------------------------------------------
 
 /** Supported AI platforms that the extension monitors. */
-export type PlatformType = "chatgpt" | "gemini" | "copilot" | "claude" | "grok";
+export type PlatformType =
+  | "chatgpt"
+  | "gemini"
+  | "copilot"
+  | "claude"
+  | "grok"
+  | "characterai"
+  | "replika"
+  | "pi"
+  | "perplexity"
+  | "poe";
 
 /** Human-readable display names keyed by PlatformType. */
 export const PLATFORM_LABELS: Record<PlatformType, string> = {
@@ -19,6 +29,11 @@ export const PLATFORM_LABELS: Record<PlatformType, string> = {
   copilot: "Microsoft Copilot",
   claude: "Anthropic Claude",
   grok: "xAI Grok",
+  characterai: "Character.AI",
+  replika: "Replika",
+  pi: "Pi (Inflection)",
+  perplexity: "Perplexity",
+  poe: "Poe (Quora)",
 };
 
 // ---------------------------------------------------------------------------

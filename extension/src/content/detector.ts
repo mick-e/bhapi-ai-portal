@@ -41,6 +41,26 @@ const PLATFORM_PATTERNS: ReadonlyArray<{
     hostnames: ["x.com"],
     pathPrefix: "/i/grok",
   },
+  {
+    platform: "characterai",
+    hostnames: ["character.ai"],
+  },
+  {
+    platform: "replika",
+    hostnames: ["web.replika.com"],
+  },
+  {
+    platform: "pi",
+    hostnames: ["pi.ai"],
+  },
+  {
+    platform: "perplexity",
+    hostnames: ["perplexity.ai"],
+  },
+  {
+    platform: "poe",
+    hostnames: ["poe.com"],
+  },
 ];
 
 /**

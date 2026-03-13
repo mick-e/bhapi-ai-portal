@@ -176,3 +176,31 @@ class DependencyHistoryResponse(BaseSchema):
     group_id: UUID
     days: int
     history: list[DependencyHistoryEntry]
+
+
+# ---------------------------------------------------------------------------
+# Platform safety rating schemas
+# ---------------------------------------------------------------------------
+
+
+class PlatformRatingResponse(BaseSchema):
+    """Safety rating for a single AI platform."""
+
+    platform: str = Field(description="AI platform name")
+    safety_score: int = Field(ge=0, le=100, description="Safety score 0-100 (100 = safest)")
+    risk_level: str = Field(
+        pattern="^(low|medium|high)$",
+        description="Overall risk level",
+    )
+    categories_of_concern: list[str] = Field(
+        description="Categories of safety concern for this platform"
+    )
+    last_updated: str = Field(description="ISO 8601 timestamp of last rating update")
+
+
+class PlatformRatingsListResponse(BaseSchema):
+    """List of all platform safety ratings."""
+
+    platforms: list[PlatformRatingResponse] = Field(
+        description="Safety ratings for all monitored AI platforms"
+    )

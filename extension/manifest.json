@@ -20,7 +20,10 @@
     "https://character.ai/*",
     "https://beta.character.ai/*",
     "https://web.replika.com/*",
-    "https://pi.ai/*"
+    "https://pi.ai/*",
+    "https://www.perplexity.ai/*",
+    "https://perplexity.ai/*",
+    "https://poe.com/*"
   ],
   "background": {
     "service_worker": "background/service-worker.js",
@@ -82,6 +85,21 @@
     {
       "matches": [
         "https://pi.ai/*"
+      ],
+      "js": ["content/monitor.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://www.perplexity.ai/*",
+        "https://perplexity.ai/*"
+      ],
+      "js": ["content/monitor.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://poe.com/*"
       ],
       "js": ["content/monitor.js"],
       "run_at": "document_idle"

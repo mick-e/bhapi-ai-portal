@@ -2,7 +2,7 @@
 
 ## 1. Project Overview
 
-AI safety governance platform at **bhapi.ai** for parents, school admins, and club managers monitoring children's AI usage across ChatGPT, Gemini, Copilot, Claude, and Grok.
+AI safety governance platform at **bhapi.ai** for parents, school admins, and club managers monitoring children's AI usage across ChatGPT, Gemini, Copilot, Claude, Grok, Character.AI, Replika, Pi, Perplexity, and Poe.
 
 **Optimizes for:** Child safety, regulatory compliance (COPPA/GDPR/LGPD), real-time alerting, data privacy.
 **Stack:** FastAPI (Python 3.11) + Next.js 15 (TypeScript) + PostgreSQL 16
@@ -13,7 +13,7 @@ AI safety governance platform at **bhapi.ai** for parents, school admins, and cl
 **Backend:** Python 3.11, FastAPI, SQLAlchemy 2.x async (asyncpg/aiosqlite), Alembic, Pydantic v2, structlog, httpx
 **Frontend:** Next.js 15 App Router (static export), TypeScript, Tailwind CSS, React Query, Lucide icons
 **Infra:** PostgreSQL 16, Redis (optional — disabled in tests, in-memory rate limiter fallback), Stripe, SendGrid, Twilio
-**Extension:** Manifest V3 (Chrome + Firefox + Safari)
+**Extension:** Manifest V3 (Chrome + Firefox + Safari) — monitors 10 AI platforms
 
 ### Do Not Introduce
 - **No `next/image`** — breaks static export (`output: "export"`). Use plain `<img>` tags. `BhapiLogo` uses `<img>` with inline `style` fallback
@@ -28,7 +28,7 @@ AI safety governance platform at **bhapi.ai** for parents, school admins, and cl
 ## 3. Architecture
 
 ### 2-Service Model
-- **core-api:** All 18 modules served from single FastAPI app (`src/main.py`, 188 routes)
+- **core-api:** All 19 modules served from single FastAPI app (`src/main.py`, ~190 routes)
 - **jobs:** Background cron runner for risk processing, email delivery, spend sync
 
 ### Modules
@@ -51,6 +51,7 @@ AI safety governance platform at **bhapi.ai** for parents, school admins, and cl
 | `literacy/` | `/api/v1/literacy` | AI literacy modules, quizzes, assessments, progress tracking |
 | `groups/school_router` | `/api/v1/school` | School admin: classes, class members, safeguarding reports |
 | `groups/` (extended) | `/api/v1/groups` | Family agreements, emergency contacts, rewards, member visibility, panic button |
+| `legal/` | `/legal` | Public privacy policy and terms of service (no auth) |
 | `jobs/` | `/internal` | Background job runner, scheduled tasks |
 
 ### Module Communication Rules
