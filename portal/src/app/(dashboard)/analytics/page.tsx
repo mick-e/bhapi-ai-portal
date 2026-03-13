@@ -244,7 +244,15 @@ export default function AnalyticsPage() {
       {tab === "overview" && (
         <>
           {/* Trend Cards */}
-          {trends?.activity && trends?.risk_events && (
+          {trends?.activity && trends?.risk_events && (() => {
+            // Backend returns data_points array — compute averages from them
+            const activityPoints = trends.activity.data_points ?? [];
+            const riskPoints = trends.risk_events.data_points ?? [];
+            const activityTotal = activityPoints.reduce((s, p) => s + p.value, 0);
+            const riskTotal = riskPoints.reduce((s, p) => s + p.value, 0);
+            const activityAvg = activityPoints.length > 0 ? activityTotal / activityPoints.length : 0;
+
+            return (
             <div className="mb-6 grid gap-4 sm:grid-cols-2">
               <Card>
                 <div className="flex items-center justify-between">
@@ -257,7 +265,7 @@ export default function AnalyticsPage() {
                         Activity Trend
                       </p>
                       <p className="text-lg font-bold text-gray-900">
-                        {(trends.activity.current_avg ?? 0).toFixed(1)}
+                        {activityAvg.toFixed(1)}
                         <span className="ml-1 text-sm font-normal text-gray-400">
                           avg/day
                         </span>
@@ -272,7 +280,7 @@ export default function AnalyticsPage() {
                   </div>
                 </div>
                 <p className="mt-2 text-xs text-gray-400">
-                  Previous period: {(trends.activity.previous_avg ?? 0).toFixed(1)} avg/day
+                  {activityPoints.length} days of data, {activityTotal} total events
                 </p>
               </Card>
 
@@ -287,7 +295,7 @@ export default function AnalyticsPage() {
                         Risk Events
                       </p>
                       <p className="text-lg font-bold text-gray-900">
-                        {trends.risk_events.current_count ?? 0}
+                        {riskTotal}
                         <span className="ml-1 text-sm font-normal text-gray-400">
                           events
                         </span>
@@ -302,17 +310,20 @@ export default function AnalyticsPage() {
                   </div>
                 </div>
                 <p className="mt-2 text-xs text-gray-400">
-                  Previous period: {trends.risk_events.previous_count ?? 0} events
+                  {riskPoints.length} days of data
                 </p>
               </Card>
             </div>
-          )}
+            );
+          })()}
 
           {/* Usage by Platform */}
-          {usage?.by_platform && (
+          {usage?.by_platform && (() => {
+            const totalEvents = Object.values(usage.by_platform).reduce((s, v) => s + v, 0);
+            return (
             <Card
               title="Usage by Platform"
-              description={`${usage.total_events ?? 0} total events in the selected period`}
+              description={`${totalEvents} total events in the selected period`}
               className="mb-6"
             >
               {Object.keys(usage.by_platform).length === 0 ? (
@@ -323,8 +334,8 @@ export default function AnalyticsPage() {
                     .sort(([, a], [, b]) => b - a)
                     .map(([platform, count]) => {
                       const percentage =
-                        usage.total_events > 0
-                          ? (count / usage.total_events) * 100
+                        totalEvents > 0
+                          ? (count / totalEvents) * 100
                           : 0;
                       return (
                         <div key={platform}>
@@ -348,7 +359,8 @@ export default function AnalyticsPage() {
                 </div>
               )}
             </Card>
-          )}
+            );
+          })()}
 
           {/* Member Baselines */}
           <Card
@@ -391,13 +403,13 @@ export default function AnalyticsPage() {
                           {member.member_name}
                         </td>
                         <td className="px-4 py-3 text-gray-600 capitalize">
-                          {member.primary_platform}
+                          {member.primary_platform ?? "none"}
                         </td>
                         <td className="px-4 py-3 text-right text-gray-600">
-                          {member.total_events}
+                          {member.total_events ?? 0}
                         </td>
                         <td className="px-4 py-3 text-right text-gray-600">
-                          {member.avg_daily.toFixed(1)}
+                          {(member.avg_daily_events ?? 0).toFixed(1)}
                         </td>
                       </tr>
                     ))}

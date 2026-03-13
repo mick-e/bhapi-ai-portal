@@ -547,25 +547,30 @@ export interface PanicReportCreate {
 
 // ─── Analytics ─────────────────────────────────────────────────────────────
 
+export interface TrendDataPointAnalytics {
+  date: string;
+  value: number;
+}
+
 export interface TrendData {
   group_id: string;
+  period_days: number;
   activity: {
     direction: string;
-    current_avg: number;
-    previous_avg: number;
+    data_points: TrendDataPointAnalytics[];
   };
   risk_events: {
     direction: string;
-    current_count: number;
-    previous_count: number;
+    data_points: TrendDataPointAnalytics[];
   };
 }
 
 export interface UsagePattern {
+  group_id: string;
+  period_days: number;
   by_platform: Record<string, number>;
   by_hour: Record<string, number>;
   by_day_of_week: Record<string, number>;
-  total_events: number;
 }
 
 export interface MemberBaseline {
@@ -573,7 +578,10 @@ export interface MemberBaseline {
   member_name: string;
   total_events: number;
   primary_platform: string;
-  avg_daily: number;
+  avg_daily_events: number;
+  avg_risk_score: number;
+  total_risks: number;
+  trend_direction: string;
 }
 
 export interface AnomalyItem {
