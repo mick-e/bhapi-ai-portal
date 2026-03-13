@@ -39,7 +39,7 @@ export default function LandingPage() {
             backgroundSize: "cover",
             backgroundPosition: "center",
             backgroundRepeat: "no-repeat",
-            opacity: 0.35,
+            opacity: 1,
           }}
         />
         <div className="container-narrow py-24 sm:py-32">
