@@ -9,6 +9,10 @@
     "clean": "rimraf dist",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/**/*.ts",
+    "pack:chrome": "npm run build && node scripts/pack.js chrome",
+    "pack:firefox": "npm run build && node scripts/pack.js firefox",
+    "pack:edge": "npm run build && node scripts/pack.js edge",
+    "pack:all": "npm run build && node scripts/pack.js all",
     "build:safari": "npm run build && cd safari && bash convert.sh"
   },
   "devDependencies": {

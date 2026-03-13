@@ -53,6 +53,11 @@ module.exports = (env, argv) => {
             to: "icons",
             noErrorOnMissing: true,
           },
+          {
+            from: "src/blocking.js",
+            to: "src/blocking.js",
+            noErrorOnMissing: true,
+          },
         ],
       }),
     ],
