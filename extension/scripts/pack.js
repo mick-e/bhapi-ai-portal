@@ -62,6 +62,10 @@ function packFirefox() {
     gecko: {
       id: "safety-monitor@bhapi.ai",
       strict_min_version: "109.0",
+      data_collection_permissions: {
+        required: ["websiteActivity"],
+        optional: ["technicalAndInteraction"],
+      },
     },
   };
 
