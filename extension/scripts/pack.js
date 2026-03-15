@@ -6,6 +6,9 @@
  *   node scripts/pack.js firefox   → bhapi-firefox.zip + bhapi-firefox-source.zip
  *   node scripts/pack.js edge      → bhapi-edge.zip
  *   node scripts/pack.js all       → all of the above
+ *
+ * Uses scripts/zipdir.py to create cross-platform zips with forward slashes.
+ * (PowerShell Compress-Archive creates backslash paths that Firefox rejects.)
  */
 
 const fs = require("fs");
@@ -14,7 +17,8 @@ const { execSync } = require("child_process");
 
 const DIST = path.resolve(__dirname, "..", "dist");
 const ROOT = path.resolve(__dirname, "..");
-const OUT = ROOT; // zips go in extension/
+const OUT = ROOT;
+const ZIPDIR = path.join(__dirname, "zipdir.py");
 
 const target = process.argv[2] || "all";
 
@@ -31,59 +35,19 @@ function writeManifest(manifest) {
 
 function createZip(zipName, sourceDir) {
   const zipPath = path.join(OUT, zipName);
-  // Remove old zip
-  if (fs.existsSync(zipPath)) fs.unlinkSync(zipPath);
-
-  // Use PowerShell on Windows, zip on Unix
-  if (process.platform === "win32") {
-    execSync(
-      `powershell -Command "Compress-Archive -Path '${sourceDir}\\*' -DestinationPath '${zipPath}' -Force"`,
-      { stdio: "inherit" }
-    );
-  } else {
-    execSync(`cd "${sourceDir}" && zip -r "${zipPath}" . -x "*.d.ts" "*.d.ts.map" "*.map"`, {
-      stdio: "inherit",
-    });
-  }
-  const size = (fs.statSync(zipPath).size / 1024).toFixed(1);
-  console.log(`  Created: ${zipName} (${size} KB)`);
+  execSync(`python "${ZIPDIR}" "${sourceDir}" "${zipPath}"`, { stdio: "inherit" });
 }
 
 function createSourceZip(zipName) {
   const zipPath = path.join(OUT, zipName);
-  if (fs.existsSync(zipPath)) fs.unlinkSync(zipPath);
-
-  // Include source files Firefox reviewers need to rebuild
-  const includes = [
-    "src",
-    "icons",
-    "manifest.json",
-    "webpack.config.js",
-    "tsconfig.json",
-    "package.json",
-    "package-lock.json",
-  ].map((f) => path.join(ROOT, f));
-
-  if (process.platform === "win32") {
-    execSync(
-      `powershell -Command "Compress-Archive -Path '${includes.join("','")}' -DestinationPath '${zipPath}' -Force"`,
-      { stdio: "inherit" }
-    );
-  } else {
-    const paths = includes.map((p) => `"${p}"`).join(" ");
-    execSync(`cd "${ROOT}" && zip -r "${zipPath}" src icons manifest.json webpack.config.js tsconfig.json package.json package-lock.json -x "node_modules/*"`, {
-      stdio: "inherit",
-    });
-  }
-  const size = (fs.statSync(zipPath).size / 1024).toFixed(1);
-  console.log(`  Created: ${zipName} (${size} KB)`);
+  const includes = "src icons manifest.json webpack.config.js tsconfig.json package.json package-lock.json";
+  execSync(`python "${ZIPDIR}" "${ROOT}" "${zipPath}" --include ${includes}`, { stdio: "inherit" });
 }
 
-// --- Chrome / Edge (identical format) ---
+// --- Chrome / Edge ---
 function packChrome(zipName = "bhapi-chrome.zip") {
   console.log(`\nPacking for Chrome/Edge → ${zipName}`);
   const manifest = readManifest();
-  // Remove any Firefox-specific fields
   delete manifest.browser_specific_settings;
   writeManifest(manifest);
   createZip(zipName, DIST);
@@ -94,7 +58,6 @@ function packFirefox() {
   console.log("\nPacking for Firefox → bhapi-firefox.zip");
   const manifest = readManifest();
 
-  // Add Firefox-specific settings
   manifest.browser_specific_settings = {
     gecko: {
       id: "safety-monitor@bhapi.ai",
@@ -102,7 +65,6 @@ function packFirefox() {
     },
   };
 
-  // Firefox MV3 uses background.scripts instead of service_worker
   if (manifest.background && manifest.background.service_worker) {
     manifest.background = {
       scripts: [manifest.background.service_worker],
@@ -113,7 +75,7 @@ function packFirefox() {
   writeManifest(manifest);
   createZip("bhapi-firefox.zip", DIST);
 
-  // Restore original manifest for other builds
+  // Restore original manifest
   delete manifest.browser_specific_settings;
   if (manifest.background && manifest.background.scripts) {
     manifest.background = {
@@ -123,7 +85,6 @@ function packFirefox() {
   }
   writeManifest(manifest);
 
-  // Firefox requires source code upload for webpack builds
   console.log("Packing Firefox source → bhapi-firefox-source.zip");
   createSourceZip("bhapi-firefox-source.zip");
 }
