@@ -40,6 +40,8 @@
   "overrides": {
     "glob": ">=10.5.0",
     "esbuild": ">=0.25.0",
-    "minimatch": ">=10.2.4"
+    "minimatch": ">=10.2.4",
+    "undici": ">=7.24.0",
+    "flatted": ">=3.4.0"
   }
 }
