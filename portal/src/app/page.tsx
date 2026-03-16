@@ -49,7 +49,7 @@ export default function LandingPage() {
               <span className="text-accent">Schools</span> &{" "}
               <span className="text-primary-700">Clubs</span>
             </h1>
-            <p className="mt-6 text-lg leading-8 text-gray-600">
+            <p className="mt-6 text-lg leading-8 text-gray-600 font-bold">
               Monitor, manage, and protect how your group uses AI. Get real-time
               alerts for risky content, track spending, and ensure safe AI
               interactions for everyone you care about.
