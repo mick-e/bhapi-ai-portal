@@ -315,6 +315,19 @@ def _init_registry() -> None:
         _reward_check,
     )
 
+    # COPPA 2026: Data retention cleanup
+    async def _retention_cleanup(db: AsyncSession) -> dict:
+        """Run automated data retention cleanup per group policies."""
+        from src.compliance.retention import run_retention_cleanup
+        return await run_retention_cleanup(db)
+
+    register_job(
+        "retention_cleanup",
+        "Delete data exceeding configured retention periods (COPPA 2026)",
+        "daily",
+        _retention_cleanup,
+    )
+
 
 async def run_job(db: AsyncSession, job_name: str) -> dict:
     """Execute a single job by name. Returns result summary."""

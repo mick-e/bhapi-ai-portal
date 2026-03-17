@@ -2,7 +2,7 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,6 +27,17 @@ from src.compliance.schemas import (
     DataRequestCreate,
     DataRequestStatus,
     HumanReviewResponse,
+    PushNotificationConsentResponse,
+    PushNotificationConsentUpdate,
+    RefusePartialCollectionRequest,
+    RetentionDisclosureResponse,
+    RetentionPolicyResponse,
+    RetentionPolicyUpdate,
+    ThirdPartyConsentBulkUpdate,
+    ThirdPartyConsentItemResponse,
+    ThirdPartyConsentUpdate,
+    VideoVerificationCreate,
+    VideoVerificationResponse,
 )
 from src.compliance.service import (
     create_data_request,
@@ -302,3 +313,348 @@ async def resolve_appeal_endpoint(
         db, appeal_id, auth.user_id, data.resolution, data.notes
     )
     return appeal
+
+
+# ─── SOC 2 & Audit ─────────────────────────────────────────────────────────
+
+
+@router.get("/audit-logs")
+async def get_audit_logs(
+    action: str | None = Query(None),
+    resource_type: str | None = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get audit logs."""
+    from src.compliance.audit_logger import query_audit_logs
+
+    gid = _gid(None, auth)
+    offset = (page - 1) * page_size
+    logs, total = await query_audit_logs(db, group_id=gid, action=action, resource_type=resource_type, limit=page_size, offset=offset)
+    return {
+        "items": [
+            {"id": str(l.id), "action": l.action, "resource_type": l.resource_type,
+             "resource_id": l.resource_id, "actor_email": l.actor_email,
+             "created_at": l.created_at.isoformat() if l.created_at else None}
+            for l in logs
+        ],
+        "total": total, "page": page, "page_size": page_size,
+    }
+
+
+@router.get("/soc2-evidence")
+async def get_soc2_evidence(
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get SOC 2 evidence summary."""
+    from src.compliance.soc2_evidence import get_soc2_evidence_summary
+
+    gid = _gid(None, auth)
+    return await get_soc2_evidence_summary(db, gid)
+
+
+@router.post("/incidents", status_code=201)
+async def create_incident_endpoint(
+    data: dict,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a security incident record."""
+    from src.compliance.incident import create_incident
+
+    gid = _gid(None, auth)
+    incident = await create_incident(
+        db, title=data.get("title", ""), severity=data.get("severity", "medium"),
+        category=data.get("category", "security"), description=data.get("description", ""),
+        group_id=gid, reported_by=auth.user_id,
+    )
+    return {"id": str(incident.id), "title": incident.title, "status": incident.status}
+
+
+@router.get("/incidents")
+async def list_incidents_endpoint(
+    status: str | None = Query(None),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List security incidents."""
+    from src.compliance.incident import list_incidents
+
+    gid = _gid(None, auth)
+    incidents = await list_incidents(db, group_id=gid, status=status)
+    return {"incidents": [
+        {"id": str(i.id), "title": i.title, "severity": i.severity,
+         "category": i.category, "status": i.status,
+         "created_at": i.created_at.isoformat() if i.created_at else None}
+        for i in incidents
+    ]}
+
+
+@router.patch("/incidents/{incident_id}")
+async def update_incident_endpoint(
+    incident_id: str,
+    data: dict,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update incident status."""
+    from src.compliance.incident import update_incident_status
+    from uuid import UUID as UUIDType
+
+    incident = await update_incident_status(
+        db, UUIDType(incident_id), status=data.get("status", ""),
+        resolution=data.get("resolution"), root_cause=data.get("root_cause"),
+    )
+    return {"id": str(incident.id), "status": incident.status}
+
+
+# ─── COPPA 2026 — Third-Party Data Flow Consent ──────────────────────────────
+
+
+@router.get(
+    "/coppa/third-party-consent",
+    response_model=list[ThirdPartyConsentItemResponse],
+)
+async def get_third_party_consent(
+    group_id: UUID = Query(...),
+    member_id: UUID = Query(...),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get per-third-party consent items for a member (COPPA 2026)."""
+    from src.compliance.coppa_2026 import get_third_party_consents
+
+    items = await get_third_party_consents(db, group_id, member_id)
+    return items
+
+
+@router.put("/coppa/third-party-consent", response_model=ThirdPartyConsentItemResponse)
+async def update_third_party_consent_endpoint(
+    group_id: UUID = Query(...),
+    member_id: UUID = Query(...),
+    data: ThirdPartyConsentUpdate = ...,
+    request: Request = ...,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update consent for a specific third-party provider (COPPA 2026)."""
+    from src.compliance.coppa_2026 import update_third_party_consent
+
+    ip = request.client.host if request.client else None
+    item = await update_third_party_consent(
+        db, group_id, member_id, auth.user_id,
+        data.provider_key, data.consented, ip,
+    )
+    return item
+
+
+@router.put(
+    "/coppa/third-party-consent/bulk",
+    response_model=list[ThirdPartyConsentItemResponse],
+)
+async def bulk_update_third_party_consent_endpoint(
+    group_id: UUID = Query(...),
+    data: ThirdPartyConsentBulkUpdate = ...,
+    request: Request = ...,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Bulk update third-party consent for a member (COPPA 2026)."""
+    from src.compliance.coppa_2026 import bulk_update_third_party_consent
+
+    ip = request.client.host if request.client else None
+    items = await bulk_update_third_party_consent(
+        db, group_id, data.member_id, auth.user_id,
+        [c.model_dump() for c in data.consents], ip,
+    )
+    return items
+
+
+@router.post(
+    "/coppa/refuse-partial-collection",
+    response_model=list[ThirdPartyConsentItemResponse],
+)
+async def refuse_partial_collection_endpoint(
+    group_id: UUID = Query(...),
+    data: RefusePartialCollectionRequest = ...,
+    request: Request = ...,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Refuse third-party data sharing while allowing collection (COPPA 2026)."""
+    from src.compliance.coppa_2026 import set_refuse_partial_collection
+
+    ip = request.client.host if request.client else None
+    items = await set_refuse_partial_collection(
+        db, group_id, data.member_id, auth.user_id,
+        data.refuse_third_party_sharing, ip,
+    )
+    return items
+
+
+# ─── COPPA 2026 — Retention Policies ─────────────────────────────────────────
+
+
+@router.get("/coppa/retention", response_model=list[RetentionPolicyResponse])
+async def get_retention_policies_endpoint(
+    group_id: UUID = Query(...),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get data retention policies for a group (COPPA 2026)."""
+    from src.compliance.retention import get_retention_policies
+
+    policies = await get_retention_policies(db, group_id)
+    return policies
+
+
+@router.put("/coppa/retention", response_model=RetentionPolicyResponse)
+async def update_retention_policy_endpoint(
+    group_id: UUID = Query(...),
+    data: RetentionPolicyUpdate = ...,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update a retention policy (COPPA 2026)."""
+    from src.compliance.retention import update_retention_policy
+
+    policy = await update_retention_policy(
+        db, group_id, data.data_type, data.retention_days, data.auto_delete,
+    )
+    return policy
+
+
+@router.get("/coppa/retention/disclosure", response_model=RetentionDisclosureResponse)
+async def get_retention_disclosure_endpoint(
+    group_id: UUID = Query(...),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get parent-facing data retention disclosure (COPPA 2026)."""
+    from src.compliance.retention import get_retention_disclosure
+
+    disclosure = await get_retention_disclosure(db, group_id)
+    return disclosure
+
+
+# ─── COPPA 2026 — Push Notification Consent ──────────────────────────────────
+
+
+@router.get(
+    "/coppa/push-consent",
+    response_model=list[PushNotificationConsentResponse],
+)
+async def get_push_notification_consents_endpoint(
+    group_id: UUID = Query(...),
+    member_id: UUID = Query(...),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get push notification consent records for a member (COPPA 2026)."""
+    from src.compliance.coppa_2026 import get_push_notification_consents
+
+    consents = await get_push_notification_consents(db, group_id, member_id)
+    return consents
+
+
+@router.put("/coppa/push-consent", response_model=PushNotificationConsentResponse)
+async def update_push_notification_consent_endpoint(
+    group_id: UUID = Query(...),
+    data: PushNotificationConsentUpdate = ...,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update push notification consent (COPPA 2026)."""
+    from src.compliance.coppa_2026 import update_push_notification_consent
+
+    consent = await update_push_notification_consent(
+        db, group_id, data.member_id, auth.user_id,
+        data.notification_type, data.consented,
+    )
+    return consent
+
+
+# ─── COPPA 2026 — Video Verification (Enhanced VPC) ──────────────────────────
+
+
+@router.post(
+    "/coppa/video-verification",
+    response_model=VideoVerificationResponse,
+    status_code=201,
+)
+async def initiate_video_verification_endpoint(
+    group_id: UUID = Query(...),
+    data: VideoVerificationCreate = ...,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Initiate video-based parental identity verification (COPPA 2026)."""
+    from src.compliance.coppa_2026 import initiate_video_verification
+
+    verification = await initiate_video_verification(
+        db, group_id, auth.user_id, data.verification_method,
+    )
+    return verification
+
+
+@router.get(
+    "/coppa/video-verification/{verification_id}",
+    response_model=VideoVerificationResponse,
+)
+async def get_video_verification_endpoint(
+    verification_id: UUID,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get video verification status (COPPA 2026)."""
+    from src.compliance.coppa_2026 import get_video_verification
+
+    return await get_video_verification(db, verification_id)
+
+
+@router.patch(
+    "/coppa/video-verification/{verification_id}",
+    response_model=VideoVerificationResponse,
+)
+async def complete_video_verification_endpoint(
+    verification_id: UUID,
+    score: float = Query(..., ge=0.0, le=1.0),
+    notes: str | None = Query(None),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Complete a video verification with a score (COPPA 2026)."""
+    from src.compliance.coppa_2026 import complete_video_verification
+
+    return await complete_video_verification(db, verification_id, score, notes)
+
+
+@router.get(
+    "/coppa/video-verifications",
+    response_model=list[VideoVerificationResponse],
+)
+async def list_video_verifications_endpoint(
+    group_id: UUID = Query(...),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List video verifications for the current parent (COPPA 2026)."""
+    from src.compliance.coppa_2026 import get_parent_verifications
+
+    return await get_parent_verifications(db, group_id, auth.user_id)
+
+
+@router.get("/coppa/video-verification-status")
+async def check_video_verification_status(
+    group_id: UUID = Query(...),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Check if parent has valid video verification (COPPA 2026)."""
+    from src.compliance.coppa_2026 import has_valid_video_verification
+
+    has_valid = await has_valid_video_verification(db, group_id, auth.user_id)
+    return {"group_id": str(group_id), "has_valid_verification": has_valid}

@@ -40,6 +40,12 @@ class Subscription(Base, UUIDMixin, TimestampMixin):
     current_period_end: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    platform_limit: Mapped[int | None] = mapped_column(
+        Integer, nullable=True
+    )
+    feature_flags: Mapped[dict | None] = mapped_column(
+        JSONType, nullable=True
+    )
 
 
 class LLMAccount(Base, UUIDMixin, TimestampMixin):

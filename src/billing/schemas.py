@@ -198,3 +198,20 @@ class PlatformSafetyRecommendationResponse(PlatformSafetyRatingResponse):
     """Safety rating with age-based recommendation."""
 
     recommendation: str  # recommended, use_with_caution, not_recommended
+
+
+class FeatureSummaryResponse(BaseSchema):
+    """Feature access summary for a group's plan."""
+
+    plan: str
+    member_limit: int | None
+    platform_limit: int | None
+    features: dict[str, bool]
+
+
+class FeatureCheckResponse(BaseSchema):
+    """Single feature check response."""
+
+    feature: str
+    enabled: bool
+    plan: str

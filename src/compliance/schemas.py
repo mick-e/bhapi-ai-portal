@@ -148,3 +148,138 @@ class COPPAReviewResponse(BaseSchema):
     group_id: str
     reviewed_at: str
     status: str
+
+
+# ---------------------------------------------------------------------------
+# COPPA 2026 — Third-party consent
+# ---------------------------------------------------------------------------
+
+
+class ThirdPartyConsentItemResponse(BaseSchema):
+    """Third-party consent item response."""
+
+    id: UUID
+    group_id: UUID
+    member_id: UUID
+    parent_user_id: UUID
+    provider_key: str
+    provider_name: str
+    data_purpose: str
+    consented: bool
+    consented_at: datetime | None
+    withdrawn_at: datetime | None
+    created_at: datetime
+
+
+class ThirdPartyConsentUpdate(BaseSchema):
+    """Update consent for a specific third-party provider."""
+
+    provider_key: str = Field(max_length=50)
+    consented: bool
+
+
+class ThirdPartyConsentBulkUpdate(BaseSchema):
+    """Bulk update third-party consent (all providers at once)."""
+
+    member_id: UUID
+    consents: list[ThirdPartyConsentUpdate]
+
+
+class RefusePartialCollectionRequest(BaseSchema):
+    """Toggle refuse-partial-collection: consent to collection but refuse 3rd-party sharing."""
+
+    member_id: UUID
+    refuse_third_party_sharing: bool
+
+
+# ---------------------------------------------------------------------------
+# COPPA 2026 — Retention policies
+# ---------------------------------------------------------------------------
+
+
+class RetentionPolicyResponse(BaseSchema):
+    """Retention policy response."""
+
+    id: UUID
+    group_id: UUID
+    data_type: str
+    retention_days: int
+    description: str
+    auto_delete: bool
+    last_cleanup_at: datetime | None
+    records_deleted: int
+    created_at: datetime
+
+
+class RetentionPolicyUpdate(BaseSchema):
+    """Update a retention policy."""
+
+    data_type: str = Field(max_length=50)
+    retention_days: int = Field(ge=30, le=3650)
+    auto_delete: bool = True
+
+
+class RetentionDisclosureResponse(BaseSchema):
+    """Parent-facing retention disclosure."""
+
+    group_id: str
+    generated_at: str
+    summary: str
+    policies: list[dict]
+
+
+# ---------------------------------------------------------------------------
+# COPPA 2026 — Push notification consent
+# ---------------------------------------------------------------------------
+
+
+class PushNotificationConsentResponse(BaseSchema):
+    """Push notification consent response."""
+
+    id: UUID
+    group_id: UUID
+    member_id: UUID
+    parent_user_id: UUID
+    notification_type: str
+    consented: bool
+    consented_at: datetime | None
+    withdrawn_at: datetime | None
+    created_at: datetime
+
+
+class PushNotificationConsentUpdate(BaseSchema):
+    """Update push notification consent."""
+
+    member_id: UUID
+    notification_type: str = Field(
+        pattern="^(risk_alerts|activity_summaries|weekly_reports|all)$"
+    )
+    consented: bool
+
+
+# ---------------------------------------------------------------------------
+# COPPA 2026 — Video verification (enhanced VPC)
+# ---------------------------------------------------------------------------
+
+
+class VideoVerificationResponse(BaseSchema):
+    """Video verification response."""
+
+    id: UUID
+    group_id: UUID
+    parent_user_id: UUID
+    verification_method: str
+    status: str
+    yoti_session_id: str | None
+    verification_score: float | None
+    verified_at: datetime | None
+    expires_at: datetime | None
+    created_at: datetime
+
+
+class VideoVerificationCreate(BaseSchema):
+    """Initiate video verification."""
+
+    verification_method: str = Field(
+        pattern="^(video_call|yoti_id_check|video_selfie)$"
+    )

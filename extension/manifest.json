@@ -25,8 +25,21 @@
     "https://perplexity.ai/*",
     "https://poe.com/*"
   ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "bhapi-ai-safety@bhapi.ai",
+      "strict_min_version": "109.0",
+      "data_collection_permissions": {
+        "isSelling": false,
+        "isSharing": false,
+        "isCollecting": true,
+        "description": "Bhapi collects AI platform usage data (platform name, timestamps, safety classifications) to provide parents and guardians with safety monitoring. No conversation content is stored without explicit consent."
+      }
+    }
+  },
   "background": {
     "service_worker": "background/service-worker.js",
+    "scripts": ["background/service-worker.js"],
     "type": "module"
   },
   "content_scripts": [

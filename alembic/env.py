@@ -24,7 +24,7 @@ from src.alerts.models import Alert, NotificationPreference  # noqa: F401
 from src.alerts.panic import PanicReport  # noqa: F401
 from src.billing.models import Subscription, LLMAccount, SpendRecord, BudgetThreshold, FiredThresholdAlert  # noqa: F401
 from src.reporting.models import ScheduledReport, ReportExport  # noqa: F401
-from src.compliance.models import ConsentRecord, DataDeletionRequest, AuditEntry  # noqa: F401
+from src.compliance.models import ConsentRecord, DataDeletionRequest, AuditEntry, ThirdPartyConsentItem, RetentionPolicy, PushNotificationConsent, VideoVerification  # noqa: F401
 from src.compliance.eu_ai_act_models import HumanReviewRequest, AppealRecord  # noqa: F401
 from src.blocking.models import BlockRule, AutoBlockRule  # noqa: F401
 from src.blocking.approval_models import BlockApproval  # noqa: F401
@@ -32,6 +32,19 @@ from src.blocking.time_budget import TimeBudget, TimeBudgetUsage  # noqa: F401
 from src.integrations.models import SISConnection  # noqa: F401
 from src.integrations.sso_models import SSOConfig  # noqa: F401
 from src.literacy.models import LiteracyModule, LiteracyQuestion, LiteracyAssessment, LiteracyProgress  # noqa: F401
+from src.portal.demo import DemoSession  # noqa: F401
+from src.portal.onboarding import OnboardingProgress  # noqa: F401
+from src.alerts.web_push import PushSubscription  # noqa: F401
+from src.alerts.escalation import EscalationPartner, EscalationRecord  # noqa: F401
+from src.groups.district import District, DistrictSchool  # noqa: F401
+from src.groups.teacher_dashboard import ParentTeacherNote  # noqa: F401
+from src.compliance.audit_logger import AuditLog  # noqa: F401
+from src.compliance.incident import IncidentRecord  # noqa: F401
+from src.integrations.cross_product import ProductRegistration, SharedProfile, CrossProductAlert  # noqa: F401
+from src.integrations.developer_portal import DeveloperApp, WebhookEndpoint, WebhookDelivery, MarketplaceModule, InstalledModule  # noqa: F401
+from src.risk.enterprise_policy import AIUsagePolicy, PolicyViolation  # noqa: F401
+from src.blocking.url_filter import URLFilterRule, URLCategory  # noqa: F401
+from src.alerts.correlation import AlertCorrelation  # noqa: F401
 
 config = context.config
 

@@ -337,6 +337,148 @@ async def respond_panic(
     return report
 
 
+# ─── Push Notifications ─────────────────────────────────────────────────────
+
+
+@router.post("/push/subscribe", status_code=201)
+async def subscribe_push_endpoint(
+    data: dict,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Subscribe to web push notifications."""
+    from src.alerts.web_push import subscribe_push
+    gid = _gid(None, auth)
+    sub = await subscribe_push(
+        db, user_id=auth.user_id, group_id=gid,
+        endpoint=data.get("endpoint", ""),
+        p256dh_key=data.get("p256dh_key", ""),
+        auth_key=data.get("auth_key", ""),
+        user_agent=data.get("user_agent"),
+    )
+    return {"id": str(sub.id), "active": sub.active}
+
+
+@router.post("/push/unsubscribe")
+async def unsubscribe_push_endpoint(
+    data: dict,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Unsubscribe from push notifications."""
+    from src.alerts.web_push import unsubscribe_push
+    await unsubscribe_push(db, user_id=auth.user_id, endpoint=data.get("endpoint", ""))
+    return {"status": "unsubscribed"}
+
+
+@router.get("/push/subscriptions")
+async def list_push_subscriptions(
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List active push subscriptions."""
+    from src.alerts.web_push import get_user_subscriptions
+    subs = await get_user_subscriptions(db, auth.user_id)
+    return {"subscriptions": [
+        {"id": str(s.id), "endpoint": s.endpoint[:50] + "...", "active": s.active}
+        for s in subs
+    ]}
+
+
+# ─── Escalation Partners ────────────────────────────────────────────────────
+
+
+@router.post("/escalation/partners", status_code=201)
+async def create_partner(
+    data: dict,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create an escalation partner."""
+    from src.alerts.escalation import create_escalation_partner
+    gid = _gid(None, auth)
+    partner = await create_escalation_partner(
+        db, group_id=gid, name=data.get("name", ""),
+        provider_type=data.get("provider_type", ""),
+        webhook_url=data.get("webhook_url"),
+        contact_email=data.get("contact_email"),
+        contact_phone=data.get("contact_phone"),
+        severity_threshold=data.get("severity_threshold", "critical"),
+        categories=data.get("categories"),
+    )
+    return {
+        "id": str(partner.id), "name": partner.name,
+        "provider_type": partner.provider_type, "active": partner.active,
+    }
+
+
+@router.get("/escalation/partners")
+async def list_partners(
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List escalation partners."""
+    from src.alerts.escalation import list_escalation_partners
+    gid = _gid(None, auth)
+    partners = await list_escalation_partners(db, gid)
+    return {"partners": [
+        {"id": str(p.id), "name": p.name, "provider_type": p.provider_type, "active": p.active}
+        for p in partners
+    ]}
+
+
+@router.post("/escalation/escalate")
+async def escalate_alert_endpoint(
+    data: dict,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Escalate an alert to a partner."""
+    from src.alerts.escalation import escalate_alert
+    from uuid import UUID as UUIDType
+    gid = _gid(None, auth)
+    record = await escalate_alert(
+        db, partner_id=UUIDType(data["partner_id"]),
+        alert_id=UUIDType(data["alert_id"]),
+        group_id=gid, severity=data.get("severity", "critical"),
+        member_id=UUIDType(data["member_id"]) if data.get("member_id") else None,
+        category=data.get("category"),
+    )
+    return {"id": str(record.id), "status": record.status}
+
+
+# ─── Alert Correlations ─────────────────────────────────────────────────────
+
+
+@router.get("/correlations")
+async def list_correlations_endpoint(
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List alert correlations."""
+    from src.alerts.correlation import list_correlations
+    gid = _gid(None, auth)
+    correlations = await list_correlations(db, gid)
+    return {"correlations": [
+        {"id": str(c.id), "type": c.correlation_type, "title": c.title,
+         "confidence": c.confidence_score, "severity": c.severity}
+        for c in correlations
+    ]}
+
+
+@router.get("/correlations/{member_id}")
+async def get_member_correlations(
+    member_id: str,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get correlations for a member."""
+    from src.alerts.correlation import analyze_member_correlations
+    from uuid import UUID as UUIDType
+    gid = _gid(None, auth)
+    return await analyze_member_correlations(db, gid, UUIDType(member_id))
+
+
 # --- Dynamic {alert_id} routes MUST come after all static paths ---
 
 

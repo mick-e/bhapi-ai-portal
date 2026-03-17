@@ -3,86 +3,83 @@
 > **Project:** bhapi-ai-portal (Family AI Governance)
 > **URL:** https://bhapi.ai
 > **Version:** 2.1.0
-> **Last updated:** 2026-03-16
+> **Last updated:** 2026-03-17
+
+## Purpose
+
+Portfolio artifact demonstrating technical depth and breadth across the bhapi-ai-portal codebase. Aimed at hiring managers, technical reviewers, and collaborators evaluating engineering capability.
+
+## Architecture & System Design
+
+- **Modular monolith** — 19 isolated modules with enforced public interface boundaries (`__init__.py` contracts, no cross-module internal imports)
+- **BFF aggregation** — portal module aggregates dashboard data with per-section degraded resilience (try/except per section, amber warning on partial failure)
+- **Middleware stack design** — 7-layer LIFO stack (security headers → timing/correlation → rate limiting → auth → locale → compression → CORS)
+- **Exception hierarchy** — unified `BhapiException` base with typed subclasses replacing raw HTTP exceptions
+- **Multi-tenant data isolation** — group-scoped queries, member cap enforcement, consent-gated access
 
 ## Backend Engineering
 
-- **FastAPI** — 19 modules, ~190 routes, modular router architecture
-- **Async SQLAlchemy** — PostgreSQL (prod) / SQLite (tests), 16 Alembic migrations
-- **Background jobs** — scheduled tasks via Render cron, async job processing
-- **Redis** — caching with graceful degradation (in-memory fallback when unavailable)
-- **AI safety classification** — risk taxonomy (14 categories), safety scores (0-100), Vertex AI integration
-- **Spend tracking** — 5 AI providers (OpenAI, Anthropic, Google, Microsoft, xAI) with API key revocation
+- **Async Python** — FastAPI with async SQLAlchemy, httpx, dependency injection (`AuthContext`, `DbSession`)
+- **Data modeling** — UUID primary keys, soft-delete mixin with auto-filtering, timestamp mixin, encrypted column patterns, compound indexes for query performance
+- **Migration safety discipline** — 16 Alembic migrations with operational rigor born from a multi-day production outage caused by an uncommitted migration file
+- **Background processing** — scheduled cron jobs (risk processing, email delivery, spend sync, encrypted content TTL cleanup)
+- **AI classification pipeline** — 14-category risk taxonomy, safety scoring (0-100), multi-provider spend tracking with API key revocation
 
 ## Frontend Engineering
 
-- **Next.js 15** — App Router, static export, React Query for server state
-- **Tailwind CSS** — branded design system (Orange `#FF6B35` primary, Teal `#0D9488` accent)
-- **i18n** — 6 languages, full translation coverage
-- **WCAG 2.1 AA** — accessibility-compliant UI across all pages
-- **SSE real-time alerts** — server-sent events for live risk notifications
+- **Next.js 15 static export** — App Router with managed constraints (no `next/image`, no dynamic routes, no server components)
+- **Branded design system** — custom component library (WCAG 2.1 AA compliant), Orange/Teal palette, Inter font
+- **Internationalization** — 6 languages via client-side `LocaleContext` with dynamic JSON imports
+- **Real-time alerts** — server-sent events for live risk notifications
 - **PWA** — progressive web app support for mobile experience
-- **60+ frontend tests** — component and integration coverage
 
 ## Browser Extension
 
-- **Manifest V3** — Chrome, Firefox, Safari, Edge cross-browser support
+- **Manifest V3** — Chrome, Firefox, Safari cross-browser support
 - **10 AI platform monitors** — ChatGPT, Gemini, Copilot, Claude, Grok, Character.AI, Replika, Pi, Perplexity, Poe
-- **Webpack build** — bundled for each browser target
-- **Content scripts** — DOM observation and conversation capture across platforms
-- **Offline event buffering** — queued capture when network unavailable
+- **Content script architecture** — DOM observation and conversation capture across heterogeneous platforms
+- **Offline resilience** — event buffering queue when network unavailable
+- **Webpack multi-target build** — bundled per browser target
 
-## Security & Auth
+## Security & Privacy
 
-- **JWT authentication** — token-based auth with session management
-- **RBAC** — role-based access control across all protected endpoints
-- **Fernet/KMS encryption** — credential storage with key management
-- **COPPA consent** — parental consent workflows, child account protections, family member cap (5)
-- **Rate limiting** — Redis-backed with in-memory fallback, per-endpoint configuration
-- **Correlation IDs** — request tracing across services
-- **HMAC capture verification** — tamper-proof event integrity from extension to backend
-- **Deepfake detection** — Hive/Sensity integration for media analysis
+- **Authentication** — JWT with session management, API keys (`bhapi_sk_` prefix, SHA-256 hashed)
+- **Authorization** — RBAC across all protected endpoints
+- **Encryption** — Fernet/KMS credential storage, encrypted content excerpts with TTL cleanup
+- **Capture integrity** — HMAC verification for tamper-proof extension-to-backend events
+- **Rate limiting** — Redis sliding window with in-memory fallback, per-endpoint configuration
+- **Observability** — structlog with correlation IDs, request tracing via `X-Request-ID`
 
-## Infrastructure & DevOps
+## Integrations
 
-- **Docker multi-stage builds** — optimized production images
-- **GitHub Actions** — CI pipeline with test, lint, security checks
-- **Render** — auto-deploy with `render.yaml`, cron job scheduling
-- **Health checks** — live/ready/schema endpoints for monitoring
-- **BhapiLogo component** — branded wordmark with smile arc, consistent across web + extension
+- **Payments** — Stripe checkout/portal, tiered plans (Family/School/Enterprise), per-seat pricing, webhook persistence
+- **Identity** — Clever + ClassLink SIS rostering, Yoti age verification, Google Workspace + Entra SSO, directory sync
+- **Communications** — Twilio SMS alerting, SendGrid transactional email
+- **AI safety** — Hive/Sensity deepfake detection, Vertex AI safety classification
 
-## Testing
+## Testing & Quality
 
-- **1,314 backend tests** — 639 E2E, 521 unit, 154 security (all passing)
-- **95 production E2E** — live deployment verification against bhapi.ai
-- **60+ frontend tests** — React component and integration coverage
-- **Test fixture patterns** — `test_session` fixture, `.test` TLD rejection, `password_hash`/`email_verified` field conventions
+- **1,314 backend tests** — 639 E2E + 521 unit + 154 security, all passing
+- **95 production E2E tests** — live verification against bhapi.ai deployment
+- **60+ frontend tests** — component and integration coverage via Vitest
+- **Test architecture** — E2E against in-memory SQLite (no external services), security tests verify auth/RBAC on every endpoint, fixture design for async DB sessions
 
-## Integrations & Payments
+## Compliance & Domain Expertise
 
-- **Stripe** — checkout/portal integration, family self-serve ($9.99/mo), school/club per-seat pricing, 14-day trial
-- **Tiered billing** — Family / School / Enterprise plans with vendor risk scoring
-- **Clever + ClassLink** — SIS integration for school rostering and auto-provisioning
-- **Yoti** — age verification for child safety compliance
-- **Google Workspace + Entra SSO** — directory sync, single sign-on
-- **Twilio SMS** — SMS alerting for parents/guardians
-- **SendGrid** — transactional email delivery
-
-## Compliance & Domain Knowledge
-
-- **COPPA** — certification readiness, parental consent, child data protection
-- **EU AI Act** — transparency, human review, appeals workflow
+- **COPPA** — certification readiness, parental consent workflows, child data protection, family member caps
+- **EU AI Act** — transparency requirements, human review, appeals workflow
 - **GDPR / LGPD** — data subject rights, cross-jurisdiction compliance
-- **14-category risk taxonomy** — AI safety classification with weighted scoring
-- **Emotional dependency detection** — behavioral pattern analysis for child safety
-- **Academic integrity** — AI-assisted schoolwork detection
-- **Family safety features (F1-F16)** — conversation summaries, time budgets, bedtime mode, panic button, weekly reports, sibling privacy, device correlation, rewards, emergency contacts, child dashboard
-- **School safeguarding** — class management, safeguarding officer workflows
-- **AI literacy curriculum** — 5 educational modules for digital citizenship
+- **AI safety domain** — 14-category risk taxonomy, emotional dependency detection, academic integrity monitoring, deepfake guidance
+
+## Infrastructure & Deployment
+
+- **Docker** — multi-stage production builds, compose for local development
+- **CI/CD** — GitHub Actions pipeline (test + lint + security), Render auto-deploy from master
+- **Operational resilience** — health check endpoints (live/ready/schema), Redis graceful degradation, migration-on-deploy with best-effort startup
 
 <!-- Maintenance notes:
   - Update when shipping significant features, not every commit
-  - Review quarterly — remove stale skills
+  - Review quarterly — remove stale skills, verify test counts against CLAUDE.md
   - Every skill must tie to a concrete artifact (module, test count, migration, metric)
   - Keep under 150 lines total
 -->

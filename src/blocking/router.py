@@ -41,7 +41,7 @@ from src.blocking.service import (
     update_auto_block_rule,
 )
 from src.database import get_db
-from src.dependencies import require_active_trial_or_subscription
+from src.dependencies import require_active_trial_or_subscription, resolve_group_id as _gid
 from src.schemas import GroupContext
 
 router = APIRouter(dependencies=[Depends(require_active_trial_or_subscription)])
@@ -227,3 +227,63 @@ async def get_effectiveness(
 ):
     """Get blocking effectiveness metrics for a group."""
     return await get_block_effectiveness(db, group_id)
+
+
+# ─── URL Filtering ──────────────────────────────────────────────────────────
+
+
+@router.get("/url-filter/categories")
+async def get_url_categories():
+    """Get available URL filter categories (public)."""
+    from src.blocking.url_filter import get_default_categories
+    return {"categories": get_default_categories()}
+
+
+@router.post("/url-filter/rules", status_code=201)
+async def create_url_filter(
+    data: dict,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a URL filter rule."""
+    from src.blocking.url_filter import create_filter_rule
+    from uuid import UUID as UUIDType
+    gid = _gid(None, auth)
+    rule = await create_filter_rule(
+        db, group_id=gid, category=data.get("category", ""),
+        action=data.get("action", "block"),
+        member_id=UUIDType(data["member_id"]) if data.get("member_id") else None,
+        created_by=auth.user_id,
+    )
+    return {"id": str(rule.id), "category": rule.category, "action": rule.action}
+
+
+@router.get("/url-filter/rules")
+async def list_url_filters(
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List URL filter rules."""
+    from src.blocking.url_filter import list_filter_rules
+    gid = _gid(None, auth)
+    rules = await list_filter_rules(db, gid)
+    return {"rules": [
+        {"id": str(r.id), "category": r.category, "action": r.action, "active": r.active}
+        for r in rules
+    ]}
+
+
+@router.post("/url-filter/check")
+async def check_url_filter(
+    data: dict,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Check if a URL should be filtered."""
+    from src.blocking.url_filter import check_url
+    from uuid import UUID as UUIDType
+    gid = _gid(None, auth)
+    return await check_url(
+        db, gid, url=data.get("url", ""),
+        member_id=UUIDType(data["member_id"]) if data.get("member_id") else None,
+    )

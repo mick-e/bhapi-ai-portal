@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, func
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -89,4 +89,167 @@ class AuditEntry(Base, UUIDMixin):
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+# ---------------------------------------------------------------------------
+# COPPA 2026 — Third-party data flow consent
+# ---------------------------------------------------------------------------
+
+
+class ThirdPartyConsentItem(Base, UUIDMixin, TimestampMixin):
+    """Per-third-party consent toggle (COPPA 2026 granular consent).
+
+    Each row represents a parent's consent decision for a specific third-party
+    provider (e.g., Stripe, SendGrid, Google Cloud AI, Hive/Sensity).
+    """
+
+    __tablename__ = "third_party_consent_items"
+
+    group_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("groups.id"), nullable=False
+    )
+    member_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("group_members.id"), nullable=False
+    )
+    parent_user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
+    )
+    provider_key: Mapped[str] = mapped_column(
+        String(50), nullable=False
+    )  # stripe, sendgrid, twilio, google_cloud_ai, hive_sensity
+    provider_name: Mapped[str] = mapped_column(
+        String(100), nullable=False
+    )  # Human-readable name
+    data_purpose: Mapped[str] = mapped_column(
+        String(500), nullable=False
+    )  # What data is shared and why
+    consented: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False
+    )
+    consented_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    withdrawn_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    ip_address: Mapped[str | None] = mapped_column(
+        String(45), nullable=True
+    )
+
+
+# ---------------------------------------------------------------------------
+# COPPA 2026 — Data retention policies
+# ---------------------------------------------------------------------------
+
+
+class RetentionPolicy(Base, UUIDMixin, TimestampMixin):
+    """Configurable data retention policy per data type.
+
+    Defines how long each category of child data is kept before automatic
+    deletion. Parents can view these via the privacy settings page.
+    """
+
+    __tablename__ = "retention_policies"
+
+    group_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("groups.id"), nullable=False
+    )
+    data_type: Mapped[str] = mapped_column(
+        String(50), nullable=False
+    )  # capture_events, risk_events, content_excerpts, conversation_summaries, alerts
+    retention_days: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=365
+    )
+    description: Mapped[str] = mapped_column(
+        String(500), nullable=False
+    )
+    auto_delete: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True
+    )
+    last_cleanup_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    records_deleted: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0
+    )
+
+
+# ---------------------------------------------------------------------------
+# COPPA 2026 — Push notification consent
+# ---------------------------------------------------------------------------
+
+
+class PushNotificationConsent(Base, UUIDMixin, TimestampMixin):
+    """Separate consent for push notifications containing child data.
+
+    COPPA 2026 requires explicit, separate consent before sending push
+    notifications that contain information about a child's activity.
+    """
+
+    __tablename__ = "push_notification_consents"
+
+    group_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("groups.id"), nullable=False
+    )
+    member_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("group_members.id"), nullable=False
+    )
+    parent_user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
+    )
+    notification_type: Mapped[str] = mapped_column(
+        String(50), nullable=False
+    )  # risk_alerts, activity_summaries, weekly_reports, all
+    consented: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False
+    )
+    consented_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    withdrawn_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+
+# ---------------------------------------------------------------------------
+# COPPA 2026 — Enhanced verifiable parental consent (video verification)
+# ---------------------------------------------------------------------------
+
+
+class VideoVerification(Base, UUIDMixin, TimestampMixin):
+    """Video-based parental identity verification for enhanced VPC.
+
+    Replaces knowledge-based-only consent with video verification as
+    required by COPPA 2026 updates. Integrates with Yoti for identity.
+    """
+
+    __tablename__ = "video_verifications"
+
+    group_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("groups.id"), nullable=False
+    )
+    parent_user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
+    )
+    verification_method: Mapped[str] = mapped_column(
+        String(50), nullable=False
+    )  # video_call, yoti_id_check, video_selfie
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="pending"
+    )  # pending, in_progress, verified, failed, expired
+    yoti_session_id: Mapped[str | None] = mapped_column(
+        String(255), nullable=True
+    )
+    verification_score: Mapped[float | None] = mapped_column(
+        Float, nullable=True
+    )  # 0.0-1.0 confidence score
+    verified_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    notes: Mapped[str | None] = mapped_column(
+        Text, nullable=True
     )

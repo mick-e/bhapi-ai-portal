@@ -57,6 +57,34 @@ async def get_plans():
     return {"plans": get_all_plans()}
 
 
+# ─── Feature Gating ─────────────────────────────────────────────────────────
+
+
+@router.get("/features")
+async def get_feature_access(
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get feature access summary for the current group's plan."""
+    from src.billing.feature_gate import get_feature_summary
+    gid = _gid(None, auth)
+    return await get_feature_summary(db, gid)
+
+
+@router.get("/features/{feature}")
+async def check_feature(
+    feature: str,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Check if a specific feature is available on the current plan."""
+    from src.billing.feature_gate import get_group_plan, is_feature_enabled
+    gid = _gid(None, auth)
+    plan = await get_group_plan(db, gid)
+    enabled = is_feature_enabled(plan, feature)
+    return {"feature": feature, "enabled": enabled, "plan": plan}
+
+
 # ─── Vendor Risk ─────────────────────────────────────────────────────────────
 
 

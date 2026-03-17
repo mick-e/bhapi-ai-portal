@@ -1339,33 +1339,49 @@ function PrivacyTab() {
   }
 
   return (
-    <Card title="Privacy" description="Control sibling visibility and child dashboard access">
-      <div className="max-w-lg space-y-6">
-        {childMembers.map((child: GroupMember) => (
-          <PrivacyMemberRow
-            key={child.id}
-            member={child}
-            onSetSelfView={(memberId, enabled, sections) => {
-              setSelfView.mutate(
-                { memberId, data: { enabled, sections } },
-                {
-                  onSuccess: () =>
-                    addToast(
-                      enabled ? "Self-view enabled" : "Self-view disabled",
-                      "success"
-                    ),
-                  onError: (err) =>
-                    addToast(
-                      (err as Error).message || "Failed to update",
-                      "error"
-                    ),
-                }
-              );
-            }}
-          />
-        ))}
-      </div>
-    </Card>
+    <div className="space-y-6">
+      <Card title="Privacy" description="Control sibling visibility and child dashboard access">
+        <div className="max-w-lg space-y-6">
+          {childMembers.map((child: GroupMember) => (
+            <PrivacyMemberRow
+              key={child.id}
+              member={child}
+              onSetSelfView={(memberId, enabled, sections) => {
+                setSelfView.mutate(
+                  { memberId, data: { enabled, sections } },
+                  {
+                    onSuccess: () =>
+                      addToast(
+                        enabled ? "Self-view enabled" : "Self-view disabled",
+                        "success"
+                      ),
+                    onError: (err) =>
+                      addToast(
+                        (err as Error).message || "Failed to update",
+                        "error"
+                      ),
+                  }
+                );
+              }}
+            />
+          ))}
+        </div>
+      </Card>
+
+      <Card title="COPPA 2026 Privacy Controls" description="Third-party data sharing, retention, and parental verification">
+        <p className="text-sm text-gray-500 mb-3">
+          Manage granular consent for third-party data processing, data retention
+          policies, push notification consent, and parental identity verification.
+        </p>
+        <a
+          href="/settings/privacy"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700"
+        >
+          <Shield className="h-4 w-4" />
+          Open COPPA Privacy Controls
+        </a>
+      </Card>
+    </div>
   );
 }
 

@@ -402,3 +402,113 @@ async def get_safeguarding_report(
         by_category=by_category,
         flagged_students=flagged_students,
     )
+
+
+# ─── Districts ──────────────────────────────────────────────────────────────
+
+
+@router.post("/districts", status_code=201)
+async def create_district_endpoint(
+    data: dict,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a district."""
+    from src.groups.district import create_district
+    district = await create_district(
+        db, name=data.get("name", ""),
+        admin_email=data.get("admin_email", ""),
+        code=data.get("code"),
+        state=data.get("state"),
+        country=data.get("country", "US"),
+    )
+    return {"id": str(district.id), "name": district.name, "code": district.code}
+
+
+@router.get("/districts/{district_id}")
+async def get_district_endpoint(
+    district_id: str,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get district summary."""
+    from src.groups.district import get_district_summary
+    from uuid import UUID as UUIDType
+    return await get_district_summary(db, UUIDType(district_id))
+
+
+@router.post("/districts/{district_id}/schools", status_code=201)
+async def add_school_endpoint(
+    district_id: str,
+    data: dict,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Add a school to a district."""
+    from src.groups.district import add_school_to_district
+    from uuid import UUID as UUIDType
+    from src.dependencies import resolve_group_id as _resolve_gid
+    gid = _resolve_gid(None, auth)
+    school = await add_school_to_district(
+        db, district_id=UUIDType(district_id),
+        group_id=gid, school_name=data.get("school_name", ""),
+        student_count=data.get("student_count", 0),
+    )
+    return {"id": str(school.id), "school_name": school.school_name, "pilot_status": school.pilot_status}
+
+
+# ─── Teacher Dashboard ─────────────────────────────────────────────────────
+
+
+@router.get("/teacher-dashboard")
+async def teacher_dashboard(
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get teacher dashboard data."""
+    from src.groups.teacher_dashboard import get_teacher_dashboard
+    from src.dependencies import resolve_group_id as _resolve_gid
+    gid = _resolve_gid(None, auth)
+    return await get_teacher_dashboard(db, gid, auth.user_id)
+
+
+@router.post("/messages", status_code=201)
+async def create_message(
+    data: dict,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a parent-teacher note."""
+    from src.groups.teacher_dashboard import create_note
+    from src.dependencies import resolve_group_id as _resolve_gid
+    from uuid import UUID as UUIDType
+    gid = _resolve_gid(None, auth)
+    note = await create_note(
+        db, group_id=gid,
+        member_id=UUIDType(data["member_id"]),
+        author_id=auth.user_id,
+        author_role=data.get("author_role", "parent"),
+        subject=data.get("subject", ""),
+        body=data.get("body", ""),
+    )
+    return {"id": str(note.id), "subject": note.subject}
+
+
+@router.get("/messages/{member_id}")
+async def list_messages(
+    member_id: str,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List parent-teacher notes for a member."""
+    from src.groups.teacher_dashboard import list_notes_for_member
+    from src.dependencies import resolve_group_id as _resolve_gid
+    from uuid import UUID as UUIDType
+    gid = _resolve_gid(None, auth)
+    notes = await list_notes_for_member(db, gid, UUIDType(member_id))
+    return {"messages": [
+        {"id": str(n.id), "subject": n.subject, "body": n.body,
+         "author_role": n.author_role, "read_at": n.read_at.isoformat() if n.read_at else None,
+         "created_at": n.created_at.isoformat() if n.created_at else None}
+        for n in notes
+    ]}

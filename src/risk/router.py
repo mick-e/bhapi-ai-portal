@@ -319,3 +319,60 @@ async def platform_ratings_endpoint(
 async def deepfake_guidance_endpoint():
     """Return parent-facing deepfake education content. Public, no auth required."""
     return await get_deepfake_guidance()
+
+
+# ─── Enterprise Policies ────────────────────────────────────────────────────
+
+
+@router.post("/policies", status_code=201)
+async def create_policy_endpoint(
+    data: dict,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create an AI usage policy."""
+    from src.risk.enterprise_policy import create_policy
+    from src.dependencies import resolve_group_id as _gid2
+    gid = _gid2(None, auth)
+    policy = await create_policy(
+        db, group_id=gid, name=data.get("name", ""),
+        policy_type=data.get("policy_type", "acceptable_use"),
+        description=data.get("description"),
+        rules=data.get("rules"),
+        enforcement_level=data.get("enforcement_level", "warn"),
+        applies_to=data.get("applies_to"),
+    )
+    return {"id": str(policy.id), "name": policy.name, "active": policy.active}
+
+
+@router.get("/policies")
+async def list_policies_endpoint(
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List AI usage policies."""
+    from src.risk.enterprise_policy import list_policies
+    gid = _gid(None, auth)
+    policies = await list_policies(db, gid)
+    return {"policies": [
+        {"id": str(p.id), "name": p.name, "policy_type": p.policy_type,
+         "enforcement_level": p.enforcement_level, "active": p.active}
+        for p in policies
+    ]}
+
+
+@router.get("/violations")
+async def list_violations_endpoint(
+    resolved: bool | None = Query(None),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List policy violations."""
+    from src.risk.enterprise_policy import list_violations
+    gid = _gid(None, auth)
+    violations = await list_violations(db, gid, resolved=resolved)
+    return {"violations": [
+        {"id": str(v.id), "violation_type": v.violation_type, "severity": v.severity,
+         "action_taken": v.action_taken, "resolved": v.resolved}
+        for v in violations
+    ]}

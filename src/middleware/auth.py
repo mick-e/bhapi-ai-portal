@@ -32,6 +32,12 @@ PUBLIC_PREFIXES = (
     "/api/v1/alerts/stream",
     "/api/v1/risk/deepfake-guidance",
     "/api/v1/risk/platform-ratings",
+    "/api/v1/portal/demo",
+    "/api/v1/portal/roi-calculator",
+    "/api/v1/portal/case-studies",
+    "/api/v1/portal/blog",
+    "/api/v1/compliance/algorithmic-transparency",
+    "/api/v1/blocking/url-filter/categories",
 )
 
 

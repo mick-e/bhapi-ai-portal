@@ -1,6 +1,8 @@
-# Render Blueprint — Bhapi AI Portal
+# Render Blueprint — Bhapi Platform (formerly Bhapi AI Portal)
 # Deploy: connect GitHub repo, Render auto-detects this file.
 # Docs: https://docs.render.com/blueprint-spec
+# Note: Service names will be updated when mick-e/bhapi-ai-portal is renamed
+# to mick-e/bhapi-platform. Service rename requires Render dashboard update.
 
 services:
   # Core API (FastAPI backend + Next.js frontend)
@@ -70,7 +72,7 @@ services:
     plan: starter
     region: frankfurt
     schedule: "*/5 * * * *"
-    dockerCommand: "python -m src.jobs.runner"
+    dockerCommand: "python -m src.jobs"
     envVars:
       - key: ENVIRONMENT
         value: production

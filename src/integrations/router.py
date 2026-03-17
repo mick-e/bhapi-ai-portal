@@ -304,3 +304,119 @@ async def age_verify_callback(
     await _verify_group_access(auth, group_id, db)
     from src.integrations.age_verification import process_age_verification_result
     return await process_age_verification_result(db, group_id, member_id, session_id)
+
+
+# ─── Cross-Product ──────────────────────────────────────────────────────────
+
+
+@router.post("/cross-product/register", status_code=201)
+async def register_product(
+    data: dict,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Register a product for cross-product communication."""
+    from src.integrations.cross_product import register_product as _register
+    from src.dependencies import resolve_group_id as _gid
+    import hashlib
+
+    gid = _gid(None, auth)
+    api_key = data.get("api_key", "")
+    reg = await _register(
+        db, product_name=data.get("product_name", ""),
+        product_type=data.get("product_type", ""),
+        api_key_hash=hashlib.sha256(api_key.encode()).hexdigest(),
+        owner_group_id=gid,
+        permissions=data.get("permissions"),
+    )
+    return {"id": str(reg.id), "product_name": reg.product_name, "active": reg.active}
+
+
+@router.get("/cross-product/alerts")
+async def list_xp_alerts(
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List cross-product alerts."""
+    from src.integrations.cross_product import list_cross_product_alerts
+    from src.dependencies import resolve_group_id as _gid
+
+    gid = _gid(None, auth)
+    alerts = await list_cross_product_alerts(db, gid)
+    return {"alerts": [
+        {"id": str(a.id), "source_product": a.source_product, "alert_type": a.alert_type,
+         "severity": a.severity, "title": a.title, "acknowledged": a.acknowledged}
+        for a in alerts
+    ]}
+
+
+# ─── Developer Portal ──────────────────────────────────────────────────────
+
+
+@router.post("/developer/apps", status_code=201)
+async def create_developer_app(
+    data: dict,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a developer application."""
+    from src.integrations.developer_portal import create_developer_app as _create
+
+    app, secret = await _create(
+        db, owner_id=auth.user_id, name=data.get("name", ""),
+        description=data.get("description"),
+        redirect_uris=data.get("redirect_uris"),
+        scopes=data.get("scopes"),
+    )
+    return {"id": str(app.id), "client_id": app.client_id, "client_secret": secret, "name": app.name}
+
+
+@router.get("/developer/apps")
+async def list_developer_apps(
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List developer applications."""
+    from src.integrations.developer_portal import list_developer_apps as _list
+
+    apps = await _list(db, auth.user_id)
+    return {"apps": [
+        {"id": str(a.id), "name": a.name, "client_id": a.client_id, "active": a.active, "approved": a.approved}
+        for a in apps
+    ]}
+
+
+# ─── Marketplace ────────────────────────────────────────────────────────────
+
+
+@router.get("/marketplace/modules")
+async def list_modules(
+    category: str | None = Query(None),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List marketplace modules."""
+    from src.integrations.developer_portal import list_marketplace_modules
+
+    modules = await list_marketplace_modules(db, category=category)
+    return {"modules": [
+        {"id": str(m.id), "name": m.name, "slug": m.slug, "category": m.category,
+         "version": m.version, "install_count": m.install_count, "rating": m.rating}
+        for m in modules
+    ]}
+
+
+@router.post("/marketplace/install", status_code=201)
+async def install_module_endpoint(
+    data: dict,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Install a marketplace module."""
+    from src.integrations.developer_portal import install_module
+    from src.dependencies import resolve_group_id as _gid
+    from uuid import UUID as UUIDType
+
+    gid = _gid(None, auth)
+    installed = await install_module(db, gid, UUIDType(data["module_id"]), config=data.get("config"))
+    return {"id": str(installed.id), "active": installed.active}
