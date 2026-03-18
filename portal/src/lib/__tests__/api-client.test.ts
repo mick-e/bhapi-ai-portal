@@ -64,9 +64,9 @@ describe("apiFetch", () => {
   it("throws ApiRequestError on non-ok response", async () => {
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: false,
-      status: 401,
-      statusText: "Unauthorized",
-      json: () => Promise.resolve({ detail: "Invalid credentials" }),
+      status: 422,
+      statusText: "Unprocessable Entity",
+      json: () => Promise.resolve({ detail: "Validation failed" }),
     });
 
     await expect(apiFetch("/api/v1/test")).rejects.toThrow(ApiRequestError);

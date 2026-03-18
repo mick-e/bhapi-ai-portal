@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { LocaleProvider } from "@/contexts/LocaleContext";
 import type { DashboardData } from "@/types";
 
 // Mock next/navigation
@@ -89,7 +90,9 @@ function renderWithProviders(ui: React.ReactElement) {
     defaultOptions: { queries: { retry: false } },
   });
   return render(
-    <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>
+    <LocaleProvider>
+      <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>
+    </LocaleProvider>
   );
 }
 
