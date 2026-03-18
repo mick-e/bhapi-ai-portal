@@ -51,6 +51,37 @@ async def deliver_alert_email(
         )
         return False
 
+    # COPPA 2026: Check third-party consent before sending via SendGrid
+    if alert.member_id:
+        from src.compliance.coppa_2026 import check_third_party_consent, check_push_notification_consent
+        has_sendgrid_consent = await check_third_party_consent(
+            db, alert.group_id, alert.member_id, "sendgrid"
+        )
+        if not has_sendgrid_consent:
+            logger.info(
+                "delivery_skipped_no_sendgrid_consent",
+                alert_id=str(alert.id),
+                group_id=str(alert.group_id),
+                member_id=str(alert.member_id),
+            )
+            return False
+
+        # Map severity to notification type
+        notification_type = "risk_alerts"
+        if alert.severity == "low":
+            notification_type = "activity_summaries"
+
+        has_push_consent = await check_push_notification_consent(
+            db, alert.group_id, alert.member_id, notification_type
+        )
+        if not has_push_consent:
+            logger.info(
+                "delivery_skipped_no_push_consent",
+                alert_id=str(alert.id),
+                notification_type=notification_type,
+            )
+            return False
+
     # Get recipient emails (group admins)
     recipients = await _get_admin_emails(db, alert.group_id, alert.severity)
     if not recipients:

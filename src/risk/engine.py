@@ -22,7 +22,10 @@ Layer 4 — Risk Event Emission:
 
 from __future__ import annotations
 
+from uuid import UUID
+
 import structlog
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.risk.pii_detector import PIIEntity
 from src.risk.pii_detector import detect as detect_pii
@@ -37,6 +40,9 @@ async def process_event(
     capture_event_data: dict,
     member_age: int | None = None,
     config: dict[str, dict] | None = None,
+    group_id: "UUID | None" = None,
+    member_id: "UUID | None" = None,
+    db: "AsyncSession | None" = None,
 ) -> list[RiskClassification]:
     """Run a capture event through the full risk pipeline.
 
@@ -77,11 +83,11 @@ async def process_event(
     # If media URLs present, submit to Hive/Sensity API
     media_urls = capture_event_data.get("media_urls", [])
     if media_urls:
-        deepfake_classifications = await _layer_deepfake_detection(media_urls)
+        deepfake_classifications = await _layer_deepfake_detection(media_urls, group_id, member_id, db)
         all_classifications.extend(deepfake_classifications)
 
     # --- Layer 2: Safety Classification ---
-    safety_classifications = await _layer_safety_classification(content)
+    safety_classifications = await _layer_safety_classification(content, group_id, member_id, db)
     all_classifications.extend(safety_classifications)
 
     # --- Layer 3: Rules Engine ---
@@ -165,12 +171,29 @@ def _layer_deepfake_text_detection(
 
 async def _layer_deepfake_detection(
     media_urls: list[str],
+    group_id: "UUID | None" = None,
+    member_id: "UUID | None" = None,
+    db: "AsyncSession | None" = None,
 ) -> list[RiskClassification]:
     """Layer 1.5: Analyse media URLs for deepfake content."""
     import os
 
     if not os.getenv("DEEPFAKE_API_KEY"):
         return []
+
+    # COPPA 2026: Check third-party consent before calling Hive/Sensity
+    if group_id and member_id and db:
+        from src.compliance.coppa_2026 import check_third_party_consent
+        has_consent = await check_third_party_consent(db, group_id, member_id, "hive_sensity")
+        if not has_consent:
+            logger.info(
+                "deepfake_detection_skipped_no_consent",
+                consent_degraded=True,
+                provider="hive_sensity",
+                group_id=str(group_id),
+                member_id=str(member_id),
+            )
+            return []
 
     try:
         from src.risk.deepfake_detector import analyze_media
@@ -195,8 +218,30 @@ async def _layer_deepfake_detection(
 
 async def _layer_safety_classification(
     content: str,
+    group_id: "UUID | None" = None,
+    member_id: "UUID | None" = None,
+    db: "AsyncSession | None" = None,
 ) -> list[RiskClassification]:
     """Layer 2: Run safety classifier (Vertex AI or fallback)."""
+    # COPPA 2026: Check third-party consent before calling Google Cloud AI
+    if group_id and member_id and db:
+        from src.compliance.coppa_2026 import check_third_party_consent
+        has_consent = await check_third_party_consent(db, group_id, member_id, "google_cloud_ai")
+        if not has_consent:
+            logger.info(
+                "safety_classification_consent_degraded",
+                consent_degraded=True,
+                provider="google_cloud_ai",
+                group_id=str(group_id),
+                member_id=str(member_id),
+            )
+            # Fall back to keyword-only classification
+            try:
+                return await classify_safety(content, force_keyword_only=True)
+            except Exception as exc:
+                logger.error("safety_classification_error", error=str(exc))
+                return []
+
     try:
         return await classify_safety(content)
     except Exception as exc:

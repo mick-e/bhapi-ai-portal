@@ -87,14 +87,18 @@ _FALLBACK_PATTERNS: dict[str, list[tuple[re.Pattern, float]]] = {
 }
 
 
-async def classify(text: str) -> list[RiskClassification]:
+async def classify(text: str, force_keyword_only: bool = False) -> list[RiskClassification]:
     """Classify text content for safety risks.
 
     Uses the configured mode (keyword_only/vertex_ai/auto) to determine
-    which classifier path to use.
+    which classifier path to use. If force_keyword_only is True, always
+    use keyword fallback regardless of configured mode (COPPA consent degradation).
     """
     if not text or not text.strip():
         return []
+
+    if force_keyword_only:
+        return _classify_fallback(text)
 
     from src.config import get_settings
     settings = get_settings()

@@ -96,8 +96,14 @@ async def _create_auth_response(
 
 
 @router.post("/register", response_model=AuthResponse, status_code=201)
-async def register(data: RegisterRequest, response: Response, db: AsyncSession = Depends(get_db)):
+async def register(data: RegisterRequest, request: Request, response: Response, db: AsyncSession = Depends(get_db)):
     """Register a new user account, auto-create group, and return token."""
+    if not data.privacy_notice_accepted:
+        raise ValidationError(
+            "You must accept the privacy notice before creating an account. "
+            "Please review our privacy policy and check the acceptance box."
+        )
+
     user = await register_user(db, data)
 
     # Auto-create a group for the user
@@ -111,6 +117,21 @@ async def register(data: RegisterRequest, response: Response, db: AsyncSession =
         await send_verification_email(user)
     except Exception:
         pass  # Logged in send_verification_email
+
+    # Log privacy notice acceptance for COPPA compliance (non-blocking)
+    try:
+        from src.compliance.audit_logger import log_audit_event
+        async with db.begin_nested():
+            await log_audit_event(
+                db=db,
+                actor_id=user.id,
+                action="privacy_notice_accepted",
+                resource_type="user",
+                resource_id=str(user.id),
+                details={"account_type": data.account_type, "ip_address": request.client.host if request.client else None},
+            )
+    except Exception:
+        pass  # Audit logging should never block registration
 
     return await _create_auth_response(db, str(user.id), response)
 

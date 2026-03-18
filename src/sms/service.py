@@ -1,9 +1,12 @@
 """SMS notification service via Twilio REST API."""
 
+from __future__ import annotations
+
 import time
 from collections import defaultdict
 
 import structlog
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.config import get_settings
 
@@ -32,6 +35,8 @@ async def send_sms(
     to_phone: str,
     message: str,
     group_id: str | None = None,
+    member_id: str | None = None,
+    db: "AsyncSession | None" = None,
 ) -> bool:
     """Send an SMS via Twilio. In dev/test, log only."""
     settings = get_settings()
@@ -41,6 +46,21 @@ async def send_sms(
             _check_sms_rate(group_id)
         except SMSRateLimitError:
             logger.warning("sms_rate_limited", group_id=group_id, to=to_phone)
+            return False
+
+    # COPPA 2026: Check third-party consent before sending via Twilio
+    if group_id and member_id and db:
+        from uuid import UUID as _UUID
+        from src.compliance.coppa_2026 import check_third_party_consent
+        has_consent = await check_third_party_consent(
+            db, _UUID(group_id), _UUID(member_id), "twilio_sms"
+        )
+        if not has_consent:
+            logger.info(
+                "sms_skipped_no_twilio_consent",
+                group_id=group_id,
+                member_id=member_id,
+            )
             return False
 
     if settings.environment in ("development", "test"):

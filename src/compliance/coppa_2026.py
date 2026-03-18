@@ -251,6 +251,56 @@ async def set_refuse_partial_collection(
     return refreshed
 
 
+async def check_third_party_consent(
+    db: AsyncSession, group_id: UUID, member_id: UUID, provider_key: str
+) -> bool:
+    """Check if parent consented to share child data with a third-party provider.
+    Returns True only if an explicit consent record exists with consented=True
+    and withdrawn_at is None. Returns False if no record exists or if withdrawn.
+    """
+    result = await db.execute(
+        select(ThirdPartyConsentItem).where(
+            ThirdPartyConsentItem.group_id == group_id,
+            ThirdPartyConsentItem.member_id == member_id,
+            ThirdPartyConsentItem.provider_key == provider_key,
+            ThirdPartyConsentItem.consented.is_(True),
+            ThirdPartyConsentItem.withdrawn_at.is_(None),
+        )
+    )
+    return result.scalar_one_or_none() is not None
+
+
+async def check_push_notification_consent(
+    db: AsyncSession, group_id: UUID, member_id: UUID, notification_type: str
+) -> bool:
+    """Check if parent consented to receive a specific notification type.
+    Returns True only if explicit consent record exists with consented=True.
+    Returns False if no record or if explicitly withdrawn.
+    """
+    result = await db.execute(
+        select(PushNotificationConsent).where(
+            PushNotificationConsent.group_id == group_id,
+            PushNotificationConsent.member_id == member_id,
+            PushNotificationConsent.notification_type == notification_type,
+            PushNotificationConsent.consented.is_(True),
+        )
+    )
+    consent = result.scalar_one_or_none()
+    if consent and consent.withdrawn_at is not None:
+        return False
+    return consent is not None
+
+
+async def get_degraded_providers(
+    db: AsyncSession, group_id: UUID, member_id: UUID
+) -> list[str]:
+    """Return list of provider keys where consent is not granted.
+    Used by frontend to show degradation warnings.
+    """
+    items = await get_third_party_consents(db, group_id, member_id)
+    return [item.provider_key for item in items if not item.consented]
+
+
 # ---------------------------------------------------------------------------
 # Push notification consent
 # ---------------------------------------------------------------------------
@@ -352,6 +402,14 @@ async def initiate_video_verification(
 
     yoti_session_id = None
     if method == "yoti_id_check":
+        # COPPA 2026: Log Yoti verification initiation for audit trail
+        # Parent initiating verification is implicit consent to Yoti data sharing
+        logger.info(
+            "yoti_verification_consent_implicit",
+            group_id=str(group_id),
+            parent_user_id=str(parent_user_id),
+            method=method,
+        )
         try:
             from src.integrations.yoti import create_age_verification_session
             session = await create_age_verification_session(str(parent_user_id))

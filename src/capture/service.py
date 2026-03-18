@@ -38,6 +38,28 @@ async def ingest_event(
             "Record consent before monitoring can begin."
         )
 
+    # COPPA 2026: Age-gating — require signed family agreement for children <13
+    member_result = await db.execute(
+        select(GroupMember.date_of_birth).where(GroupMember.id == payload.member_id)
+    )
+    dob = member_result.scalar_one_or_none()
+    if dob:
+        from datetime import timezone as tz
+        now = datetime.now(tz.utc)
+        if dob.tzinfo is None:
+            dob = dob.replace(tzinfo=tz.utc)
+        age = now.year - dob.year
+        if (now.month, now.day) < (dob.month, dob.day):
+            age -= 1
+        if age < 13:
+            from src.groups import check_family_agreement_signed
+            has_agreement = await check_family_agreement_signed(db, payload.group_id, payload.member_id)
+            if not has_agreement:
+                raise ForbiddenError(
+                    "Capture blocked: a signed family agreement is required for children under 13. "
+                    "Please create and sign a family agreement before monitoring can begin."
+                )
+
     event = CaptureEvent(
         id=uuid4(),
         group_id=payload.group_id,

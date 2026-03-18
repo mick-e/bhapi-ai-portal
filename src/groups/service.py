@@ -423,6 +423,25 @@ async def check_member_consent(
     return count > 0
 
 
+async def check_family_agreement_signed(
+    db: AsyncSession, group_id: UUID, member_id: UUID
+) -> bool:
+    """Check if a member has signed the family agreement for their group.
+    Returns True if agreement exists and member has signed it.
+    Returns False if no agreement exists or member hasn't signed.
+    Signatures are stored as JSON in FamilyAgreement.signed_by_members.
+    """
+    from src.groups.agreement import get_active_agreement
+
+    agreement = await get_active_agreement(db, group_id)
+    if not agreement:
+        return False
+
+    # Check if member has signed (signatures stored as JSON list)
+    signed_members = agreement.signed_by_members or []
+    return any(s.get("member_id") == str(member_id) for s in signed_members)
+
+
 def group_to_response(group: Group) -> GroupResponse:
     """Convert Group model to GroupResponse schema."""
     return GroupResponse(

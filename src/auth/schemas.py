@@ -16,6 +16,7 @@ class RegisterRequest(BaseSchema):
     display_name: str = Field(min_length=1, max_length=255)
     account_type: str = Field(pattern="^(family|school|club)$")
     date_of_birth: datetime | None = None
+    privacy_notice_accepted: bool = False
 
     @field_validator("password")
     @classmethod

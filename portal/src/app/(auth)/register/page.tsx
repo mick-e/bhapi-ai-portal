@@ -63,6 +63,9 @@ export default function RegisterPage() {
   const [inquiryLoading, setInquiryLoading] = useState(false);
   const [inquirySubmitted, setInquirySubmitted] = useState(false);
 
+  // Privacy notice
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
+
   const [formError, setFormError] = useState<string | null>(null);
 
   const isContactForm = accountType === "school" || accountType === "club";
@@ -81,12 +84,18 @@ export default function RegisterPage() {
       return;
     }
 
+    if (!privacyAccepted) {
+      setFormError("Please review and accept the privacy notice before creating an account.");
+      return;
+    }
+
     try {
       await register({
         email,
         password,
         display_name: displayName,
         account_type: accountType,
+        privacy_notice_accepted: true,
       });
     } catch {
       // Error is handled by useAuth hook
@@ -299,10 +308,38 @@ export default function RegisterPage() {
               required
             />
 
+            {/* COPPA 2026: Privacy notice consent */}
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+              <p className="mb-3 text-sm font-medium text-gray-800">
+                Privacy &amp; Data Collection Notice
+              </p>
+              <ul className="mb-3 space-y-1.5 text-xs text-gray-600">
+                <li>Your child&apos;s AI interactions will be collected and analyzed for safety</li>
+                <li>Data may be shared with third-party providers (configurable in Privacy Settings)</li>
+                <li>You can withdraw consent and request data deletion at any time</li>
+              </ul>
+              <label className="flex items-start gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={privacyAccepted}
+                  onChange={(e) => setPrivacyAccepted(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                />
+                <span className="text-xs text-gray-700">
+                  I have read and accept the{" "}
+                  <Link href="/legal/privacy" className="font-medium text-primary-700 underline">
+                    Privacy Policy
+                  </Link>
+                  {" "}and understand how my family&apos;s data will be collected and used.
+                </span>
+              </label>
+            </div>
+
             <Button
               type="submit"
               size="lg"
               isLoading={isLoading}
+              disabled={!privacyAccepted}
               className="w-full"
             >
               Create account

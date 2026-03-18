@@ -73,6 +73,9 @@ async def process_capture_event(
         capture_event_data=capture_data,
         member_age=member_age,
         config=config,
+        group_id=capture_event.group_id,
+        member_id=capture_event.member_id,
+        db=db,
     )
 
     # Create risk events and alerts
