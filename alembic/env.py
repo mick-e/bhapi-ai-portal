@@ -45,6 +45,7 @@ from src.integrations.developer_portal import DeveloperApp, WebhookEndpoint, Web
 from src.risk.enterprise_policy import AIUsagePolicy, PolicyViolation  # noqa: F401
 from src.blocking.url_filter import URLFilterRule, URLCategory  # noqa: F401
 from src.alerts.correlation import AlertCorrelation  # noqa: F401
+from src.age_tier.models import AgeTierConfig  # noqa: F401
 
 config = context.config
 
