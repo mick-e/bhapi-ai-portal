@@ -132,11 +132,11 @@ All custom exceptions inherit from `src.exceptions.BhapiException`:
 
 ### Commands
 ```bash
-pytest tests/ -v              # All backend (1314 passed, 138 skipped, 4 xfailed)
-pytest tests/e2e/ -v          # E2E (639 passed, in-memory SQLite, no keys needed)
-pytest tests/unit/ -v          # Unit tests (521 passed)
-pytest tests/security/ -v     # Security (154 passed)
-cd portal && npx vitest run   # Frontend (60+ tests)
+pytest tests/ -v              # All backend (1578 passed, 139 skipped, 4 xfailed)
+pytest tests/e2e/ -v          # E2E (~700 passed, in-memory SQLite, no keys needed)
+pytest tests/unit/ -v          # Unit tests (~580 passed)
+pytest tests/security/ -v     # Security (~170 passed)
+cd portal && npx vitest run   # Frontend (174 tests)
 cd portal && npx tsc --noEmit # Type check (MUST run separately)
 # Production E2E (requires PROD_API_KEY in .env.local):
 PROD_BASE_URL=https://bhapi.ai PROD_API_KEY=<token> pytest tests/e2e/test_production.py -v  # 95 tests
@@ -154,6 +154,8 @@ Every endpoint needs: happy path + auth/403 + validation/422 + edge cases. Every
 - **alembic/env.py must import ALL models** — Every SQLAlchemy model class must be imported in `alembic/env.py` or `alembic revision --autogenerate` won't detect its tables/columns, silently skipping them. When adding a new model, add its import to `env.py` in the same commit
 - **Health check SQL must be valid** — `src/main.py` uses `text("SELECT 1")` for the DB health check. Never use `text("1")` — asyncpg rejects bare expressions and the health check falsely reports `database: "error"`, masking the real DB status
 - **Dashboard resilience** — `get_dashboard()` in `src/portal/service.py` wraps each section (activity, alerts, spend, risk, trends) in try/except with structlog and tracks failures in `degraded_sections`. The router endpoint has a catch-all that returns `DashboardResponse(degraded_sections=["all"])` on unexpected errors. The frontend shows an amber warning banner listing which sections failed
+- **COPPA consent enforcement (2026-03-19)** — All third-party API calls (SendGrid, Twilio, Google Cloud AI, Hive/Sensity) are now gated on `check_third_party_consent()`. Consent defaults to `False` (deny-by-default). Alert delivery checks both SendGrid consent AND push notification consent before sending. Risk pipeline falls back to keyword-only classifier when Google AI consent missing. Tests MUST include `"privacy_notice_accepted": True` in registration payloads or registration will return 422.
+- **Age-gating for children <13** — `ingest_event()` in capture service checks `date_of_birth` and requires a signed `FamilyAgreement` via `check_family_agreement_signed()` for children under 13. Tests involving capture for minors must create and sign a family agreement first.
 
 ## 8. File and Component Placement
 
