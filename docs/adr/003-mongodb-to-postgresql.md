@@ -1,8 +1,8 @@
 # ADR-003: MongoDB to PostgreSQL Migration
 
-## Status: Accepted
-
-## Date: 2026-03-17
+**Status:** Accepted
+**Date:** 2026-03-17
+**Deciders:** Engineering Team
 
 ## Context
 
@@ -38,7 +38,7 @@ Migrate all data from MongoDB to PostgreSQL. The AI Portal's PostgreSQL database
 
 ## Consequences
 
-**Positive:**
+### Positive
 
 - Single database technology to operate, monitor, back up, and tune.
 - All data benefits from PostgreSQL's ACID transactions, foreign key constraints, and CHECK constraints.
@@ -47,12 +47,18 @@ Migrate all data from MongoDB to PostgreSQL. The AI Portal's PostgreSQL database
 - The existing async SQLAlchemy infrastructure (connection pooling, session management, tenant isolation) covers all data access patterns.
 - Test infrastructure (async test sessions, factories, fixtures) works for all data immediately.
 
-**Negative:**
+### Negative
 
 - One-time migration effort: ETL script development, testing, and validation (~1-2 weeks).
 - MongoDB's flexible schema allowed some documents to have inconsistent shapes; these need manual review and normalization during mapping.
 - 30-day dual-database retention period increases hosting costs temporarily.
 - Any MongoDB-specific query patterns (aggregation pipelines, `$lookup`) must be rewritten as SQL joins or CTEs.
+
+### Risks
+
+- **Data loss during ETL**: Malformed MongoDB documents or edge cases in the transform logic could silently drop records. **Mitigation:** Dry-run mode with row-count validation before any production write; full audit log of every skip, merge, and conflict.
+- **User deduplication conflicts**: Two MongoDB accounts mapped to the same email, or a MongoDB account whose email does not exist in the Portal. **Mitigation:** ETL script handles all three cases explicitly (merge, create-new, conflict-report); conflicts require manual review before cutover.
+- **30-day MongoDB retention cost**: Two live databases during the retention window. **Mitigation:** The cost is bounded and time-limited; MongoDB instance is set to read-only immediately after cutover.
 
 ## Alternatives Considered
 
@@ -73,3 +79,8 @@ Migrate all data from MongoDB to PostgreSQL. The AI Portal's PostgreSQL database
 - **Pros**: No migration needed. Each database handles what it's best at.
 - **Cons**: Data synchronization between two databases is a source of subtle bugs (eventual consistency, failed syncs, ordering issues). Adds operational complexity (sync monitoring, conflict resolution). Does not reduce the number of technologies to maintain. Still no referential integrity across boundaries.
 - **Rejected because**: Sync layers introduce more problems than they solve at this scale. The simplicity of one database outweighs any theoretical performance benefit of polyglot persistence.
+
+## Related ADRs
+
+- [ADR-005](005-platform-unification.md) — Platform unification (this migration is a prerequisite step in the consolidation plan)
+- [ADR-010](010-clean-break-no-data-migration.md) — Clean break / no data migration (supersedes this ADR if the decision is made to not carry legacy data forward)

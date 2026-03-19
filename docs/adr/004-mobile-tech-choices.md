@@ -1,8 +1,8 @@
 # ADR-004: Mobile App Greenfield with Expo SDK 52+
 
-## Status: Accepted
-
-## Date: 2026-03-17
+**Status:** Accepted
+**Date:** 2026-03-17
+**Deciders:** Engineering Team
 
 ## Context
 
@@ -39,7 +39,7 @@ Greenfield the mobile app using Expo SDK 52+ with React Native 0.76+, rather tha
 
 ## Consequences
 
-**Positive:**
+### Positive
 
 - Modern, secure foundation from day one. `expo-secure-store` fixes the critical token storage vulnerability.
 - TypeScript catches entire classes of bugs at compile time that the untyped JS codebase could not.
@@ -50,12 +50,18 @@ Greenfield the mobile app using Expo SDK 52+ with React Native 0.76+, rather tha
 - Test infrastructure is built in from the start, not bolted on after the fact.
 - EAS Build handles iOS and Android builds in the cloud without requiring local Xcode/Android Studio setup.
 
-**Negative:**
+### Negative
 
 - The old mobile app's functionality must be rebuilt from scratch. Screens, navigation, and integrations are reimplemented.
 - Team must learn Expo-specific patterns if not already familiar.
 - Expo's managed workflow has some limitations for custom native modules (mitigated by `expo-dev-client` and config plugins).
 - Two mobile codebases exist temporarily during the transition period until the old app is archived.
+
+### Risks
+
+- **App store review delays**: New apps require initial App Store / Google Play review, which can take 1-7 days. **Mitigation:** Submit for review early; use EAS Update (OTA) for bug fixes that do not require native changes.
+- **Expo SDK version lag behind React Native**: Expo SDK releases trail React Native by weeks to months. **Mitigation:** Expo SDK 52 is current and stable; the managed workflow is the intended path.
+- **Custom native module gaps**: Some device capabilities may not have Expo config plugins yet. **Mitigation:** `expo-dev-client` allows ejecting individual modules without leaving the managed workflow entirely.
 
 ## Alternatives Considered
 
@@ -78,3 +84,7 @@ Greenfield the mobile app using Expo SDK 52+ with React Native 0.76+, rather tha
 - **Pros**: Single codebase (the existing Next.js portal). No app store submission. Instant updates.
 - **Cons**: No access to Keychain/EncryptedSharedPreferences (tokens remain in localStorage). Push notifications are limited on iOS (no background push until iOS 16.4, still limited). No access to platform-specific parental control APIs. App store presence matters for consumer trust, especially for a child safety product. PWA install rates are significantly lower than native app downloads.
 - **Rejected because**: The security requirements (encrypted token storage) and platform integration needs (parental controls, push notifications) require native capabilities that PWAs cannot provide.
+
+## Related ADRs
+
+- [ADR-006](006-two-app-mobile-strategy.md) — Two-app mobile strategy (builds on this decision; defines the Safety and Social app split)

@@ -1,8 +1,8 @@
 # ADR-002: Social Module Structure
 
-## Status: Accepted
-
-## Date: 2026-03-17
+**Status:** Accepted
+**Date:** 2026-03-17
+**Deciders:** Engineering Team
 
 ## Context
 
@@ -57,7 +57,7 @@ Each module will:
 
 ## Consequences
 
-**Positive:**
+### Positive
 
 - Consistent patterns across the entire codebase. New developers learn one module, they know them all.
 - Shared infrastructure: auth, RBAC, rate limiting, logging, error handling, CORS, and middleware are inherited automatically.
@@ -66,17 +66,17 @@ Each module will:
 - PostgreSQL FTS with GIN indexes (already proven in the codebase) handles social search without a separate search service.
 - Testing infrastructure (fixtures, factories, async test session) is reused directly.
 
-**Negative:**
+### Negative
 
 - The monolith grows larger. The `src/` directory will expand from 19 to ~24 modules.
 - Social features with high write volume (messaging, feeds) share the same database connection pool as safety-critical features (risk assessment, alerts).
 - If social features require real-time capabilities (WebSocket for chat), the existing deployment may need adjustment for persistent connections.
 
-**Mitigations:**
+### Risks
 
-- Database connection pool sizing can be tuned per-workload via configuration.
-- WebSocket support can be added to FastAPI without architectural changes (it supports WebSocket natively).
-- If social write volume becomes a bottleneck, read replicas can be introduced at the database level without changing application code.
+- **Database connection pool contention**: High-volume social writes (messaging, feed updates) could starve safety-critical queries. **Mitigation:** Connection pool sizing is configurable per workload; read replicas can be introduced at the database level without application code changes.
+- **WebSocket scaling**: Persistent WebSocket connections require careful Render service configuration. **Mitigation:** FastAPI supports WebSocket natively; this is a deployment configuration concern, not an architectural one (see ADR-008).
+- **Content moderation latency on social writes**: Blocking on risk assessment for every post could hurt UX. **Mitigation:** Content moderation hooks run asynchronously; posts are published immediately and flagged after the fact if needed.
 
 ## Alternatives Considered
 
@@ -91,3 +91,8 @@ Each module will:
 - **Pros**: Flexible queries for social feeds (clients request exactly the fields they need). Good fit for relationship-heavy data (followers, threads). Strong ecosystem (Apollo, Relay).
 - **Cons**: Introduces a second API paradigm alongside the existing REST API. N+1 query problems require DataLoader patterns. Authorization must be implemented separately from the existing `require_permission()` system. The frontend (Next.js + React Query) is already built around REST patterns; adding GraphQL means maintaining two data-fetching strategies. Adds complexity without clear benefit given the team size.
 - **Rejected because**: The cognitive overhead of maintaining two API paradigms (REST + GraphQL) outweighs the query flexibility benefits. REST with well-designed endpoints and pagination covers the social use cases adequately.
+
+## Related ADRs
+
+- [ADR-005](005-platform-unification.md) — Platform unification (social modules are part of the consolidated codebase)
+- [ADR-009](009-age-tier-permission-model.md) — Age tier permission model (governs which social features are accessible per child age tier)

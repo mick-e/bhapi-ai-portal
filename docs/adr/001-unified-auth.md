@@ -1,8 +1,8 @@
 # ADR-001: Unified Authentication System
 
-## Status: Accepted
-
-## Date: 2026-03-17
+**Status:** Accepted
+**Date:** 2026-03-17
+**Deciders:** Engineering Team
 
 ## Context
 
@@ -28,7 +28,7 @@ Specifically:
 
 ## Consequences
 
-**Positive:**
+### Positive
 
 - Leverages a battle-tested system with 1,400+ tests already passing, including 639 E2E and 154 security tests.
 - No new vendor dependency or recurring SaaS cost.
@@ -36,11 +36,17 @@ Specifically:
 - Single auth codebase means one place to patch vulnerabilities.
 - API key scoping model naturally extends to new modules (social, marketplace, etc.).
 
-**Negative:**
+### Negative
 
 - Engineering team must understand and maintain the auth system in-house rather than offloading to a managed service.
 - OAuth2/OIDC social login (Google, Apple) will need to be built on top of the existing system rather than coming out of the box.
 - Scaling token validation under high load is our responsibility (mitigated by Redis caching layer with graceful degradation).
+
+### Risks
+
+- **In-house auth complexity**: Custom auth systems accumulate subtle security bugs over time. **Mitigation:** The 154-test security suite provides ongoing regression coverage; all auth changes require security test expansion.
+- **Redis dependency for token caching**: Cache outage could degrade token validation performance. **Mitigation:** In-memory fallback is already implemented and tested.
+- **OAuth social login gap**: Users who prefer social login may have a worse onboarding experience initially. **Mitigation:** OAuth2/OIDC can be layered on without replacing the core token system.
 
 ## Alternatives Considered
 
@@ -61,3 +67,7 @@ Specifically:
 - **Pros**: Each product team owns its own auth, no coordination needed.
 - **Cons**: Duplicate user stores, inconsistent security posture, users need separate accounts for each product, no cross-product SSO, double the attack surface, double the maintenance burden. Directly contradicts the goal of platform unification.
 - **Rejected because**: Fundamentally incompatible with the unified platform vision.
+
+## Related ADRs
+
+- [ADR-005](005-platform-unification.md) — Platform unification (this auth system is the designated unified auth layer)

@@ -1,8 +1,8 @@
 # ADR-005: Platform Unification and Repository Consolidation
 
-## Status: Accepted
-
-## Date: 2026-03-17
+**Status:** Accepted
+**Date:** 2026-03-17
+**Deciders:** Engineering Team
 
 ## Context
 
@@ -46,7 +46,7 @@ Unify all Bhapi products under a single "Bhapi Platform" brand with the AI Porta
 
 ## Consequences
 
-**Positive:**
+### Positive
 
 - One repository to maintain, one CI pipeline, one deployment, one set of dependencies to keep current.
 - Zero-test legacy code is archived, not carried forward. The unified platform starts with 1,400+ tests as its baseline, not 0.
@@ -56,12 +56,18 @@ Unify all Bhapi products under a single "Bhapi Platform" brand with the AI Porta
 - Security patches are applied in one place. No risk of forgetting to patch the "other" API.
 - The brand story is simple: Bhapi is one product, not a confusing collection of loosely related repos.
 
-**Negative:**
+### Negative
 
 - Archiving repositories is psychologically difficult (sunk cost). The team must accept that code with 0 tests and outdated dependencies has negative value, not positive value.
 - GitHub redirects from the old repository name will work, but any hardcoded references (CI scripts, documentation, bookmarks) need updating.
 - Users of the old Bhapi App will need to create new accounts on the unified platform (mitigated by email-based deduplication during migration).
 - The monorepo grows in scope, which increases CI build times (mitigated by targeted test runs and caching).
+
+### Risks
+
+- **Repository rename breaks external integrations**: Any webhook URLs, CI configurations, or deployment scripts that reference the old repo name by URL (not via GitHub redirect) will break. **Mitigation:** Audit all webhook registrations and CI environment variables before renaming; GitHub redirects cover browser and Git remote access automatically.
+- **Legacy user account loss**: Users of the old Bhapi App who do not have a matching email in the AI Portal will be prompted to create new accounts. **Mitigation:** Email deduplication during ETL (ADR-003) covers the majority of cases; remaining users receive a migration email with a one-time link.
+- **CI build time growth**: A larger consolidated repo increases total test runtime. **Mitigation:** Targeted test runs (changed modules only) and GitHub Actions caching reduce wall-clock time; the current 1,400-test suite completes in under 5 minutes.
 
 ## Alternatives Considered
 
@@ -82,3 +88,10 @@ Unify all Bhapi products under a single "Bhapi Platform" brand with the AI Porta
 - **Pros**: Perfectly clean codebase. No legacy patterns carried forward.
 - **Cons**: The AI Portal is not legacy. It has 1,400+ tests, 19 modules, COPPA/GDPR compliance, a production deployment, and active users. Rewriting it would discard months of validated, production-proven code. This is the classic "second system effect" antipattern.
 - **Rejected because**: The AI Portal is the good codebase. The decision is to archive the bad code and keep the good code, not to throw away everything and start over.
+
+## Related ADRs
+
+- [ADR-001](001-unified-auth.md) — Unified authentication (the Portal's auth system is designated the unified auth layer)
+- [ADR-002](002-social-module-structure.md) — Social module structure (social features are built within the consolidated codebase)
+- [ADR-003](003-mongodb-to-postgresql.md) — MongoDB to PostgreSQL migration (prerequisite data migration for consolidation)
+- [ADR-004](004-mobile-tech-choices.md) — Mobile app greenfield (the new mobile app is part of the unified platform)
