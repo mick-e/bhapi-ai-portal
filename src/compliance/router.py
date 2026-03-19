@@ -179,6 +179,28 @@ async def coppa_status(
 
 
 # ---------------------------------------------------------------------------
+# COPPA 2026 — Parental Data Collection Dashboard
+# ---------------------------------------------------------------------------
+
+
+@router.get("/coppa/data-dashboard")
+async def coppa_data_dashboard(
+    group_id: UUID = Query(...),
+    member_id: UUID = Query(...),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return parental data collection dashboard for a child member (COPPA 2026).
+
+    Shows parents what data is collected, which third parties have access,
+    retention policies, and degraded providers for transparency compliance.
+    """
+    from src.compliance.coppa_2026 import get_data_dashboard
+
+    return await get_data_dashboard(db, group_id, member_id)
+
+
+# ---------------------------------------------------------------------------
 # COPPA 2026 Dashboard
 # ---------------------------------------------------------------------------
 
@@ -645,6 +667,40 @@ async def list_video_verifications_endpoint(
     from src.compliance.coppa_2026 import get_parent_verifications
 
     return await get_parent_verifications(db, group_id, auth.user_id)
+
+
+# ─── COPPA 2026 — Safe Harbor Certificate ─────────────────────────────────
+
+
+@router.get("/coppa/safe-harbor-certificate")
+async def get_safe_harbor_certificate(
+    group_id: UUID = Query(...),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Generate COPPA safe harbor compliance certificate data (COPPA 2026)."""
+    from src.compliance.coppa_2026 import generate_safe_harbor_certificate
+
+    return await generate_safe_harbor_certificate(db, group_id)
+
+
+@router.get("/coppa/safe-harbor-certificate/pdf")
+async def get_safe_harbor_certificate_pdf(
+    group_id: UUID = Query(...),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Download COPPA safe harbor compliance certificate as PDF (COPPA 2026)."""
+    from src.compliance.coppa_2026 import generate_safe_harbor_certificate_pdf
+
+    pdf_bytes = await generate_safe_harbor_certificate_pdf(db, group_id)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": 'attachment; filename="coppa_safe_harbor_certificate.pdf"',
+        },
+    )
 
 
 @router.get("/coppa/video-verification-status")

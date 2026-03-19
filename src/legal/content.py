@@ -162,6 +162,66 @@ date. Continued use of the platform after notification constitutes acceptance.</
 </html>"""
 
 
+PRIVACY_FOR_CHILDREN = """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Your Privacy — Easy Guide — Bhapi</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+         max-width: 700px; margin: 0 auto; padding: 2rem; line-height: 1.8; color: #1a1a1a; }
+  h1 { font-size: 1.75rem; color: #FF6B35; border-bottom: 3px solid #FF6B35; padding-bottom: 0.5rem; }
+  h2 { font-size: 1.35rem; margin-top: 2rem; color: #0D9488; }
+  p { font-size: 1.1rem; }
+  .section { background: #f9fafb; border-radius: 12px; padding: 1.25rem 1.5rem;
+             margin: 1.5rem 0; border-left: 4px solid #0D9488; }
+  .updated { color: #6b7280; font-size: 0.9rem; }
+  a { color: #0D9488; }
+</style>
+</head>
+<body>
+<h1>Your Privacy &mdash; Easy Guide</h1>
+<p class="updated">Last updated: 18 March 2026</p>
+<p>This page explains what Bhapi does in simple words. If you have questions, ask your parent or guardian.</p>
+
+<div class="section">
+<h2>What We Watch</h2>
+<p>When you use AI tools like ChatGPT, Gemini, or Claude, Bhapi checks to make sure nothing unsafe is happening.</p>
+<p>We see which AI tool you used and when you used it. We do <strong>not</strong> read everything you type.
+We only look more closely if something seems unsafe.</p>
+</div>
+
+<div class="section">
+<h2>Who Can See</h2>
+<p>Only your parent or guardian can see your activity. If your school set up Bhapi, your teacher may also see it.</p>
+<p>We never show your information to advertisers or strangers. We never sell your data.</p>
+</div>
+
+<div class="section">
+<h2>Your Rights</h2>
+<p>You have the right to:</p>
+<ul>
+<li>Ask your parent to show you what data we have about you.</li>
+<li>Ask your parent to delete your data.</li>
+<li>Ask your parent to stop collecting your data at any time.</li>
+</ul>
+<p>Your parent can do all of this from their Bhapi dashboard or by emailing us.</p>
+</div>
+
+<div class="section">
+<h2>Need Help?</h2>
+<p>If you have questions or something worries you:</p>
+<ul>
+<li>Talk to your parent or guardian.</li>
+<li>Ask them to email <a href="mailto:help@bhapi.ai">help@bhapi.ai</a>.</li>
+</ul>
+</div>
+
+</body>
+</html>"""
+
+
 TERMS_OF_SERVICE = """<!DOCTYPE html>
 <html lang="en">
 <head>

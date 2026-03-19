@@ -9,8 +9,11 @@ import structlog
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from sqlalchemy import func as sa_func
+
 from src.compliance.models import (
     PushNotificationConsent,
+    RetentionPolicy,
     ThirdPartyConsentItem,
     VideoVerification,
 )
@@ -509,6 +512,341 @@ async def get_parent_verifications(
         )
     )
     return list(result.scalars().all())
+
+
+async def generate_safe_harbor_certificate(
+    db: AsyncSession, group_id: UUID
+) -> dict:
+    """Generate safe harbor compliance certificate data.
+
+    Shows FTC-approved verification methods used and verification history.
+    """
+    from src.groups.models import Group
+
+    # Get group info
+    group_result = await db.execute(select(Group).where(Group.id == group_id))
+    group = group_result.scalar_one_or_none()
+    if not group:
+        raise NotFoundError("Group", str(group_id))
+
+    # Get all video verifications for this group
+    verifications = await db.execute(
+        select(VideoVerification).where(
+            VideoVerification.group_id == group_id,
+        )
+    )
+    verification_list = list(verifications.scalars().all())
+
+    verified_count = sum(1 for v in verification_list if v.status == "verified")
+    methods_used = list(set(v.verification_method for v in verification_list))
+
+    return {
+        "group_name": group.name,
+        "group_id": str(group_id),
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "compliance_status": "compliant" if verified_count > 0 else "pending",
+        "verification_methods_available": ["video_selfie", "yoti_id_check", "video_call"],
+        "verification_methods_used": methods_used,
+        "total_verifications": len(verification_list),
+        "successful_verifications": verified_count,
+        "verification_history": [
+            {
+                "method": v.verification_method,
+                "status": v.status,
+                "initiated_at": v.created_at.isoformat() if v.created_at else None,
+                "verified_at": v.verified_at.isoformat() if v.verified_at else None,
+                "score": v.verification_score,
+            }
+            for v in verification_list
+        ],
+        "ftc_methods_description": (
+            "This organization uses FTC-approved verifiable parental consent methods "
+            "including video-based identity verification and government ID checks "
+            "per 16 CFR \u00a7 312.5(b)."
+        ),
+    }
+
+
+async def generate_safe_harbor_certificate_pdf(
+    db: AsyncSession, group_id: UUID
+) -> bytes:
+    """Generate a PDF safe harbor compliance certificate.
+
+    Uses ReportLab to create a certificate-style document.
+    """
+    import io
+
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+    from reportlab.lib.units import inch
+    from reportlab.platypus import (
+        Paragraph,
+        SimpleDocTemplate,
+        Spacer,
+        Table,
+        TableStyle,
+    )
+
+    cert_data = await generate_safe_harbor_certificate(db, group_id)
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        title="COPPA Safe Harbor Compliance Certificate",
+    )
+    styles = getSampleStyleSheet()
+
+    # Custom styles with unique names to avoid ReportLab conflicts
+    title_style = ParagraphStyle(
+        "SafeHarborTitle",
+        parent=styles["Heading1"],
+        fontSize=20,
+        spaceAfter=16,
+        alignment=1,  # center
+    )
+    heading_style = ParagraphStyle(
+        "SafeHarborHeading",
+        parent=styles["Heading2"],
+        fontSize=14,
+        spaceAfter=8,
+    )
+    body_style = ParagraphStyle(
+        "SafeHarborBody",
+        parent=styles["Normal"],
+        fontSize=10,
+        spaceAfter=6,
+    )
+    footer_style = ParagraphStyle(
+        "SafeHarborFooter",
+        parent=styles["Normal"],
+        fontSize=8,
+        textColor=colors.grey,
+        alignment=1,
+    )
+
+    elements: list = []
+
+    # Title
+    elements.append(Paragraph("COPPA Safe Harbor Compliance Certificate", title_style))
+    elements.append(Spacer(1, 0.3 * inch))
+
+    # Organization info
+    elements.append(Paragraph("Organization Details", heading_style))
+    elements.append(Paragraph(f"Organization: {cert_data['group_name']}", body_style))
+    elements.append(Paragraph(f"Group ID: {cert_data['group_id']}", body_style))
+    elements.append(Paragraph(f"Generated: {cert_data['generated_at']}", body_style))
+    elements.append(Paragraph(
+        f"Compliance Status: {cert_data['compliance_status'].title()}",
+        body_style,
+    ))
+    elements.append(Spacer(1, 0.3 * inch))
+
+    # Verification methods
+    elements.append(Paragraph("FTC-Approved Verification Methods", heading_style))
+    methods_used = cert_data["verification_methods_used"]
+    if methods_used:
+        elements.append(Paragraph(
+            f"Methods used: {', '.join(m.replace('_', ' ').title() for m in methods_used)}",
+            body_style,
+        ))
+    else:
+        elements.append(Paragraph("No verification methods used yet.", body_style))
+    elements.append(Paragraph(
+        f"Total verifications: {cert_data['total_verifications']}",
+        body_style,
+    ))
+    elements.append(Paragraph(
+        f"Successful verifications: {cert_data['successful_verifications']}",
+        body_style,
+    ))
+    elements.append(Spacer(1, 0.3 * inch))
+
+    # Verification history table
+    history = cert_data["verification_history"]
+    if history:
+        elements.append(Paragraph("Verification History", heading_style))
+        table_data = [["Method", "Status", "Initiated", "Verified", "Score"]]
+        for entry in history:
+            table_data.append([
+                entry["method"].replace("_", " ").title(),
+                entry["status"].title(),
+                entry["initiated_at"] or "N/A",
+                entry["verified_at"] or "N/A",
+                str(entry["score"]) if entry["score"] is not None else "N/A",
+            ])
+        table = Table(table_data, repeatRows=1)
+        table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1a365d")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, 0), 9),
+            ("FONTSIZE", (0, 1), (-1, -1), 8),
+            ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.lightgrey),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f7fafc")]),
+            ("LEFTPADDING", (0, 0), (-1, -1), 6),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+            ("TOPPADDING", (0, 0), (-1, -1), 4),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ]))
+        elements.append(table)
+        elements.append(Spacer(1, 0.3 * inch))
+
+    # FTC citation
+    elements.append(Paragraph("Regulatory Reference", heading_style))
+    elements.append(Paragraph(cert_data["ftc_methods_description"], body_style))
+    elements.append(Spacer(1, 0.5 * inch))
+
+    # Footer disclaimer
+    elements.append(Paragraph(
+        "This document is generated for compliance evidence purposes.",
+        footer_style,
+    ))
+    elements.append(Paragraph(
+        "bhapi.ai \u2014 Family AI Governance Platform",
+        footer_style,
+    ))
+
+    doc.build(elements)
+    logger.info(
+        "safe_harbor_certificate_pdf_generated",
+        group_id=str(group_id),
+    )
+    return buffer.getvalue()
+
+
+async def get_data_dashboard(
+    db: AsyncSession, group_id: UUID, member_id: UUID
+) -> dict:
+    """Build a parental data collection dashboard for a child member.
+
+    Aggregates capture events, risk events, alerts, third-party consent status,
+    retention policies, and degraded providers into a single response for
+    COPPA 2026 parental transparency requirements.
+    """
+    from src.alerts.models import Alert
+    from src.capture.models import CaptureEvent
+    from src.risk.models import RiskEvent
+
+    # Verify member exists
+    member_result = await db.execute(
+        select(GroupMember).where(
+            GroupMember.id == member_id,
+            GroupMember.group_id == group_id,
+        )
+    )
+    member = member_result.scalar_one_or_none()
+    if not member:
+        raise NotFoundError("Member", str(member_id))
+
+    # Capture events count
+    capture_count_result = await db.execute(
+        select(sa_func.count()).select_from(CaptureEvent).where(
+            CaptureEvent.group_id == group_id,
+            CaptureEvent.member_id == member_id,
+        )
+    )
+    capture_events_count = capture_count_result.scalar() or 0
+
+    # Distinct platforms monitored
+    platforms_result = await db.execute(
+        select(CaptureEvent.platform).where(
+            CaptureEvent.group_id == group_id,
+            CaptureEvent.member_id == member_id,
+        ).distinct()
+    )
+    platforms_monitored = [row[0] for row in platforms_result.all()]
+
+    # Risk events count
+    risk_count_result = await db.execute(
+        select(sa_func.count()).select_from(RiskEvent).where(
+            RiskEvent.group_id == group_id,
+            RiskEvent.member_id == member_id,
+        )
+    )
+    risk_events_count = risk_count_result.scalar() or 0
+
+    # High severity risk events (high + critical)
+    high_severity_result = await db.execute(
+        select(sa_func.count()).select_from(RiskEvent).where(
+            RiskEvent.group_id == group_id,
+            RiskEvent.member_id == member_id,
+            RiskEvent.severity.in_(["high", "critical"]),
+        )
+    )
+    high_severity_count = high_severity_result.scalar() or 0
+
+    # Alerts count
+    alerts_count_result = await db.execute(
+        select(sa_func.count()).select_from(Alert).where(
+            Alert.group_id == group_id,
+            Alert.member_id == member_id,
+        )
+    )
+    alerts_sent_count = alerts_count_result.scalar() or 0
+
+    # Third-party consent status
+    consent_items = await get_third_party_consents(db, group_id, member_id)
+    third_party_sharing = [
+        {
+            "provider": item.provider_name,
+            "consented": item.consented,
+            "last_updated": (
+                (item.consented_at or item.withdrawn_at or item.created_at).isoformat()
+                if (item.consented_at or item.withdrawn_at or item.created_at)
+                else None
+            ),
+        }
+        for item in consent_items
+    ]
+
+    # Retention policies for this group
+    retention_result = await db.execute(
+        select(RetentionPolicy).where(RetentionPolicy.group_id == group_id)
+    )
+    retention_rows = list(retention_result.scalars().all())
+    now = datetime.now(timezone.utc)
+    retention_policies = [
+        {
+            "data_type": rp.data_type,
+            "retention_days": rp.retention_days,
+            "auto_delete": rp.auto_delete,
+            "estimated_deletion": (
+                (now + timedelta(days=rp.retention_days)).isoformat()
+                if rp.auto_delete
+                else None
+            ),
+        }
+        for rp in retention_rows
+    ]
+
+    # Degraded providers
+    degraded = await get_degraded_providers(db, group_id, member_id)
+
+    logger.info(
+        "data_dashboard_generated",
+        group_id=str(group_id),
+        member_id=str(member_id),
+        capture_count=capture_events_count,
+        risk_count=risk_events_count,
+    )
+
+    return {
+        "member_name": member.display_name,
+        "data_summary": {
+            "capture_events_count": capture_events_count,
+            "platforms_monitored": platforms_monitored,
+            "risk_events_count": risk_events_count,
+            "high_severity_count": high_severity_count,
+            "alerts_sent_count": alerts_sent_count,
+        },
+        "third_party_sharing": third_party_sharing,
+        "retention_policies": retention_policies,
+        "degraded_providers": degraded,
+    }
 
 
 async def has_valid_video_verification(

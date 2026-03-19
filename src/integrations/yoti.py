@@ -1,8 +1,11 @@
 """Yoti Age Check API integration."""
 
 import structlog
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.config import get_settings
+from src.exceptions import NotFoundError
 
 logger = structlog.get_logger()
 
@@ -73,3 +76,36 @@ async def get_age_verification_result(session_id: str) -> dict:
                 "session_id": session_id,
             }
         raise ValueError(f"Yoti result fetch failed: {resp.status_code}")
+
+
+async def handle_yoti_callback(
+    db: AsyncSession, session_id: str, status: str, score: float | None = None
+) -> dict:
+    """Process Yoti verification callback.
+
+    Updates the VideoVerification record matching the yoti_session_id.
+    """
+    from src.compliance.coppa_2026 import complete_video_verification
+    from src.compliance.models import VideoVerification
+
+    result = await db.execute(
+        select(VideoVerification).where(
+            VideoVerification.yoti_session_id == session_id
+        )
+    )
+    verification = result.scalar_one_or_none()
+    if not verification:
+        raise NotFoundError("VideoVerification with yoti_session_id", session_id)
+
+    if status == "DONE":
+        await complete_video_verification(db, verification.id, score or 0.9)
+    elif status == "FAILED":
+        await complete_video_verification(db, verification.id, 0.0)
+
+    logger.info(
+        "yoti_callback_processed",
+        session_id=session_id,
+        status=status,
+        verification_id=str(verification.id),
+    )
+    return {"verification_id": str(verification.id), "status": verification.status}

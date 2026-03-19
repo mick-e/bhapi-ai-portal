@@ -38,6 +38,7 @@ PUBLIC_PREFIXES = (
     "/api/v1/portal/blog",
     "/api/v1/compliance/algorithmic-transparency",
     "/api/v1/blocking/url-filter/categories",
+    "/api/v1/integrations/yoti/callback",
 )
 
 

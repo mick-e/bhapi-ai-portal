@@ -681,6 +681,17 @@
     "ctaContactSales": "Contact Sales",
     "copyright": "Bhapi. All rights reserved."
   },
+  "privacy_children": {
+    "title": "Your Privacy — Easy Guide",
+    "what_we_watch_title": "What We Watch",
+    "what_we_watch_text": "We see what AI tools you use (like ChatGPT) and check if anything seems unsafe.",
+    "who_can_see_title": "Who Can See",
+    "who_can_see_text": "Only your parent or guardian — and your school if they set it up.",
+    "your_rights_title": "Your Rights",
+    "your_rights_text": "You can ask your parent to see your data, delete it, or stop collecting it at any time.",
+    "need_help_title": "Need Help?",
+    "need_help_text": "Talk to your parent or email help@bhapi.ai if you have questions."
+  },
   "common": {
     "loading": "Loading...",
     "somethingWentWrong": "Something went wrong",

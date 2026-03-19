@@ -670,6 +670,17 @@
     "ctaContactSales": "Contatta le Vendite",
     "copyright": "Bhapi. Tutti i diritti riservati."
   },
+  "privacy_children": {
+    "title": "La tua privacy — Guida semplice",
+    "what_we_watch_title": "Cosa controlliamo",
+    "what_we_watch_text": "Vediamo quali strumenti IA usi (come ChatGPT) e controlliamo se qualcosa sembra pericoloso.",
+    "who_can_see_title": "Chi puo vedere",
+    "who_can_see_text": "Solo il tuo genitore o tutore — e la tua scuola, se l'ha configurato.",
+    "your_rights_title": "I tuoi diritti",
+    "your_rights_text": "Puoi chiedere al tuo genitore di vedere i tuoi dati, cancellarli o smettere di raccoglierli in qualsiasi momento.",
+    "need_help_title": "Hai bisogno di aiuto?",
+    "need_help_text": "Parla con il tuo genitore o scrivi a help@bhapi.ai se hai domande."
+  },
   "common": {
     "loading": "Caricamento...",
     "somethingWentWrong": "Qualcosa è andato storto",

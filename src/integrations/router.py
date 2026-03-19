@@ -306,6 +306,28 @@ async def age_verify_callback(
     return await process_age_verification_result(db, group_id, member_id, session_id)
 
 
+# ─── Yoti Webhook Callback (PUBLIC — no auth required) ─────────────────────
+
+
+class YotiCallbackRequest(BaseModel):
+    """Yoti webhook callback payload."""
+
+    session_id: str = Field(..., description="Yoti verification session ID")
+    status: str = Field(..., pattern="^(DONE|FAILED)$", description="Verification result status")
+    score: float | None = Field(None, ge=0.0, le=1.0, description="Verification confidence score")
+
+
+@router.post("/yoti/callback")
+async def yoti_webhook_callback(
+    data: YotiCallbackRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Process Yoti verification webhook callback (PUBLIC — called by Yoti, no auth)."""
+    from src.integrations.yoti import handle_yoti_callback
+
+    return await handle_yoti_callback(db, data.session_id, data.status, data.score)
+
+
 # ─── Cross-Product ──────────────────────────────────────────────────────────
 
 
