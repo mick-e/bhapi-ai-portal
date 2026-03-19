@@ -1,8 +1,8 @@
 # Bhapi Unified Platform — Design Specification
 
-**Version:** 1.1
+**Version:** 1.2
 **Date:** March 19, 2026
-**Status:** Draft (post-review revision)
+**Status:** Draft (post-review revision + gap additions)
 **Based on:** Bhapi Gap Analysis Q2 2026, Platform Unification Plan (Mar 17), Brainstorming Session (Mar 19)
 
 ---
@@ -226,6 +226,29 @@ src/realtime/
 
 This is documented as a constraint: the WebSocket service MUST NOT hold persistent DB connections per WebSocket session. Use Redis for all real-time state (presence, typing indicators); PostgreSQL only for durable writes.
 
+### 2.4 Observability & Monitoring
+
+The existing monolith has structured JSON logging (`structlog`) with correlation IDs and request timing middleware. New services require equivalent observability:
+
+| Service | Key Metrics | Alerting Threshold |
+|---------|------------|-------------------|
+| **Monolith (FastAPI)** | Request latency (p50/p95/p99), error rate, endpoint throughput | p95 >500ms, error rate >1% |
+| **WebSocket service** | Concurrent connections, message throughput/sec, connection errors, reconnection rate | Connections >80% of limit, error rate >2% |
+| **Moderation pipeline** | Pre-publish latency (p50/p95), false positive rate, false negative rate (sampled), queue depth, queue age | **p95 >2s (SLA breach)**, queue age >30s |
+| **Cloudflare media** | Upload success rate, webhook delivery latency, image/video processing time | Success rate <99%, webhook latency >5s |
+| **Intelligence engine** | Events processed/sec, correlation hit rate, alert generation rate | Processing lag >60s |
+| **CSAM detection** | Scan rate, match count, NCMEC report submission success | Any failed NCMEC submission = immediate page |
+| **Mobile apps** | Crash rate, ANR rate (Android), screen load time, API call success rate | Crash rate >1%, ANR >0.5% |
+
+**Implementation:**
+- Backend: `structlog` with correlation IDs (existing pattern) extended to all new modules
+- WebSocket: Same `structlog` pattern, plus Prometheus metrics for connection/message counters
+- Mobile: Expo-compatible crash reporting (Sentry) — **COPPA-compliant configuration: no PII in crash reports, no user identifiers for children under 13 without consent**
+- Dashboards: Render metrics + custom Grafana (or equivalent) for moderation SLA tracking
+- Alerting: PagerDuty or Render alerts for SLA breaches, with escalation to on-call engineer
+
+**Moderation SLA dashboard** is a Phase 1 deliverable — the team must be able to observe whether the <2s pre-publish SLA is being met before any children use the platform.
+
 ### 2.4 Data Layer
 
 #### Storage
@@ -367,6 +390,21 @@ Registration flow:
 5. Feature permissions loaded from age_tier_configs
 ```
 
+### Accessibility for Children with Disabilities
+
+Beyond WCAG 2.1 AA (covered in Section 2.2), the Social app includes child-specific accessibility:
+
+| Feature | Age Tier | Phase |
+|---------|----------|-------|
+| **Dyslexia-friendly font** toggle (OpenDyslexic) | All tiers | P2 |
+| **Text-to-speech** for post content and messages | 5-9 tier (children who can't read fluently) | P3 |
+| **Reduced motion mode** (disables animations) | All tiers | P2 |
+| **High contrast mode** (beyond standard WCAG) | All tiers | P2 |
+| **Simplified UI mode** for 5-9 tier | 5-9 only (larger buttons, fewer options, icon-heavy) | P2 |
+| **Audio descriptions** for images in feed | All tiers (uses AI-generated alt text, moderated) | P3 |
+
+These are differentiators — no competitor offers child-specific accessibility features. They also align with UK AADC requirements for age-appropriate design.
+
 ### Graduated Unlocks
 
 Parents can override tier defaults:
@@ -383,6 +421,26 @@ The `profiles` table (social identity) is separate from `users` (auth identity):
 - **Safety-only users:** Parents who only use the Safety app have NO profile record. All Safety app queries are profile-independent.
 - **Consistency:** Profile creation is transactional with the Social app onboarding flow. If onboarding fails, no orphan profile is created.
 - **Deletion:** Profile soft-deleted when user account is deleted (existing `SoftDeleteMixin`). GDPR/COPPA erasure removes profile data.
+
+### Social Content Data Retention & Deletion
+
+Social content creates deletion complexity beyond the existing COPPA/GDPR data rights:
+
+| Scenario | Policy |
+|----------|--------|
+| **Child account deleted (parent request)** | All posts soft-deleted (hidden from feeds). Comments on others' posts anonymized ("Deleted User"). Messages in conversations replaced with "[message deleted]". Media purged from Cloudflare R2 within 72h. Profile data hard-deleted after 30-day recovery window. |
+| **GDPR/COPPA right to erasure** | Same as above but no recovery window — immediate soft-delete, 72h media purge, 30-day hard-delete of DB records. |
+| **Child ages out (turns 16)** | Account remains active. Tier upgraded to "16+" (post-platform scope — no moderation, reduced parental monitoring). Parent notified: "Your child has aged out of Bhapi Social's monitored tiers." Option to convert to standard adult account or delete. |
+| **Single post/message deleted by child** | Content soft-deleted. CDN cache invalidated. Media marked for R2 cleanup. Remains in moderation audit trail (encrypted) for 90 days per legal retention requirements. |
+| **Content reported and removed by moderation** | Content soft-deleted + moderation decision preserved. CSAM content: preserved per NCMEC evidence requirements (encrypted, access-restricted). Other content: retained in moderation audit trail for 90 days, then hard-deleted. |
+| **Cloudflare CDN cache** | On content deletion, Cloudflare Images/Stream purge API called immediately. R2 object deleted. Cache TTL set to max 24h so stale content expires even if purge fails. |
+
+### Content Ownership & Licensing
+
+- **Child-created content:** Owned by the child (represented by parent/guardian). Bhapi holds a limited license for display, moderation, and platform operation only.
+- **No training on child content:** Bhapi will NOT use child-created content to train AI/ML models. Moderation models use synthetic/curated datasets only. This is documented in ToS and privacy policy.
+- **AI-generated content (creative tools):** Content created using Bhapi's AI tools (Phase 3) is licensed to the child for personal use. No commercial rights transferred. AI provider (Anthropic/OpenAI/Google) terms apply to generated output.
+- **Terms of Service for minors:** Parent/guardian agrees to ToS on behalf of the child during onboarding. Children cannot independently agree to ToS in any jurisdiction. ToS written in child-friendly language per UK AADC requirements.
 
 ### Offline Strategy (Mobile Apps)
 
@@ -644,10 +702,23 @@ Free tier auto-created (24h summary + critical alerts)
 3. **Chromebook deployment:** Google Admin Console integration, Chrome Web Store enterprise listing, mass extension deployment.
 4. **Value proposition to schools:** "Bhapi is the AI governance compliance tool you need, AND it includes AI monitoring and a safe social platform for students."
 
+#### School Procurement Requirements (Phase 1)
+
+Schools cannot buy SaaS the way families do. The following are required before the first school deal closes:
+
+| Requirement | What it is | Phase |
+|-------------|-----------|-------|
+| **FERPA compliance** | Family Educational Rights and Privacy Act — governs all student education records. Any school vendor accessing student data must comply. Requires: designated school official agreement, data use limited to educational purpose, no re-disclosure without consent, breach notification to school. | P1 |
+| **SDPA (Student Data Privacy Agreement)** | Most US states require a signed SDPA before schools can share student data with vendors. Use the [Student Data Privacy Consortium](https://privacy.a4l.org/) national template. | P1 |
+| **Invoicing / purchase orders** | Schools don't use credit cards. Need: quote generation, PO acceptance, NET-30/60 invoicing, W-9 on file. Stripe Invoicing or manual process initially. | P1 |
+| **Vendor security questionnaire** | Districts require completed security questionnaires (HECVAT or custom). Pre-fill a standard response document. | P1 |
+| **Insurance certificate** | Cyber liability + general liability insurance. Required by most districts before signing. | P1 |
+| **Budget cycle awareness** | Schools buy July-September for the academic year. Phase 1 (May-Jun) must have collateral ready for July budget decisions. | P1 |
+
 #### Phase 2: Channel Partnerships
 
 1. **Target partners:** EdTech distributors (CDW-G, SHI), ISTE members, state education technology associations
-2. **Partner package:** Sales collateral, compliance documentation, ROI calculator, white-label deployment guide
+2. **Partner package:** Sales collateral, compliance documentation, ROI calculator, white-label deployment guide, FERPA compliance documentation, SDPA template
 3. **Revenue share:** Standard EdTech channel margins (15-25%)
 4. **Support:** White-glove onboarding for first 10 school pilots
 
@@ -679,6 +750,8 @@ Free tier auto-created (24h summary + critical alerts)
 | Right to erasure | **Done** | — | **Mandatory** | — | **Mandatory** | P0 |
 | EU database registration | — | — | **Mandatory** | — | — | P2 |
 | CSAM reporting (NCMEC CyberTipline) | **Mandatory** | — | Mandatory | **Mandatory** | — | P1 |
+| FERPA (student education records) | — | **Mandatory** | — | — | — | P1 |
+| SDPA (Student Data Privacy Agreement) | — | **Mandatory** | — | — | — | P1 |
 
 ### Age Gate Logic by Jurisdiction
 
@@ -730,6 +803,8 @@ Each phase reserves **15-20% of engineering capacity** for production support, b
 | P0-9 | Australian compliance legal analysis: determine Social Media Minimum Age Bill exemption status for Bhapi Social. **If denied, design 16+ AU fallback as first-class configuration.** Document jurisdiction-specific age gates. | 1-2 pw | Legal | — |
 | P0-10 | Pre-publish moderation architecture design doc | 1 pw | Backend | — |
 | P0-11 | Hiring: post 3-4 roles (mobile, backend, safety/ML) | Ongoing | Management | — |
+| P0-12 | Incident response plan document (see Section 14) | 1 pw | Security + Legal | — |
+| P0-13 | Content ownership Terms of Service: minors can't agree to ToS (parent agrees on behalf), Bhapi license for moderation only, no training on child content, AI-generated content IP terms | 1 pw | Legal | — |
 
 **Exit criteria:**
 - [ ] COPPA 2026 compliant (done)
@@ -739,6 +814,8 @@ Each phase reserves **15-20% of engineering capacity** for production support, b
 - [ ] Australian compliance requirements documented
 - [ ] Moderation architecture designed and reviewed
 - [ ] Hiring pipeline active with first interviews
+- [ ] Incident response plan documented and reviewed (P0-12)
+- [ ] Content ownership ToS drafted (P0-13)
 - [ ] Test count: ≥1,739 (current + shared pkg tests)
 
 ---
@@ -786,6 +863,8 @@ Each phase reserves **15-20% of engineering capacity** for production support, b
 | P1-A5 | Australian safety: Yoti AU flow, eSafety reporting pipeline, 24h takedown SLA | 2-3 pw | Unit ≥20, E2E ≥15, Security ≥10 |
 | P1-A6 | `src/moderation/` module: pipeline, takedown, queue CRUD, dashboard API | 3 pw | Unit ≥35, E2E ≥25, Security ≥15 |
 | P1-A7 | CSAM detection + NCMEC reporting: PhotoDNA integration, CyberTipline API, evidence preservation, account suspension, audit trail | 2-3 pw | Unit ≥20, E2E ≥10, Security ≥10 |
+| P1-A8 | Trust & Safety operations document + FERPA compliance (see Section 14) | 1-2 pw | — |
+| P1-A9 | School procurement readiness: FERPA documentation, SDPA template, vendor security questionnaire, quote/PO/invoicing workflow, insurance certificate | 2 pw | — |
 
 #### Track D: Real-Time Service (1 engineer, partial)
 
@@ -878,6 +957,8 @@ Each phase reserves **15-20% of engineering capacity** for production support, b
 | P2-E4 | Pre-publish live: 5-9 and 10-12 tiers, <2s p95, parent notification on blocks | 2-3 pw | Unit ≥20, E2E ≥15, Perf ≥10 |
 | P2-E5 | Post-publish live: 13-15 tier, <60s takedown, flagging, auto-escalation | 2 pw | Unit ≥15, E2E ≥10 |
 | P2-E6 | Moderation dashboard: queue, bulk actions, pattern detection, SLA tracking | 2-3 pw | Unit ≥20, E2E ≥15 |
+| P2-E7 | Anti-abuse measures: age misrepresentation detection (behavioral signals beyond Yoti), account farming prevention (device fingerprint, rate limits), coordinated harassment detection, report abuse prevention (flag serial false reporters), invitation spam rate limiting | 3-4 pw | Unit ≥30, E2E ≥20, Security ≥10 |
+| P2-E8 | Parental abuse safeguards: "trusted adult" escalation path (school counselor, helpline), custody-aware access model (multiple guardians with separate permissions), teen privacy balance (config: what parent sees vs. what is private), foster/guardian legal status support | 2-3 pw | Unit ≥20, E2E ≥15, Security ≥10 |
 
 **Phase 2 exit criteria:**
 - [ ] Social app in beta (TestFlight + Android), ≥50 beta users
@@ -891,6 +972,9 @@ Each phase reserves **15-20% of engineering capacity** for production support, b
 - [ ] Age-tier enforcement: all social endpoints gated (verified by security tests)
 - [ ] Behavioral baselines computing for all active child accounts
 - [ ] ≥5 school deployments active
+- [ ] Anti-abuse measures live (age misrepresentation, account farming, harassment detection)
+- [ ] Parental abuse safeguards designed (trusted adult, custody model, teen privacy tiers)
+- [ ] FERPA documentation complete, SDPA template ready
 - [ ] Test count: ≥3,689
 - [ ] Mobile test coverage: ≥80% screen coverage
 - [ ] All new Alembic migrations committed and pushed
@@ -1197,6 +1281,126 @@ On mobile release:
 | ADR-007 | Cloudflare R2/Images/Stream for media | Zero egress fees, automatic resize/transcode, global CDN, webhook pipeline for moderation |
 | ADR-008 | Separate WebSocket service | Long-lived WS connections have different scaling profile than REST. Separate process avoids resource contention. Redis pub/sub bridges events. |
 | ADR-009 | Three age tiers (5-9, 10-12, 13-15) | Aligned with COPPA boundary (13), developmental stages, Australian under-16 focus. Graduated permissions with parent overrides. |
+
+---
+
+## 14. Incident Response & Trust and Safety
+
+### 14.1 Incident Response Plan (Phase 0 Deliverable — P0-12)
+
+A documented incident response plan covering four incident categories:
+
+#### Category 1: Data Breach
+
+| Step | Action | Timeline | Owner |
+|------|--------|----------|-------|
+| 1 | Detect and contain (isolate affected systems) | Immediate | On-call engineer |
+| 2 | Assess scope (what data, how many users, how it happened) | <4 hours | Engineering lead |
+| 3 | Notify regulatory authorities | COPPA: FTC "as soon as possible"; EU GDPR: DPA within 72h; AU: OAIC "as soon as practicable" | Legal |
+| 4 | Notify affected parents/schools | Within 72h of confirmation | Customer comms |
+| 5 | Remediate root cause | <48h for critical | Engineering |
+| 6 | Post-incident review + public transparency report | Within 2 weeks | Leadership |
+
+#### Category 2: Child Safety Incident (Imminent Threat)
+
+| Scenario | Action | Timeline |
+|----------|--------|----------|
+| Self-harm disclosure detected (AI or social) | Alert parent immediately (push + SMS). If no parent response in 30 minutes, escalate to emergency contacts. Display crisis helpline in app. | <5 minutes to parent alert |
+| Predator contact identified | Block suspect account immediately. Preserve evidence. Report to NCMEC if applicable. Alert parent. Contact FBI ICAC task force if imminent threat. | <15 minutes to block |
+| CSAM discovered | Block content + suspend account. Preserve evidence (encrypted). Submit NCMEC CyberTipline report. Do NOT notify suspect. Alert admin. | <30 minutes to NCMEC |
+| Imminent physical danger (violence, kidnapping) | Contact local law enforcement (911/emergency services). Alert parent. Preserve all platform data as evidence. | Immediate |
+
+**Decision authority:** Engineering lead or any senior engineer can take the platform offline if there is an active threat to children. No approval required. Notify leadership after the fact.
+
+#### Category 3: Platform Abuse
+
+| Scenario | Action | Timeline |
+|----------|--------|----------|
+| Coordinated harassment of a child | Remove content. Suspend participating accounts. Alert victim's parent. Review for pattern escalation. | <1 hour |
+| Viral harmful content | Content takedown. Rate-limit sharing. Moderation queue surge staffing. Communication to affected parents. | <30 minutes |
+| Mass account creation (bot/spam) | Rate limit registration. Enable CAPTCHA. Block IP ranges. Review for grooming pattern. | <2 hours |
+
+#### Category 4: Service Outage
+
+| Severity | Definition | Response |
+|----------|-----------|----------|
+| SEV-1 | Platform down, no user access | All hands. Status page updated. Target: <1h restoration. |
+| SEV-2 | Major feature broken (moderation pipeline down = children posting unmoderated) | **Disable content creation until moderation is restored.** Safety over availability. |
+| SEV-3 | Minor feature degraded | Normal triage. Fix in next deploy. |
+
+**Key principle for SEV-2:** If the moderation pipeline goes down, the Social app MUST disable content creation for pre-publish tiers (5-9, 10-12) immediately. Content creation without moderation is not acceptable for children under 13. The system must fail closed, not open.
+
+### 14.2 Trust & Safety Operations (Phase 1 Deliverable — P1-A8)
+
+#### Staffing Model
+
+| Phase | Volume Estimate | T&S Staffing | Model |
+|-------|----------------|-------------|-------|
+| Phase 2 (beta, <500 users) | <100 escalations/week | Engineering team handles | Rotation among 2-3 engineers, 1h/day |
+| Phase 3 (launch, 500-5K users) | 100-500 escalations/week | 1 dedicated part-time T&S + automation | Hire or contract. AI handles 95%+, human reviews edge cases |
+| Post-V1 (5K-50K users) | 500-2000 escalations/week | 2-3 dedicated T&S staff | Full team with shift coverage |
+| Scale (50K+ users) | 2000+ escalations/week | T&S team (5+) + vendor | Partner with specialized T&S vendor (e.g., TaskUs, Teleperformance) |
+
+#### Moderator Wellbeing
+
+Content moderation for children's platforms exposes reviewers to harmful material. Required policies:
+
+- **Exposure limits:** Maximum 4 hours/day of content review. No more than 2 hours consecutive.
+- **Content blurring:** All escalated content displayed blurred by default. Reviewer must actively choose to view full content.
+- **Psychological support:** Access to counseling services (EAP or equivalent). Mandatory check-in after exposure to severe content (CSAM, self-harm, violence).
+- **Rotation:** Reviewers rotate between content review and non-review tasks weekly.
+- **Training:** Initial training on vicarious trauma. Quarterly refresher. Clear escalation path when a reviewer is affected.
+
+#### Law Enforcement Liaison
+
+| Agency | When to contact | How |
+|--------|----------------|-----|
+| NCMEC CyberTipline | CSAM detected | Automated API (P1-A7) |
+| FBI ICAC (Internet Crimes Against Children) | Predator activity, grooming, exploitation | Manual report via ic3.gov or local field office |
+| Local law enforcement | Imminent physical danger, active threats | 911 / local emergency number |
+| eSafety Commissioner (Australia) | Content takedown requests, cyberbullying reports | Automated pipeline (P1-A5) |
+| National DPAs (EU) | Data breach affecting EU children | Per country DPA within 72h |
+
+### 14.3 Parental Abuse Safeguards (Phase 2 Deliverable — P2-E8)
+
+The monitoring platform can be misused by abusive parents. Safeguards:
+
+#### Custody-Aware Access Model
+
+| Feature | Implementation |
+|---------|---------------|
+| **Multiple guardians** | A child can have 2+ guardians with separate permissions. Each guardian sees their own dashboard. Neither can revoke the other's access (only platform admin can). |
+| **Guardian roles** | Primary guardian (full access, set during registration) and secondary guardian (view access, added by primary or by platform admin for court orders). |
+| **Custody dispute flag** | Platform admin can flag an account as "custody dispute." Restricts changes to guardian access until resolved. Requires legal documentation. |
+| **Foster/institutional care** | "Institutional guardian" role for foster agencies, group homes. Limited access (safety alerts only, no message content). |
+
+#### Teen Privacy Balance
+
+| Age Tier | Parent Sees | Parent Does NOT See |
+|----------|------------|-------------------|
+| 5-9 | Everything (all content, all messages, all contacts) | — |
+| 10-12 | Posts, contacts, activity summary, flagged content, screen time | Message content (unless flagged by moderation) |
+| 13-15 | Activity summary, flagged content, screen time, risk scores | Posts (unless flagged), message content (unless flagged), contact list details |
+
+**"Trusted adult" escalation:** If a teen feels unsafe with their parent's monitoring, they can:
+1. Tap a "Talk to a trusted adult" button in settings
+2. Options: school counselor (if school account), national helpline (Kids Helpline AU, Childhelp US, Childline UK), or a designated trusted adult (e.g., grandparent, aunt)
+3. This action is NOT visible to the parent
+4. Platform logs the request for audit purposes
+
+This feature is inspired by Bark's approach and addresses the criticism that parental monitoring tools can enable domestic abuse.
+
+### 14.4 Anti-Abuse Measures (Phase 2 Deliverable — P2-E7)
+
+| Attack Vector | Detection | Prevention |
+|--------------|-----------|------------|
+| **Age misrepresentation** (adult posing as child) | Behavioral signals: vocabulary complexity, posting times, contact patterns inconsistent with claimed age. Yoti age verification as primary gate. | Flag for manual review if behavioral signals diverge >2 standard deviations from age-tier norm. Account suspension pending re-verification. |
+| **Account farming** | Multiple accounts from same device fingerprint, same IP range, similar registration patterns. | Rate limit: max 2 accounts per device. CAPTCHA on 3rd+ registration attempt from same IP/24h. Device attestation (Play Integrity / App Attest). |
+| **Coordinated harassment** | Same content/target across multiple accounts. Temporal clustering of reports against one user. Social graph analysis (connected accounts targeting same victim). | Auto-escalate when ≥3 accounts target same user within 24h. Temporary posting restriction on participating accounts. Parent notification to victim's guardian. |
+| **Report abuse** (false mass reporting) | Serial reporter detection: user who reports >10 accounts/week with <20% confirmed. | Weight reports by reporter trust score. Deprioritize serial false reporters. Notify reporter if pattern detected. |
+| **Invitation spam** | Contact request rate >20/day. Same message template to multiple users. | Rate limit: 10 contact requests/day (5-9 tier: 3/day). Cooldown on rejected requests. |
+| **Content manipulation** (bypassing filters) | Unicode substitution, leetspeak, image steganography, invisible characters. | Normalize text before keyword check (Unicode → ASCII, leetspeak → English). Image perceptual hash comparison. Regular adversarial testing of moderation pipeline. |
+| **Evasion** (VPN/proxy to bypass geo-restrictions) | IP reputation check, VPN detection service. | Warning on VPN detection. Block account creation from known VPN IPs. Existing accounts: flag for review, don't block (legitimate VPN use exists). |
 
 ---
 
