@@ -1,0 +1,30 @@
+{
+  "common": {
+    "loading": "Wird geladen...",
+    "error": "Etwas ist schiefgelaufen",
+    "retry": "Erneut versuchen",
+    "cancel": "Abbrechen",
+    "save": "Speichern",
+    "delete": "Löschen",
+    "confirm": "Bestätigen"
+  },
+  "auth": {
+    "login": "Anmelden",
+    "register": "Konto erstellen",
+    "logout": "Abmelden",
+    "email": "E-Mail-Adresse",
+    "password": "Passwort"
+  },
+  "safety": {
+    "dashboard": "Dashboard",
+    "alerts": "Warnungen",
+    "activity": "Aktivität",
+    "settings": "Einstellungen"
+  },
+  "social": {
+    "feed": "Feed",
+    "messages": "Nachrichten",
+    "profile": "Profil",
+    "create_post": "Beitrag erstellen"
+  }
+}

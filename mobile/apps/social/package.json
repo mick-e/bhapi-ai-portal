@@ -1,0 +1,8 @@
+{
+  "name": "bhapi-social",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "typecheck": "echo 'Expo app — typecheck deferred to Phase 1 when Expo SDK installed'"
+  }
+}

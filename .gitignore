@@ -63,3 +63,5 @@ data/
 .DS_Store
 Thumbs.db
 .worktrees/
+mobile/node_modules/
+mobile/.turbo/

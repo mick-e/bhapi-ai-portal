@@ -1,0 +1,30 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "retry": "Try again",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "confirm": "Confirm"
+  },
+  "auth": {
+    "login": "Log in",
+    "register": "Create account",
+    "logout": "Log out",
+    "email": "Email address",
+    "password": "Password"
+  },
+  "safety": {
+    "dashboard": "Dashboard",
+    "alerts": "Alerts",
+    "activity": "Activity",
+    "settings": "Settings"
+  },
+  "social": {
+    "feed": "Feed",
+    "messages": "Messages",
+    "profile": "Profile",
+    "create_post": "Create post"
+  }
+}

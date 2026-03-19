@@ -1,0 +1,30 @@
+{
+  "common": {
+    "loading": "Carregando...",
+    "error": "Algo deu errado",
+    "retry": "Tentar novamente",
+    "cancel": "Cancelar",
+    "save": "Salvar",
+    "delete": "Excluir",
+    "confirm": "Confirmar"
+  },
+  "auth": {
+    "login": "Entrar",
+    "register": "Criar conta",
+    "logout": "Sair",
+    "email": "Endereço de e-mail",
+    "password": "Senha"
+  },
+  "safety": {
+    "dashboard": "Painel",
+    "alerts": "Alertas",
+    "activity": "Atividade",
+    "settings": "Configurações"
+  },
+  "social": {
+    "feed": "Feed",
+    "messages": "Mensagens",
+    "profile": "Perfil",
+    "create_post": "Criar publicação"
+  }
+}
