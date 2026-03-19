@@ -220,6 +220,68 @@ alembic revision --autogenerate -m "desc"     # Create new (MUST commit the file
 git status                                    # Verify migration file is tracked
 ```
 
+## 11. Unified Platform (Phase 0+)
+
+> **"The only platform where kids socialize safely AND parents monitor AI"**
+
+The Bhapi platform is being unified per the design spec at `docs/superpowers/specs/2026-03-19-bhapi-unified-platform-design.md` (v1.2).
+
+### Architecture Decision Records (docs/adr/)
+| ADR | Decision |
+|-----|----------|
+| ADR-001 | Unified JWT auth (monorepo only, no legacy migration) |
+| ADR-002 | Social features as new FastAPI modules in `src/` |
+| ADR-003 | Single PostgreSQL database (no MongoDB migration — superseded by ADR-010) |
+| ADR-004 | Greenfield mobile on Expo SDK 52+ |
+| ADR-005 | bhapi-ai-portal is the sole active codebase |
+| ADR-006 | Two mobile apps: Safety (parent) + Social (child) |
+| ADR-007 | Cloudflare R2/Images/Stream for media storage |
+| ADR-008 | Separate WebSocket real-time service |
+| ADR-009 | Three age tiers: 5-9, 10-12, 13-15 (under-16 focus) |
+| ADR-010 | Clean break — no MongoDB data migration |
+
+### Mobile Monorepo
+- **Location:** `mobile/` subdirectory (inside this repo per ADR-005)
+- **Structure:** Turborepo + Expo SDK 52+ with 6 shared packages
+- **Apps:** `com.bhapi.safety` (parent) and `com.bhapi.social` (child)
+- **Packages:** shared-config, shared-types, shared-auth, shared-api, shared-i18n, shared-ui
+- **Tests:** 22 passing across 5 packages (`cd mobile && npx turbo run test`)
+
+### New Backend Modules (Phase 1+)
+| Module | Prefix | Purpose |
+|--------|--------|---------|
+| `social/` | `/api/v1/social` | Feed, posts, comments, likes, profiles, follow |
+| `messaging/` | `/api/v1/messages` | Conversations, real-time chat, media messages |
+| `contacts/` | `/api/v1/contacts` | Contact requests, parent approval, blocking |
+| `moderation/` | `/api/v1/moderation` | Pre-publish pipeline, takedown, queue, appeals |
+| `age_tier/` | `/api/v1/age-tier` | Permission engine, tier rules, graduated unlocks |
+| `media/` | `/api/v1/media` | Cloudflare R2 upload, image/video processing |
+| `device_agent/` | `/api/v1/device` | Mobile agent data, screen time, location |
+| `governance/` | `/api/v1/governance` | AI policy generator, state compliance, audit |
+| `intelligence/` | `/api/v1/intelligence` | Cross-product correlation, unified risk scores |
+| `creative/` | `/api/v1/creative` | AI art, story creation, templates |
+
+### Content Moderation
+- Pre-publish for under-13 (all content screened before posting, <2s SLA)
+- Post-publish for 13-15 (rapid takedown <60s)
+- CSAM detection via PhotoDNA (mandatory, runs before any other moderation)
+- NCMEC CyberTipline API for automated CSAM reporting
+- See `docs/architecture/moderation-pipeline-design.md`
+
+### Key Documents
+- Design spec: `docs/superpowers/specs/2026-03-19-bhapi-unified-platform-design.md`
+- Master plan: `docs/superpowers/plans/2026-03-19-bhapi-unified-platform-master.md`
+- Phase 0 plan: `docs/superpowers/plans/2026-03-19-phase0-stabilization.md`
+- Gap analysis: `docs/Bhapi_Gap_Analysis_Q2_2026.md`
+- Incident response: `docs/security/incident-response-plan.md`
+- AU compliance: `docs/compliance/australian-online-safety-analysis.md`
+
+### Next Migration
+**032** — First social feature migration (profiles, age_tier_configs)
+
+### Legacy Repos (Archived)
+bhapi-inc/bhapi-api, bhapi-inc/bhapi-mobile, bhapi-inc/back-office — all archived on GitHub. Feature inventories at `docs/legacy/`.
+
 ## Appendix: Environment Variables
 
 | Variable | Description | Required |
