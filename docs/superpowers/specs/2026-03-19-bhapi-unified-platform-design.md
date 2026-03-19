@@ -1,8 +1,8 @@
 # Bhapi Unified Platform — Design Specification
 
-**Version:** 1.0
+**Version:** 1.1
 **Date:** March 19, 2026
-**Status:** Draft
+**Status:** Draft (post-review revision)
 **Based on:** Bhapi Gap Analysis Q2 2026, Platform Unification Plan (Mar 17), Brainstorming Session (Mar 19)
 
 ---
@@ -143,6 +143,15 @@ bhapi-mobile/
 └── tsconfig.base.json           # Shared TS config
 ```
 
+**Mobile Accessibility Requirements (WCAG 2.1 AA):**
+- All interactive elements: minimum 44pt tap targets
+- VoiceOver (iOS) and TalkBack (Android) labels on all screens
+- Dynamic type / font scaling support
+- Sufficient color contrast (4.5:1 text, 3:1 large text)
+- No color-only information (always include text/icon alongside color)
+- Screen reader testing included in Maestro E2E suite
+- Accessibility checks in mobile Definition of Done
+
 ### 2.3 Backend Architecture
 
 #### FastAPI Monolith (Extended)
@@ -182,6 +191,12 @@ All modules served from single FastAPI app (`src/main.py`). Existing 19 modules 
 | `intelligence/` | `/api/v1/intelligence` | Cross-product correlation, unified risk scores, baselines | P2-P3 |
 | `creative/` | `/api/v1/creative` | AI art, story creation, templates, challenges | P3 |
 
+**Module Ownership Boundaries:**
+- `moderation/` owns `moderation_queue` and `moderation_decisions` tables. It communicates with `social/`, `messaging/`, and `media/` via their public `__init__.py` interfaces to fetch content for classification and to update `moderation_status` on source records.
+- `intelligence/` owns `intelligence_events` and `behavioral_baselines`. It reads from `risk/`, `social/`, `capture/`, and `device_agent/` via public interfaces to correlate signals.
+- `governance/` is distinct from `compliance/`: governance handles **organizational policy management** (school AI policies, tool inventories, audit trails); compliance handles **regulatory data subject rights** (GDPR erasure, COPPA consent, EU AI Act conformity). They share no tables.
+- All other modules follow the existing rule: each module only queries its own tables.
+
 #### Real-Time WebSocket Service (New, Separate Process)
 
 ```
@@ -199,6 +214,17 @@ src/realtime/
 - Connects to same PostgreSQL + Redis
 - Communicates with monolith via Redis pub/sub
 - Scales independently (long-lived WebSocket connections don't impact REST API latency)
+
+**Connection Pooling Strategy:** Multiple services sharing one PostgreSQL instance requires explicit pool management to avoid connection exhaustion (Render managed PostgreSQL limits: 25-100 connections depending on plan).
+
+| Service | Pool Size | Strategy |
+|---------|:---------:|---------|
+| Monolith (FastAPI) | 20 | SQLAlchemy async pool (existing) |
+| Jobs (cron) | 5 | SQLAlchemy async pool, smaller |
+| WebSocket service | 10 | **Lazy acquisition** — acquire DB connection only when writing (message persistence, presence update), release immediately. No held connections during idle WebSocket sessions. |
+| **Total** | **35** | Fits within Render Standard plan (50 connections). PgBouncer sidecar added if exceeding 80% utilization. |
+
+This is documented as a constraint: the WebSocket service MUST NOT hold persistent DB connections per WebSocket session. Use Redis for all real-time state (presence, typing indicators); PostgreSQL only for durable writes.
 
 ### 2.4 Data Layer
 
@@ -219,7 +245,7 @@ src/realtime/
 | Table | Key Columns | Purpose |
 |-------|------------|---------|
 | `profiles` | user_id (FK), display_name, avatar_url, bio, age_tier, dob, visibility | Social profile (1:1 with users) |
-| `age_tier_configs` | member_id (FK), tier (enum: 5-9/10-12/13-15), feature_overrides (JSON), locked_features (JSON) | Per-member tier configuration |
+| `age_tier_configs` | member_id (FK), tier (enum: 5-9/10-12/13-15), jurisdiction (country_code), min_age_override, feature_overrides (JSON), locked_features (JSON) | Per-member tier configuration with jurisdiction-specific age gates |
 | `social_posts` | author_id, content, media_urls (JSON), post_type, moderation_status, hashtag_ids | Feed posts |
 | `post_comments` | post_id (FK), author_id, content, moderation_status | Comments on posts |
 | `post_likes` | post_id (FK), user_id, created_at | Likes (unique constraint) |
@@ -348,6 +374,27 @@ Parents can override tier defaults:
 - **Restrict features:** Parent can disable video posting for a 14-year-old
 - **Override stored in:** `age_tier_configs.feature_overrides` (JSON)
 - **Audit logged:** All parent overrides create an audit entry
+
+### Profile Lifecycle
+
+The `profiles` table (social identity) is separate from `users` (auth identity):
+
+- **Created:** Automatically when a child completes Social app onboarding (age verification + parent consent). NOT created on Safety-only registration.
+- **Safety-only users:** Parents who only use the Safety app have NO profile record. All Safety app queries are profile-independent.
+- **Consistency:** Profile creation is transactional with the Social app onboarding flow. If onboarding fails, no orphan profile is created.
+- **Deletion:** Profile soft-deleted when user account is deleted (existing `SoftDeleteMixin`). GDPR/COPPA erasure removes profile data.
+
+### Offline Strategy (Mobile Apps)
+
+**Safety app (parent):** Dashboard data cached locally. Alerts viewable offline (last sync). No write operations required offline.
+
+**Social app (child):**
+- **Feed:** Cached for offline viewing (last 50 posts). Pull-to-refresh when online.
+- **Messages:** Cached conversation history viewable offline. New messages queued as "sending..." and delivered when reconnected.
+- **Post creation (5-9 and 10-12 tiers):** **BLOCKED offline.** Pre-publish moderation requires network. UI shows "You need internet to post." Draft saved locally.
+- **Post creation (13-15 tier):** Queued offline, submitted to post-publish moderation on reconnect. UI shows "Will post when you're back online."
+- **Media upload:** Blocked offline (requires Cloudflare pipeline). Drafts with media show placeholder.
+- **Notifications:** Delivered on reconnect via Expo push notification queue.
 
 ### Age Transitions
 
@@ -485,6 +532,51 @@ Upload request
              content       (returns 403)
 ```
 
+### CSAM Detection & NCMEC Reporting (MANDATORY — Legal Obligation)
+
+Under US federal law (18 U.S.C. 2258A), any electronic service provider that obtains knowledge of CSAM must report to NCMEC via CyberTipline. This is non-negotiable for a children's social platform.
+
+**Pipeline integration (before Phase 2 Social launch):**
+
+```
+Image/video uploaded
+     │
+     ▼
+┌─────────────────────────┐
+│ CSAM Detection           │
+│ (PhotoDNA or equivalent) │
+│ Runs BEFORE any other    │
+│ moderation step          │
+└──────────┬──────────────┘
+     ┌─────┴──────┐
+     ▼            ▼
+  CLEAN        MATCH
+  Continue      │
+  to normal     ▼
+  moderation   ┌──────────────────────┐
+               │ 1. Block content      │
+               │ 2. Preserve evidence  │
+               │    (hash + metadata,  │
+               │    DO NOT delete)     │
+               │ 3. Submit CyberTipline│
+               │    report via API     │
+               │ 4. Suspend account    │
+               │ 5. Alert admin        │
+               │ 6. Log for law        │
+               │    enforcement        │
+               └──────────────────────┘
+```
+
+**Requirements:**
+- PhotoDNA integration (Microsoft provides free for qualifying services) or equivalent perceptual hash matching
+- NCMEC CyberTipline API integration for automated reporting
+- Evidence preservation: content must be retained (encrypted, access-restricted) for law enforcement even after platform removal
+- Account suspension: automatic on CSAM match, no appeal flow
+- Audit trail: immutable log of all CSAM detections and reports
+- Staff training: documented process for handling CSAM reports
+
+**Phase:** Must be production-ready before Phase 2 Social app beta launch. Added to Phase 1 AI Safety track as P1-A7.
+
 ### Social-Specific Risk Models (New)
 
 | Model | What it detects | Training approach | Phase |
@@ -586,6 +678,7 @@ Free tier auto-created (24h summary + critical alerts)
 | Incident reporting (72h) | — | — | **Mandatory** | **Mandatory** | — | P2 |
 | Right to erasure | **Done** | — | **Mandatory** | — | **Mandatory** | P0 |
 | EU database registration | — | — | **Mandatory** | — | — | P2 |
+| CSAM reporting (NCMEC CyberTipline) | **Mandatory** | — | Mandatory | **Mandatory** | — | P1 |
 
 ### Age Gate Logic by Jurisdiction
 
@@ -597,7 +690,7 @@ Free tier auto-created (24h summary + critical alerts)
 | UK | 13 | Yoti or parent consent | 16 |
 | Default | 13 | Parent consent | 16 |
 
-*Note: Australian Social Media Minimum Age Bill bans under-16s from mainstream social media. Legal counsel must confirm whether Bhapi Social qualifies for exemption as a safety-first platform. Fallback: AU Social app serves 16+ only, Safety app serves all ages.
+*Note: Australian Social Media Minimum Age Bill bans under-16s from mainstream social media. Legal counsel must confirm in Phase 0 (P0-9) whether Bhapi Social qualifies for exemption as a safety-first platform. The `age_tier_configs.jurisdiction` column supports per-country minimum ages. **Fallback (if exemption denied):** AU Social app serves 16+ only via jurisdiction-based age gate; Safety app serves all ages regardless. This fallback is a first-class configuration, not an afterthought.
 
 ---
 
@@ -607,23 +700,34 @@ Free tier auto-created (24h summary + critical alerts)
 
 Build outward from the strongest asset (AI Portal). Ship parent Safety app first, build social infrastructure in parallel, launch Social app once safety pipeline is proven on mobile.
 
+### Production Support Overhead (All Phases)
+
+Each phase reserves **15-20% of engineering capacity** for production support, bug fixes, incident response, and on-call duties for the existing v2.1.0 system. This is NOT included in deliverable effort estimates. Effective feature capacity per phase:
+
+| Phase | Engineers | Gross PW | Production Overhead (15%) | Net Feature PW |
+|-------|:---------:|:--------:|:-------------------------:|:--------------:|
+| Phase 0 | 2-3 | 10-15 | 1.5-2.3 | 8.5-12.7 |
+| Phase 1 | 5-7 | 35-49 | 5.3-7.4 | 29.7-41.6 |
+| Phase 2 | 8-10 | 64-80 | 9.6-12.0 | 54.4-68.0 |
+| Phase 3 | 10-13 | 60-78 | 9.0-11.7 | 51.0-66.3 |
+
 ### Phase 0: Emergency Stabilization (Weeks 1-5, Mar 17 — Apr 22)
 
 **Team:** 2-3 engineers
-**Budget:** 10-15 person-weeks
+**Budget:** 10-15 person-weeks (8.5-12.7 net after production overhead)
 **Regulatory deadline:** COPPA 2026 — April 22
 
 | ID | Deliverable | Effort | Owner | Tests Required |
 |----|------------|--------|-------|---------------|
 | P0-1 | COPPA 2026 enforcement | — | Backend | **DONE** |
 | P0-2 | Legacy repo audit: document all bhapi-inc features as reference | 1-2 pw | Full-stack | — |
-| P0-3 | Archive legacy repos (README → bhapi-ai-portal, set read-only) | 0.5 pw | DevOps | — |
+| P0-3 | Archive legacy repos (README → bhapi-ai-portal, set read-only). **Clean-break decision:** No MongoDB data migration. Legacy app data is not migrated — negligible active users, different data model, security risks of importing unvalidated data into a children's platform. Document this decision in ADR-010. | 0.5 pw | DevOps | — |
 | P0-4 | ADR-006: Two-app mobile strategy (Safety + Social) | 0.5 pw | Architecture | — |
 | P0-5 | ADR-007: Cloudflare R2/Images/Stream for media | 0.5 pw | Architecture | — |
 | P0-6 | ADR-008: Real-time WebSocket as separate service | 0.5 pw | Architecture | — |
 | P0-7 | ADR-009: Age-tier permission model (5-9, 10-12, 13-15) | 0.5 pw | Architecture | — |
 | P0-8 | Expo monorepo scaffold with Turborepo + shared packages (stubs) | 2-3 pw | Mobile | Shared pkg unit tests (≥20) |
-| P0-9 | Australian compliance legal analysis document | 1 pw | Legal | — |
+| P0-9 | Australian compliance legal analysis: determine Social Media Minimum Age Bill exemption status for Bhapi Social. **If denied, design 16+ AU fallback as first-class configuration.** Document jurisdiction-specific age gates. | 1-2 pw | Legal | — |
 | P0-10 | Pre-publish moderation architecture design doc | 1 pw | Backend | — |
 | P0-11 | Hiring: post 3-4 roles (mobile, backend, safety/ML) | Ongoing | Management | — |
 
@@ -681,6 +785,7 @@ Build outward from the strongest asset (AI Portal). Ship parent Safety app first
 | P1-A4 | Social risk models v1: grooming, cyberbullying, sexting detection | 3-4 pw | Unit ≥40, E2E ≥20 |
 | P1-A5 | Australian safety: Yoti AU flow, eSafety reporting pipeline, 24h takedown SLA | 2-3 pw | Unit ≥20, E2E ≥15, Security ≥10 |
 | P1-A6 | `src/moderation/` module: pipeline, takedown, queue CRUD, dashboard API | 3 pw | Unit ≥35, E2E ≥25, Security ≥15 |
+| P1-A7 | CSAM detection + NCMEC reporting: PhotoDNA integration, CyberTipline API, evidence preservation, account suspension, audit trail | 2-3 pw | Unit ≥20, E2E ≥10, Security ≥10 |
 
 #### Track D: Real-Time Service (1 engineer, partial)
 
@@ -874,13 +979,17 @@ Build outward from the strongest asset (AI Portal). Ship parent Safety app first
 
 ### Test Counts by Phase
 
-| Phase | Backend Unit | Backend E2E | Security | Mobile | Prod E2E | Total |
-|-------|:-----------:|:-----------:|:--------:|:------:|:--------:|:-----:|
-| Current (v2.1.0) | ~580 | ~700 | ~170 | 174 | 95 | ~1,719 |
-| Phase 0 exit | +20 | — | — | +20 | — | ~1,739 |
-| Phase 1 exit | +300 | +200 | +100 | +160 | +30 | ~2,549 |
-| Phase 2 exit | +400 | +300 | +150 | +300 | +40 | ~3,739 |
-| Phase 3 exit | +250 | +200 | +100 | +200 | +30 | ~4,519 |
+Per-deliverable test targets are the source of truth. Phase-level totals are aggregated from deliverable requirements.
+
+| Phase | Backend (unit+E2E+security) | Mobile (component+integration+E2E) | Prod E2E | Total |
+|-------|:--------------------------:|:-----------------------------------:|:--------:|:-----:|
+| Current (v2.1.0) | 1,578 | 174 (portal) | 95 | ~1,847 |
+| Phase 0 exit | +20 | +20 | — | ~1,887 |
+| Phase 1 exit | +875 | +200 | +30 | ~2,992 |
+| Phase 2 exit | +900 | +350 | +40 | ~4,282 |
+| Phase 3 exit | +550 | +250 | +30 | ~5,112 |
+
+**Note:** Backend count from CLAUDE.md (1,578 passed = ~580 unit + ~700 E2E + ~170 security + ~128 other). Phase increments are summed from per-deliverable targets in Section 8. Production overhead buffer: 15-20% of engineering capacity per phase is reserved for production support, bug fixes, and incident response (not counted in deliverable effort).
 
 ### Mandatory Security Tests Per Endpoint
 
@@ -1067,6 +1176,8 @@ On mobile release:
 ---
 
 ## 13. Architecture Decision Records
+
+**Storage:** All ADRs stored at `docs/adrs/ADR-00X-title.md`. Phase 0 includes writing ADR-001 through ADR-005 as formal documents (currently implicit in unification plan).
 
 ### Accepted (Existing)
 
