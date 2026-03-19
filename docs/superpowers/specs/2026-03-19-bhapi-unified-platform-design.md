@@ -809,14 +809,15 @@ Each phase reserves **15-20% of engineering capacity** for production support, b
 **Exit criteria:**
 - [ ] COPPA 2026 compliant (done)
 - [ ] 3/3 legacy repos archived
-- [ ] ADR-006 through ADR-009 accepted
+- [ ] ADR-001 through ADR-010 written and committed
 - [ ] Monorepo compiles with empty app shells, CI green
 - [ ] Australian compliance requirements documented
 - [ ] Moderation architecture designed and reviewed
 - [ ] Hiring pipeline active with first interviews
 - [ ] Incident response plan documented and reviewed (P0-12)
 - [ ] Content ownership ToS drafted (P0-13)
-- [ ] Test count: ≥1,739 (current + shared pkg tests)
+- [ ] ADR-001 through ADR-010 written and committed
+- [ ] Test count: ≥1,887 (existing 1,847 + ≥20 monorepo + ≥20 backend backfill)
 
 ---
 

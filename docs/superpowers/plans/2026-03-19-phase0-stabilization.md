@@ -1111,6 +1111,8 @@ export type { CardProps } from './Card';
 
 Create `packages/shared-ui/__tests__/Button.test.tsx` and `Card.test.tsx` with basic render tests using React Native Testing Library.
 
+**Note on monorepo scope:** Phase 0 scaffolds only core files for each shared package. The spec (Section 2.2) lists additional files (`feature-flags.ts`, `secure-store.ts`, `biometric.ts`, `ws-client.ts`, `offline-queue.ts`, additional UI components) that are Phase 1 deliverables (P1-M1 through P1-M4, P1-H6). The `rest-client.ts` uses `fetch` as a lightweight stub — the Phase 1 plan will evaluate Axios vs fetch and add interceptors/retry logic. The `tokenManager` uses `atob()` which needs a polyfill for React Native runtime (works in Jest/Node.js for Phase 0).
+
 - [ ] **Step 8: Create Safety app shell**
 
 Create `apps/safety/app.json`:
@@ -1408,6 +1410,257 @@ git commit -m "docs: update CLAUDE.md with unified platform direction and ADR re
 
 ---
 
+## Task 11: Formalize ADR-001 Through ADR-005 (C3 fix)
+
+**Goal:** Write ADR-001 through ADR-005 as formal markdown documents. These decisions are already accepted (documented in the unification plan) but need formal ADR files.
+
+**Files:**
+- Create: `docs/adrs/ADR-001-unified-auth.md` (already exists — verify and update if needed)
+- Create: `docs/adrs/ADR-002-social-module-structure.md` (already exists — verify)
+- Create: `docs/adrs/ADR-003-mongodb-to-postgresql.md` (already exists — verify)
+- Create: `docs/adrs/ADR-004-mobile-tech-choices.md` (already exists — verify)
+- Create: `docs/adrs/ADR-005-platform-unification.md` (already exists — verify)
+
+- [ ] **Step 1: Review existing ADR files in `docs/adrs/`**
+
+ADR-001 through ADR-005 already exist in `docs/adrs/`. Read each one and verify they follow the standard ADR template (Status, Date, Context, Decision, Consequences). Update any that are incomplete.
+
+- [ ] **Step 2: Ensure all 5 ADRs have consistent format**
+
+Each should have: Status (Accepted), Date, Context, Decision, Consequences (Positive, Negative, Risks), and Related ADRs cross-references.
+
+- [ ] **Step 3: Commit any updates**
+
+```bash
+git add docs/adrs/ADR-00[1-5]*.md
+git commit -m "docs: formalize ADR-001 through ADR-005 with standard template"
+```
+
+---
+
+## Task 12: Backend Test Backfill (C2 fix)
+
+**Goal:** Add ≥20 backend tests to existing modules to meet Phase 0 test count target. Focus on modules with lowest coverage or recently added features.
+
+**Files:**
+- Create or modify: `tests/unit/test_coppa_2026_backfill.py` or other test files for under-tested modules
+
+- [ ] **Step 1: Identify under-tested modules**
+
+```bash
+cd /c/claude/bhapi-ai-portal
+pytest tests/ --co -q 2>/dev/null | wc -l  # Current test count
+```
+
+Pick a module with low coverage (e.g., `compliance/coppa_2026/`, `portal/unified`, or `integrations/age_verification`) and add ≥20 tests covering:
+- Happy path for key endpoints
+- Auth enforcement (401/403)
+- Input validation (422)
+- Edge cases
+
+- [ ] **Step 2: Write and run tests**
+
+```bash
+pytest tests/unit/test_<chosen_module>.py -v
+```
+
+Expected: ≥20 new tests passing.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add tests/
+git commit -m "test: backfill ≥20 tests for <module> to meet Phase 0 target"
+```
+
+---
+
+## Task 13: Monorepo CI + GitHub Repo (I5 + I6 fix)
+
+**Goal:** Create GitHub repository for monorepo and add CI configuration.
+
+**Files:**
+- Create: `bhapi-mobile/.github/workflows/ci.yml`
+
+- [ ] **Step 1: Create CI workflow**
+
+Create `bhapi-mobile/.github/workflows/ci.yml`:
+
+```yaml
+name: CI
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx turbo run typecheck
+      - run: npx turbo run test
+```
+
+- [ ] **Step 2: Create GitHub repo and push**
+
+```bash
+cd /c/claude/bhapi-mobile
+git add .github/workflows/ci.yml
+git commit -m "ci: add GitHub Actions workflow for typecheck + test"
+gh repo create mick-e/bhapi-mobile --private --source=. --push
+```
+
+- [ ] **Step 3: Verify CI runs**
+
+```bash
+gh run list --repo mick-e/bhapi-mobile --limit 1
+```
+
+Expected: CI workflow triggered and passing.
+
+---
+
+## Task 14: Fix Shared Types + UI Tests (I3 + I4 fix)
+
+**Goal:** Add backend-compatible pagination type and write explicit Button/Card tests.
+
+**Files:**
+- Modify: `bhapi-mobile/packages/shared-types/src/common.ts`
+- Create: `bhapi-mobile/packages/shared-ui/__tests__/Button.test.tsx`
+- Create: `bhapi-mobile/packages/shared-ui/__tests__/Card.test.tsx`
+
+- [ ] **Step 1: Add backend-compatible pagination type**
+
+Add to `packages/shared-types/src/common.ts`:
+
+```typescript
+/** Matches the backend's paginated response format (capture events, etc.) */
+export interface PagedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+```
+
+Export it from `index.ts`.
+
+- [ ] **Step 2: Write Button tests**
+
+Create `packages/shared-ui/__tests__/Button.test.tsx`:
+
+```typescript
+import React from 'react';
+import { render, fireEvent } from '@testing-library/react-native';
+import { Button } from '../src/Button';
+
+describe('Button', () => {
+  test('renders title text', () => {
+    const { getByText } = render(<Button title="Press me" onPress={() => {}} />);
+    expect(getByText('Press me')).toBeTruthy();
+  });
+
+  test('calls onPress when pressed', () => {
+    const onPress = jest.fn();
+    const { getByText } = render(<Button title="Press" onPress={onPress} />);
+    fireEvent.press(getByText('Press'));
+    expect(onPress).toHaveBeenCalledTimes(1);
+  });
+
+  test('shows loading indicator when isLoading', () => {
+    const { queryByText, getByTestId } = render(
+      <Button title="Submit" onPress={() => {}} isLoading />
+    );
+    expect(queryByText('Submit')).toBeNull();
+  });
+
+  test('does not call onPress when disabled', () => {
+    const onPress = jest.fn();
+    const { getByText } = render(<Button title="Press" onPress={onPress} disabled />);
+    fireEvent.press(getByText('Press'));
+    expect(onPress).not.toHaveBeenCalled();
+  });
+
+  test('has accessibility label matching title', () => {
+    const { getByLabelText } = render(<Button title="Save" onPress={() => {}} />);
+    expect(getByLabelText('Save')).toBeTruthy();
+  });
+});
+```
+
+- [ ] **Step 3: Write Card tests**
+
+Create `packages/shared-ui/__tests__/Card.test.tsx`:
+
+```typescript
+import React from 'react';
+import { render } from '@testing-library/react-native';
+import { Text } from 'react-native';
+import { Card } from '../src/Card';
+
+describe('Card', () => {
+  test('renders children', () => {
+    const { getByText } = render(
+      <Card><Text>Card content</Text></Card>
+    );
+    expect(getByText('Card content')).toBeTruthy();
+  });
+
+  test('renders with default padding', () => {
+    const { toJSON } = render(
+      <Card><Text>Test</Text></Card>
+    );
+    expect(toJSON()).toBeTruthy();
+  });
+});
+```
+
+- [ ] **Step 4: Run all monorepo tests**
+
+```bash
+cd /c/claude/bhapi-mobile
+npx turbo run test
+```
+
+Expected: ≥25 tests passing (theme 4 + token-manager 6 + rest-client 5 + i18n 3 + Button 5 + Card 2 = 25).
+
+- [ ] **Step 5: Commit**
+
+```bash
+cd /c/claude/bhapi-mobile
+git add packages/shared-types/src/common.ts packages/shared-ui/__tests__/
+git commit -m "fix: add PagedResponse type and explicit Button/Card tests"
+git push
+```
+
+---
+
+## Task Parallelization Guide
+
+With a 2-3 person team, tasks can be parallelized:
+
+```
+Engineer A                    Engineer B                    Engineer C (if available)
+──────────                    ──────────                    ──────────
+Task 1 (Legacy audit)         Task 3 (ADRs 006-010)        Task 4 (Expo monorepo)
+Task 2 (Archive repos)        Task 11 (ADRs 001-005)       Task 13 (CI + GitHub repo)
+Task 5 (AU compliance)        Task 6 (Moderation design)   Task 14 (Types + UI tests)
+Task 7 (Incident response)    Task 8 (ToS draft)           Task 12 (Backend backfill)
+Task 9 (Hiring)               Task 10 (CLAUDE.md)
+```
+
+Tasks 1→2 are sequential. All other tasks are independent. Task 10 (CLAUDE.md) should be last since it references outputs from other tasks.
+
+---
+
 ## Phase 0 Exit Checklist
 
 Run this checklist at end of Phase 0 (April 22):
@@ -1415,15 +1668,16 @@ Run this checklist at end of Phase 0 (April 22):
 - [ ] COPPA 2026 compliant (already done)
 - [ ] Legacy repos archived (3/3 read-only on GitHub)
 - [ ] Legacy feature inventories committed (3 documents)
-- [ ] ADR-006 through ADR-010 written and committed
-- [ ] Expo monorepo scaffolded, CI green, ≥20 shared package tests passing
+- [ ] ADR-001 through ADR-010 written and committed (10 documents in `docs/adrs/`)
+- [ ] Expo monorepo scaffolded on GitHub (mick-e/bhapi-mobile), CI green, ≥25 shared package tests passing
 - [ ] Australian compliance requirements documented
 - [ ] Moderation pipeline architecture designed and reviewed
 - [ ] Incident response plan documented
 - [ ] Content ownership ToS drafted
 - [ ] Hiring roles published, interview pipeline active
 - [ ] CLAUDE.md updated
-- [ ] Test count: ≥1,887 (existing 1,847 + 20 monorepo + 20 any backend)
+- [ ] Test count: ≥1,887 (existing 1,847 + ≥25 monorepo + ≥20 backend backfill)
 - [ ] All documents committed and pushed to master
+- [ ] Monorepo pushed to GitHub with CI passing
 
 **When complete:** Write the Phase 1 detailed implementation plan at `docs/superpowers/plans/2026-04-23-phase1-moat-defense.md` using the current codebase state, actual team composition, and any lessons from Phase 0.
