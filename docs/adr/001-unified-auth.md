@@ -15,16 +15,17 @@ Unifying the platform under a single brand requires a single, consistent authent
 
 ## Decision
 
-Extend the Bhapi AI Portal's existing JWT + API key authentication system to serve as the unified auth layer for the entire Bhapi Platform.
+Use the bhapi-ai-portal monorepo's existing JWT + API key authentication system as the single auth layer. There is no legacy auth system to unify with — per ADR-010 (clean break), the legacy bhapi-inc repos are archived and their auth code is abandoned. This ADR documents the auth architecture for the unified monorepo only.
 
 Specifically:
 
 - **Password hashing**: bcrypt (already in production).
-- **Token strategy**: Short-lived JWT access tokens + refresh tokens, with session cookie support for browser-based flows.
-- **API keys**: Scoped API keys with PBKDF2-SHA256 hashing, prefix-based identification, and per-key permission scopes.
-- **RBAC**: The existing `require_permission()` decorator and `Permission` enum will be extended to cover new social and platform features.
-- **Multi-tenant isolation**: Tenant-scoped queries enforced at the service layer, carried forward as-is.
-- **Child safety**: COPPA-compliant consent flows, parental controls, and age-gating remain first-class features.
+- **Token strategy**: Short-lived JWT access tokens + refresh tokens, with session cookie support for browser-based flows. Mobile apps (Safety + Social) use the same JWT tokens stored in SecureStore.
+- **API keys**: Scoped API keys with PBKDF2-SHA256 hashing, prefix-based identification (`bhapi_sk_`), and per-key permission scopes.
+- **Auth pattern**: `GroupContext` + `get_current_user` from `src/auth/middleware.py`. DB sessions via `DbSession` from `src/dependencies.py`. Role checks use `auth.role` and `auth.permissions` from GroupContext.
+- **Multi-tenant isolation**: Tenant-scoped queries enforced at the service layer.
+- **Child safety**: COPPA-compliant consent flows, parental controls, age-gating, and age-tier permission checks (ADR-009) are integrated into the auth middleware.
+- **Scope**: This auth system covers the web portal, browser extension, both mobile apps, and the WebSocket real-time service (ADR-008). All share the same JWT secret and token format.
 
 ## Consequences
 
