@@ -3,6 +3,12 @@
 # Docs: https://docs.render.com/blueprint-spec
 # Note: Service names will be updated when mick-e/bhapi-ai-portal is renamed
 # to mick-e/bhapi-platform. Service rename requires Render dashboard update.
+#
+# UNIFIED PLATFORM (Phase 1+):
+# A WebSocket real-time service will be added as a separate Render web service
+# for chat messaging, presence, and live feed updates. See ADR-008.
+# DB connection pooling: monolith=20, jobs=5, websocket=10 (total 35, fits Standard plan).
+# Media storage: Cloudflare R2/Images/Stream (external, not Render-hosted). See ADR-007.
 
 services:
   # Core API (FastAPI backend + Next.js frontend)

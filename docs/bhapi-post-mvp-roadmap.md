@@ -6,8 +6,10 @@
 | **Product** | Bhapi Family AI Governance Portal |
 | **Author** | Mike (Head of Technology) |
 | **Date** | February 2026 (updated March 2026) |
-| **Status** | Active — All phases substantially complete |
+| **Status** | **SUPERSEDED** — Replaced by Unified Platform Roadmap (March 19, 2026) |
 | **Classification** | Confidential |
+
+> **Note (2026-03-19):** This AI Portal-only roadmap has been superseded by the [Bhapi Unified Platform Design Spec](superpowers/specs/2026-03-19-bhapi-unified-platform-design.md) and [Master Implementation Plan](superpowers/plans/2026-03-19-bhapi-unified-platform-master.md). The unified roadmap combines the AI Portal with a safe social network (Bhapi Social), two mobile apps, and global regulatory compliance. Remaining items from this roadmap (Mobile Device Agent, Third-Party API, Community Safety Network) are incorporated into the unified plan's Phase 2-3.
 
 ---
 

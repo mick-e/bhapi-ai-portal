@@ -1,8 +1,20 @@
-# Bhapi Family AI Governance Portal
+# Bhapi — The Family Digital Safety Platform
 
-AI safety and governance platform for families, schools, and clubs. Monitors children's AI tool usage across ChatGPT, Gemini, Copilot, Claude, and Grok with real-time risk alerting, PII protection, and spend management.
+> "The only platform where kids socialize safely AND parents monitor AI"
 
-**URL:** [bhapi.ai](https://bhapi.ai) | **Version:** 2.1.0 (Post-MVP Complete)
+AI safety governance + safe social network for families, schools, and clubs. Monitors children's AI usage across 10 platforms via browser extension, provides a safe social app for children under 16, and offers AI governance compliance tools for schools.
+
+**URL:** [bhapi.ai](https://bhapi.ai) | **Version:** 2.1.0 (Unified Platform in progress)
+
+## Unified Platform (2026 Roadmap)
+
+Bhapi is being unified into a single platform combining:
+- **Bhapi Safety** (iOS/Android) — Parent monitoring app for AI + social activity
+- **Bhapi Social** (iOS/Android) — Safe social network for children 5-15 (3 age tiers)
+- **Web Portal** (bhapi.ai) — Parent/school admin dashboard
+- **Browser Extension** — AI conversation capture (10 platforms)
+
+See [`docs/superpowers/specs/2026-03-19-bhapi-unified-platform-design.md`](docs/superpowers/specs/2026-03-19-bhapi-unified-platform-design.md) for the full design specification.
 
 ## Features
 
@@ -37,9 +49,11 @@ AI safety and governance platform for families, schools, and clubs. Monitors chi
 |-------|-----------|
 | Backend | Python 3.11+, FastAPI, SQLAlchemy async, Alembic |
 | Frontend | Next.js 15, React 19, TypeScript, Tailwind CSS, TanStack Query |
+| Mobile | Expo SDK 52+, React Native, TypeScript, Turborepo monorepo |
 | Extension | Manifest V3 (Chrome + Firefox + Safari), TypeScript |
 | Database | PostgreSQL 16 (prod), SQLite (tests) |
 | Cache | Redis 7 (optional, graceful degradation) |
+| Media | Cloudflare R2 + Images + Stream |
 | Email | SendGrid |
 | SMS | Twilio |
 | Payments | Stripe |
@@ -85,7 +99,7 @@ alembic upgrade head
 ## Testing
 
 ```bash
-# Backend (1314 passed: 639 E2E + 521 unit + 154 security)
+# Backend (1578 passed: ~700 E2E + ~580 unit + ~170 security)
 pytest tests/ -v
 
 # E2E tests (in-memory SQLite, no external keys needed)
@@ -97,7 +111,7 @@ pytest tests/unit/ -v
 # Security tests
 pytest tests/security/ -v
 
-# Frontend (60+ tests)
+# Frontend (174 tests)
 cd portal && npx vitest run
 
 # Type checking (MUST run separately — vitest does NOT run tsc)
@@ -111,8 +125,8 @@ PROD_BASE_URL=https://bhapi.ai PROD_API_KEY=<token> pytest tests/e2e/test_produc
 
 ```
 bhapi-ai-portal/
-├── src/                    # FastAPI backend (18 modules, 188 routes)
-│   ├── main.py             # App factory, middleware, 17 routers
+├── src/                    # FastAPI backend (19 modules, ~200 routes)
+│   ├── main.py             # App factory, middleware, routers
 │   ├── auth/               # Authentication (email/password + OAuth SSO)
 │   ├── groups/             # Group management, consent, school classes
 │   ├── capture/            # Event ingestion + conversation summaries
@@ -132,8 +146,8 @@ bhapi-ai-portal/
 ├── portal/                 # Next.js 15 frontend (static export)
 ├── extension/              # Browser extension (Chrome + Firefox + Safari)
 ├── dns-proxy/              # DNS-level blocking resolver
-├── alembic/                # Database migrations (16 versions)
-├── tests/                  # Test suite (1314 backend + 60 frontend + 95 prod)
+├── alembic/                # Database migrations (31 versions)
+├── tests/                  # Test suite (1578 backend + 174 frontend + 95 prod)
 ├── docs/                   # Product spec, roadmap, DPIA, security
 ├── deploy/                 # Deployment configuration
 ├── docker-compose.yml      # Local dev (Postgres 16 + Redis 7)
@@ -157,9 +171,19 @@ See [`.env.example`](.env.example) for the full list. Key variables:
 
 ## Documentation
 
-- [`docs/bhapi-family-ai-portal-spec.md`](docs/bhapi-family-ai-portal-spec.md) — Product specification (PRD)
-- [`docs/bhapi-post-mvp-roadmap.md`](docs/bhapi-post-mvp-roadmap.md) — Post-MVP feature roadmap (17/20 complete)
+### Unified Platform (Current)
+- [`docs/superpowers/specs/2026-03-19-bhapi-unified-platform-design.md`](docs/superpowers/specs/2026-03-19-bhapi-unified-platform-design.md) — Unified platform design specification (v1.2)
+- [`docs/superpowers/plans/2026-03-19-bhapi-unified-platform-master.md`](docs/superpowers/plans/2026-03-19-bhapi-unified-platform-master.md) — Master implementation plan (4 phases)
+- [`docs/superpowers/plans/2026-03-19-phase0-stabilization.md`](docs/superpowers/plans/2026-03-19-phase0-stabilization.md) — Phase 0 detailed plan (14 tasks)
+- [`docs/Bhapi_Gap_Analysis_Q2_2026.md`](docs/Bhapi_Gap_Analysis_Q2_2026.md) — Competitive gap analysis
+- [`docs/adrs/`](docs/adrs/) — Architecture Decision Records (ADR-001 through ADR-010)
+
+### AI Portal (Legacy — still active)
+- [`docs/bhapi-family-ai-portal-spec.md`](docs/bhapi-family-ai-portal-spec.md) — Original product specification (PRD)
+- [`docs/bhapi-post-mvp-roadmap.md`](docs/bhapi-post-mvp-roadmap.md) — Post-MVP roadmap (17/20 complete, superseded by unified plan)
 - [`docs/family-safety-features.md`](docs/family-safety-features.md) — Family safety features spec (F1-F16)
+
+### Compliance & Security
 - [`docs/compliance/dpia.md`](docs/compliance/dpia.md) — Data Protection Impact Assessment
 - [`docs/security/pentest-plan.md`](docs/security/pentest-plan.md) — Penetration test plan
 - [`docs/launch/production-checklist.md`](docs/launch/production-checklist.md) — Production launch checklist

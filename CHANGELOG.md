@@ -1,6 +1,31 @@
 # Changelog
 
-All notable changes to the Bhapi AI Portal are documented here.
+All notable changes to the Bhapi Platform are documented here.
+
+## [Unreleased] — Unified Platform (Phase 0 in progress)
+
+### Added
+- **Unified Platform Design Spec** (v1.2): Comprehensive design for combining AI safety monitoring + safe social network into single platform
+- **Master Implementation Plan**: 4-phase, 6-month roadmap (Phase 0-3) with test count targets and phase gate reviews
+- **Phase 0 Plan**: 14 tasks covering legacy archival, ADRs, Expo monorepo scaffold, compliance research
+- **Gap Analysis Q2 2026**: Competitive analysis against GoGuardian, Bark, Qustodio, Aura + regulatory landscape
+- **ADR-006 through ADR-010**: Two-app mobile strategy, Cloudflare media, WebSocket service, age tiers, clean break
+- **COPPA 2026 Enforcement**: Deny-by-default consent, push notification consent, risk pipeline degraded mode, privacy notices, age-gating, child-friendly notices (6 languages), parental data dashboard, Yoti webhook, safe harbor certificate
+- Backend test count: 1314 → 1578 passed (~700 E2E + ~580 unit + ~170 security)
+- Frontend test count: 60 → 174 tests
+- Production E2E: 95 tests (all passing)
+
+### Planned (Phase 0-3)
+- Two mobile apps: Bhapi Safety (parent) + Bhapi Social (child 5-15) via Expo monorepo
+- 10 new backend modules: social, messaging, contacts, moderation, age_tier, media, device_agent, governance, intelligence, creative
+- Separate WebSocket real-time service for messaging
+- Cloudflare R2/Images/Stream for user-generated media
+- Three age tiers: 5-9, 10-12, 13-15 with graduated permissions
+- Pre-publish content moderation for under-13, post-publish for teens
+- NCMEC/CSAM reporting pipeline (PhotoDNA + CyberTipline)
+- Global compliance: COPPA 2026, EU AI Act, Australian Online Safety, UK AADC, FERPA, Ohio AI mandate
+- Bundle pricing: Free / $9.99 / $14.99 / School / Enterprise
+- Cross-product AI safety intelligence engine
 
 ## [2.1.0] — 2026-03-11 (Post-MVP Complete)
 
