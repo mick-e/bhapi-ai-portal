@@ -65,6 +65,7 @@ async def _setup_auth_with_member(client, session, email="flow@example.com"):
         "password": "SecurePass1",
         "display_name": "Flow Tester",
         "account_type": "family",
+        "privacy_notice_accepted": True,
     })
     token = reg.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}

@@ -222,6 +222,7 @@ class TestInputValidation:
             "password": "SecurePass1!",
             "display_name": "Test",
             "account_type": "family",
+            "privacy_notice_accepted": True,
         })
         assert r.status_code == 422
 
@@ -230,7 +231,8 @@ class TestInputValidation:
             "email": "test@example.com",
             "password": "SecurePass1!",
             "display_name": "Test",
-            "account_type": "admin",  # Invalid
+            "account_type": "admin",  # Invalid,
+            "privacy_notice_accepted": True,
         })
         assert r.status_code == 422
 
@@ -307,6 +309,7 @@ class TestAbusePrevention:
                 "password": "SecurePass1!",
                 "display_name": "Test",
                 "account_type": "family",
+                "privacy_notice_accepted": True,
             })
             statuses.append(r.status_code)
             if r.status_code == 429:
@@ -342,6 +345,7 @@ class TestPublicEndpointSecurity:
             "contact_name": "Test",
             "email": "test@example.com",
             "account_type": "school",
+            "privacy_notice_accepted": True,
             "estimated_members": "10-50",
         })
         # Should accept but sanitize, or reject

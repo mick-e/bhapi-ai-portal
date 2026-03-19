@@ -63,6 +63,7 @@ async def test_register_sends_verification_email(verify_client):
             "password": "SecurePass1",
             "display_name": "Verify Send",
             "account_type": "family",
+            "privacy_notice_accepted": True,
         })
         assert resp.status_code == 201
 
@@ -82,6 +83,7 @@ async def test_verify_email_sets_flag(verify_client):
         "password": "SecurePass1",
         "display_name": "Verify Flag",
         "account_type": "family",
+        "privacy_notice_accepted": True,
     })
     assert reg.status_code == 201
     token = reg.json()["access_token"]
@@ -114,6 +116,7 @@ async def test_unverified_email_feature_gating(verify_client):
         "password": "SecurePass1",
         "display_name": "Unverified",
         "account_type": "family",
+        "privacy_notice_accepted": True,
     })
     assert reg.status_code == 201
     token = reg.json()["access_token"]

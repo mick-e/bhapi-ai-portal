@@ -62,6 +62,7 @@ async def test_register_family_account(auth_client):
         "password": "SecurePass1",
         "display_name": "Test Parent",
         "account_type": "family",
+        "privacy_notice_accepted": True,
     })
     assert response.status_code == 201
     data = response.json()
@@ -83,6 +84,7 @@ async def test_register_school_account(auth_client):
         "password": "SecurePass1",
         "display_name": "School Admin",
         "account_type": "school",
+        "privacy_notice_accepted": True,
     })
     assert response.status_code == 201
     assert "access_token" in response.json()
@@ -96,6 +98,7 @@ async def test_register_club_account(auth_client):
         "password": "SecurePass1",
         "display_name": "Club Manager",
         "account_type": "club",
+        "privacy_notice_accepted": True,
     })
     assert response.status_code == 201
     assert "access_token" in response.json()
@@ -109,6 +112,7 @@ async def test_register_duplicate_email(auth_client):
         "password": "SecurePass1",
         "display_name": "First User",
         "account_type": "family",
+        "privacy_notice_accepted": True,
     }
     await auth_client.post("/api/v1/auth/register", json=user_data)
     response = await auth_client.post("/api/v1/auth/register", json=user_data)
@@ -123,6 +127,7 @@ async def test_register_weak_password(auth_client):
         "password": "weak",
         "display_name": "User",
         "account_type": "family",
+        "privacy_notice_accepted": True,
     })
     assert response.status_code == 422
 
@@ -135,6 +140,7 @@ async def test_register_invalid_account_type(auth_client):
         "password": "SecurePass1",
         "display_name": "User",
         "account_type": "invalid",
+        "privacy_notice_accepted": True,
     })
     assert response.status_code == 422
 
@@ -150,6 +156,7 @@ async def test_login_success(auth_client):
         "password": "SecurePass1",
         "display_name": "Login User",
         "account_type": "family",
+        "privacy_notice_accepted": True,
     })
 
     # Login
@@ -176,6 +183,7 @@ async def test_login_invalid_password(auth_client):
         "password": "SecurePass1",
         "display_name": "User",
         "account_type": "family",
+        "privacy_notice_accepted": True,
     })
 
     response = await auth_client.post("/api/v1/auth/login", json={
@@ -213,6 +221,7 @@ async def test_api_with_bearer_token(auth_client):
         "password": "SecurePass1",
         "display_name": "Bearer User",
         "account_type": "family",
+        "privacy_notice_accepted": True,
     })
     login_response = await auth_client.post("/api/v1/auth/login", json={
         "email": "bearer@example.com",

@@ -46,6 +46,7 @@ async def test_create_demo_session(demo_client):
         "email": "test@example.com",
         "organisation": "Test School",
         "account_type": "school",
+        "privacy_notice_accepted": True,
     })
     assert res.status_code == 201
     data = res.json()
@@ -58,6 +59,7 @@ async def test_get_demo_session(demo_client):
     create_res = await demo_client.post("/api/v1/portal/demo", json={
         "name": "Test", "email": "test@example.com",
         "organisation": "Test", "account_type": "school",
+        "privacy_notice_accepted": True,
     })
     token = create_res.json()["demo_token"]
     res = await demo_client.get(f"/api/v1/portal/demo/{token}")

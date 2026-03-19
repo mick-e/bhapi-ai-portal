@@ -66,6 +66,7 @@ async def _setup_auth(client):
         "password": "SecurePass1",
         "display_name": "Sub Tester",
         "account_type": "family",
+        "privacy_notice_accepted": True,
     })
     token = reg.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}

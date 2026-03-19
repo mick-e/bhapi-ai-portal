@@ -60,6 +60,7 @@ async def _register(client, email="mass-assign@example.com"):
         "password": "SecurePass1",
         "display_name": "Mass Assign Test",
         "account_type": "family",
+        "privacy_notice_accepted": True,
     })
     token = reg.json()["access_token"]
     me = await client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
@@ -117,6 +118,7 @@ async def test_patch_me_cannot_set_account_type(sec_client):
 
     resp = await sec_client.patch("/api/v1/auth/me", json={
         "account_type": "school",
+        "privacy_notice_accepted": True,
     }, headers=headers)
 
     me = await sec_client.get("/api/v1/auth/me", headers=headers)

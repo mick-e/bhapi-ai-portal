@@ -17,6 +17,7 @@ async def _register_and_login(client, email="test@example.com", account_type="sc
         "password": "SecurePass1",
         "display_name": "Test User",
         "account_type": account_type,
+        "privacy_notice_accepted": True,
     })
     data = reg.json()
     return data["access_token"], data["user"]["group_id"]

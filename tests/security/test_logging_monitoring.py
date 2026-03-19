@@ -65,6 +65,7 @@ async def test_failed_login_is_logged(sec_client, capfd):
         "password": "SecurePass1",
         "display_name": "Log Tester",
         "account_type": "family",
+        "privacy_notice_accepted": True,
     })
 
     # Attempt login with wrong password
@@ -111,6 +112,7 @@ async def test_sensitive_data_not_in_logs(sec_client, capfd):
         "password": password,
         "display_name": "Sensitive Logger",
         "account_type": "family",
+        "privacy_notice_accepted": True,
     })
     assert resp.status_code == 201
 

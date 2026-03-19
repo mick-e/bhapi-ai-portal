@@ -26,6 +26,7 @@ async def _register_and_login(client, email="comply@test.com"):
         "password": "SecurePass1",
         "display_name": "Compliance Tester",
         "account_type": "family",
+        "privacy_notice_accepted": True,
     })
     token = reg.json()["access_token"]
     me = await client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})

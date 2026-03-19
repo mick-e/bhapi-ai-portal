@@ -62,6 +62,7 @@ async def _register_and_login(client, email="session-test@example.com"):
         "password": "SecurePass1",
         "display_name": "Session Tester",
         "account_type": "family",
+        "privacy_notice_accepted": True,
     })
     token = reg.json()["access_token"]
     me = await client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
@@ -165,6 +166,7 @@ async def test_concurrent_sessions_allowed(sec_client):
         "password": "SecurePass1",
         "display_name": "Concurrent",
         "account_type": "family",
+        "privacy_notice_accepted": True,
     })
     token1 = reg.json()["access_token"]
 
@@ -196,6 +198,7 @@ async def test_session_fixation(sec_client):
         "password": "SecurePass1",
         "display_name": "Fixation",
         "account_type": "family",
+        "privacy_notice_accepted": True,
     })
     token_before = reg.json()["access_token"]
 

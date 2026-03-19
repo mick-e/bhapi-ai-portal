@@ -118,6 +118,7 @@ class TestInputValidation:
             "password": "SecurePass1",
             "display_name": "Test Parent",
             "account_type": "family",
+            "privacy_notice_accepted": True,
         })
         token = resp.json()["access_token"]
         return {"Authorization": f"Bearer {token}"}, resp.json()["user"]["group_id"]

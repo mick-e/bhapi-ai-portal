@@ -60,6 +60,7 @@ async def _register(client, email="ssrf-test@example.com"):
         "password": "SecurePass1",
         "display_name": "SSRF Tester",
         "account_type": "school",
+        "privacy_notice_accepted": True,
     })
     token = reg.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}

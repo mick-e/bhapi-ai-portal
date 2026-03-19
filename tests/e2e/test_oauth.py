@@ -26,6 +26,7 @@ async def _register_and_login(client, email="oauth@test.com"):
         "password": "SecurePass1",
         "display_name": "OAuth Tester",
         "account_type": "family",
+        "privacy_notice_accepted": True,
     })
     token = reg.json()["access_token"]
     me = await client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
@@ -262,6 +263,7 @@ async def test_callback_links_to_existing_user(mock_settings, oauth_client):
         "password": "SecurePass1",
         "display_name": "Existing User",
         "account_type": "family",
+        "privacy_notice_accepted": True,
     })
 
     mock_token_resp = MagicMock()

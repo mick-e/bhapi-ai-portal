@@ -72,6 +72,7 @@ async def _setup_auth_with_member(client):
         "password": "SecurePass1",
         "display_name": "Pairing Tester",
         "account_type": "family",
+        "privacy_notice_accepted": True,
     })
     assert reg.status_code == 201 or reg.status_code == 200, reg.text
     token = reg.json()["access_token"]

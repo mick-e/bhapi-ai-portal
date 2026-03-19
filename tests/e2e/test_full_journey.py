@@ -30,6 +30,7 @@ async def _register_and_login(client: AsyncClient, email: str, password: str = "
         "password": password,
         "display_name": display_name,
         "account_type": account_type,
+        "privacy_notice_accepted": True,
     })
     assert reg.status_code == 201, f"Register failed: {reg.status_code} {reg.text}"
     token = reg.json()["access_token"]
@@ -117,6 +118,7 @@ class TestFamilyJourney:
             "password": "SecurePass1",
             "display_name": "Jane Parent",
             "account_type": "family",
+            "privacy_notice_accepted": True,
         })
         assert reg_resp.status_code == 201
         reg_data = reg_resp.json()
@@ -247,6 +249,7 @@ class TestSchoolJourney:
             "password": "SchoolPass1",
             "display_name": "Principal Smith",
             "account_type": "school",
+            "privacy_notice_accepted": True,
         })
         assert reg_resp.status_code == 201
         reg_data = reg_resp.json()
@@ -343,6 +346,7 @@ class TestSchoolJourney:
             "password": "TeacherPass1",
             "display_name": "Mrs. Teacher",
             "account_type": "school",
+            "privacy_notice_accepted": True,
         })
         assert teacher_reg.status_code == 201
 

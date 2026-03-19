@@ -65,6 +65,7 @@ async def test_soft_deleted_user_cannot_login(sec_client):
         "password": "SecurePass1",
         "display_name": "Delete Me",
         "account_type": "family",
+        "privacy_notice_accepted": True,
     })
     token = reg.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
@@ -93,6 +94,7 @@ async def test_soft_deleted_group_not_visible(sec_client):
         "password": "SecurePass1",
         "display_name": "Group Deleter",
         "account_type": "family",
+        "privacy_notice_accepted": True,
     })
     token = reg.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}

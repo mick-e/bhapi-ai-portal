@@ -325,6 +325,7 @@ class TestAuthEndpoints:
             "password": "123",
             "display_name": "Test",
             "account_type": "family",
+            "privacy_notice_accepted": True,
         })
         assert r.status_code == 422
 

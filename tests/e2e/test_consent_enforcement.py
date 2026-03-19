@@ -8,6 +8,7 @@ from src.capture.schemas import EventPayload
 from src.capture.service import ingest_event
 from src.compliance.models import ConsentRecord
 from src.exceptions import ForbiddenError
+from src.groups.agreement import create_agreement, sign_agreement
 from src.groups.models import GroupMember
 from tests.conftest import make_test_group
 
@@ -66,6 +67,10 @@ async def test_capture_allowed_with_consent(test_session):
     )
     test_session.add(consent)
     await test_session.flush()
+
+    # COPPA 2026: Create and sign family agreement for child <13
+    agreement = await create_agreement(test_session, group.id, "ages_7_10", owner_id)
+    await sign_agreement(test_session, agreement.id, minor_id, "Child")
 
     payload = EventPayload(
         group_id=group.id,

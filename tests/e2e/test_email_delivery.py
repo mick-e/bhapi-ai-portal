@@ -25,6 +25,7 @@ from src.auth.service import (
     reset_password,
     send_verification_email,
 )
+from src.compliance.coppa_2026 import update_push_notification_consent, update_third_party_consent
 from src.groups.models import Group, GroupMember
 
 
@@ -67,6 +68,14 @@ async def test_group_with_admin(test_session: AsyncSession, test_user: User):
     )
     test_session.add(member)
     await test_session.flush()
+
+    # COPPA 2026: Grant SendGrid and push notification consent for the test member
+    await update_third_party_consent(
+        test_session, group.id, member.id, test_user.id, "sendgrid", True
+    )
+    await update_push_notification_consent(
+        test_session, group.id, member.id, test_user.id, "risk_alerts", True
+    )
 
     return group, member, test_user
 

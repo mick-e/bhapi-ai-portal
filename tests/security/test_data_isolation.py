@@ -61,6 +61,7 @@ async def _register_and_login(client, email, password="SecurePass1", display_nam
         "password": password,
         "display_name": display_name,
         "account_type": "family",
+        "privacy_notice_accepted": True,
     })
     token = reg.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}

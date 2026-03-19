@@ -62,6 +62,7 @@ async def _register_family_user(client, email="family@example.com"):
         "password": "SecurePass1",
         "display_name": "Test Family",
         "account_type": "family",
+        "privacy_notice_accepted": True,
     })
     login = await client.post("/api/v1/auth/login", json={
         "email": email,
@@ -78,6 +79,7 @@ async def _register_school_user(client, email="school@example.com"):
         "password": "SecurePass1",
         "display_name": "Test School",
         "account_type": "school",
+        "privacy_notice_accepted": True,
     })
     login = await client.post("/api/v1/auth/login", json={
         "email": email,

@@ -81,6 +81,7 @@ async def test_sql_injection_in_display_name(sec_client):
         "password": "SecurePass1",
         "display_name": "'; DROP TABLE users; --",
         "account_type": "family",
+        "privacy_notice_accepted": True,
     })
     # Should succeed (display_name allows freeform text) or 422 if too long
     assert resp.status_code in (201, 422)
@@ -126,6 +127,7 @@ async def test_json_injection_nested_object(sec_client):
         "password": "SecurePass1",
         "display_name": "Test",
         "account_type": "family",
+        "privacy_notice_accepted": True,
     })
     assert resp.status_code == 422
 
@@ -140,6 +142,7 @@ async def test_xss_script_tag_in_email(sec_client):
         "password": "SecurePass1",
         "display_name": "Test",
         "account_type": "family",
+        "privacy_notice_accepted": True,
     })
     assert resp.status_code == 422
 
@@ -152,6 +155,7 @@ async def test_xss_img_onerror(sec_client):
         "password": "SecurePass1",
         "display_name": '<img src=x onerror="alert(1)">',
         "account_type": "family",
+        "privacy_notice_accepted": True,
     })
     assert resp.status_code == 201
     # Register returns TokenResponse; verify via /me that name is stored as-is
@@ -168,6 +172,7 @@ async def test_xss_event_handler(sec_client):
         "password": "SecurePass1",
         "display_name": '" onmouseover="alert(document.cookie)"',
         "account_type": "family",
+        "privacy_notice_accepted": True,
     })
     assert resp.status_code == 201
 
@@ -180,6 +185,7 @@ async def test_xss_svg_injection(sec_client):
         "password": "SecurePass1",
         "display_name": '<svg onload="alert(1)">',
         "account_type": "family",
+        "privacy_notice_accepted": True,
     })
     assert resp.status_code == 201
 
@@ -204,6 +210,7 @@ async def test_null_byte_injection(sec_client):
         "password": "SecurePass1",
         "display_name": "Test",
         "account_type": "family",
+        "privacy_notice_accepted": True,
     })
     assert resp.status_code == 422
 

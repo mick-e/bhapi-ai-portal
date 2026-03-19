@@ -59,6 +59,7 @@ VALID_INQUIRY = {
     "contact_name": "Seymour Skinner",
     "email": "skinner@springfield.com",
     "account_type": "school",
+    "privacy_notice_accepted": True,
     "estimated_members": "50-200",
     "message": "Interested in monitoring student AI usage.",
 }
@@ -100,6 +101,7 @@ async def test_contact_inquiry_with_auth(inquiry_client):
         "password": "SecurePass1",
         "display_name": "Auth Inquirer",
         "account_type": "family",
+        "privacy_notice_accepted": True,
     })
     token = reg.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}

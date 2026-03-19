@@ -60,6 +60,7 @@ async def _setup_user(client, email):
         "password": "SecurePass1",
         "display_name": f"User {email}",
         "account_type": "family",
+        "privacy_notice_accepted": True,
     })
     token = reg.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}

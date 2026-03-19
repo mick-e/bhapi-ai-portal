@@ -9,6 +9,7 @@ from src.auth.models import User
 from src.capture.schemas import EventPayload
 from src.capture.service import ingest_event
 from src.exceptions import ForbiddenError, ValidationError
+from src.groups.agreement import create_agreement, sign_agreement
 from src.groups.consent import calculate_age, get_consent_type, requires_consent
 from src.groups.models import Group, GroupMember
 from src.groups.schemas import MemberAdd
@@ -266,6 +267,10 @@ class TestCaptureConsentBlocking:
             test_session, group.id, child.id, owner.id,
             consent_type="coppa",
         )
+
+        # COPPA 2026: Create and sign family agreement for child <13
+        agreement = await create_agreement(test_session, group.id, "ages_7_10", owner.id)
+        await sign_agreement(test_session, agreement.id, child.id, "Child")
 
         payload = EventPayload(
             group_id=group.id,

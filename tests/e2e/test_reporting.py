@@ -26,6 +26,7 @@ async def _register_and_login(client, email="reports@test.com"):
         "password": "SecurePass1",
         "display_name": "Reports Tester",
         "account_type": "family",
+        "privacy_notice_accepted": True,
     })
     return reg.json()["access_token"]
 

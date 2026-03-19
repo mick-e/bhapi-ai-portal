@@ -64,6 +64,7 @@ async def _register_and_add_member(client: AsyncClient) -> tuple[str, str, str]:
         "password": "SecurePass1",
         "display_name": "Test Parent",
         "account_type": "family",
+        "privacy_notice_accepted": True,
     })
     assert resp.status_code == 201
     data = resp.json()

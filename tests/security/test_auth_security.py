@@ -58,6 +58,7 @@ async def test_password_too_short(sec_client):
     """Password under 8 chars rejected."""
     resp = await sec_client.post("/api/v1/auth/register", json={
         "email": "a@b.com", "password": "Short1", "display_name": "X", "account_type": "family",
+        "privacy_notice_accepted": True,
     })
     assert resp.status_code == 422
 
@@ -67,6 +68,7 @@ async def test_password_no_uppercase(sec_client):
     """Password without uppercase rejected."""
     resp = await sec_client.post("/api/v1/auth/register", json={
         "email": "a@b.com", "password": "nouppercase1", "display_name": "X", "account_type": "family",
+        "privacy_notice_accepted": True,
     })
     assert resp.status_code == 422
 
@@ -76,6 +78,7 @@ async def test_password_no_lowercase(sec_client):
     """Password without lowercase rejected."""
     resp = await sec_client.post("/api/v1/auth/register", json={
         "email": "a@b.com", "password": "NOLOWERCASE1", "display_name": "X", "account_type": "family",
+        "privacy_notice_accepted": True,
     })
     assert resp.status_code == 422
 
@@ -85,6 +88,7 @@ async def test_password_no_digit(sec_client):
     """Password without digit rejected."""
     resp = await sec_client.post("/api/v1/auth/register", json={
         "email": "a@b.com", "password": "NoDigitHere", "display_name": "X", "account_type": "family",
+        "privacy_notice_accepted": True,
     })
     assert resp.status_code == 422
 
@@ -94,6 +98,7 @@ async def test_password_not_returned_in_response(sec_client):
     """Password hash never exposed in API response."""
     resp = await sec_client.post("/api/v1/auth/register", json={
         "email": "safe@test.com", "password": "SecurePass1", "display_name": "Safe", "account_type": "family",
+        "privacy_notice_accepted": True,
     })
     data = resp.json()
     assert "password" not in data
@@ -161,6 +166,7 @@ async def test_login_generic_error_message(sec_client):
     await sec_client.post("/api/v1/auth/register", json={
         "email": "victim@test.com", "password": "SecurePass1",
         "display_name": "Victim", "account_type": "family",
+        "privacy_notice_accepted": True,
     })
 
     # Wrong password
@@ -231,6 +237,7 @@ async def test_xss_in_display_name(sec_client):
         "password": "SecurePass1",
         "display_name": "<script>alert('xss')</script>",
         "account_type": "family",
+        "privacy_notice_accepted": True,
     })
     assert resp.status_code == 201
     # Register returns TokenResponse; verify via /me that name is stored as-is
@@ -247,6 +254,7 @@ async def test_oversized_payload(sec_client):
         "password": "SecurePass1",
         "display_name": "A" * 300,  # Over max_length
         "account_type": "family",
+        "privacy_notice_accepted": True,
     })
     assert resp.status_code == 422
 
@@ -260,6 +268,7 @@ async def test_user_cannot_see_other_users_groups(sec_client):
     await sec_client.post("/api/v1/auth/register", json={
         "email": "u1@test.com", "password": "SecurePass1",
         "display_name": "U1", "account_type": "family",
+        "privacy_notice_accepted": True,
     })
     login1 = await sec_client.post("/api/v1/auth/login", json={
         "email": "u1@test.com", "password": "SecurePass1",
@@ -273,6 +282,7 @@ async def test_user_cannot_see_other_users_groups(sec_client):
     await sec_client.post("/api/v1/auth/register", json={
         "email": "u2@test.com", "password": "SecurePass1",
         "display_name": "U2", "account_type": "family",
+        "privacy_notice_accepted": True,
     })
     login2 = await sec_client.post("/api/v1/auth/login", json={
         "email": "u2@test.com", "password": "SecurePass1",

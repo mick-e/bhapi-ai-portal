@@ -131,6 +131,7 @@ async def test_sse_stream_endpoint_requires_group_id(sse_client):
         "password": "SecurePass1",
         "display_name": "SSE 422 Tester",
         "account_type": "family",
+        "privacy_notice_accepted": True,
     })
     token = reg.json()["access_token"]
     resp = await client.get(
@@ -151,6 +152,7 @@ async def test_alert_creation_triggers_sse(sse_client):
         "password": "SecurePass1",
         "display_name": "SSE Trigger Tester",
         "account_type": "family",
+        "privacy_notice_accepted": True,
     })
     token = reg.json()["access_token"]
     me = await client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
