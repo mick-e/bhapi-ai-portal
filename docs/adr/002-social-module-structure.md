@@ -6,7 +6,7 @@
 
 ## Context
 
-The unified Bhapi Platform requires social features to support community interaction: posts, comments, followers, direct messaging, and user/content search. These features are central to the platform's value proposition and will be used across both the family safety (AI Portal) and developer community (former Bhapi App) contexts.
+The unified Bhapi Platform requires social features for children's safe social interaction: posts, comments, followers, direct messaging, and user/content search. These features power the Bhapi Social app (children 5-15) with age-tiered access (ADR-009) and content moderation (pre-publish for under-13, post-publish for teens). The social backend also feeds into the parent monitoring dashboard (Bhapi Safety) via cross-product intelligence.
 
 The existing AI Portal backend (`src/main.py`) already contains 19 well-structured modules (~190 routes) following a consistent pattern: each module lives in its own directory under `src/` and contains `router.py`, `service.py`, `models.py`, and `schemas.py`. The backend uses FastAPI with SQLAlchemy async, Alembic migrations, and PostgreSQL.
 
