@@ -90,7 +90,7 @@ async def test_submit_with_content_text(test_session: AsyncSession):
         content_text="Hello world",
     )
     assert entry.risk_scores is not None
-    assert "text_flagged" in entry.risk_scores
+    assert "keyword_filter" in entry.risk_scores
 
 
 @pytest.mark.asyncio
