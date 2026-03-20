@@ -30,6 +30,10 @@ COPY migration_helpers.py migration_helpers.py
 # Copy built frontend (static export)
 COPY --from=frontend-builder /app/portal/out portal/out
 
+# Copy entrypoint script
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
 # Create non-root user
 RUN useradd --create-home --uid 1000 appuser
 USER appuser
@@ -39,4 +43,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=45s --retries=3 \
     CMD curl -f http://localhost:8000/health/live || exit 1
 
-CMD ["sh", "-c", "alembic upgrade head || echo 'WARNING: alembic migration failed, starting anyway'; uvicorn src.main:app --host 0.0.0.0 --port 8000"]
+ENTRYPOINT ["/app/entrypoint.sh"]
+CMD ["web"]

@@ -78,7 +78,7 @@ services:
     plan: starter
     region: frankfurt
     schedule: "*/5 * * * *"
-    dockerCommand: "python -m src.jobs"
+    dockerCommand: "python -m src.jobs"  # Entrypoint runs migrations first, then execs this
     envVars:
       - key: ENVIRONMENT
         value: production
