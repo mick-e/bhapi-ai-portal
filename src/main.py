@@ -295,6 +295,15 @@ def _register_routers(app: FastAPI) -> None:
     from src.contacts.router import router as contacts_router
     app.include_router(contacts_router, prefix="/api/v1/contacts", tags=["Contacts"])
 
+    from src.governance.router import router as governance_router
+    app.include_router(governance_router, prefix="/api/v1/governance", tags=["Governance"])
+
+    from src.messaging.router import router as messaging_router
+    app.include_router(messaging_router, prefix="/api/v1/messages", tags=["Messaging"])
+
+    from src.media.router import router as media_router
+    app.include_router(media_router, prefix="/api/v1/media", tags=["Media"])
+
 
 _PORTAL_CANDIDATES = [
     Path("/app/portal/out"),
