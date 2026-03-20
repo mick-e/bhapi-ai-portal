@@ -292,6 +292,9 @@ def _register_routers(app: FastAPI) -> None:
     from src.social.router import router as social_router
     app.include_router(social_router, prefix="/api/v1/social", tags=["Social"])
 
+    from src.contacts.router import router as contacts_router
+    app.include_router(contacts_router, prefix="/api/v1/contacts", tags=["Contacts"])
+
 
 _PORTAL_CANDIDATES = [
     Path("/app/portal/out"),
