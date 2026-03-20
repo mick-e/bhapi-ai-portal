@@ -6,7 +6,7 @@ AI safety governance platform at **bhapi.ai** for parents, school admins, and cl
 
 **Optimizes for:** Child safety, regulatory compliance (COPPA/GDPR/LGPD), real-time alerting, data privacy.
 **Stack:** FastAPI (Python 3.11) + Next.js 15 (TypeScript) + PostgreSQL 16
-**Version:** 2.1.0 (Post-MVP features complete)
+**Version:** 3.0.0 (Phase 1 — Moat Defense + Safety Foundation complete)
 
 ## 2. Tech Stack
 
@@ -27,8 +27,9 @@ AI safety governance platform at **bhapi.ai** for parents, school admins, and cl
 
 ## 3. Architecture
 
-### 2-Service Model
-- **core-api:** All 19 modules served from single FastAPI app (`src/main.py`, ~190 routes)
+### 3-Service Model
+- **core-api:** All 26 modules served from single FastAPI app (`src/main.py`, ~250+ routes)
+- **realtime:** Separate WebSocket FastAPI app (`src/realtime/main.py`) — JWT auth, connections, Redis pub/sub, presence
 - **jobs:** Background cron runner for risk processing, email delivery, spend sync
 
 ### Modules
@@ -53,6 +54,13 @@ AI safety governance platform at **bhapi.ai** for parents, school admins, and cl
 | `groups/` (extended) | `/api/v1/groups` | Family agreements, emergency contacts, rewards, member visibility, panic button |
 | `legal/` | `/legal` | Public privacy policy and terms of service (no auth) |
 | `jobs/` | `/internal` | Background job runner, scheduled tasks |
+| `age_tier/` | `/api/v1/age-tier` | Permission engine (3-tier: young 5-9, preteen 10-12, teen 13-15), tier assignment, feature overrides |
+| `social/` | `/api/v1/social` | Feed, posts, comments, likes, profiles, follow/unfollow, hashtags |
+| `contacts/` | `/api/v1/contacts` | Contact requests with parent approval gate, blocking |
+| `moderation/` | `/api/v1/moderation` | Pre-publish pipeline, keyword filter, image/video classification, CSAM detection, social risk, takedown, eSafety |
+| `governance/` | `/api/v1/governance` | AI policy templates (Ohio mandate), tool inventory, risk assessment, compliance dashboard |
+| `media/` | `/api/v1/media` | Cloudflare R2 upload, Images resize, Stream transcode |
+| `messaging/` | `/api/v1/messages` | Conversation + message CRUD (skeleton — full real-time in Phase 2) |
 
 ### Module Communication Rules
 1. Modules NEVER import from each other's internal files (models.py, service.py)
@@ -83,7 +91,7 @@ All custom exceptions inherit from `src.exceptions.BhapiException`:
 
 ### Database
 - **ORM:** SQLAlchemy 2.x async (asyncpg for PostgreSQL, aiosqlite for SQLite in tests)
-- **Migrations:** Alembic (16 migrations: initial schema, content column, compound indexes, api_keys table, alert snoozed_until, beta schema changes, block approvals, class groups, literacy tables, conversation summaries, family agreements, time budgets, deepfake/dependency, member visibility, rewards, emergency contacts)
+- **Migrations:** Alembic (32 migrations: 001-031 original schema through COPPA 2026, 032 social/contacts/moderation/governance/messaging models + indexes)
 - **Mixins:** `UUIDMixin` (UUID PK), `TimestampMixin` (`created_at` + `updated_at`), `SoftDeleteMixin` (`deleted_at` with auto-filtering)
 - Content excerpts stored encrypted via `encrypt_credential()`, decrypted on read. TTL cleanup job runs daily.
 
@@ -132,14 +140,16 @@ All custom exceptions inherit from `src.exceptions.BhapiException`:
 
 ### Commands
 ```bash
-pytest tests/ -v              # All backend (1578 passed, 139 skipped, 4 xfailed)
-pytest tests/e2e/ -v          # E2E (~700 passed, in-memory SQLite, no keys needed)
-pytest tests/unit/ -v          # Unit tests (~580 passed)
-pytest tests/security/ -v     # Security (~170 passed)
-cd portal && npx vitest run   # Frontend (174 tests)
+pytest tests/ -v              # All backend (2699 passed, 139 skipped, 4 xfailed — 2026-03-20)
+pytest tests/e2e/ -v          # E2E (~900+ passed, in-memory SQLite, no keys needed)
+pytest tests/unit/ -v          # Unit tests (~1100+ passed)
+pytest tests/security/ -v     # Security (348 passed — 2026-03-20)
+cd portal && npx vitest run   # Frontend (174+ tests)
 cd portal && npx tsc --noEmit # Type check (MUST run separately)
+cd mobile && npx turbo run test  # Mobile (213 tests across 7 packages — 2026-03-20)
+cd extension && npx jest       # Extension (43 tests — 2026-03-20)
 # Production E2E (requires PROD_API_KEY in .env.local):
-PROD_BASE_URL=https://bhapi.ai PROD_API_KEY=<token> pytest tests/e2e/test_production.py -v  # 95 tests
+PROD_BASE_URL=https://bhapi.ai PROD_API_KEY=<token> pytest tests/e2e/test_production.py -v  # 82 passed, 13 perm failures
 ```
 
 ### Definition of Done
@@ -245,21 +255,27 @@ The Bhapi platform is being unified per the design spec at `docs/superpowers/spe
 - **Structure:** Turborepo + Expo SDK 52+ with 6 shared packages
 - **Apps:** `com.bhapi.safety` (parent) and `com.bhapi.social` (child)
 - **Packages:** shared-config, shared-types, shared-auth, shared-api, shared-i18n, shared-ui
-- **Tests:** 22 passing across 5 packages (`cd mobile && npx turbo run test`)
+- **Tests:** 213 passing across 7 packages (`cd mobile && npx turbo run test`)
+- **Safety app:** Auth screens, dashboard, alerts, groups, settings (12 screens)
+- **Social app:** Feed, chat, profile, settings screen shells (6 screens)
 
-### New Backend Modules (Phase 1+)
-| Module | Prefix | Purpose |
-|--------|--------|---------|
-| `social/` | `/api/v1/social` | Feed, posts, comments, likes, profiles, follow |
-| `messaging/` | `/api/v1/messages` | Conversations, real-time chat, media messages |
-| `contacts/` | `/api/v1/contacts` | Contact requests, parent approval, blocking |
-| `moderation/` | `/api/v1/moderation` | Pre-publish pipeline, takedown, queue, appeals |
-| `age_tier/` | `/api/v1/age-tier` | Permission engine, tier rules, graduated unlocks |
-| `media/` | `/api/v1/media` | Cloudflare R2 upload, image/video processing |
-| `device_agent/` | `/api/v1/device` | Mobile agent data, screen time, location |
-| `governance/` | `/api/v1/governance` | AI policy generator, state compliance, audit |
-| `intelligence/` | `/api/v1/intelligence` | Cross-product correlation, unified risk scores |
-| `creative/` | `/api/v1/creative` | AI art, story creation, templates |
+### Phase 1 Backend Modules (IMPLEMENTED)
+| Module | Prefix | Purpose | Status |
+|--------|--------|---------|--------|
+| `age_tier/` | `/api/v1/age-tier` | Permission engine (young/preteen/teen), tier assignment, overrides | Done |
+| `social/` | `/api/v1/social` | Feed CRUD, profiles, posts, comments, likes, follows, hashtags | Done |
+| `contacts/` | `/api/v1/contacts` | Contact requests with parent approval gate, blocking | Done |
+| `moderation/` | `/api/v1/moderation` | Pipeline (keyword + image + video + CSAM + social risk), queue, takedown, eSafety | Done |
+| `governance/` | `/api/v1/governance` | Ohio AI policy templates, tool inventory, risk assessment, compliance dashboard | Done |
+| `media/` | `/api/v1/media` | Cloudflare R2 upload, Images resize, Stream transcode | Done |
+| `messaging/` | `/api/v1/messages` | Conversation + message CRUD (skeleton — full real-time in Phase 2) | Done |
+
+### Future Backend Modules (Phase 2+)
+| Module | Prefix | Purpose | Phase |
+|--------|--------|---------|-------|
+| `device_agent/` | `/api/v1/device` | Mobile agent data, screen time, location | P2 |
+| `intelligence/` | `/api/v1/intelligence` | Cross-product correlation, unified risk scores | P2-P3 |
+| `creative/` | `/api/v1/creative` | AI art, story creation, templates | P3 |
 
 ### Content Moderation
 - Pre-publish for under-13 (all content screened before posting, <2s SLA)
@@ -278,7 +294,7 @@ The Bhapi platform is being unified per the design spec at `docs/superpowers/spe
 - AU compliance: `docs/compliance/australian-online-safety-analysis.md`
 
 ### Next Migration
-**032** — First social feature migration (profiles, age_tier_configs)
+**033** — Next social/messaging feature migration
 
 ### Legacy Repos (Archived)
 bhapi-inc/bhapi-api, bhapi-inc/bhapi-mobile, bhapi-inc/back-office — all archived on GitHub. Feature inventories at `docs/legacy/`.
