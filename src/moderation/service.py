@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.exceptions import ConflictError, NotFoundError, ValidationError
 from src.moderation.keyword_filter import FilterAction, classify_text
 from src.moderation.models import ContentReport, ModerationDecision, ModerationQueue
+from src.moderation.social_risk import classify_social_risk
 
 logger = structlog.get_logger()
 
@@ -70,6 +71,22 @@ async def submit_for_moderation(
         ):
             status = "approved"
         # UNCERTAIN: stays as "pending" for AI/human review
+
+    # Run social risk classifier on message/comment content
+    if content_type in ("message", "comment") and content_text:
+        social_result = classify_social_risk(
+            content_text, author_age_tier=author_age_tier
+        )
+        if social_result.risk_score > 0:
+            risk_scores = risk_scores or {}
+            risk_scores["social_risk"] = {
+                "category": social_result.category,
+                "severity": social_result.severity,
+                "score": social_result.risk_score,
+                "patterns": social_result.matched_patterns,
+            }
+            if social_result.severity in ("critical", "high"):
+                status = "escalated"
 
     entry = ModerationQueue(
         id=uuid4(),

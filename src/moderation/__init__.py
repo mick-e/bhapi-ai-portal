@@ -12,6 +12,11 @@ from src.moderation.image_pipeline import (
 )
 from src.moderation.keyword_filter import FilterAction, FilterResult, classify_text
 from src.moderation.service import submit_for_moderation, takedown_content
+from src.moderation.social_risk import (
+    SocialRiskCategory,
+    SocialRiskResult,
+    classify_social_risk,
+)
 from src.moderation.video_pipeline import (
     VideoModerationPipeline,
     VideoResult,
@@ -27,8 +32,11 @@ __all__ = [
     "VideoModerationPipeline",
     "VideoResult",
     "classify_image",
+    "classify_social_risk",
     "classify_text",
     "classify_video",
     "submit_for_moderation",
     "takedown_content",
+    "SocialRiskCategory",
+    "SocialRiskResult",
 ]
