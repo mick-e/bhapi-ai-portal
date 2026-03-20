@@ -2,16 +2,15 @@
 
 import pytest
 
+from src.exceptions import NotFoundError, ValidationError
 from src.portal.demo import (
-    create_demo_session,
-    get_demo_session,
-    list_demo_sessions,
     calculate_roi,
+    create_demo_session,
     get_case_studies,
     get_case_study,
-    DemoSession,
+    get_demo_session,
+    list_demo_sessions,
 )
-from src.exceptions import NotFoundError, ValidationError
 
 
 @pytest.mark.asyncio

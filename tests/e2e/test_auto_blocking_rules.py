@@ -1,11 +1,9 @@
 """E2E tests for the automated blocking rules engine."""
 
-from uuid import uuid4
 
 import pytest
 
-from src.blocking.models import AutoBlockRule
-from src.blocking.schemas import AutoBlockRuleCreate, AutoBlockRuleRequest, AutoBlockRuleUpdate
+from src.blocking.schemas import AutoBlockRuleRequest, AutoBlockRuleUpdate
 from src.blocking.service import (
     create_auto_block_rule,
     delete_auto_block_rule,
@@ -14,7 +12,6 @@ from src.blocking.service import (
     list_auto_block_rules,
     update_auto_block_rule,
 )
-from src.groups.models import GroupMember
 from tests.conftest import make_test_group
 
 

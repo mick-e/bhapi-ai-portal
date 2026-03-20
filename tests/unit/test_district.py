@@ -1,13 +1,16 @@
 """Unit tests for district management."""
 
-import pytest
 from uuid import uuid4
-from tests.conftest import make_test_group
+
+import pytest
+
+from src.exceptions import ConflictError, NotFoundError
 from src.groups.district import (
-    create_district, add_school_to_district,
-    get_district, list_district_schools, get_district_summary,
+    add_school_to_district,
+    create_district,
+    get_district_summary,
 )
-from src.exceptions import NotFoundError, ConflictError
+from tests.conftest import make_test_group
 
 
 @pytest.mark.asyncio

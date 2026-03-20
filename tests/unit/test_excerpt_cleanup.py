@@ -1,11 +1,12 @@
 """Unit tests for content excerpt TTL cleanup job."""
 
-import pytest
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
-from src.risk.models import ContentExcerpt, RiskEvent
+import pytest
+
 from src.groups.models import GroupMember
+from src.risk.models import ContentExcerpt, RiskEvent
 from tests.conftest import make_test_group
 
 

@@ -1,9 +1,10 @@
 """Unit tests for COPPA Dashboard checklist logic."""
 
 import json
-import pytest
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
+
+import pytest
 
 from src.compliance.coppa_dashboard import (
     COPPAChecklistItem,

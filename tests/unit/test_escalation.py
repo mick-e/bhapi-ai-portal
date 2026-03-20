@@ -1,15 +1,16 @@
 """Unit tests for crisis escalation."""
 
-import pytest
 from uuid import uuid4
-from tests.conftest import make_test_group
+
+import pytest
+
 from src.alerts.escalation import (
     create_escalation_partner,
-    list_escalation_partners,
     escalate_alert,
-    list_escalation_records,
+    list_escalation_partners,
 )
-from src.exceptions import ValidationError, NotFoundError
+from src.exceptions import NotFoundError, ValidationError
+from tests.conftest import make_test_group
 
 
 @pytest.mark.asyncio
@@ -37,11 +38,20 @@ class TestEscalation:
 
     async def test_escalate_alert(self, test_session):
         group, _ = await make_test_group(test_session)
-        partner = await create_escalation_partner(test_session, group_id=group.id, name="Crisis", provider_type="crisis_text_line")
-        record = await escalate_alert(test_session, partner_id=partner.id, alert_id=uuid4(), group_id=group.id, severity="critical")
+        partner = await create_escalation_partner(
+            test_session, group_id=group.id, name="Crisis",
+            provider_type="crisis_text_line",
+        )
+        record = await escalate_alert(
+            test_session, partner_id=partner.id, alert_id=uuid4(),
+            group_id=group.id, severity="critical",
+        )
         assert record.status == "sent"
 
     async def test_escalate_nonexistent_partner(self, test_session):
         group, _ = await make_test_group(test_session)
         with pytest.raises(NotFoundError):
-            await escalate_alert(test_session, partner_id=uuid4(), alert_id=uuid4(), group_id=group.id, severity="critical")
+            await escalate_alert(
+                test_session, partner_id=uuid4(), alert_id=uuid4(),
+                group_id=group.id, severity="critical",
+            )

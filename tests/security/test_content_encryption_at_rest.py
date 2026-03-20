@@ -1,10 +1,11 @@
 """Security tests for content excerpt encryption at rest."""
 
-import pytest
-from uuid import uuid4
 from datetime import datetime, timedelta, timezone
+from uuid import uuid4
 
-from src.encryption import encrypt_credential, decrypt_credential
+import pytest
+
+from src.encryption import decrypt_credential, encrypt_credential
 from src.risk.models import ContentExcerpt
 from tests.conftest import make_test_group
 
@@ -36,8 +37,8 @@ def test_different_inputs_produce_different_ciphertexts():
 @pytest.mark.asyncio
 async def test_content_excerpt_stores_encrypted(test_session):
     """ContentExcerpt should store encrypted, not plaintext content."""
-    from src.risk.models import RiskEvent
     from src.groups.models import GroupMember
+    from src.risk.models import RiskEvent
 
     group, owner_id = await make_test_group(test_session, name="Test", group_type="family")
     member = GroupMember(id=uuid4(), group_id=group.id, user_id=None, role="parent", display_name="P")

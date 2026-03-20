@@ -1,15 +1,15 @@
 """E2E tests for panic button / instant report."""
 
-import pytest
 from uuid import uuid4
 
+import pytest
+
 from src.alerts.panic import (
-    create_panic_report,
-    respond_to_panic,
-    list_panic_reports,
     PARENT_QUICK_RESPONSES,
     VALID_CATEGORIES,
-    PanicReport,
+    create_panic_report,
+    list_panic_reports,
+    respond_to_panic,
 )
 from src.exceptions import NotFoundError, ValidationError
 from src.groups.models import GroupMember

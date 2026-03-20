@@ -1,11 +1,15 @@
 """Unit tests for alert correlation."""
 
-import pytest
 from uuid import uuid4
-from tests.conftest import make_test_group
+
+import pytest
+
 from src.alerts.correlation import (
-    create_correlation, list_correlations, analyze_member_correlations,
+    analyze_member_correlations,
+    create_correlation,
+    list_correlations,
 )
+from tests.conftest import make_test_group
 
 
 @pytest.mark.asyncio

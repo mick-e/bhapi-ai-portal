@@ -114,9 +114,10 @@ async def test_soft_deleted_group_not_visible(sec_client):
     group_id = create_resp.json()["id"]
 
     # Soft-delete the new group directly via DB
-    from datetime import datetime, timezone
     from uuid import UUID
+
     from sqlalchemy import select
+
     from src.groups.models import Group
 
     result = await session.execute(

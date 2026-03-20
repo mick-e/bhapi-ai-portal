@@ -7,7 +7,6 @@ Tests cover:
 """
 
 import asyncio
-import json
 from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
@@ -21,7 +20,6 @@ from src.alerts.schemas import AlertCreate
 from src.alerts.sse import SSEConnectionManager
 from src.database import Base, get_db
 from src.main import create_app
-
 
 # ---------------------------------------------------------------------------
 # Fixture — committing session (same pattern as test_risk_alerts.py)
@@ -174,7 +172,7 @@ async def test_alert_creation_triggers_sse(sse_client):
             body="This alert should trigger an SSE broadcast",
             channel="portal",
         )
-        alert = await create_alert(session, alert_data)
+        await create_alert(session, alert_data)
 
         mock_broadcast.assert_called_once()
         call_args = mock_broadcast.call_args

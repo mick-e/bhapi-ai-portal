@@ -1,7 +1,8 @@
 """E2E tests for extension blocking enforcement (active-rules endpoint)."""
 
-import pytest
 from uuid import uuid4
+
+import pytest
 
 from src.blocking.models import BlockRule
 from src.blocking.service import list_active_rules

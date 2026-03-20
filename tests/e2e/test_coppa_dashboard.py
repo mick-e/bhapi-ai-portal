@@ -1,9 +1,10 @@
 """E2E tests for COPPA 2026 Compliance Dashboard."""
 
 import json
-import pytest
 from datetime import datetime, timezone
 from uuid import uuid4
+
+import pytest
 
 from src.compliance.coppa_dashboard import (
     assess_coppa_compliance,

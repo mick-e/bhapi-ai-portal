@@ -1,16 +1,17 @@
 """E2E tests for AI session blocking."""
 
-import pytest
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
+
+import pytest
 
 from src.blocking.models import BlockRule
 from src.blocking.schemas import BlockRuleCreate
 from src.blocking.service import (
+    check_block_status,
     create_block_rule,
     get_active_blocks,
     revoke_block,
-    check_block_status,
 )
 from src.exceptions import NotFoundError
 from src.groups.models import GroupMember

@@ -10,14 +10,12 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.pool import StaticPool
 
 from src.age_tier.models import AgeTierConfig
-from src.age_tier.rules import AgeTier
+from src.auth.middleware import get_current_user
 from src.auth.models import User
 from src.database import Base, get_db
 from src.groups.models import Group, GroupMember
 from src.main import create_app
 from src.schemas import GroupContext
-from src.auth.middleware import get_current_user
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

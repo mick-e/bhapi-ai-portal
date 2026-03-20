@@ -1,13 +1,11 @@
 """Unit tests for enhanced deepfake keyword patterns and voice cloning detection."""
 
-import pytest
 
 from src.risk.classifier import classify_by_keywords
 from src.risk.deepfake_detector import (
     VoiceCloningRisk,
     detect_voice_cloning_risk,
 )
-
 
 # ---------------------------------------------------------------------------
 # New deepfake/nudify keyword patterns in classifier

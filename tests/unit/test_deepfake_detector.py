@@ -1,7 +1,7 @@
 """Unit tests for deepfake detection module."""
 
 import os
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 import pytest
 

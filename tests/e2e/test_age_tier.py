@@ -7,14 +7,11 @@ import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.age_tier.models import AgeTierConfig
-from src.age_tier.rules import AgeTier, age_from_dob, get_tier_for_age
 from src.age_tier.schemas import AgeTierConfigCreate
 from src.age_tier.service import assign_tier, get_member_permissions, get_member_tier
 from src.auth.models import User
 from src.exceptions import NotFoundError, ValidationError
 from src.groups.models import Group, GroupMember
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

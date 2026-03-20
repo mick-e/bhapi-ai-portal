@@ -1,15 +1,15 @@
 """E2E tests for member cap enforcement (Phase 1A)."""
 
-import pytest
-import pytest_asyncio
-from uuid import uuid4
 from datetime import datetime, timezone
+from uuid import uuid4
 
-from src.groups.models import GroupMember
-from src.groups.service import add_member, accept_invitation, create_invitation, create_group
-from src.groups.schemas import GroupCreate, MemberAdd, InvitationCreate
-from src.constants import MAX_FAMILY_MEMBERS, MAX_GROUP_MEMBERS
+import pytest
+
+from src.constants import MAX_FAMILY_MEMBERS
 from src.exceptions import ValidationError
+from src.groups.models import GroupMember
+from src.groups.schemas import MemberAdd
+from src.groups.service import accept_invitation, add_member
 from tests.conftest import make_test_group
 
 
@@ -92,9 +92,10 @@ async def test_family_invitation_cap_check(test_session):
     await test_session.flush()
 
     # Create invitation
-    from src.groups.models import Invitation
-    from datetime import timedelta
     import secrets
+    from datetime import timedelta
+
+    from src.groups.models import Invitation
 
     invitation = Invitation(
         id=uuid4(), group_id=group.id,

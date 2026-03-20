@@ -1,7 +1,6 @@
 """End-to-end tests for Australian eSafety Commissioner compliance endpoints."""
 
 import uuid
-from datetime import datetime, timedelta, timezone
 
 import pytest
 import pytest_asyncio
@@ -15,7 +14,6 @@ from src.auth.models import User
 from src.database import Base, get_db
 from src.main import create_app
 from src.schemas import GroupContext
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

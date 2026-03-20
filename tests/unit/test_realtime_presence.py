@@ -1,12 +1,12 @@
 """Tests for push notification relay and presence system."""
 
-import pytest
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
-from src.realtime.notifications import PushNotificationRelay, PushResult, EXPO_PUSH_URL
-from src.realtime.presence import PresenceTracker, PresenceInfo
+import pytest
 
+from src.realtime.notifications import EXPO_PUSH_URL, PushNotificationRelay, PushResult
+from src.realtime.presence import PresenceInfo, PresenceTracker
 
 # ── Unit tests: PushNotificationRelay ─────────────────────────────
 

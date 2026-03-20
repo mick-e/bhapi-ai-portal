@@ -20,7 +20,6 @@ from src.main import create_app
 from src.schemas import GroupContext
 from src.social.models import Profile
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------

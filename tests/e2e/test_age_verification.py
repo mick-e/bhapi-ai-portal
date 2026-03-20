@@ -1,10 +1,11 @@
 """E2E tests for Yoti age verification."""
 
-import pytest
 from uuid import uuid4
 
+import pytest
+
 from src.groups.models import GroupMember
-from src.integrations.age_verification import start_age_verification, process_age_verification_result
+from src.integrations.age_verification import process_age_verification_result, start_age_verification
 from src.integrations.yoti import create_age_verification_session, get_age_verification_result
 from tests.conftest import make_test_group
 

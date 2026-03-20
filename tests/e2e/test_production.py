@@ -19,7 +19,6 @@ Usage:
 """
 
 import os
-import time
 
 import httpx
 import pytest
@@ -455,7 +454,7 @@ class TestResponseQuality:
     def test_request_timing_header(self, anon_http: httpx.Client):
         r = anon_http.get("/health/live")
         # TimingMiddleware adds X-Process-Time or similar
-        timing = r.headers.get("x-process-time", r.headers.get("server-timing", ""))
+        r.headers.get("x-process-time", r.headers.get("server-timing", ""))
         # May or may not be present depending on middleware config
         assert r.status_code == 200
 

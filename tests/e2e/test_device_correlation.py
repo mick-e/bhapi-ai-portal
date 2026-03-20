@@ -8,10 +8,10 @@ from uuid import uuid4
 
 import pytest
 
-from tests.conftest import make_test_group
 from src.capture.models import CaptureEvent, DeviceRegistration
 from src.capture.service import get_member_session_summary
 from src.groups.models import GroupMember
+from tests.conftest import make_test_group
 
 
 @pytest.mark.asyncio
@@ -151,7 +151,7 @@ async def test_events_without_device_grouped(test_session):
 @pytest.mark.asyncio
 async def test_date_filtering(test_session):
     """Summary only includes events from the target date."""
-    from datetime import timedelta, date as dt_date
+    from datetime import timedelta
 
     group, owner_id = await make_test_group(test_session)
     child = GroupMember(id=uuid4(), group_id=group.id, user_id=None, role="member", display_name="Child")

@@ -1,11 +1,12 @@
 """Unit tests for xAI spend provider."""
 
-import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
 from datetime import datetime, timezone
+from unittest.mock import AsyncMock, MagicMock, patch
 
-from src.billing.providers.xai_client import XAIProvider
+import pytest
+
 from src.billing.providers.base import AuthenticationError
+from src.billing.providers.xai_client import XAIProvider
 
 
 @pytest.mark.asyncio

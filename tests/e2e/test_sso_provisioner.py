@@ -1,10 +1,11 @@
 """E2E tests for SSO auto-provisioner."""
 
-import pytest
 from uuid import uuid4
 
+import pytest
+
 from src.auth.models import User
-from src.groups.models import Group, GroupMember
+from src.groups.models import GroupMember
 from src.integrations.sso_models import SSOConfig
 from src.integrations.sso_provisioner import auto_provision_member
 from tests.conftest import make_test_group

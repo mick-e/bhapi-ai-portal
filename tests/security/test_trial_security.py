@@ -2,7 +2,6 @@
 
 import pytest
 
-from fastapi import Depends
 from src.dependencies import require_active_trial_or_subscription
 
 

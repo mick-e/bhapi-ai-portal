@@ -8,7 +8,6 @@ import pytest
 from src.billing.models import Subscription
 from src.billing.trial import get_trial_status
 from src.exceptions import TrialExpiredError
-from src.groups.models import Group
 from tests.conftest import make_test_group
 
 

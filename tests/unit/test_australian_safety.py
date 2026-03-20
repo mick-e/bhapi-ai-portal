@@ -8,9 +8,7 @@ import pytest
 from src.moderation.esafety import (
     TAKEDOWN_SLA_HOURS,
     ESafetyCategory,
-    ESafetyComplaint,
     ESafetyPipeline,
-    TakedownStatus,
 )
 
 

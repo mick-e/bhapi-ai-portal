@@ -5,9 +5,8 @@ Tests verify that the consent gate in each subsystem correctly blocks or
 degrades service when the parent has not granted third-party consent.
 """
 
-import pytest
-from uuid import uuid4
 
+import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
@@ -102,8 +101,9 @@ class TestRiskPipelineConsentEnforcement:
         """Deepfake detection via Hive/Sensity is skipped when consent not granted."""
         token, group_id, member_id = await _register_and_add_member(client)
 
-        from src.risk.engine import process_event
         from uuid import UUID
+
+        from src.risk.engine import process_event
 
         results = await process_event(
             capture_event_data={
@@ -140,8 +140,9 @@ class TestRiskPipelineConsentEnforcement:
         assert google_item[0]["consented"] is False
 
         # Run risk pipeline — should fall back to keyword-only
-        from src.risk.engine import process_event
         from uuid import UUID
+
+        from src.risk.engine import process_event
 
         # Use self-harm keywords that the keyword classifier picks up
         results = await process_event(
@@ -183,8 +184,9 @@ class TestRiskPipelineConsentEnforcement:
         )
         assert resp.status_code == 200
 
-        from src.risk.engine import process_event
         from uuid import UUID
+
+        from src.risk.engine import process_event
 
         results = await process_event(
             capture_event_data={"content": "kill myself suicide"},
@@ -215,9 +217,6 @@ class TestAlertDeliveryConsentEnforcement:
             headers=headers,
         )
 
-        from src.alerts.models import Alert
-        from src.alerts.delivery import deliver_alert_email
-        from uuid import UUID
 
         # Create alert in the DB via the same session the client uses
         # We use the HTTP API to create a context where delivery can be tested
@@ -306,7 +305,7 @@ class TestSMSConsentEnforcement:
             headers=headers,
         )
 
-        from src.sms.service import send_sms, reset_sms_rate_limits
+        from src.sms.service import reset_sms_rate_limits, send_sms
         reset_sms_rate_limits()
 
         # send_sms with group_id + member_id but no db session
@@ -320,7 +319,7 @@ class TestSMSConsentEnforcement:
     @pytest.mark.asyncio
     async def test_sms_works_without_context(self):
         """SMS works when no group_id/member_id provided (backward compat)."""
-        from src.sms.service import send_sms, reset_sms_rate_limits
+        from src.sms.service import reset_sms_rate_limits, send_sms
         reset_sms_rate_limits()
 
         result = await send_sms(

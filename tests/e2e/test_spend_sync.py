@@ -19,7 +19,6 @@ from src.database import Base, get_db
 from src.encryption import encrypt_credential
 from src.main import create_app
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

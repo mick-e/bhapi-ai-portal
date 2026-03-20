@@ -1,6 +1,6 @@
 """Unit tests for content excerpt encryption round-trip."""
 
-from src.encryption import encrypt_credential, decrypt_credential
+from src.encryption import decrypt_credential, encrypt_credential
 
 
 def test_short_content_roundtrip():

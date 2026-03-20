@@ -1,7 +1,8 @@
 """E2E tests for federated SSO (Google Workspace / Microsoft Entra)."""
 
-import pytest
 from uuid import uuid4
+
+import pytest
 
 from src.auth.oauth import PROVIDER_CONFIGS
 

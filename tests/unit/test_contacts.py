@@ -1,15 +1,13 @@
 """Unit tests for the contacts module — contact requests, parent approval, blocking."""
 
 import uuid
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 
 import pytest
-import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.age_tier.rules import AgeTier
 from src.auth.models import User
-from src.contacts.models import Contact, ContactApproval
+from src.contacts.models import Contact
 from src.contacts.service import (
     approve_as_parent,
     block_contact,
@@ -21,7 +19,6 @@ from src.contacts.service import (
 from src.exceptions import ConflictError, ForbiddenError, NotFoundError, ValidationError
 from src.groups.models import Group, GroupMember
 from src.social.models import Profile
-
 
 # ---------------------------------------------------------------------------
 # Helpers

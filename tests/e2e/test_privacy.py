@@ -7,7 +7,7 @@ from uuid import uuid4
 
 import pytest
 
-from tests.conftest import make_test_group
+from src.exceptions import ForbiddenError, ValidationError
 from src.groups.models import GroupMember
 from src.groups.privacy import (
     check_member_visibility,
@@ -17,9 +17,8 @@ from src.groups.privacy import (
     get_child_self_view,
     get_member_visibility,
     set_member_visibility,
-    ALLOWED_SELF_VIEW_SECTIONS,
 )
-from src.exceptions import ForbiddenError, ValidationError
+from tests.conftest import make_test_group
 
 
 @pytest.mark.asyncio

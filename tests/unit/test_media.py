@@ -3,20 +3,15 @@
 import uuid
 
 import pytest
-import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.media import service
 from src.media.schemas import (
-    MediaAssetResponse,
-    MediaListResponse,
     RegisterMediaRequest,
     UploadURLRequest,
     UploadURLResponse,
 )
 from src.moderation.models import MediaAsset
-from tests.conftest import make_test_group
-
 
 # ---------------------------------------------------------------------------
 # Helpers

@@ -4,8 +4,7 @@ Verifies that duplicate webhook events don't create duplicate records.
 """
 
 from datetime import datetime, timezone
-from unittest.mock import MagicMock, patch
-from uuid import uuid4
+from unittest.mock import patch
 
 import pytest
 from httpx import ASGITransport, AsyncClient

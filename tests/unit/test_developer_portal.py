@@ -1,9 +1,12 @@
 """Unit tests for developer portal."""
 
-import pytest
 from uuid import uuid4
+
+import pytest
+
 from src.integrations.developer_portal import (
-    create_developer_app, list_developer_apps,
+    create_developer_app,
+    list_developer_apps,
 )
 
 

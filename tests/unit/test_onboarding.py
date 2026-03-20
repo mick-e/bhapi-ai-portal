@@ -1,14 +1,16 @@
 """Unit tests for onboarding progress."""
 
-import pytest
 from uuid import uuid4
+
+import pytest
+
+from src.exceptions import ValidationError
 from src.portal.onboarding import (
-    get_onboarding_progress,
+    ONBOARDING_STEPS,
     complete_onboarding_step,
     dismiss_onboarding,
-    ONBOARDING_STEPS,
+    get_onboarding_progress,
 )
-from src.exceptions import ValidationError
 
 
 @pytest.mark.asyncio

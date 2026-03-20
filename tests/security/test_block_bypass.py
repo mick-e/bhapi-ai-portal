@@ -1,11 +1,11 @@
 """Security tests for block check bypass prevention."""
 
-import pytest
 from uuid import uuid4
 
+import pytest
+
 from src.blocking.models import BlockRule
-from src.blocking.service import check_block_status, create_block_rule
-from src.blocking.schemas import BlockRuleCreate
+from src.blocking.service import check_block_status
 from src.groups.models import GroupMember
 from tests.conftest import make_test_group
 

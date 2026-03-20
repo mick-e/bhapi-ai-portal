@@ -2,9 +2,9 @@
 literacy router, safety scores, blocking approval, SSO provisioner, and
 trial enforcement on new routers."""
 
-import pytest
 from uuid import uuid4
 
+import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
@@ -423,7 +423,7 @@ class TestSSOProvisioner:
 
             # Try to provision one more — should return None
             result = await auto_provision_member(session, group_id, {
-                "email": f"extra@example.com",
+                "email": "extra@example.com",
                 "display_name": "Extra Member",
                 "external_id": "ext-999",
             })
@@ -576,6 +576,7 @@ class TestTrialEnforcementNewRouters:
     def test_school_router_all_endpoints_have_auth(self):
         """Every school endpoint should have get_current_user auth."""
         import inspect
+
         from src.auth.middleware import get_current_user
         from src.groups.school_router import router
 

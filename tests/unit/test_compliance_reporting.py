@@ -8,8 +8,7 @@ report structure, and various parameter combinations.
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from io import BytesIO
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 import pytest

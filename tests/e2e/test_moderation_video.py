@@ -1,7 +1,8 @@
 """E2E tests for video moderation pipeline webhook endpoint."""
 
-import pytest
 from unittest.mock import AsyncMock, patch
+
+import pytest
 
 from src.moderation.image_pipeline import ImageClassification, ImageResult
 

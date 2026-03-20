@@ -3,7 +3,6 @@
 import uuid
 
 import pytest
-import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
@@ -11,7 +10,6 @@ from sqlalchemy.pool import StaticPool
 
 from src.database import Base, get_db
 from src.main import create_app
-
 
 # ---------------------------------------------------------------------------
 # Helpers

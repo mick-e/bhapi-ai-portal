@@ -1,13 +1,15 @@
 """Unit tests for cross-product API."""
 
+
 import pytest
-from uuid import uuid4
-from tests.conftest import make_test_group
-from src.integrations.cross_product import (
-    register_product, create_cross_product_alert,
-    list_cross_product_alerts,
-)
+
 from src.exceptions import ValidationError
+from src.integrations.cross_product import (
+    create_cross_product_alert,
+    list_cross_product_alerts,
+    register_product,
+)
+from tests.conftest import make_test_group
 
 
 @pytest.mark.asyncio
@@ -24,7 +26,10 @@ class TestCrossProduct:
     async def test_invalid_product_type(self, test_session):
         group, _ = await make_test_group(test_session)
         with pytest.raises(ValidationError):
-            await register_product(test_session, product_name="T", product_type="invalid", api_key_hash="h", owner_group_id=group.id)
+            await register_product(
+                test_session, product_name="T", product_type="invalid",
+                api_key_hash="h", owner_group_id=group.id,
+            )
 
     async def test_create_cross_product_alert(self, test_session):
         group, _ = await make_test_group(test_session)

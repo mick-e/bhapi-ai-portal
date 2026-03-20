@@ -1,8 +1,9 @@
 """Unit tests for unified dashboard."""
 
 import pytest
-from tests.conftest import make_test_group
+
 from src.portal.unified import get_unified_dashboard
+from tests.conftest import make_test_group
 
 
 @pytest.mark.asyncio

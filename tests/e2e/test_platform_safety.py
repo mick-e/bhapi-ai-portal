@@ -1,7 +1,7 @@
 """E2E tests for AI Platform Safety Ratings."""
 
+
 import pytest
-from uuid import uuid4
 
 
 @pytest.mark.asyncio

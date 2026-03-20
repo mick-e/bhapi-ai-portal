@@ -1,7 +1,7 @@
 """Security tests for federated SSO — tenant isolation and domain restriction."""
 
+
 import pytest
-from unittest.mock import patch
 
 from src.auth.oauth import PROVIDER_CONFIGS, get_authorization_url
 

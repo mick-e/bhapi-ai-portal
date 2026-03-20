@@ -1,7 +1,8 @@
 """Unit tests for Canvas LMS roster sync adapter."""
 
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
 
 
 def _mock_response(status_code, json_data, link_header=""):

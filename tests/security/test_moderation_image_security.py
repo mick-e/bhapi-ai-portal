@@ -1,11 +1,10 @@
 """Security tests for image moderation pipeline."""
 
-import hmac
 import hashlib
+import hmac
 import json
 
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 
 
 @pytest.fixture(autouse=True)

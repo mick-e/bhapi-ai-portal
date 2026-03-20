@@ -1,12 +1,16 @@
 """Unit tests for URL content filtering."""
 
+
 import pytest
-from uuid import uuid4
-from tests.conftest import make_test_group
+
 from src.blocking.url_filter import (
-    get_default_categories, create_filter_rule, list_filter_rules, check_url,
+    check_url,
+    create_filter_rule,
+    get_default_categories,
+    list_filter_rules,
 )
 from src.exceptions import ValidationError
+from tests.conftest import make_test_group
 
 
 @pytest.mark.asyncio

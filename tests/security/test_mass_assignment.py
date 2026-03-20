@@ -74,7 +74,7 @@ async def test_patch_me_cannot_set_email_verified(sec_client):
     headers = {"Authorization": f"Bearer {token}"}
 
     # Attempt to set email_verified via PATCH
-    resp = await sec_client.patch("/api/v1/auth/me", json={
+    await sec_client.patch("/api/v1/auth/me", json={
         "email_verified": True,
     }, headers=headers)
 
@@ -97,7 +97,7 @@ async def test_patch_me_cannot_set_id(sec_client):
     original_id = user_data["id"]
 
     # Attempt to change ID
-    resp = await sec_client.patch("/api/v1/auth/me", json={
+    await sec_client.patch("/api/v1/auth/me", json={
         "id": "00000000-0000-0000-0000-000000000099",
     }, headers=headers)
 
@@ -116,7 +116,7 @@ async def test_patch_me_cannot_set_account_type(sec_client):
     token, user_data = await _register(sec_client, "type-change@example.com")
     headers = {"Authorization": f"Bearer {token}"}
 
-    resp = await sec_client.patch("/api/v1/auth/me", json={
+    await sec_client.patch("/api/v1/auth/me", json={
         "account_type": "school",
         "privacy_notice_accepted": True,
     }, headers=headers)
@@ -132,7 +132,7 @@ async def test_patch_me_cannot_set_mfa(sec_client):
     token, user_data = await _register(sec_client, "mfa-bypass@example.com")
     headers = {"Authorization": f"Bearer {token}"}
 
-    resp = await sec_client.patch("/api/v1/auth/me", json={
+    await sec_client.patch("/api/v1/auth/me", json={
         "mfa_enabled": True,
     }, headers=headers)
 

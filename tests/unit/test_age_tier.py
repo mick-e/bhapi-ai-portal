@@ -1,21 +1,17 @@
 """Unit tests for the age tier permission engine."""
 
-import uuid
 from datetime import date, datetime, timezone
 
 import pytest
-import pytest_asyncio
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.age_tier.rules import (
-    AgeTier,
     TIER_PERMISSIONS,
+    AgeTier,
     age_from_dob,
     check_permission,
     get_permissions,
     get_tier_for_age,
 )
-
 
 # ---------------------------------------------------------------------------
 # age_from_dob tests
@@ -227,7 +223,7 @@ class TestGetPermissions:
 
     def test_permissions_are_copies(self):
         """Ensure returned permissions don't modify the base matrix."""
-        perms = get_permissions(AgeTier.YOUNG, feature_overrides={"can_post": False})
+        get_permissions(AgeTier.YOUNG, feature_overrides={"can_post": False})
         base = TIER_PERMISSIONS[AgeTier.YOUNG]
         assert base["can_post"] is True  # Original unchanged
 

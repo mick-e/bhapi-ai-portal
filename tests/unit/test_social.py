@@ -4,15 +4,12 @@ import uuid
 from datetime import date, datetime, timezone
 
 import pytest
-import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.age_tier.rules import AgeTier
 from src.auth.models import User
 from src.exceptions import ConflictError, ForbiddenError, NotFoundError, ValidationError
-from src.social.models import Follow, Hashtag, PostComment, PostLike, Profile, SocialPost
+from src.social.models import Follow, Hashtag, PostLike, Profile, SocialPost
 from src.social.schemas import (
-    CommentCreate,
     PostCreate,
     ProfileCreate,
     ProfileUpdate,
@@ -34,12 +31,10 @@ from src.social.service import (
     list_comments,
     list_followers,
     list_following,
-    list_posts,
     unfollow_user,
     unlike_post,
     update_profile,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers

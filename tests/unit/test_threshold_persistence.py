@@ -1,8 +1,9 @@
 """Unit tests for persistent threshold alert tracking."""
 
-import pytest
 from datetime import datetime, timezone
 from uuid import uuid4
+
+import pytest
 
 from src.billing.models import BudgetThreshold, FiredThresholdAlert, LLMAccount, SpendRecord
 from src.billing.threshold_checker import check_thresholds, reset_fired_alerts

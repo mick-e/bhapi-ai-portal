@@ -16,8 +16,6 @@ from src.auth.models import User
 from src.database import Base, get_db
 from src.main import create_app
 from src.schemas import GroupContext
-from src.social.models import Follow, Profile, SocialPost
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

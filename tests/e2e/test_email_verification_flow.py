@@ -74,8 +74,9 @@ async def test_register_sends_verification_email(verify_client):
 @pytest.mark.asyncio
 async def test_verify_email_sets_flag(verify_client):
     """Verification token should set email_verified to true."""
-    from src.auth.service import create_email_verification_token
     from uuid import UUID
+
+    from src.auth.service import create_email_verification_token
 
     # Register
     reg = await verify_client.post("/api/v1/auth/register", json={

@@ -4,24 +4,22 @@ Tests agreement creation, signing, and active-agreement queries which
 form the foundation of the age-gating consent flow.
 """
 
-import pytest
 from datetime import date, timedelta
 from uuid import uuid4
 
+import pytest
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.pool import StaticPool
 
-from src.database import Base
 from src.auth.models import User
-from src.groups.models import Group, GroupMember
+from src.database import Base
 from src.groups.agreement import (
-    FamilyAgreement,
     create_agreement,
-    sign_agreement,
     get_active_agreement,
+    sign_agreement,
 )
-
+from src.groups.models import Group, GroupMember
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -247,7 +245,6 @@ class TestCreateAgreement:
             test_session, sample_group.id, "ages_7_10", sample_user.id
         )
         await test_session.commit()
-        first_id = first.id
 
         second = await create_agreement(
             test_session, sample_group.id, "ages_11_13", sample_user.id

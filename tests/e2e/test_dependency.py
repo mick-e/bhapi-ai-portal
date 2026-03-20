@@ -15,8 +15,6 @@ from sqlalchemy.pool import StaticPool
 from src.capture.models import CaptureEvent
 from src.database import Base, get_db
 from src.main import create_app
-from src.risk.models import RiskEvent
-
 
 # ---------------------------------------------------------------------------
 # Helpers

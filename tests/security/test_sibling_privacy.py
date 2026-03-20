@@ -7,7 +7,8 @@ from uuid import uuid4
 
 import pytest
 
-from tests.conftest import make_test_group
+from src.auth.models import User
+from src.exceptions import ForbiddenError
 from src.groups.models import GroupMember
 from src.groups.privacy import (
     check_member_visibility,
@@ -15,8 +16,7 @@ from src.groups.privacy import (
     get_child_dashboard,
     set_member_visibility,
 )
-from src.auth.models import User
-from src.exceptions import ForbiddenError
+from tests.conftest import make_test_group
 
 
 @pytest.mark.asyncio

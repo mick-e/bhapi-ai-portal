@@ -6,9 +6,9 @@ is scoped to individual members, and that the risk pipeline respects
 consent degradation.
 """
 
-import pytest
 from uuid import uuid4
 
+import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
@@ -399,8 +399,9 @@ class TestPipelineConsentDegradation:
         for item in resp.json():
             assert item["consented"] is False
 
-        from src.risk.engine import process_event
         from uuid import UUID
+
+        from src.risk.engine import process_event
 
         results = await process_event(
             capture_event_data={

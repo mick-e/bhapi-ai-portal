@@ -1,13 +1,11 @@
 """Unit tests for Google Admin Console integration."""
 
+
 import pytest
-from datetime import datetime, timezone
 
 from src.integrations.google_admin import (
-    GoogleAdminIntegration,
     DeviceStatus,
-    DeploymentStatus,
-    VALID_DEVICE_STATUSES,
+    GoogleAdminIntegration,
 )
 
 

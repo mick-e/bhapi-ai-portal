@@ -5,8 +5,8 @@ Finding #1: Bearer path in get_current_user doesn't check token type.
 """
 
 import pytest
-from jose import jwt
 from httpx import ASGITransport, AsyncClient
+from jose import jwt
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.pool import StaticPool
@@ -79,8 +79,9 @@ async def test_password_reset_token_as_bearer(sec_client):
     Finding #1: Bearer path doesn't check type field, so any valid JWT works.
     This test documents the vulnerability — if it passes (401), the bug is fixed.
     """
-    from src.auth.service import create_password_reset_token
     from uuid import UUID
+
+    from src.auth.service import create_password_reset_token
 
     token, user_id = await _register_and_login(sec_client, "reset-bearer@example.com")
     reset_token = create_password_reset_token(UUID(user_id))
@@ -101,8 +102,9 @@ async def test_email_verification_token_as_bearer(sec_client):
 
     Same vulnerability as Finding #1 — any JWT type grants access via Bearer.
     """
-    from src.auth.service import create_email_verification_token
     from uuid import UUID
+
+    from src.auth.service import create_email_verification_token
 
     token, user_id = await _register_and_login(sec_client, "verify-bearer@example.com")
     verify_token = create_email_verification_token(UUID(user_id))

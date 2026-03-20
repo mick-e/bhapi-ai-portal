@@ -1,10 +1,7 @@
 """E2E tests for per-seat billing (school/club)."""
 
-import pytest
-from unittest.mock import patch, MagicMock, AsyncMock
-from uuid import uuid4
 
-from src.billing.stripe_client import PLAN_PRICES, CONTACT_SALES_PLANS
+from src.billing.stripe_client import PLAN_PRICES
 
 
 def test_school_plan_prices_configurable():

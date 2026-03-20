@@ -1,12 +1,11 @@
 """E2E tests for image moderation pipeline webhook endpoint."""
 
-import hmac
 import hashlib
+import hmac
 import json
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-import pytest_asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
 
 
 @pytest.fixture(autouse=True)
@@ -184,6 +183,7 @@ class TestCFImagesWebhookEndpoint:
     async def test_webhook_hive_timeout(self, client):
         """Hive API timeout falls back to needs_review."""
         import httpx as httpx_mod
+
         from src.moderation.image_pipeline import pipeline
 
         pipeline.configure(hive_api_key="test-key")

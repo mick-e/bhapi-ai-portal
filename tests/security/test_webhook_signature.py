@@ -1,7 +1,8 @@
 """Security tests for Stripe webhook signature validation."""
 
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 
 from src.billing.stripe_client import StripeError, verify_webhook_signature
 

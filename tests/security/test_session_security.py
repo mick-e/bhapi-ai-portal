@@ -110,8 +110,9 @@ async def test_old_session_rejected_after_password_change(sec_client):
     headers = {"Authorization": f"Bearer {token}"}
 
     # Change password via reset flow
-    from src.auth.service import create_password_reset_token
     from uuid import UUID
+
+    from src.auth.service import create_password_reset_token
 
     reset_token = create_password_reset_token(UUID(user_id))
     resp = await sec_client.post("/api/v1/auth/password/reset/confirm", json={

@@ -1,6 +1,5 @@
 """Unit tests for privacy notice acceptance at registration."""
 
-import pytest
 from src.auth.schemas import RegisterRequest
 
 

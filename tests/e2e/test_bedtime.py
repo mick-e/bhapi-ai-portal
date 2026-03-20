@@ -1,17 +1,18 @@
 """E2E tests for bedtime mode — rule creation, retrieval, and removal."""
 
-import pytest
 from uuid import uuid4
 
+import pytest
+from sqlalchemy import select
+
+from src.blocking.models import BlockRule
 from src.blocking.service import (
-    set_bedtime_mode,
-    get_bedtime_mode,
     delete_bedtime_mode,
+    get_bedtime_mode,
+    set_bedtime_mode,
 )
-from src.blocking.models import AutoBlockRule, BlockRule
 from src.exceptions import NotFoundError, ValidationError
 from src.groups.models import GroupMember
-from sqlalchemy import select
 from tests.conftest import make_test_group
 
 

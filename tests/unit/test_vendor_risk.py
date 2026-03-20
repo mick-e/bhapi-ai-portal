@@ -1,6 +1,5 @@
 """Unit tests for vendor risk scoring."""
 
-import pytest
 
 from src.billing.vendor_risk import (
     calculate_vendor_risk,

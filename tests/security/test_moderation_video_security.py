@@ -1,7 +1,8 @@
 """Security tests for video moderation pipeline."""
 
-import pytest
 from unittest.mock import AsyncMock, patch
+
+import pytest
 
 from src.moderation.image_pipeline import ImageClassification, ImageResult
 from src.moderation.video_pipeline import VideoModerationPipeline

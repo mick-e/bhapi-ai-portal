@@ -17,7 +17,6 @@ from src.main import create_app
 from src.moderation.models import MediaAsset
 from src.schemas import GroupContext
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------

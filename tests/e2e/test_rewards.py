@@ -8,18 +8,18 @@ from uuid import uuid4
 
 import pytest
 
-from tests.conftest import make_test_group
+from src.exceptions import NotFoundError
 from src.groups.models import GroupMember
 from src.groups.rewards import (
     BADGE_NAMES,
     REWARD_TRIGGERS,
+    Reward,
     check_and_award_rewards,
     get_extra_time_minutes,
     list_rewards,
     redeem_reward,
-    Reward,
 )
-from src.exceptions import NotFoundError
+from tests.conftest import make_test_group
 
 
 @pytest.mark.asyncio

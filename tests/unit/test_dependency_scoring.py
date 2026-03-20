@@ -18,11 +18,11 @@ from src.risk.emotional_dependency import (
     COMPANION_PLATFORMS,
     CRITICAL_THRESHOLD,
     DependencyScore,
+    _build_recommendation,
+    _score_attachment_language,
     _score_frequency,
     _score_session_duration,
     _score_time_pattern,
-    _score_attachment_language,
-    _build_recommendation,
     calculate_dependency_score,
     check_dependency_alerts,
 )

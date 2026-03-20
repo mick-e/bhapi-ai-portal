@@ -11,12 +11,10 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from src.database import Base, get_db
 from src.main import create_app
-
 
 # ---------------------------------------------------------------------------
 # Helpers

@@ -1,6 +1,5 @@
 """Unit tests for anomaly detection and peer comparison analytics."""
 
-import math
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 

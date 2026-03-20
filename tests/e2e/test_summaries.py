@@ -16,7 +16,6 @@ from sqlalchemy.pool import StaticPool
 from src.database import Base, get_db
 from src.main import create_app
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -54,6 +53,7 @@ async def _create_group_and_member(client, headers):
 async def _seed_summary(session, group_id, member_id, summary_date=None, action_needed=False):
     """Seed a ConversationSummary via raw SQL to avoid SQLite UUID type issues."""
     import hashlib
+
     from sqlalchemy import text
 
     sid = uuid4().hex
@@ -316,8 +316,9 @@ async def test_trigger_summarize_no_content(summary_client):
     headers = {"Authorization": f"Bearer {token}"}
     group_id, member_id = await _create_group_and_member(client, headers)
 
-    from src.capture.models import CaptureEvent
     from uuid import UUID
+
+    from src.capture.models import CaptureEvent
 
     event = CaptureEvent(
         id=uuid4(),
@@ -351,8 +352,9 @@ async def test_trigger_summarize_success(summary_client):
     headers = {"Authorization": f"Bearer {token}"}
     group_id, member_id = await _create_group_and_member(client, headers)
 
-    from src.capture.models import CaptureEvent
     from uuid import UUID
+
+    from src.capture.models import CaptureEvent
 
     event = CaptureEvent(
         id=uuid4(),

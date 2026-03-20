@@ -5,17 +5,14 @@ and content deduplication by content_hash.
 """
 
 import hashlib
-import json
-from datetime import date, datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from datetime import date
+from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 import pytest
-import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from tests.conftest import make_test_group
-
 
 # ─── Age-based detail level ──────────────────────────────────────────────────
 
@@ -161,7 +158,7 @@ async def test_summarize_creates_summary(test_session: AsyncSession):
 @pytest.mark.asyncio
 async def test_summarize_dedup_by_content_hash(test_session: AsyncSession):
     """Duplicate content returns existing summary instead of creating new one."""
-    from src.capture.summarizer import summarize_conversation, _compute_content_hash
+    from src.capture.summarizer import _compute_content_hash, summarize_conversation
     from src.capture.summary_models import ConversationSummary
 
     group, owner_id = await make_test_group(test_session)
@@ -381,7 +378,7 @@ async def test_summarize_invalid_tone_defaults_neutral(test_session: AsyncSessio
 @pytest.mark.asyncio
 async def test_get_member_summaries_pagination(test_session: AsyncSession):
     """get_member_summaries returns paginated results."""
-    from src.capture.summarizer import get_member_summaries, _compute_content_hash
+    from src.capture.summarizer import _compute_content_hash, get_member_summaries
     from src.capture.summary_models import ConversationSummary
 
     group, owner_id = await make_test_group(test_session)
@@ -435,7 +432,8 @@ async def test_get_member_summaries_pagination(test_session: AsyncSession):
 async def test_get_member_summaries_date_filter(test_session: AsyncSession):
     """get_member_summaries filters by date range."""
     from datetime import timedelta
-    from src.capture.summarizer import get_member_summaries, _compute_content_hash
+
+    from src.capture.summarizer import _compute_content_hash, get_member_summaries
     from src.capture.summary_models import ConversationSummary
 
     group, owner_id = await make_test_group(test_session)

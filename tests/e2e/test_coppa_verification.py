@@ -1,15 +1,16 @@
 """E2E tests for COPPA verifiable consent features."""
 
-import pytest
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
+import pytest
+
 from src.compliance.coppa import (
-    verify_parental_consent,
-    generate_coppa_audit_report,
     check_coppa_compliance,
+    generate_coppa_audit_report,
+    verify_parental_consent,
 )
-from src.exceptions import ValidationError, NotFoundError
+from src.exceptions import NotFoundError, ValidationError
 from src.groups.models import GroupMember
 from tests.conftest import make_test_group
 

@@ -1,8 +1,9 @@
 """E2E tests for anomaly detection and peer comparison endpoints."""
 
-import pytest
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
+
+import pytest
 
 from src.analytics.service import detect_anomalies, get_peer_comparison
 from src.capture.models import CaptureEvent

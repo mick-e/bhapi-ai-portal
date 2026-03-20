@@ -16,7 +16,6 @@ from src.capture.models import SetupCode
 from src.database import Base, get_db
 from src.main import create_app
 
-
 # ---------------------------------------------------------------------------
 # Fixture
 # ---------------------------------------------------------------------------

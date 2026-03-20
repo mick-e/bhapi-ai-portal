@@ -1,15 +1,13 @@
 """Unit tests for the messaging module — conversations, messages, membership."""
 
 import uuid
-from datetime import datetime, timezone
 
 import pytest
-import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.models import User
 from src.exceptions import ForbiddenError, NotFoundError, ValidationError
-from src.messaging.models import Conversation, ConversationMember, Message
+from src.messaging.models import ConversationMember
 from src.messaging.service import (
     create_conversation,
     get_conversation,
@@ -18,7 +16,6 @@ from src.messaging.service import (
     mark_read,
     send_message,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers

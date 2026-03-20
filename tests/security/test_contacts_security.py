@@ -12,7 +12,6 @@ import uuid
 from datetime import datetime, timezone
 
 import pytest
-import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
@@ -27,7 +26,6 @@ from src.groups.models import Group, GroupMember
 from src.main import create_app
 from src.schemas import GroupContext
 from src.social.models import Profile
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

@@ -1,12 +1,16 @@
 """Unit tests for enterprise AI policies."""
 
+
 import pytest
-from uuid import uuid4
-from tests.conftest import make_test_group
-from src.risk.enterprise_policy import (
-    create_policy, list_policies, record_violation, list_violations,
-)
+
 from src.exceptions import ValidationError
+from src.risk.enterprise_policy import (
+    create_policy,
+    list_policies,
+    list_violations,
+    record_violation,
+)
+from tests.conftest import make_test_group
 
 
 @pytest.mark.asyncio

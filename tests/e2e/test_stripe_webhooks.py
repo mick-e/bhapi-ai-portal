@@ -1,8 +1,9 @@
 """E2E tests for Stripe webhook DB persistence."""
 
-import pytest
-from uuid import uuid4
 from datetime import datetime, timezone
+from uuid import uuid4
+
+import pytest
 
 from src.billing.models import Subscription
 from src.billing.stripe_client import handle_webhook_event

@@ -1,9 +1,9 @@
 """Security tests for member cap bypass via race condition."""
 
-import asyncio
+
+from uuid import uuid4
 
 import pytest
-from uuid import uuid4
 
 from src.constants import MAX_FAMILY_MEMBERS
 from src.exceptions import ValidationError

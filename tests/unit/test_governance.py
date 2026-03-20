@@ -10,7 +10,6 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from src.database import Base
-from src.governance.models import GovernanceAudit, GovernancePolicy
 from src.governance.service import (
     REQUIRED_POLICY_TYPES,
     add_tool_to_inventory,

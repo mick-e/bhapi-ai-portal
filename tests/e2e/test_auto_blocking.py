@@ -6,7 +6,7 @@ from uuid import uuid4
 import pytest
 
 from src.billing.models import LLMAccount, SpendRecord
-from src.blocking.models import AutoBlockRule, BlockRule
+from src.blocking.models import BlockRule
 from src.blocking.schemas import AutoBlockRuleCreate, AutoBlockRuleUpdate
 from src.blocking.service import (
     create_auto_block_rule,
@@ -148,7 +148,7 @@ async def test_risk_event_count_trigger(test_session):
     )
 
     # Insert 2 risk events
-    now = datetime.now(timezone.utc)
+    datetime.now(timezone.utc)
     for i in range(2):
         event = RiskEvent(
             id=uuid4(),

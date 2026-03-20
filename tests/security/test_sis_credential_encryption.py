@@ -1,9 +1,10 @@
 """Security tests for SIS credential encryption at rest."""
 
-import pytest
 from uuid import uuid4
 
-from src.encryption import encrypt_credential, decrypt_credential
+import pytest
+
+from src.encryption import decrypt_credential, encrypt_credential
 from src.integrations.models import SISConnection
 from tests.conftest import make_test_group
 

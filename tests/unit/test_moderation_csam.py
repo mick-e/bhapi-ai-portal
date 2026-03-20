@@ -19,7 +19,6 @@ from src.moderation.csam import (
     detector,
 )
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -287,6 +286,7 @@ def test_preserve_evidence_with_str_content(configured_detector: CSAMDetector):
 def test_preserve_evidence_contains_sha256(configured_detector: CSAMDetector):
     """Decrypted evidence contains SHA-256 hash of the original content."""
     import hashlib
+
     from src.encryption import decrypt_credential
 
     content = b"test-image-data"
@@ -496,7 +496,7 @@ async def test_submit_media_no_media_ids_skips_csam(test_session):
     content_id = uuid4()
 
     with patch("src.moderation.service.check_csam") as mock_check:
-        entry = await submit_for_moderation(
+        await submit_for_moderation(
             db=test_session,
             content_type="media",
             content_id=content_id,

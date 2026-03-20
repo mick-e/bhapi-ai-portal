@@ -1,13 +1,13 @@
 """E2E tests for advanced analytics and trend modelling."""
 
-import pytest
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
-from src.analytics.service import get_trends, get_usage_patterns, get_member_baselines
+import pytest
+
+from src.analytics.service import get_member_baselines, get_trends, get_usage_patterns
 from src.capture.models import CaptureEvent
 from src.groups.models import GroupMember
-from src.risk.models import RiskEvent
 from tests.conftest import make_test_group
 
 

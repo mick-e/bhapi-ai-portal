@@ -1,6 +1,5 @@
 """Unit tests for AI Platform Safety Ratings."""
 
-import pytest
 
 from src.billing.platform_safety import (
     PLATFORM_SAFETY_PROFILES,

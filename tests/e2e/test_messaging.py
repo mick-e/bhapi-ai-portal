@@ -14,9 +14,7 @@ from src.auth.middleware import get_current_user
 from src.auth.models import User
 from src.database import Base, get_db
 from src.main import create_app
-from src.messaging.models import Message
 from src.schemas import GroupContext
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

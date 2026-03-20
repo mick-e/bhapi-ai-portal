@@ -1,10 +1,8 @@
 """COPPA 2026 unit tests — retention engine, consent logic, video verification."""
 
-import pytest
-from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
+import pytest
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.pool import StaticPool
@@ -247,8 +245,8 @@ class TestVideoVerificationLogic:
     async def test_complete_with_high_score(self, test_session):
         """Score >= 0.7 results in verified status."""
         from src.compliance.coppa_2026 import (
-            initiate_video_verification,
             complete_video_verification,
+            initiate_video_verification,
         )
 
         group_id = uuid4()
@@ -267,8 +265,8 @@ class TestVideoVerificationLogic:
     async def test_complete_with_low_score(self, test_session):
         """Score < 0.7 results in failed status."""
         from src.compliance.coppa_2026 import (
-            initiate_video_verification,
             complete_video_verification,
+            initiate_video_verification,
         )
 
         group_id = uuid4()
@@ -286,9 +284,9 @@ class TestVideoVerificationLogic:
     async def test_has_valid_verification(self, test_session):
         """has_valid_video_verification returns True after successful verification."""
         from src.compliance.coppa_2026 import (
-            initiate_video_verification,
             complete_video_verification,
             has_valid_video_verification,
+            initiate_video_verification,
         )
 
         group_id = uuid4()

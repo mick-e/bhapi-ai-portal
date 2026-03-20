@@ -1,14 +1,13 @@
 """Unit tests for emotional dependency pattern detection."""
 
-import pytest
 
 from src.risk.classifier import classify_by_keywords
 from src.risk.taxonomy import (
-    EMOTIONAL_DEPENDENCY,
     DEEPFAKE_CONTENT,
-    RISK_CATEGORIES,
-    MEDIUM_CATEGORIES,
+    EMOTIONAL_DEPENDENCY,
     HIGH_CATEGORIES,
+    MEDIUM_CATEGORIES,
+    RISK_CATEGORIES,
 )
 
 

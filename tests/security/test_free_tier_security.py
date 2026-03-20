@@ -1,13 +1,13 @@
 """Security tests for free tier feature gating."""
 
-import pytest
-import pytest_asyncio
 from uuid import uuid4
 
-from tests.conftest import make_test_group
-from src.billing.feature_gate import require_feature, get_group_plan
+import pytest
+
+from src.billing.feature_gate import get_group_plan, require_feature
 from src.billing.models import Subscription
 from src.exceptions import ForbiddenError
+from tests.conftest import make_test_group
 
 
 @pytest.mark.asyncio

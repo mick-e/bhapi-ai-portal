@@ -6,8 +6,6 @@ Tests REWARD_TRIGGERS configuration, BADGE_NAMES, and trigger evaluation logic.
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
-import pytest
-
 from src.groups.rewards import (
     BADGE_NAMES,
     REWARD_TRIGGERS,

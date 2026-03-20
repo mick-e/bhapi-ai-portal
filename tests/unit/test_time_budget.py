@@ -1,20 +1,17 @@
 """Unit tests for time budget — budget calc, timezone, weekend detection."""
 
-import pytest
-from datetime import date, datetime, timezone
-from unittest.mock import patch
+from datetime import date
 from uuid import uuid4
 
+import pytest
+
 from src.blocking.time_budget import (
-    _is_weekend,
     _get_today_for_tz,
+    _is_weekend,
     check_time_budget,
+    get_usage_history,
     record_session_time,
     set_time_budget,
-    get_time_budget,
-    get_usage_history,
-    TimeBudget,
-    TimeBudgetUsage,
 )
 from src.groups.models import GroupMember
 from tests.conftest import make_test_group

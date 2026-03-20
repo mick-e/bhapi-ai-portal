@@ -1,8 +1,9 @@
 """E2E tests for blocking approval workflow and effectiveness."""
 
-import pytest
 from datetime import datetime, timezone
 from uuid import uuid4
+
+import pytest
 
 from src.blocking.approval import (
     approve_unblock,
@@ -10,7 +11,6 @@ from src.blocking.approval import (
     list_pending_approvals,
     request_unblock,
 )
-from src.blocking.approval_models import BlockApproval
 from src.blocking.models import BlockRule
 from src.blocking.service import get_block_effectiveness
 from src.capture.models import CaptureEvent

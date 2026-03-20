@@ -164,7 +164,7 @@ async def test_sync_other_groups_sis(sec_client):
         # 500 means the handler ran (no auth check) but Clever API failed
         pytest.xfail(
             "VULNERABILITY: User can reach sync handler for another group's SIS "
-            f"(status=500, no ownership check, Finding #4)"
+            "(status=500, no ownership check, Finding #4)"
         )
     elif resp.status_code not in (401, 403, 404):
         pytest.xfail(

@@ -1,21 +1,19 @@
 """E2E tests for time budget CRUD and enforcement."""
 
-import pytest
 from uuid import uuid4
 
+import pytest
+from sqlalchemy import select
+
+from src.blocking.models import BlockRule
 from src.blocking.time_budget import (
     check_time_budget,
     enforce_time_budgets,
     get_usage_history,
     record_session_time,
     set_time_budget,
-    get_time_budget,
-    TimeBudget,
-    TimeBudgetUsage,
 )
-from src.blocking.models import BlockRule
 from src.groups.models import GroupMember
-from sqlalchemy import select
 from tests.conftest import make_test_group
 
 

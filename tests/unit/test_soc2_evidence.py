@@ -1,6 +1,7 @@
 """Unit tests for SOC 2 evidence collection."""
 
 import pytest
+
 from src.compliance.soc2_evidence import get_soc2_evidence_summary
 
 

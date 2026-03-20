@@ -3,8 +3,6 @@
 Verifies that security events are logged and sensitive data is not leaked.
 """
 
-import io
-import logging
 
 import pytest
 from httpx import ASGITransport, AsyncClient

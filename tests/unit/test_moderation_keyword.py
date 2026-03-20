@@ -1,6 +1,5 @@
 """Unit tests + performance tests for the keyword filter engine."""
 
-import sys
 import threading
 import time
 import tracemalloc
@@ -14,7 +13,6 @@ from src.moderation.keyword_filter import (
     classify_text,
     get_filter,
 )
-
 
 # ---------------------------------------------------------------------------
 # Normalization

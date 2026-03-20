@@ -3,22 +3,19 @@
 Unit tests: ≥20, WS E2E: ≥15, Security: ≥10  →  ≥45 total
 """
 
-import asyncio
 import json
 from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
-import pytest_asyncio
 from starlette.testclient import TestClient
 
 from src.auth.service import create_access_token
 from src.realtime.auth import validate_ws_token
 from src.realtime.connections import ConnectionManager
+from src.realtime.main import app
 from src.realtime.pubsub import EventBridge
-from src.realtime.main import app, manager as app_manager
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -473,7 +470,7 @@ class TestWebSocketE2E:
         token = self._token(user_id=uid)
         # Check health before connect
         resp1 = client.get("/health")
-        count_before = resp1.json()["connections"]
+        resp1.json()["connections"]
         with client.websocket_connect(f"/ws?token={token}") as ws:
             ws.receive_json()
             resp2 = client.get("/health")

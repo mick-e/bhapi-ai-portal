@@ -1,9 +1,10 @@
 """Unit tests for audit logger."""
 
+
 import pytest
-from uuid import uuid4
-from tests.conftest import make_test_group
+
 from src.compliance.audit_logger import log_audit_event, query_audit_logs
+from tests.conftest import make_test_group
 
 
 @pytest.mark.asyncio

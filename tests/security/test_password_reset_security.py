@@ -73,8 +73,9 @@ async def test_password_reset_token_reuse(sec_client):
 
     Finding #3: Token not invalidated after use — remains valid for full 1h window.
     """
-    from src.auth.service import create_password_reset_token
     from uuid import UUID
+
+    from src.auth.service import create_password_reset_token
 
     token, user_id = await _register(sec_client, "reset-reuse@example.com")
     reset_token = create_password_reset_token(UUID(user_id))
@@ -103,8 +104,9 @@ async def test_password_reset_token_reuse(sec_client):
 @pytest.mark.asyncio
 async def test_password_reset_invalidates_sessions(sec_client):
     """Old session tokens should be invalid after password reset."""
-    from src.auth.service import create_password_reset_token
     from uuid import UUID
+
+    from src.auth.service import create_password_reset_token
 
     token, user_id = await _register(sec_client, "reset-sessions@example.com")
     headers = {"Authorization": f"Bearer {token}"}

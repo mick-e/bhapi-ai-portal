@@ -1,14 +1,15 @@
 """E2E tests for EU AI Act compliance features."""
 
-import pytest
 from uuid import uuid4
+
+import pytest
 
 from src.compliance.eu_ai_act import (
     get_algorithmic_transparency,
-    request_human_review,
-    submit_appeal,
     list_appeals,
+    request_human_review,
     resolve_appeal,
+    submit_appeal,
 )
 from src.exceptions import NotFoundError, ValidationError
 from src.groups.models import GroupMember

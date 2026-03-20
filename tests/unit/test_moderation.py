@@ -1,7 +1,6 @@
 """Unit tests for the moderation module."""
 
 import uuid
-from datetime import datetime, timezone
 
 import pytest
 import pytest_asyncio
@@ -9,8 +8,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.models import User
 from src.exceptions import ConflictError, NotFoundError, ValidationError
-from src.groups.models import Group
-from src.moderation.models import ContentReport, ModerationDecision, ModerationQueue
 from src.moderation.service import (
     create_content_report,
     get_dashboard_stats,
@@ -21,7 +18,6 @@ from src.moderation.service import (
     submit_for_moderation,
     takedown_content,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

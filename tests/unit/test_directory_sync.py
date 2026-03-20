@@ -1,14 +1,12 @@
 """Unit tests for directory sync — mock API responses for Google and Entra."""
 
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import httpx
 import pytest
 
 from src.integrations.directory_sync import (
-    GOOGLE_DIRECTORY_URL,
-    MICROSOFT_GRAPH_USERS_URL,
     run_directory_sync,
     sync_entra_directory,
     sync_google_directory,

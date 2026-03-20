@@ -1,8 +1,8 @@
 """Unit tests for image moderation pipeline."""
 
-import pytest
-import pytest_asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from src.moderation.image_pipeline import (
     DEFAULT_THRESHOLDS,
@@ -448,8 +448,8 @@ class TestWebhookSignature:
         assert img_pipeline.verify_cf_signature(b"body", "any-sig") is True
 
     def test_valid_signature(self, img_pipeline):
-        import hmac as hmac_mod
         import hashlib
+        import hmac as hmac_mod
 
         img_pipeline.configure(cf_webhook_secret="test-secret")
         body = b'{"id": "123"}'

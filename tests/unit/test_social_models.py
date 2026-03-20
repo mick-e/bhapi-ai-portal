@@ -4,33 +4,11 @@ import uuid
 from datetime import date, datetime, timezone
 
 import pytest
-import pytest_asyncio
-from sqlalchemy import select, text
+from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
-
-from tests.conftest import make_test_group
-
-# Social models
-from src.social.models import (
-    Follow,
-    Hashtag,
-    PostComment,
-    PostHashtag,
-    PostLike,
-    Profile,
-    SocialPost,
-)
 
 # Contacts models
 from src.contacts.models import Contact, ContactApproval
-
-# Moderation models
-from src.moderation.models import (
-    ContentReport,
-    MediaAsset,
-    ModerationDecision,
-    ModerationQueue,
-)
 
 # Governance models
 from src.governance.models import GovernanceAudit, GovernancePolicy
@@ -42,6 +20,26 @@ from src.messaging.models import (
     Message,
     MessageMedia,
 )
+
+# Moderation models
+from src.moderation.models import (
+    ContentReport,
+    MediaAsset,
+    ModerationDecision,
+    ModerationQueue,
+)
+
+# Social models
+from src.social.models import (
+    Follow,
+    Hashtag,
+    PostComment,
+    PostHashtag,
+    PostLike,
+    Profile,
+    SocialPost,
+)
+from tests.conftest import make_test_group
 
 
 # ─── Helper ─────────────────────────────────────────────────────────
@@ -154,7 +152,6 @@ async def test_social_post_soft_delete(test_session):
     )
     test_session.add(post)
     await test_session.flush()
-    post_id = post.id
 
     assert post.is_deleted is False
     post.soft_delete()

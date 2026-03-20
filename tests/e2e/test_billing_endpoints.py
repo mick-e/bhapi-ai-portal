@@ -14,9 +14,8 @@ from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.pool import StaticPool
 
-from src.billing.models import BudgetThreshold, LLMAccount, SpendRecord, Subscription
+from src.billing.models import BudgetThreshold, SpendRecord, Subscription
 from src.database import Base, get_db
-from src.encryption import encrypt_credential
 from src.groups.models import GroupMember
 from src.main import create_app
 

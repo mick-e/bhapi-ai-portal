@@ -1,12 +1,16 @@
 """Unit tests for teacher dashboard."""
 
-import pytest
 from uuid import uuid4
-from tests.conftest import make_test_group
-from src.groups.teacher_dashboard import (
-    create_note, list_notes_for_member, mark_note_read,
-)
+
+import pytest
+
 from src.exceptions import NotFoundError
+from src.groups.teacher_dashboard import (
+    create_note,
+    list_notes_for_member,
+    mark_note_read,
+)
+from tests.conftest import make_test_group
 
 
 @pytest.mark.asyncio

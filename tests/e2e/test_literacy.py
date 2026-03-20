@@ -16,6 +16,7 @@ from src.literacy.models import (
     LiteracyProgress,
     LiteracyQuestion,
 )
+from src.literacy.schemas import AnswerItem, AssessmentSubmit
 from src.literacy.service import (
     get_member_progress,
     get_module_questions,
@@ -23,8 +24,6 @@ from src.literacy.service import (
     seed_content,
     submit_assessment,
 )
-from src.literacy.schemas import AssessmentSubmit, AnswerItem
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

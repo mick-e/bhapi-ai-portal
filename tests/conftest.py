@@ -30,6 +30,7 @@ async def make_test_group(session, name="Test", group_type="family", **kwargs):
     Group(owner_id=uuid4()) which fails FK checks.
     """
     from uuid import uuid4
+
     from src.auth.models import User
     from src.groups.models import Group
 

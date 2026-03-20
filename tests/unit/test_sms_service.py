@@ -2,8 +2,8 @@
 
 import pytest
 
-from src.sms.service import send_sms, reset_sms_rate_limits
-from src.sms.templates import risk_alert_sms, spend_alert_sms, digest_summary_sms
+from src.sms.service import reset_sms_rate_limits, send_sms
+from src.sms.templates import digest_summary_sms, risk_alert_sms, spend_alert_sms
 
 
 @pytest.mark.asyncio

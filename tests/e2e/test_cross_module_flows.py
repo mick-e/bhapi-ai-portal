@@ -120,7 +120,7 @@ async def test_capture_to_risk_to_alert_pipeline(flow_client):
         headers=headers,
     )
     assert capture_resp.status_code == 201
-    event_id = capture_resp.json()["id"]
+    capture_resp.json()["id"]
 
     # 2. Check risk events for this group
     risk_resp = await client.get(

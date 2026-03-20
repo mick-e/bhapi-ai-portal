@@ -1,10 +1,11 @@
 """E2E tests for Clever and ClassLink SIS integrations."""
 
-import pytest
 from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
-from src.encryption import encrypt_credential, decrypt_credential
+import pytest
+
+from src.encryption import decrypt_credential, encrypt_credential
 from src.groups.models import GroupMember
 from src.integrations.models import SISConnection
 from src.integrations.sis_sync import sync_roster
@@ -81,6 +82,7 @@ async def test_sis_connection_credential_encryption(test_session):
 async def test_clever_roster_fetch():
     """Clever API client should parse roster response."""
     from unittest.mock import MagicMock
+
     from src.integrations.clever import fetch_clever_roster
 
     mock_response_data = {

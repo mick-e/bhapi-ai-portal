@@ -8,10 +8,10 @@ from uuid import uuid4
 
 import pytest
 
-from tests.conftest import make_test_group
 from src.groups.models import GroupMember
 from src.portal.schemas import DashboardResponse
 from src.portal.service import get_dashboard
+from tests.conftest import make_test_group
 
 
 @pytest.mark.asyncio
@@ -86,7 +86,7 @@ async def test_dashboard_total_degradation_on_group_db_error(test_session):
         return await original_execute(*args, **kwargs)
 
     # Use a simple logger to avoid structlog/Rich compatibility issues
-    simple_logger = structlog.get_logger()
+    structlog.get_logger()
 
     test_session.execute = failing_execute
     try:

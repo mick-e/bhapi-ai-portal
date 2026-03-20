@@ -1,24 +1,23 @@
 """Unit tests for COPPA 2026 consent enforcement helpers."""
 
-import pytest
 from uuid import uuid4
 
+import pytest
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.pool import StaticPool
 
-from src.database import Base
 from src.auth.models import User
-from src.groups.models import Group, GroupMember
 from src.compliance.coppa_2026 import (
-    check_third_party_consent,
     check_push_notification_consent,
+    check_third_party_consent,
     get_degraded_providers,
     get_third_party_consents,
-    update_third_party_consent,
     update_push_notification_consent,
+    update_third_party_consent,
 )
-
+from src.database import Base
+from src.groups.models import Group, GroupMember
 
 # ---------------------------------------------------------------------------
 # Fixtures

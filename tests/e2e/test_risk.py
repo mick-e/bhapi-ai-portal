@@ -2,7 +2,6 @@
 
 import pytest
 
-
 EXPECTED_PLATFORMS = [
     "ChatGPT",
     "Gemini",

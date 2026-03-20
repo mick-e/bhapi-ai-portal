@@ -12,7 +12,6 @@ import uuid
 from datetime import datetime, timezone
 
 import pytest
-import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
@@ -25,7 +24,6 @@ from src.database import Base, get_db
 from src.main import create_app
 from src.schemas import GroupContext
 from src.social.models import Profile, SocialPost
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -244,7 +242,6 @@ class TestCrossUserAuth:
     @pytest.mark.asyncio
     async def test_accept_follow_not_directed_to_you(self, client_user1, sec_users):
         """User1 cannot accept a follow request directed to user2."""
-        from src.social.models import Follow
 
         # Create a follow from some other user to user2 directly in DB
         # The endpoint should reject user1 trying to accept it

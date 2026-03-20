@@ -1,8 +1,8 @@
 """Unit tests for export file auto-deletion."""
 
 import os
-import time
 import tempfile
+import time
 from pathlib import Path
 from unittest.mock import patch
 

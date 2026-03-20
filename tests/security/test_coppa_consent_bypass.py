@@ -1,8 +1,9 @@
 """Security tests for COPPA verifiable consent bypass prevention."""
 
-import pytest
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
+
+import pytest
 
 from src.capture.schemas import EventPayload
 from src.capture.service import ingest_event
