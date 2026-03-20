@@ -2,7 +2,7 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.middleware import get_current_user
@@ -160,6 +160,27 @@ async def create_report_endpoint(
         reason=data.reason,
     )
     return report
+
+
+@router.post("/webhooks/cloudflare-images")
+async def cloudflare_images_webhook(
+    request: Request,
+):
+    """Handle Cloudflare Images ready webhook.
+
+    This endpoint is public (no auth) — protected by webhook signature validation.
+    """
+    from src.moderation.image_pipeline import pipeline
+
+    body = await request.body()
+    signature = request.headers.get("cf-webhook-auth", "")
+
+    if not pipeline.verify_cf_signature(body, signature):
+        raise ForbiddenError("Invalid webhook signature")
+
+    payload = await request.json()
+    result = await pipeline.handle_cf_images_webhook(payload)
+    return result
 
 
 @router.get("/reports", response_model=ReportListResponse)
