@@ -20,7 +20,7 @@ class AgeTier(StrEnum):
 
 
 # ---------------------------------------------------------------------------
-# Permission matrix — 14 permissions per tier
+# Permission matrix — 18 permissions per tier
 # ---------------------------------------------------------------------------
 
 TIER_PERMISSIONS: dict[AgeTier, dict[str, Any]] = {
@@ -28,6 +28,10 @@ TIER_PERMISSIONS: dict[AgeTier, dict[str, Any]] = {
         "can_post": True,
         "can_comment": True,
         "can_message": False,
+        "can_like": True,
+        "can_follow": True,
+        "can_create_group_chat": False,
+        "can_search_users": False,
         "can_upload_image": True,
         "can_upload_video": False,
         "can_use_ai_chat": False,
@@ -44,6 +48,10 @@ TIER_PERMISSIONS: dict[AgeTier, dict[str, Any]] = {
         "can_post": True,
         "can_comment": True,
         "can_message": True,
+        "can_like": True,
+        "can_follow": True,
+        "can_create_group_chat": False,
+        "can_search_users": True,
         "can_upload_image": True,
         "can_upload_video": False,
         "can_use_ai_chat": False,
@@ -60,6 +68,10 @@ TIER_PERMISSIONS: dict[AgeTier, dict[str, Any]] = {
         "can_post": True,
         "can_comment": True,
         "can_message": True,
+        "can_like": True,
+        "can_follow": True,
+        "can_create_group_chat": True,
+        "can_search_users": True,
         "can_upload_image": True,
         "can_upload_video": True,
         "can_use_ai_chat": True,

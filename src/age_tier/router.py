@@ -31,7 +31,7 @@ async def assign_age_tier(
     db: AsyncSession = Depends(get_db),
 ):
     """Assign or update the age tier for a group member."""
-    config = await assign_tier(db, data)
+    config = await assign_tier(db, data, auth=auth)
     tier = AgeTier(config.tier)
     perms = get_permissions(
         tier,
@@ -59,7 +59,7 @@ async def get_member_age_tier(
     db: AsyncSession = Depends(get_db),
 ):
     """Get the age tier configuration for a member."""
-    config = await get_member_tier(db, member_id)
+    config = await get_member_tier(db, member_id, auth=auth)
     tier = AgeTier(config.tier)
     perms = get_permissions(
         tier,
@@ -87,7 +87,7 @@ async def get_permissions_endpoint(
     db: AsyncSession = Depends(get_db),
 ):
     """Get the effective permissions for a member."""
-    perms = await get_member_permissions(db, member_id)
+    perms = await get_member_permissions(db, member_id, auth=auth)
     return {"member_id": str(member_id), "permissions": perms}
 
 
@@ -102,7 +102,7 @@ async def check_permission_endpoint(
     db: AsyncSession = Depends(get_db),
 ):
     """Check whether a specific permission is allowed for a member."""
-    config = await get_member_tier(db, member_id)
+    config = await get_member_tier(db, member_id, auth=auth)
     tier = AgeTier(config.tier)
     allowed = check_perm(
         tier,

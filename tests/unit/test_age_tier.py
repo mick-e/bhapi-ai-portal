@@ -170,10 +170,10 @@ class TestGetPermissions:
         assert perms["max_contacts"] == 50
         assert perms["max_daily_posts"] == 30
 
-    def test_all_tiers_have_14_permissions(self):
+    def test_all_tiers_have_18_permissions(self):
         for tier in AgeTier:
             perms = get_permissions(tier)
-            assert len(perms) == 14, f"{tier} has {len(perms)} permissions, expected 14"
+            assert len(perms) == 18, f"{tier} has {len(perms)} permissions, expected 18"
 
     def test_feature_override_grants_permission(self):
         """Parent grants messaging to a young child."""

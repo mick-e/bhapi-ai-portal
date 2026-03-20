@@ -313,3 +313,67 @@ async def test_assign_invalid_jurisdiction(authed_client_user1, sec_data):
         "jurisdiction": "USA",  # Too long
     })
     assert resp.status_code == 422
+
+
+# ---------------------------------------------------------------------------
+# Cross-group authorization tests (403)
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+async def authed_client_user2(sec_engine, sec_session, sec_data):
+    """HTTP client authenticated as user2 (owns group2)."""
+    app = create_app()
+
+    async def get_db_override():
+        try:
+            yield sec_session
+            await sec_session.commit()
+        except Exception:
+            await sec_session.rollback()
+            raise
+
+    async def fake_auth():
+        return GroupContext(
+            user_id=sec_data["user2"].id,
+            group_id=sec_data["group2"].id,
+            role="parent",
+        )
+
+    app.dependency_overrides[get_db] = get_db_override
+    app.dependency_overrides[get_current_user] = fake_auth
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test",
+        headers={"Authorization": "Bearer test-token"},
+    ) as client:
+        yield client
+
+
+@pytest.mark.asyncio
+async def test_cross_group_get_member_tier_forbidden(authed_client_user2, sec_data):
+    """User2 cannot GET tier for member1 (belongs to group1) — returns 403."""
+    resp = await authed_client_user2.get(
+        f"/api/v1/age-tier/member/{sec_data['member1'].id}"
+    )
+    assert resp.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_cross_group_assign_tier_forbidden(authed_client_user2, sec_data):
+    """User2 cannot POST /assign for member1 (belongs to group1) — returns 403."""
+    resp = await authed_client_user2.post("/api/v1/age-tier/assign", json={
+        "member_id": str(sec_data["member1"].id),
+        "date_of_birth": "2016-05-15T00:00:00Z",
+    })
+    assert resp.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_cross_group_get_permissions_forbidden(authed_client_user2, sec_data):
+    """User2 cannot GET permissions for member1 (belongs to group1) — returns 403."""
+    resp = await authed_client_user2.get(
+        f"/api/v1/age-tier/member/{sec_data['member1'].id}/permissions"
+    )
+    assert resp.status_code == 403
