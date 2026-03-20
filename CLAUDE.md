@@ -289,12 +289,13 @@ The Bhapi platform is being unified per the design spec at `docs/superpowers/spe
 - Master plan: `docs/superpowers/plans/2026-03-19-bhapi-unified-platform-master.md`
 - Phase 0 plan: `docs/superpowers/plans/2026-03-19-phase0-stabilization.md`
 - Phase 1 plan: `docs/superpowers/plans/2026-04-23-phase1-moat-defense.md`
+- Phase 2 plan: `docs/superpowers/plans/2026-06-09-phase2-social-launch.md`
 - Gap analysis: `docs/Bhapi_Gap_Analysis_Q2_2026.md`
 - Incident response: `docs/security/incident-response-plan.md`
 - AU compliance: `docs/compliance/australian-online-safety-analysis.md`
 
 ### Next Migration
-**033** — Next social/messaging feature migration
+**033** — Push tokens (P2-S8), then 034-041 for Phase 2 features (see Phase 2 plan for full mapping)
 
 ### Legacy Repos (Archived)
 bhapi-inc/bhapi-api, bhapi-inc/bhapi-mobile, bhapi-inc/back-office — all archived on GitHub. Feature inventories at `docs/legacy/`.
