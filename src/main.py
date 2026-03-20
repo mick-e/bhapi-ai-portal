@@ -286,6 +286,9 @@ def _register_routers(app: FastAPI) -> None:
     from src.age_tier.router import router as age_tier_router
     app.include_router(age_tier_router, prefix="/api/v1/age-tier", tags=["Age Tier"])
 
+    from src.moderation.router import router as moderation_router
+    app.include_router(moderation_router, prefix="/api/v1/moderation", tags=["Moderation"])
+
 
 _PORTAL_CANDIDATES = [
     Path("/app/portal/out"),
