@@ -345,3 +345,25 @@ async def test_deployment_status_after_error(client, auth_headers):
     data = resp.json()
     assert data["errors"] == 1
     assert data["deployment_percentage"] == 0.0
+
+
+@pytest.mark.asyncio
+async def test_register_school_no_auth(client):
+    """POST /google-admin/schools without auth returns 401."""
+    resp = await client.post(f"{PREFIX}/schools", json={
+        "school_id": "no-auth", "school_name": "School", "admin_email": "a@b.com",
+    })
+    assert resp.status_code in (401, 403)
+
+
+@pytest.mark.asyncio
+async def test_add_device_with_os_version(client, auth_headers):
+    """Adding device with os_version stores it correctly."""
+    await client.post(f"{PREFIX}/schools", json={
+        "school_id": "os-test", "school_name": "OS School", "admin_email": "a@b.com",
+    }, headers=auth_headers)
+    resp = await client.post(f"{PREFIX}/schools/os-test/devices", json={
+        "device_id": "d1", "os_version": "ChromeOS 120",
+    }, headers=auth_headers)
+    assert resp.status_code == 201
+    assert resp.json()["os_version"] == "ChromeOS 120"
