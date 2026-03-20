@@ -442,3 +442,190 @@ async def install_module_endpoint(
     gid = _gid(None, auth)
     installed = await install_module(db, gid, UUIDType(data["module_id"]), config=data.get("config"))
     return {"id": str(installed.id), "active": installed.active}
+
+
+# ─── Google Admin Console ────────────────────────────────────────────────────
+
+
+class GoogleAdminSchoolRequest(BaseModel):
+    school_id: str = Field(..., min_length=1)
+    school_name: str = Field(..., min_length=1)
+    admin_email: str = Field(..., pattern=r"^[^@]+@[^@]+\.[^@]+$")
+
+
+class GoogleAdminDeviceRequest(BaseModel):
+    device_id: str = Field(..., min_length=1)
+    serial_number: str | None = None
+    os_version: str | None = None
+
+
+class GoogleAdminDeviceStatusUpdate(BaseModel):
+    status: str = Field(..., pattern="^(deployed|pending|error|unknown)$")
+
+
+class GoogleAdminPolicyRequest(BaseModel):
+    policy: dict = Field(..., min_length=1)
+
+
+class GoogleAdminForceInstallRequest(BaseModel):
+    extension_id: str = Field(..., min_length=1)
+
+
+@router.post("/google-admin/schools", status_code=201)
+async def register_google_admin_school(
+    data: GoogleAdminSchoolRequest,
+    auth: GroupContext = Depends(get_current_user),
+):
+    """Register a school for Google Admin extension deployment."""
+    from src.integrations.google_admin import integration
+
+    try:
+        result = await integration.register_school(
+            school_id=data.school_id,
+            school_name=data.school_name,
+            admin_email=data.admin_email,
+        )
+        return result
+    except ValueError as e:
+        raise ValidationError(str(e))
+
+
+@router.get("/google-admin/schools/{school_id}/status")
+async def get_google_admin_deployment_status(
+    school_id: str,
+    auth: GroupContext = Depends(get_current_user),
+):
+    """Get deployment status for a school."""
+    from src.integrations.google_admin import integration
+
+    status = await integration.get_deployment_status(school_id)
+    if status is None:
+        raise NotFoundError("School", school_id)
+    return {
+        "school_id": status.school_id,
+        "total_devices": status.total_devices,
+        "deployed": status.deployed,
+        "pending": status.pending,
+        "errors": status.errors,
+        "deployment_percentage": status.deployment_percentage,
+    }
+
+
+@router.post("/google-admin/schools/{school_id}/devices", status_code=201)
+async def add_google_admin_device(
+    school_id: str,
+    data: GoogleAdminDeviceRequest,
+    auth: GroupContext = Depends(get_current_user),
+):
+    """Add a device to tracking for a school."""
+    from src.integrations.google_admin import integration
+
+    try:
+        device = await integration.add_device(
+            school_id=school_id,
+            device_id=data.device_id,
+            serial_number=data.serial_number,
+            os_version=data.os_version,
+        )
+        return {
+            "device_id": device.device_id,
+            "status": device.status,
+            "serial_number": device.serial_number,
+            "os_version": device.os_version,
+        }
+    except KeyError:
+        raise NotFoundError("School", school_id)
+    except ValueError as e:
+        raise ValidationError(str(e))
+
+
+@router.patch("/google-admin/devices/{school_id}/{device_id}")
+async def update_google_admin_device_status(
+    school_id: str,
+    device_id: str,
+    data: GoogleAdminDeviceStatusUpdate,
+    auth: GroupContext = Depends(get_current_user),
+):
+    """Update deployment status for a device."""
+    from src.integrations.google_admin import integration
+
+    try:
+        device = await integration.update_device_status(
+            school_id=school_id,
+            device_id=device_id,
+            status=data.status,
+        )
+    except ValueError as e:
+        raise ValidationError(str(e))
+    if device is None:
+        raise NotFoundError("Device", device_id)
+    return {
+        "device_id": device.device_id,
+        "status": device.status,
+        "last_sync": device.last_sync.isoformat() if device.last_sync else None,
+    }
+
+
+@router.get("/google-admin/schools/{school_id}/devices")
+async def list_google_admin_devices(
+    school_id: str,
+    status: str | None = Query(None),
+    auth: GroupContext = Depends(get_current_user),
+):
+    """List devices for a school, optionally filtered by status."""
+    from src.integrations.google_admin import integration
+
+    try:
+        devices = await integration.list_devices(school_id, status=status)
+    except KeyError:
+        raise NotFoundError("School", school_id)
+    except ValueError as e:
+        raise ValidationError(str(e))
+    return {
+        "devices": [
+            {
+                "device_id": d.device_id,
+                "status": d.status,
+                "last_sync": d.last_sync.isoformat() if d.last_sync else None,
+                "os_version": d.os_version,
+                "serial_number": d.serial_number,
+            }
+            for d in devices
+        ],
+    }
+
+
+@router.post("/google-admin/schools/{school_id}/policy")
+async def push_google_admin_policy(
+    school_id: str,
+    data: GoogleAdminPolicyRequest,
+    auth: GroupContext = Depends(get_current_user),
+):
+    """Push a policy configuration to managed Chrome browsers."""
+    from src.integrations.google_admin import integration
+
+    try:
+        result = await integration.push_policy(school_id, data.policy)
+        return result
+    except KeyError:
+        raise NotFoundError("School", school_id)
+    except ValueError as e:
+        raise ValidationError(str(e))
+
+
+@router.post("/google-admin/schools/{school_id}/force-install")
+async def configure_google_admin_force_install(
+    school_id: str,
+    data: GoogleAdminForceInstallRequest,
+    auth: GroupContext = Depends(get_current_user),
+):
+    """Configure force-install of the extension via admin console."""
+    from src.integrations.google_admin import integration
+
+    try:
+        result = await integration.force_install_extension(school_id, data.extension_id)
+        return result
+    except KeyError:
+        raise NotFoundError("School", school_id)
+    except ValueError as e:
+        raise ValidationError(str(e))
