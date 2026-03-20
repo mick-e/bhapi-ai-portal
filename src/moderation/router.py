@@ -198,6 +198,118 @@ async def cloudflare_stream_webhook(
     return result
 
 
+# ---------------------------------------------------------------------------
+# eSafety Commissioner endpoints (Australian compliance)
+# ---------------------------------------------------------------------------
+
+
+@router.post("/esafety/complaints")
+async def submit_esafety_complaint(
+    body: dict,
+    auth: GroupContext = Depends(get_current_user),
+):
+    """Submit a complaint to the eSafety Commissioner."""
+    from src.moderation.esafety import ESafetyCategory, pipeline as esafety
+
+    _require_moderator(auth)
+
+    content_id = body.get("content_id")
+    category = body.get("category")
+    evidence = body.get("evidence", "")
+
+    if not content_id or not category:
+        from src.exceptions import ValidationError
+        raise ValidationError("content_id and category are required")
+
+    try:
+        cat = ESafetyCategory(category)
+    except ValueError:
+        from src.exceptions import ValidationError
+        raise ValidationError(f"Invalid category: {category}")
+
+    result = await esafety.submit_complaint(
+        content_id=content_id,
+        category=cat,
+        evidence_description=evidence,
+        reporter_info=body.get("reporter_info"),
+    )
+    return {
+        "complaint_id": result.complaint_id,
+        "status": result.status,
+        "deadline": result.takedown_deadline.isoformat(),
+    }
+
+
+@router.post("/esafety/takedown/{content_id}")
+async def mark_esafety_takedown(
+    content_id: str,
+    auth: GroupContext = Depends(get_current_user),
+):
+    """Mark content as taken down for eSafety SLA tracking."""
+    from src.moderation.esafety import pipeline as esafety
+
+    _require_moderator(auth)
+    found = esafety.mark_taken_down(content_id)
+    if not found:
+        from src.exceptions import NotFoundError
+        raise NotFoundError(f"No pending takedown for content {content_id}")
+    return {"status": "taken_down", "content_id": content_id}
+
+
+@router.get("/esafety/status/{content_id}")
+async def get_esafety_status(
+    content_id: str,
+    auth: GroupContext = Depends(get_current_user),
+):
+    """Get takedown SLA status for a specific content item."""
+    from src.moderation.esafety import pipeline as esafety
+
+    status = esafety.get_takedown_status(content_id)
+    if not status:
+        from src.exceptions import NotFoundError
+        raise NotFoundError(f"No takedown record for content {content_id}")
+    return {
+        "content_id": status.content_id,
+        "deadline": status.deadline.isoformat(),
+        "is_overdue": status.is_overdue,
+        "time_remaining_seconds": status.time_remaining_seconds,
+        "taken_down": status.taken_down,
+        "taken_down_at": status.taken_down_at.isoformat() if status.taken_down_at else None,
+    }
+
+
+@router.get("/esafety/dashboard")
+async def esafety_dashboard(
+    auth: GroupContext = Depends(get_current_user),
+):
+    """Get eSafety SLA compliance dashboard."""
+    from src.moderation.esafety import pipeline as esafety
+
+    return esafety.get_sla_dashboard()
+
+
+@router.get("/esafety/overdue")
+async def esafety_overdue(
+    auth: GroupContext = Depends(get_current_user),
+):
+    """Get all overdue takedowns (SLA breached)."""
+    from src.moderation.esafety import pipeline as esafety
+
+    _require_moderator(auth)
+    overdue = esafety.get_overdue_takedowns()
+    return {
+        "items": [
+            {
+                "content_id": s.content_id,
+                "deadline": s.deadline.isoformat(),
+                "is_overdue": s.is_overdue,
+            }
+            for s in overdue
+        ],
+        "total": len(overdue),
+    }
+
+
 @router.get("/reports", response_model=ReportListResponse)
 async def list_reports_endpoint(
     page: int = Query(1, ge=1),

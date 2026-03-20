@@ -23,6 +23,13 @@ from src.moderation.video_pipeline import (
     VideoResult,
     classify_video,
 )
+from src.moderation.esafety import (
+    ESafetyCategory,
+    ESafetyComplaint,
+    ESafetyPipeline,
+    TakedownStatus,
+    pipeline as esafety_pipeline,
+)
 
 __all__ = [
     "CSAMCheckResult",
@@ -44,4 +51,9 @@ __all__ = [
     "takedown_content",
     "SocialRiskCategory",
     "SocialRiskResult",
+    "ESafetyCategory",
+    "ESafetyComplaint",
+    "ESafetyPipeline",
+    "TakedownStatus",
+    "esafety_pipeline",
 ]
