@@ -1,10 +1,22 @@
-// Phase 0 stub — React Native components will be added in Phase 1
-// when Expo is properly configured in the app workspaces.
-//
-// Planned components (Phase 1):
-// - Button (primary/secondary/outline, sizes, loading, disabled, WCAG 44pt)
-// - Card (white bg, rounded corners, shadow)
-// - Input, Badge, Toast, Avatar
-// - PostCard, MessageBubble, ContactRequest (Phase 1 Track E)
+export { Button, getButtonStyles } from './Button';
+export type { ButtonProps, ButtonVariant, ButtonSize } from './Button';
 
-export const UI_VERSION = '0.1.0';
+export { Card, cardStyles } from './Card';
+export type { CardProps } from './Card';
+
+export { Input, inputStyles } from './Input';
+export type { InputProps } from './Input';
+
+export { Badge, badgeColors } from './Badge';
+export type { BadgeProps, BadgeVariant } from './Badge';
+
+export { Toast, toastColors, getToastAutoDismissMs } from './Toast';
+export type { ToastProps, ToastVariant } from './Toast';
+
+export { Avatar, avatarSizes, getInitials } from './Avatar';
+export type { AvatarProps, AvatarSize } from './Avatar';
+
+export { BhapiLogo, logoSizes } from './BhapiLogo';
+export type { BhapiLogoProps, LogoSize } from './BhapiLogo';
+
+export const UI_VERSION = '0.2.0';

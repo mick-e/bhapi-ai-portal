@@ -19,12 +19,35 @@
     "dashboard": "Panel",
     "alerts": "Alertas",
     "activity": "Actividad",
-    "settings": "Configuración"
+    "settings": "Configuración",
+    "risk_overview": "Resumen de Riesgos",
+    "recent_alerts": "Alertas Recientes",
+    "platform_breakdown": "Desglose por Plataforma",
+    "no_alerts": "No hay alertas para mostrar",
+    "alert_detail": "Detalle de Alerta",
+    "snooze": "Posponer",
+    "escalate": "Escalar",
+    "dismiss": "Descartar"
   },
   "social": {
     "feed": "Feed",
     "messages": "Mensajes",
     "profile": "Perfil",
-    "create_post": "Crear publicación"
+    "create_post": "Crear Publicación",
+    "followers": "Seguidores",
+    "following": "Siguiendo",
+    "like": "Me gusta",
+    "comment": "Comentar",
+    "share": "Compartir",
+    "new_message": "Nuevo Mensaje",
+    "contacts": "Contactos",
+    "add_contact": "Agregar Contacto",
+    "pending_approval": "Aprobación Pendiente"
+  },
+  "moderation": {
+    "content_review": "Contenido en Revisión",
+    "post_approved": "Publicación Aprobada",
+    "post_rejected": "Publicación No Aprobada",
+    "appeal": "Apelar Decisión"
   }
 }

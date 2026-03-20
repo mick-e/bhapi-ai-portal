@@ -1,0 +1,21 @@
+// Mock React Native for testing without Expo/RN runtime
+export const StyleSheet = {
+  create: <T extends Record<string, any>>(styles: T): T => styles,
+};
+
+export const TouchableOpacity = 'TouchableOpacity';
+export const Text = 'Text';
+export const View = 'View';
+export const TextInput = 'TextInput';
+export const Image = 'Image';
+export const ActivityIndicator = 'ActivityIndicator';
+export const Animated = {
+  View: 'AnimatedView',
+  timing: jest.fn(),
+  Value: jest.fn().mockImplementation((val: number) => ({ _value: val })),
+};
+
+export type ViewStyle = Record<string, any>;
+export type TextStyle = Record<string, any>;
+export type ImageSourcePropType = any;
+export type TextInputProps = Record<string, any>;

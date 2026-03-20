@@ -1,7 +1,7 @@
 import { UI_VERSION } from '../src';
 
 describe('shared-ui', () => {
-  test('exports version', () => {
-    expect(UI_VERSION).toBe('0.1.0');
+  test('exports version 0.2.0', () => {
+    expect(UI_VERSION).toBe('0.2.0');
   });
 });

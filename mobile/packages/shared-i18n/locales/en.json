@@ -19,12 +19,35 @@
     "dashboard": "Dashboard",
     "alerts": "Alerts",
     "activity": "Activity",
-    "settings": "Settings"
+    "settings": "Settings",
+    "risk_overview": "Risk Overview",
+    "recent_alerts": "Recent Alerts",
+    "platform_breakdown": "Platform Breakdown",
+    "no_alerts": "No alerts to show",
+    "alert_detail": "Alert Detail",
+    "snooze": "Snooze",
+    "escalate": "Escalate",
+    "dismiss": "Dismiss"
   },
   "social": {
     "feed": "Feed",
     "messages": "Messages",
     "profile": "Profile",
-    "create_post": "Create post"
+    "create_post": "Create Post",
+    "followers": "Followers",
+    "following": "Following",
+    "like": "Like",
+    "comment": "Comment",
+    "share": "Share",
+    "new_message": "New Message",
+    "contacts": "Contacts",
+    "add_contact": "Add Contact",
+    "pending_approval": "Pending Approval"
+  },
+  "moderation": {
+    "content_review": "Content Under Review",
+    "post_approved": "Post Approved",
+    "post_rejected": "Post Not Approved",
+    "appeal": "Appeal Decision"
   }
 }
