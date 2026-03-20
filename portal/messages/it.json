@@ -700,5 +700,29 @@
     "dayAgo": "{count} giorno fa",
     "daysAgo": "{count} giorni fa",
     "user": "Utente"
+  },
+  "schoolAdmin": {
+    "title": "Admin IT Scolastico",
+    "description": "Gestisci dispositivi, monitora il deployment e configura le policy",
+    "noSchoolGroup": "Nessun gruppo scolastico trovato",
+    "tabDevices": "Dispositivi",
+    "tabDeployment": "Deployment",
+    "tabPolicies": "Policy",
+    "searchDevices": "Cerca dispositivi...",
+    "allStatuses": "Tutti gli stati",
+    "active": "Attivo",
+    "inactive": "Inattivo",
+    "pending": "In attesa",
+    "error": "Errore",
+    "exportCsv": "Esporta CSV",
+    "addDevice": "Aggiungi dispositivo",
+    "totalDevices": "Totale dispositivi",
+    "extensionCoverage": "Copertura estensione",
+    "createPolicy": "Crea policy",
+    "cancel": "Annulla",
+    "warn": "Avvisa",
+    "block": "Blocca",
+    "audit": "Verifica",
+    "tryAgain": "Riprova"
   }
 }

@@ -700,5 +700,29 @@
     "dayAgo": "vor {count} Tag",
     "daysAgo": "vor {count} Tagen",
     "user": "Benutzer"
+  },
+  "schoolAdmin": {
+    "title": "Schul-IT-Verwaltung",
+    "description": "Geraete verwalten, Bereitstellung ueberwachen und Richtlinien konfigurieren",
+    "noSchoolGroup": "Keine Schulgruppe gefunden",
+    "tabDevices": "Geraete",
+    "tabDeployment": "Bereitstellung",
+    "tabPolicies": "Richtlinien",
+    "searchDevices": "Geraete suchen...",
+    "allStatuses": "Alle Status",
+    "active": "Aktiv",
+    "inactive": "Inaktiv",
+    "pending": "Ausstehend",
+    "error": "Fehler",
+    "exportCsv": "CSV exportieren",
+    "addDevice": "Geraet hinzufuegen",
+    "totalDevices": "Geraete gesamt",
+    "extensionCoverage": "Extension-Abdeckung",
+    "createPolicy": "Richtlinie erstellen",
+    "cancel": "Abbrechen",
+    "warn": "Warnen",
+    "block": "Blockieren",
+    "audit": "Pruefen",
+    "tryAgain": "Erneut versuchen"
   }
 }

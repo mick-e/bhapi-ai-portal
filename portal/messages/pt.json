@@ -700,5 +700,29 @@
     "dayAgo": "{count} dia atrás",
     "daysAgo": "{count} dias atrás",
     "user": "Usuário"
+  },
+  "schoolAdmin": {
+    "title": "Admin TI Escolar",
+    "description": "Gerencie dispositivos, monitore implantacao e configure politicas",
+    "noSchoolGroup": "Nenhum grupo escolar encontrado",
+    "tabDevices": "Dispositivos",
+    "tabDeployment": "Implantacao",
+    "tabPolicies": "Politicas",
+    "searchDevices": "Buscar dispositivos...",
+    "allStatuses": "Todos os status",
+    "active": "Ativo",
+    "inactive": "Inativo",
+    "pending": "Pendente",
+    "error": "Erro",
+    "exportCsv": "Exportar CSV",
+    "addDevice": "Adicionar dispositivo",
+    "totalDevices": "Total de dispositivos",
+    "extensionCoverage": "Cobertura da extensao",
+    "createPolicy": "Criar politica",
+    "cancel": "Cancelar",
+    "warn": "Avisar",
+    "block": "Bloquear",
+    "audit": "Auditar",
+    "tryAgain": "Tentar novamente"
   }
 }
