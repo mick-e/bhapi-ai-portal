@@ -8,6 +8,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.exceptions import ConflictError, NotFoundError, ValidationError
+from src.moderation.keyword_filter import FilterAction, classify_text
 from src.moderation.models import ContentReport, ModerationDecision, ModerationQueue
 
 logger = structlog.get_logger()
@@ -46,21 +47,66 @@ async def submit_for_moderation(
     pipeline = _resolve_pipeline(author_age_tier)
 
     risk_scores: dict | None = None
+    status = "pending"
+
+    # Run keyword filter on text content
+    filter_result = None
     if content_text:
-        # Placeholder for future risk scoring integration
-        risk_scores = {"text_flagged": False}
+        filter_result = classify_text(content_text, author_age_tier)
+        risk_scores = {
+            "keyword_filter": {
+                "action": filter_result.action.value,
+                "severity": filter_result.severity,
+                "confidence": filter_result.confidence,
+                "matched_keywords": filter_result.matched_keywords,
+            }
+        }
+
+        if filter_result.action == FilterAction.BLOCK:
+            status = "rejected"
+        elif (
+            filter_result.action == FilterAction.ALLOW
+            and pipeline == "pre_publish"
+        ):
+            status = "approved"
+        # UNCERTAIN: stays as "pending" for AI/human review
 
     entry = ModerationQueue(
         id=uuid4(),
         content_type=content_type,
         content_id=content_id,
         pipeline=pipeline,
-        status="pending",
+        status=status,
         risk_scores=risk_scores,
         age_tier=author_age_tier,
     )
     db.add(entry)
     await db.flush()
+
+    # Create auto-decision for keyword filter blocks/approvals
+    if filter_result and filter_result.action == FilterAction.BLOCK:
+        decision = ModerationDecision(
+            id=uuid4(),
+            queue_id=entry.id,
+            action="reject",
+            reason=f"Auto-blocked: keyword filter ({filter_result.severity})",
+        )
+        db.add(decision)
+        await db.flush()
+    elif (
+        filter_result
+        and filter_result.action == FilterAction.ALLOW
+        and pipeline == "pre_publish"
+    ):
+        decision = ModerationDecision(
+            id=uuid4(),
+            queue_id=entry.id,
+            action="approve",
+            reason="Auto-approved: keyword filter (no concerns)",
+        )
+        db.add(decision)
+        await db.flush()
+
     await db.refresh(entry)
 
     logger.info(
@@ -68,7 +114,9 @@ async def submit_for_moderation(
         queue_id=str(entry.id),
         content_type=content_type,
         pipeline=pipeline,
+        status=status,
         age_tier=author_age_tier,
+        keyword_action=filter_result.action.value if filter_result else None,
     )
     return entry
 

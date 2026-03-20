@@ -18,6 +18,11 @@ class ModerationQueueCreate(BaseModel):
         None, pattern="^(young|preteen|teen)$",
         description="Age tier of the content author",
     )
+    content_text: str | None = Field(
+        None,
+        description="Text content to classify via keyword filter",
+        max_length=50000,
+    )
 
 
 class ModerationQueueResponse(BaseModel):

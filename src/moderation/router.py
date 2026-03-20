@@ -55,6 +55,7 @@ async def submit_to_queue(
         content_type=data.content_type,
         content_id=data.content_id,
         author_age_tier=data.age_tier,
+        content_text=data.content_text,
     )
     return entry
 
