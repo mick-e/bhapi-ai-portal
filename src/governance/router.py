@@ -9,6 +9,12 @@ from src.auth.middleware import get_current_user
 from src.database import get_db
 from src.governance.schemas import (
     ComplianceDashboardResponse,
+    OhioBoardReportResponse,
+    OhioComplianceStatusResponse,
+    OhioCustomizeRequest,
+    OhioCustomizeResponse,
+    OhioImportToolsRequest,
+    OhioImportToolsResponse,
     PaginatedAudits,
     PaginatedPolicies,
     PolicyCreate,
@@ -20,6 +26,12 @@ from src.governance.schemas import (
     TemplateResponse,
     ToolCreate,
     ToolResponse,
+)
+from src.governance.ohio import (
+    customize_ohio_policy,
+    generate_board_report,
+    get_ohio_compliance_status,
+    import_tools_csv,
 )
 from src.governance.service import (
     add_tool_to_inventory,
@@ -206,3 +218,61 @@ async def audit_trail_endpoint(
 ):
     """Get audit trail for a governance policy."""
     return await get_audit_trail(db, policy_id, page=page, page_size=page_size)
+
+
+# ---------------------------------------------------------------------------
+# Ohio-specific endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.post("/ohio/customize", response_model=OhioCustomizeResponse, status_code=201)
+async def ohio_customize_endpoint(
+    data: OhioCustomizeRequest,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Customize Ohio AI policy template with district-specific requirements."""
+    result = await customize_ohio_policy(
+        db,
+        school_id=data.school_id,
+        district_name=data.district_name,
+        additional_requirements=data.additional_requirements,
+        approved_tools=data.approved_tools,
+        actor_id=auth.user_id,
+    )
+    return result
+
+
+@router.post("/ohio/import-tools", response_model=OhioImportToolsResponse)
+async def ohio_import_tools_endpoint(
+    data: OhioImportToolsRequest,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Bulk import AI tools from CSV data."""
+    return await import_tools_csv(
+        db,
+        school_id=data.school_id,
+        csv_data=data.csv_data,
+        actor_id=auth.user_id,
+    )
+
+
+@router.get("/ohio/board-report", response_model=OhioBoardReportResponse)
+async def ohio_board_report_endpoint(
+    school_id: UUID = Query(..., description="School group ID"),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Generate a board-ready compliance report for Ohio mandate."""
+    return await generate_board_report(db, school_id)
+
+
+@router.get("/ohio/status", response_model=OhioComplianceStatusResponse)
+async def ohio_status_endpoint(
+    school_id: UUID = Query(..., description="School group ID"),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Check Ohio compliance status for a school."""
+    return await get_ohio_compliance_status(db, school_id)

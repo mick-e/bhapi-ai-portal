@@ -144,3 +144,76 @@ class PaginatedAudits(BaseSchema):
     total: int
     page: int
     page_size: int
+
+
+# ---------------------------------------------------------------------------
+# Ohio-specific schemas
+# ---------------------------------------------------------------------------
+
+
+class OhioCustomizeRequest(BaseSchema):
+    """Request to customize Ohio policy template for a district."""
+
+    school_id: UUID
+    district_name: str = Field(max_length=200, min_length=1)
+    additional_requirements: list[str] = Field(default_factory=list)
+    approved_tools: list[str] = Field(default_factory=list)
+
+
+class OhioCustomizeResponse(BaseSchema):
+    """Response from Ohio policy customization."""
+
+    state_code: str
+    policy_id: str
+    content: dict
+    status: str
+    version: int
+
+
+class OhioImportToolsRequest(BaseSchema):
+    """Request to import AI tools from CSV."""
+
+    school_id: UUID
+    csv_data: str = Field(min_length=1)
+
+
+class OhioImportToolsResponse(BaseSchema):
+    """Response from CSV tool import."""
+
+    imported: int
+    errors: list[dict]
+    total_rows: int
+    import_log_id: str
+
+
+class OhioBoardReportResponse(BaseSchema):
+    """Board-ready compliance report."""
+
+    format: str
+    generated_at: str
+    state_code: str
+    district_name: str | None = None
+    compliance_score: int
+    is_compliant: bool
+    tool_inventory_count: int
+    tools_by_risk: dict
+    tools_by_status: dict
+    policy_count: int
+    policy_coverage: list[str]
+    missing_policies: list[str]
+    risk_findings: list[dict]
+    audit_count: int
+    recent_actions: list[dict]
+
+
+class OhioComplianceStatusResponse(BaseSchema):
+    """Ohio compliance status check."""
+
+    school_id: str
+    state_code: str
+    overall_status: str
+    compliance_deadline: str
+    policy_status: dict
+    active_policy_count: int
+    tool_count: int
+    ready_for_board: bool
