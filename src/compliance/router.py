@@ -7,7 +7,6 @@ from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.middleware import get_current_user
-from src.compliance.export_worker import export_user_data_bytes
 from src.compliance.eu_ai_act import (
     get_algorithmic_transparency,
     list_appeals,
@@ -15,15 +14,16 @@ from src.compliance.eu_ai_act import (
     resolve_appeal,
     submit_appeal,
 )
+from src.compliance.export_worker import export_user_data_bytes
 from src.compliance.schemas import (
     AppealResolve,
     AppealResponse,
     AppealSubmit,
     AuditEntryResponse,
-    COPPAComplianceReportResponse,
-    COPPAReviewResponse,
     ConsentResponse,
     ConsentWithdrawRequest,
+    COPPAComplianceReportResponse,
+    COPPAReviewResponse,
     DataRequestCreate,
     DataRequestStatus,
     HumanReviewResponse,
@@ -354,15 +354,27 @@ async def get_audit_logs(
 
     gid = _gid(None, auth)
     offset = (page - 1) * page_size
-    logs, total = await query_audit_logs(db, group_id=gid, action=action, resource_type=resource_type, limit=page_size, offset=offset)
+    logs, total = await query_audit_logs(
+        db, group_id=gid, action=action,
+        resource_type=resource_type, limit=page_size, offset=offset,
+    )
     return {
         "items": [
-            {"id": str(l.id), "action": l.action, "resource_type": l.resource_type,
-             "resource_id": l.resource_id, "actor_email": l.actor_email,
-             "created_at": l.created_at.isoformat() if l.created_at else None}
-            for l in logs
+            {
+                "id": str(log.id),
+                "action": log.action,
+                "resource_type": log.resource_type,
+                "resource_id": log.resource_id,
+                "actor_email": log.actor_email,
+                "created_at": (
+                    log.created_at.isoformat() if log.created_at else None
+                ),
+            }
+            for log in logs
         ],
-        "total": total, "page": page, "page_size": page_size,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
     }
 
 
@@ -423,8 +435,9 @@ async def update_incident_endpoint(
     db: AsyncSession = Depends(get_db),
 ):
     """Update incident status."""
-    from src.compliance.incident import update_incident_status
     from uuid import UUID as UUIDType
+
+    from src.compliance.incident import update_incident_status
 
     incident = await update_incident_status(
         db, UUIDType(incident_id), status=data.get("status", ""),

@@ -1,9 +1,9 @@
 """Conversation summary database models."""
 
 import uuid
-from datetime import date as date_type, datetime
+from datetime import date as date_type
 
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Index, String, Text, func
+from sqlalchemy import Boolean, Date, ForeignKey, Index, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 

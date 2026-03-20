@@ -11,9 +11,9 @@ from src.auth.middleware import get_current_user
 from src.database import get_db
 from src.dependencies import require_active_trial_or_subscription
 from src.encryption import decrypt_credential, encrypt_credential
-from src.exceptions import ForbiddenError, NotFoundError, ConflictError, ValidationError
+from src.exceptions import ConflictError, ForbiddenError, NotFoundError, ValidationError
 from src.integrations.models import SISConnection
-from src.integrations.schemas import SISConnectRequest, SISConnectionResponse, SISSyncResponse
+from src.integrations.schemas import SISConnectionResponse, SISConnectRequest, SISSyncResponse
 from src.integrations.sso_models import SSOConfig
 from src.schemas import GroupContext
 
@@ -338,9 +338,10 @@ async def register_product(
     db: AsyncSession = Depends(get_db),
 ):
     """Register a product for cross-product communication."""
-    from src.integrations.cross_product import register_product as _register
-    from src.dependencies import resolve_group_id as _gid
     import hashlib
+
+    from src.dependencies import resolve_group_id as _gid
+    from src.integrations.cross_product import register_product as _register
 
     gid = _gid(None, auth)
     api_key = data.get("api_key", "")
@@ -360,8 +361,8 @@ async def list_xp_alerts(
     db: AsyncSession = Depends(get_db),
 ):
     """List cross-product alerts."""
-    from src.integrations.cross_product import list_cross_product_alerts
     from src.dependencies import resolve_group_id as _gid
+    from src.integrations.cross_product import list_cross_product_alerts
 
     gid = _gid(None, auth)
     alerts = await list_cross_product_alerts(db, gid)
@@ -435,9 +436,10 @@ async def install_module_endpoint(
     db: AsyncSession = Depends(get_db),
 ):
     """Install a marketplace module."""
-    from src.integrations.developer_portal import install_module
-    from src.dependencies import resolve_group_id as _gid
     from uuid import UUID as UUIDType
+
+    from src.dependencies import resolve_group_id as _gid
+    from src.integrations.developer_portal import install_module
 
     gid = _gid(None, auth)
     installed = await install_module(db, gid, UUIDType(data["module_id"]), config=data.get("config"))

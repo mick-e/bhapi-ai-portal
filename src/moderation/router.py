@@ -209,7 +209,8 @@ async def submit_esafety_complaint(
     auth: GroupContext = Depends(get_current_user),
 ):
     """Submit a complaint to the eSafety Commissioner."""
-    from src.moderation.esafety import ESafetyCategory, pipeline as esafety
+    from src.moderation.esafety import ESafetyCategory
+    from src.moderation.esafety import pipeline as esafety
 
     _require_moderator(auth)
 

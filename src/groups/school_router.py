@@ -6,7 +6,7 @@ from uuid import UUID, uuid4
 import structlog
 from fastapi import APIRouter, Depends
 from pydantic import Field
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.middleware import get_current_user
@@ -432,8 +432,9 @@ async def get_district_endpoint(
     db: AsyncSession = Depends(get_db),
 ):
     """Get district summary."""
-    from src.groups.district import get_district_summary
     from uuid import UUID as UUIDType
+
+    from src.groups.district import get_district_summary
     return await get_district_summary(db, UUIDType(district_id))
 
 
@@ -445,9 +446,10 @@ async def add_school_endpoint(
     db: AsyncSession = Depends(get_db),
 ):
     """Add a school to a district."""
-    from src.groups.district import add_school_to_district
     from uuid import UUID as UUIDType
+
     from src.dependencies import resolve_group_id as _resolve_gid
+    from src.groups.district import add_school_to_district
     gid = _resolve_gid(None, auth)
     school = await add_school_to_district(
         db, district_id=UUIDType(district_id),
@@ -466,8 +468,8 @@ async def teacher_dashboard(
     db: AsyncSession = Depends(get_db),
 ):
     """Get teacher dashboard data."""
-    from src.groups.teacher_dashboard import get_teacher_dashboard
     from src.dependencies import resolve_group_id as _resolve_gid
+    from src.groups.teacher_dashboard import get_teacher_dashboard
     gid = _resolve_gid(None, auth)
     return await get_teacher_dashboard(db, gid, auth.user_id)
 
@@ -479,9 +481,10 @@ async def create_message(
     db: AsyncSession = Depends(get_db),
 ):
     """Create a parent-teacher note."""
-    from src.groups.teacher_dashboard import create_note
-    from src.dependencies import resolve_group_id as _resolve_gid
     from uuid import UUID as UUIDType
+
+    from src.dependencies import resolve_group_id as _resolve_gid
+    from src.groups.teacher_dashboard import create_note
     gid = _resolve_gid(None, auth)
     note = await create_note(
         db, group_id=gid,
@@ -501,9 +504,10 @@ async def list_messages(
     db: AsyncSession = Depends(get_db),
 ):
     """List parent-teacher notes for a member."""
-    from src.groups.teacher_dashboard import list_notes_for_member
-    from src.dependencies import resolve_group_id as _resolve_gid
     from uuid import UUID as UUIDType
+
+    from src.dependencies import resolve_group_id as _resolve_gid
+    from src.groups.teacher_dashboard import list_notes_for_member
     gid = _resolve_gid(None, auth)
     notes = await list_notes_for_member(db, gid, UUIDType(member_id))
     return {"messages": [

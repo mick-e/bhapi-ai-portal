@@ -6,10 +6,9 @@ from datetime import datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
 import structlog
+from sqlalchemy import func as sa_func
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from sqlalchemy import func as sa_func
 
 from src.compliance.models import (
     PushNotificationConsent,
@@ -27,37 +26,59 @@ THIRD_PARTY_PROVIDERS = [
     {
         "provider_key": "stripe",
         "provider_name": "Stripe",
-        "data_purpose": "Payment processing for subscription billing. Receives parent billing information only, not child data.",
+        "data_purpose": (
+            "Payment processing for subscription billing."
+            " Receives parent billing information only, not child data."
+        ),
     },
     {
         "provider_key": "sendgrid",
         "provider_name": "SendGrid (Twilio)",
-        "data_purpose": "Email delivery for safety alerts, reports, and account notifications. May include child's display name in alert emails.",
+        "data_purpose": (
+            "Email delivery for safety alerts, reports, and account notifications."
+            " May include child's display name in alert emails."
+        ),
     },
     {
         "provider_key": "twilio_sms",
         "provider_name": "Twilio SMS",
-        "data_purpose": "SMS delivery for urgent safety alerts (critical/high severity). May include brief risk description.",
+        "data_purpose": (
+            "SMS delivery for urgent safety alerts (critical/high severity)."
+            " May include brief risk description."
+        ),
     },
     {
         "provider_key": "google_cloud_ai",
         "provider_name": "Google Cloud AI",
-        "data_purpose": "Content safety analysis using Perspective API (text toxicity), Vision API (image safety), and Video Intelligence. Processes AI conversation content for risk scoring.",
+        "data_purpose": (
+            "Content safety analysis using Perspective API (text toxicity),"
+            " Vision API (image safety), and Video Intelligence."
+            " Processes AI conversation content for risk scoring."
+        ),
     },
     {
         "provider_key": "hive_sensity",
         "provider_name": "Hive / Sensity",
-        "data_purpose": "Deepfake content detection. Processes media shared in AI conversations to detect manipulated images/videos.",
+        "data_purpose": (
+            "Deepfake content detection. Processes media shared in AI"
+            " conversations to detect manipulated images/videos."
+        ),
     },
     {
         "provider_key": "yoti",
         "provider_name": "Yoti",
-        "data_purpose": "Age and identity verification for parental consent. Processes parent identity documents and selfie for verification.",
+        "data_purpose": (
+            "Age and identity verification for parental consent."
+            " Processes parent identity documents and selfie for verification."
+        ),
     },
     {
         "provider_key": "render",
         "provider_name": "Render",
-        "data_purpose": "Cloud hosting infrastructure. All data is stored encrypted on Render's servers in the Frankfurt (EU) region.",
+        "data_purpose": (
+            "Cloud hosting infrastructure. All data is stored encrypted"
+            " on Render's servers in the Frankfurt (EU) region."
+        ),
     },
 ]
 
@@ -156,7 +177,8 @@ async def update_third_party_consent(
         )
         if not provider_info:
             raise ValidationError(
-                f"Unknown provider: {provider_key}. Valid: {', '.join(p['provider_key'] for p in THIRD_PARTY_PROVIDERS)}"
+                f"Unknown provider: {provider_key}. Valid: "
+                f"{', '.join(p['provider_key'] for p in THIRD_PARTY_PROVIDERS)}"
             )
         item = ThirdPartyConsentItem(
             id=uuid4(),

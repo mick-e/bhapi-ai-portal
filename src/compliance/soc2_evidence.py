@@ -1,10 +1,10 @@
 """SOC 2 evidence collection and reporting."""
 
-import structlog
 from datetime import datetime, timezone
 from uuid import UUID
 
-from sqlalchemy import select, func
+import structlog
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = structlog.get_logger()

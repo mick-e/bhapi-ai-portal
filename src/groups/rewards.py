@@ -3,12 +3,11 @@
 import uuid
 from datetime import datetime, timedelta, timezone
 
+import structlog
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, func, select
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
-
-import structlog
 
 from src.database import Base
 from src.exceptions import NotFoundError

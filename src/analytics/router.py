@@ -1,6 +1,6 @@
 """Analytics API endpoints."""
 
-from datetime import date, timedelta, timezone
+from datetime import date, timedelta
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
@@ -21,7 +21,8 @@ from src.analytics.service import (
 )
 from src.auth.middleware import get_current_user
 from src.database import get_db
-from src.dependencies import require_active_trial_or_subscription, resolve_group_id as _gid
+from src.dependencies import require_active_trial_or_subscription
+from src.dependencies import resolve_group_id as _gid
 from src.exceptions import ValidationError
 from src.schemas import GroupContext
 

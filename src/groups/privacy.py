@@ -1,18 +1,15 @@
 """Sibling privacy controls — visibility and child self-view management."""
 
 import uuid
-from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String, func, select
+import structlog
+from sqlalchemy import Boolean, ForeignKey, func, select
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 
-import structlog
-
 from src.database import Base
-from src.exceptions import ForbiddenError, NotFoundError, ValidationError
-from src.groups.models import Group, GroupMember
+from src.exceptions import ForbiddenError, ValidationError
 from src.models import JSONType, TimestampMixin, UUIDMixin
 
 logger = structlog.get_logger()
@@ -254,8 +251,9 @@ async def get_child_dashboard(
     # Safety score section
     if "safety_score" in sections:
         try:
-            from src.risk.models import RiskEvent
             from sqlalchemy import func as sqlfunc
+
+            from src.risk.models import RiskEvent
 
             score_result = await db.execute(
                 select(sqlfunc.count(RiskEvent.id)).where(
@@ -272,8 +270,9 @@ async def get_child_dashboard(
     # Time usage section
     if "time_usage" in sections:
         try:
-            from src.capture.models import CaptureEvent
             from datetime import datetime, time, timezone
+
+            from src.capture.models import CaptureEvent
 
             today_start = datetime.combine(datetime.now(timezone.utc).date(), time.min, tzinfo=timezone.utc)
             time_result = await db.execute(
@@ -321,7 +320,7 @@ async def get_child_dashboard(
     # Rewards section
     if "rewards" in sections:
         try:
-            from src.groups.rewards import list_rewards, get_extra_time_minutes
+            from src.groups.rewards import get_extra_time_minutes, list_rewards
 
             rewards = await list_rewards(db, group_id, member_id)
             extra_time = await get_extra_time_minutes(db, group_id, member_id)

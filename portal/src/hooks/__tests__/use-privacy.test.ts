@@ -29,6 +29,7 @@ import {
   useChildDashboard,
   privacyKeys,
 } from "../use-privacy";
+import type { MemberVisibility, ChildSelfView, ChildDashboard } from "@/types";
 
 function createWrapper() {
   const queryClient = new QueryClient({
@@ -54,7 +55,7 @@ describe("useVisibility", () => {
       activity_visible: true,
       risk_visible: true,
       spend_visible: false,
-    };
+    } as unknown as MemberVisibility;
     vi.mocked(privacyApi.getVisibility).mockResolvedValueOnce(mockVisibility);
 
     const { result } = renderHook(() => useVisibility("m1"), {
@@ -93,7 +94,7 @@ describe("useSetVisibility", () => {
   });
 
   it("updates visibility settings", async () => {
-    const mockResult = { member_id: "m1", activity_visible: false };
+    const mockResult = { member_id: "m1", activity_visible: false } as unknown as MemberVisibility;
     vi.mocked(privacyApi.setVisibility).mockResolvedValueOnce(mockResult);
 
     const { result } = renderHook(() => useSetVisibility(), {
@@ -124,7 +125,7 @@ describe("useSelfView", () => {
       member_id: "m1",
       can_see_activity: true,
       can_see_scores: false,
-    };
+    } as unknown as ChildSelfView;
     vi.mocked(privacyApi.getSelfView).mockResolvedValueOnce(mockSelfView);
 
     const { result } = renderHook(() => useSelfView("m1"), {
@@ -146,7 +147,7 @@ describe("useChildDashboard", () => {
       member_id: "m1",
       safety_score: 90,
       recent_activity: [],
-    };
+    } as unknown as ChildDashboard;
     vi.mocked(privacyApi.getChildDashboard).mockResolvedValueOnce(mockDashboard);
 
     const { result } = renderHook(() => useChildDashboard("m1"), {

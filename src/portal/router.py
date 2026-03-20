@@ -184,8 +184,8 @@ async def list_case_studies():
 @router.get("/case-studies/{case_id}")
 async def get_case_study_endpoint(case_id: str):
     """Get a single case study (public, no auth required)."""
-    from src.portal.demo import get_case_study
     from src.exceptions import NotFoundError
+    from src.portal.demo import get_case_study
 
     study = get_case_study(case_id)
     if not study:
@@ -224,8 +224,8 @@ async def list_blog_posts(
 @router.get("/blog/{slug}")
 async def get_blog_post_endpoint(slug: str):
     """Get a single blog post (public, no auth required)."""
-    from src.portal.blog import get_blog_post
     from src.exceptions import NotFoundError
+    from src.portal.blog import get_blog_post
     post = get_blog_post(slug)
     if not post:
         raise NotFoundError(f"Blog post '{slug}'")

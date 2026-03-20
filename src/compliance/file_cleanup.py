@@ -1,6 +1,5 @@
 """Export file cleanup — deletes export files older than 7 days."""
 
-import os
 import time
 from pathlib import Path
 

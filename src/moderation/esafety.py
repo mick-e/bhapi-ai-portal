@@ -4,12 +4,12 @@ Handles complaint submission to eSafety Commissioner and 24h takedown SLA tracki
 Reference: docs/compliance/australian-online-safety-analysis.md
 """
 
-import structlog
-from datetime import datetime, timezone, timedelta
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from enum import StrEnum
 
 import httpx
+import structlog
 
 logger = structlog.get_logger()
 

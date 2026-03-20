@@ -192,8 +192,6 @@ async def delete_auto_block_rule(
 
 async def evaluate_auto_block_rules(db: AsyncSession) -> dict:
     """Evaluate all active auto block rules and create block rules as needed."""
-    from src.billing.models import SpendRecord
-    from src.risk.models import RiskEvent
 
     result = await db.execute(
         select(AutoBlockRule).where(AutoBlockRule.active.is_(True))

@@ -20,7 +20,11 @@ SEED_MODULES = [
                     "Applied Integration",
                 ],
                 "correct_answer": "Artificial Intelligence",
-                "explanation": "AI stands for Artificial Intelligence — computer systems designed to perform tasks that normally require human thinking.",
+                "explanation": (
+                    "AI stands for Artificial Intelligence — computer systems"
+                    " designed to perform tasks that normally require human"
+                    " thinking."
+                ),
                 "order_index": 1,
             },
             {
@@ -28,7 +32,10 @@ SEED_MODULES = [
                 "question_type": "true_false",
                 "options": ["True", "False"],
                 "correct_answer": "True",
-                "explanation": "AI systems use machine learning to get better at tasks by finding patterns in large amounts of data.",
+                "explanation": (
+                    "AI systems use machine learning to get better at tasks"
+                    " by finding patterns in large amounts of data."
+                ),
                 "order_index": 2,
             },
             {
@@ -41,14 +48,20 @@ SEED_MODULES = [
                     "A paper notebook",
                 ],
                 "correct_answer": "A voice assistant like Siri or Alexa",
-                "explanation": "Voice assistants use AI to understand your speech and respond with helpful answers.",
+                "explanation": (
+                    "Voice assistants use AI to understand your speech"
+                    " and respond with helpful answers."
+                ),
                 "order_index": 3,
             },
         ],
     },
     {
         "title": "AI Safety Basics",
-        "description": "Understand the basics of staying safe when using AI tools like chatbots and image generators.",
+        "description": (
+            "Understand the basics of staying safe when using AI tools"
+            " like chatbots and image generators."
+        ),
         "category": "safety",
         "difficulty_level": "beginner",
         "min_age": 8,
@@ -65,7 +78,11 @@ SEED_MODULES = [
                     "Only on weekdays",
                 ],
                 "correct_answer": "No, you should never share personal details with AI",
-                "explanation": "Never share personal information like your address, phone number, or school with AI tools. The data could be stored or shared.",
+                "explanation": (
+                    "Never share personal information like your address,"
+                    " phone number, or school with AI tools. The data"
+                    " could be stored or shared."
+                ),
                 "order_index": 1,
             },
             {
@@ -73,14 +90,21 @@ SEED_MODULES = [
                 "question_type": "true_false",
                 "options": ["True", "False"],
                 "correct_answer": "False",
-                "explanation": "AI can make mistakes or 'hallucinate' — generating information that sounds right but is actually wrong. Always double-check important facts.",
+                "explanation": (
+                    "AI can make mistakes or 'hallucinate' — generating"
+                    " information that sounds right but is actually wrong."
+                    " Always double-check important facts."
+                ),
                 "order_index": 2,
             },
         ],
     },
     {
         "title": "Privacy & Data",
-        "description": "Learn how AI uses your data, why privacy matters, and how to protect your personal information online.",
+        "description": (
+            "Learn how AI uses your data, why privacy matters,"
+            " and how to protect your personal information online."
+        ),
         "category": "privacy",
         "difficulty_level": "intermediate",
         "min_age": 10,
@@ -97,7 +121,11 @@ SEED_MODULES = [
                     "Nothing at all",
                 ],
                 "correct_answer": "It may be stored and used to improve the AI",
-                "explanation": "Many AI companies store your conversations and may use them to train future versions of their AI. That is why you should be careful about what you share.",
+                "explanation": (
+                    "Many AI companies store your conversations and may use"
+                    " them to train future versions of their AI. That is why"
+                    " you should be careful about what you share."
+                ),
                 "order_index": 1,
             },
             {
@@ -105,7 +133,11 @@ SEED_MODULES = [
                 "question_type": "true_false",
                 "options": ["True", "False"],
                 "correct_answer": "True",
-                "explanation": "Privacy policies tell you how your data will be collected, stored, and used. Understanding this helps you make informed choices.",
+                "explanation": (
+                    "Privacy policies tell you how your data will be"
+                    " collected, stored, and used. Understanding this"
+                    " helps you make informed choices."
+                ),
                 "order_index": 2,
             },
             {
@@ -118,14 +150,20 @@ SEED_MODULES = [
                     "Post your AI conversations on social media",
                 ],
                 "correct_answer": "Share as little personal information as possible",
-                "explanation": "The less personal information you share with AI tools, the better protected your privacy will be.",
+                "explanation": (
+                    "The less personal information you share with AI tools,"
+                    " the better protected your privacy will be."
+                ),
                 "order_index": 3,
             },
         ],
     },
     {
         "title": "Critical Thinking with AI",
-        "description": "Develop skills to evaluate AI-generated content and think critically about AI outputs.",
+        "description": (
+            "Develop skills to evaluate AI-generated content"
+            " and think critically about AI outputs."
+        ),
         "category": "critical_thinking",
         "difficulty_level": "intermediate",
         "min_age": 10,
@@ -133,7 +171,10 @@ SEED_MODULES = [
         "order_index": 4,
         "questions": [
             {
-                "question_text": "If an AI writes an essay for you, should you submit it as your own work?",
+                "question_text": (
+                    "If an AI writes an essay for you,"
+                    " should you submit it as your own work?"
+                ),
                 "question_type": "multiple_choice",
                 "options": [
                     "Yes, AI did the hard work",
@@ -142,7 +183,11 @@ SEED_MODULES = [
                     "Only for easy assignments",
                 ],
                 "correct_answer": "No, that would be dishonest and you would not learn anything",
-                "explanation": "Submitting AI-generated work as your own is a form of academic dishonesty. AI should be a tool to help you learn, not to replace your thinking.",
+                "explanation": (
+                    "Submitting AI-generated work as your own is a form of"
+                    " academic dishonesty. AI should be a tool to help you"
+                    " learn, not to replace your thinking."
+                ),
                 "order_index": 1,
             },
             {
@@ -150,14 +195,21 @@ SEED_MODULES = [
                 "question_type": "true_false",
                 "options": ["True", "False"],
                 "correct_answer": "True",
-                "explanation": "AI learns from data created by humans, so it can pick up human biases. It is important to question AI outputs and think critically.",
+                "explanation": (
+                    "AI learns from data created by humans, so it can pick"
+                    " up human biases. It is important to question AI"
+                    " outputs and think critically."
+                ),
                 "order_index": 2,
             },
         ],
     },
     {
         "title": "Deepfakes & Misinformation",
-        "description": "Learn to recognize AI-generated fake images, videos, and text, and understand why they can be harmful.",
+        "description": (
+            "Learn to recognize AI-generated fake images, videos, and text,"
+            " and understand why they can be harmful."
+        ),
         "category": "misinformation",
         "difficulty_level": "advanced",
         "min_age": 12,
@@ -174,19 +226,34 @@ SEED_MODULES = [
                     "A new social media platform",
                 ],
                 "correct_answer": "An AI-generated fake image, video, or audio that looks real",
-                "explanation": "Deepfakes use AI to create realistic-looking fake media. They can be used to spread misinformation or impersonate people.",
+                "explanation": (
+                    "Deepfakes use AI to create realistic-looking fake media."
+                    " They can be used to spread misinformation or"
+                    " impersonate people."
+                ),
                 "order_index": 1,
             },
             {
-                "question_text": "You can always tell if an image is AI-generated just by looking at it.",
+                "question_text": (
+                    "You can always tell if an image is AI-generated"
+                    " just by looking at it."
+                ),
                 "question_type": "true_false",
                 "options": ["True", "False"],
                 "correct_answer": "False",
-                "explanation": "AI-generated images are getting better all the time, and many look very realistic. You may need fact-checking tools and critical thinking to spot fakes.",
+                "explanation": (
+                    "AI-generated images are getting better all the time,"
+                    " and many look very realistic. You may need"
+                    " fact-checking tools and critical thinking to"
+                    " spot fakes."
+                ),
                 "order_index": 2,
             },
             {
-                "question_text": "What should you do if you see something online that looks suspicious?",
+                "question_text": (
+                    "What should you do if you see something online"
+                    " that looks suspicious?"
+                ),
                 "question_type": "multiple_choice",
                 "options": [
                     "Share it immediately with everyone",
@@ -194,15 +261,25 @@ SEED_MODULES = [
                     "Assume it must be true because it is online",
                     "Ignore it completely",
                 ],
-                "correct_answer": "Check multiple reliable sources before believing or sharing it",
-                "explanation": "Always verify information from multiple trusted sources before believing or sharing it. This helps stop the spread of misinformation.",
+                "correct_answer": (
+                    "Check multiple reliable sources before believing"
+                    " or sharing it"
+                ),
+                "explanation": (
+                    "Always verify information from multiple trusted sources"
+                    " before believing or sharing it. This helps stop the"
+                    " spread of misinformation."
+                ),
                 "order_index": 3,
             },
         ],
     },
     {
         "title": "Responsible AI Use",
-        "description": "Learn how to use AI tools responsibly, ethically, and in ways that benefit everyone.",
+        "description": (
+            "Learn how to use AI tools responsibly, ethically,"
+            " and in ways that benefit everyone."
+        ),
         "category": "ethics",
         "difficulty_level": "advanced",
         "min_age": 12,
@@ -218,16 +295,30 @@ SEED_MODULES = [
                     "Never use AI at all",
                     "Let AI do your homework while you play games",
                 ],
-                "correct_answer": "Use AI to help you understand concepts, then write in your own words",
-                "explanation": "AI is a great learning tool when used responsibly. Use it to explore ideas and understand topics, but always do your own thinking and writing.",
+                "correct_answer": (
+                    "Use AI to help you understand concepts,"
+                    " then write in your own words"
+                ),
+                "explanation": (
+                    "AI is a great learning tool when used responsibly."
+                    " Use it to explore ideas and understand topics, but"
+                    " always do your own thinking and writing."
+                ),
                 "order_index": 1,
             },
             {
-                "question_text": "It is okay to use AI to create fake content about real people.",
+                "question_text": (
+                    "It is okay to use AI to create fake content"
+                    " about real people."
+                ),
                 "question_type": "true_false",
                 "options": ["True", "False"],
                 "correct_answer": "False",
-                "explanation": "Creating fake content about real people can be harmful, hurtful, and in some cases illegal. Always use AI ethically and respect others.",
+                "explanation": (
+                    "Creating fake content about real people can be harmful,"
+                    " hurtful, and in some cases illegal. Always use AI"
+                    " ethically and respect others."
+                ),
                 "order_index": 2,
             },
         ],

@@ -3,8 +3,8 @@
 Cloudflare Images webhook -> Hive/Sensity classification -> approve/reject.
 """
 
-import hmac
 import hashlib
+import hmac
 from dataclasses import dataclass, field
 from enum import StrEnum
 

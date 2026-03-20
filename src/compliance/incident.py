@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime, timezone
 
 import structlog
-from sqlalchemy import select, String, DateTime, Text, Boolean
+from sqlalchemy import DateTime, String, Text, select
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
@@ -24,9 +24,11 @@ class IncidentRecord(Base, UUIDMixin, TimestampMixin):
     group_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True, index=True)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     severity: Mapped[str] = mapped_column(String(20), nullable=False)  # low, medium, high, critical
-    category: Mapped[str] = mapped_column(String(100), nullable=False)  # security, availability, data_breach, policy_violation
+    # security, availability, data_breach, policy_violation
+    category: Mapped[str] = mapped_column(String(100), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)
-    status: Mapped[str] = mapped_column(String(20), nullable=False, default="open")  # open, investigating, resolved, closed
+    # open, investigating, resolved, closed
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="open")
     reported_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
     assigned_to: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
     resolution: Mapped[str | None] = mapped_column(Text, nullable=True)

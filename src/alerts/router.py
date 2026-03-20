@@ -25,7 +25,8 @@ from src.alerts.service import (
 from src.alerts.sse import sse_manager
 from src.auth.middleware import get_current_user
 from src.database import get_db
-from src.dependencies import require_active_trial_or_subscription, resolve_group_id as _gid
+from src.dependencies import require_active_trial_or_subscription
+from src.dependencies import resolve_group_id as _gid
 from src.groups.models import GroupMember
 from src.schemas import GroupContext
 
@@ -434,8 +435,9 @@ async def escalate_alert_endpoint(
     db: AsyncSession = Depends(get_db),
 ):
     """Escalate an alert to a partner."""
-    from src.alerts.escalation import escalate_alert
     from uuid import UUID as UUIDType
+
+    from src.alerts.escalation import escalate_alert
     gid = _gid(None, auth)
     record = await escalate_alert(
         db, partner_id=UUIDType(data["partner_id"]),
@@ -473,8 +475,9 @@ async def get_member_correlations(
     db: AsyncSession = Depends(get_db),
 ):
     """Get correlations for a member."""
-    from src.alerts.correlation import analyze_member_correlations
     from uuid import UUID as UUIDType
+
+    from src.alerts.correlation import analyze_member_correlations
     gid = _gid(None, auth)
     return await analyze_member_correlations(db, gid, UUIDType(member_id))
 

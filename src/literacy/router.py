@@ -7,7 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.middleware import get_current_user
 from src.database import get_db
-from src.dependencies import require_active_trial_or_subscription, resolve_group_id as _gid
+from src.dependencies import require_active_trial_or_subscription
+from src.dependencies import resolve_group_id as _gid
 from src.literacy.schemas import (
     AssessmentResponse,
     AssessmentSubmit,

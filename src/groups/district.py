@@ -1,16 +1,15 @@
 """District-level management for school pilot programs."""
 
 import uuid
-from datetime import datetime, timezone
 
 import structlog
-from sqlalchemy import select, func, String, DateTime, Text, Boolean, Integer
+from sqlalchemy import Boolean, Integer, String, select
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.database import Base
-from src.exceptions import NotFoundError, ConflictError, ValidationError
+from src.exceptions import ConflictError, NotFoundError
 from src.models import JSONType, TimestampMixin, UUIDMixin
 
 logger = structlog.get_logger()

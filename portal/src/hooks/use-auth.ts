@@ -30,6 +30,7 @@ interface RegisterData {
   password: string;
   display_name: string;
   account_type: "family" | "school" | "club";
+  privacy_notice_accepted?: boolean;
 }
 
 export function useAuth(): UseAuthReturn {

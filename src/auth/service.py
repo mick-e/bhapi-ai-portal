@@ -348,6 +348,7 @@ async def try_sso_auto_provision(db: AsyncSession, user: User) -> None:
         return
 
     from sqlalchemy import select
+
     from src.integrations.sso_models import SSOConfig
 
     # Find SSO configs where the tenant_id matches the user's email domain

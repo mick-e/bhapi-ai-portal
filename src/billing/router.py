@@ -28,15 +28,16 @@ from src.billing.service import (
     create_subscription,
     create_threshold,
     disconnect_llm_account,
-    revoke_llm_api_key,
     get_billing_portal_url,
     get_subscription,
     list_llm_accounts,
     list_thresholds,
+    revoke_llm_api_key,
 )
 from src.billing.stripe_client import StripeError, handle_webhook_event, verify_webhook_signature
 from src.database import get_db
-from src.dependencies import resolve_group_id as _gid, resolve_group_id_verified as _gid_verified
+from src.dependencies import resolve_group_id as _gid
+from src.dependencies import resolve_group_id_verified as _gid_verified
 from src.exceptions import ValidationError as BhapiValidationError
 from src.groups.models import GroupMember
 from src.schemas import GroupContext

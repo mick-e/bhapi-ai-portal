@@ -2,7 +2,6 @@
 
 import time
 from contextlib import asynccontextmanager
-
 from pathlib import Path
 
 import structlog
@@ -258,7 +257,8 @@ def _register_routers(app: FastAPI) -> None:
     from src.compliance.router import router as compliance_router
     app.include_router(compliance_router, prefix="/api/v1/compliance", tags=["Compliance"])
 
-    from src.risk.router import router as risk_router, public_router as risk_public_router
+    from src.risk.router import public_router as risk_public_router
+    from src.risk.router import router as risk_router
     app.include_router(risk_router, prefix="/api/v1/risk", tags=["Risk"])
     app.include_router(risk_public_router, prefix="/api/v1/risk", tags=["Risk"])
 

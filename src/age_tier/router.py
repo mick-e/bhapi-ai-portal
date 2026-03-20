@@ -5,7 +5,8 @@ from uuid import UUID
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.age_tier.rules import AgeTier, check_permission as check_perm
+from src.age_tier.rules import AgeTier, get_permissions
+from src.age_tier.rules import check_permission as check_perm
 from src.age_tier.schemas import (
     AgeTierConfigCreate,
     AgeTierConfigResponse,
@@ -18,7 +19,6 @@ from src.age_tier.service import (
 )
 from src.auth.middleware import get_current_user
 from src.database import get_db
-from src.age_tier.rules import get_permissions
 from src.schemas import GroupContext
 
 router = APIRouter()

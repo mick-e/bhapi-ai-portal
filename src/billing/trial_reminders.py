@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.models import User
 from src.billing.models import Subscription
-from src.billing.trial import FREE_TRIAL_DAYS, get_trial_status
+from src.billing.trial import get_trial_status
 from src.email import templates
 from src.email.service import send_email
 from src.groups.models import Group

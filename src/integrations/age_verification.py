@@ -42,6 +42,7 @@ async def process_age_verification_result(
         member = member_result.scalar_one_or_none()
         if member:
             from datetime import datetime, timezone
+
             from dateutil.relativedelta import relativedelta
             now = datetime.now(timezone.utc)
             member.date_of_birth = now - relativedelta(years=result["age"])

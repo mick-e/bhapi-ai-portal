@@ -1,10 +1,9 @@
 """Audit logging for SOC 2 compliance."""
 
 import uuid
-from datetime import datetime, timezone
 
 import structlog
-from sqlalchemy import select, String, DateTime, Text, Integer
+from sqlalchemy import String, select
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column

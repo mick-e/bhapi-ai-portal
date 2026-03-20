@@ -53,7 +53,7 @@ async def deliver_alert_email(
 
     # COPPA 2026: Check third-party consent before sending via SendGrid
     if alert.member_id:
-        from src.compliance.coppa_2026 import check_third_party_consent, check_push_notification_consent
+        from src.compliance.coppa_2026 import check_push_notification_consent, check_third_party_consent
         has_sendgrid_consent = await check_third_party_consent(
             db, alert.group_id, alert.member_id, "sendgrid"
         )

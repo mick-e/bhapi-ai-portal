@@ -51,6 +51,7 @@ async def send_sms(
     # COPPA 2026: Check third-party consent before sending via Twilio
     if group_id and member_id and db:
         from uuid import UUID as _UUID
+
         from src.compliance.coppa_2026 import check_third_party_consent
         has_consent = await check_third_party_consent(
             db, _UUID(group_id), _UUID(member_id), "twilio_sms"

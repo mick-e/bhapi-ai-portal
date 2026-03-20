@@ -1,8 +1,9 @@
 """Push notification relay for Expo push notifications."""
 
-import structlog
-import httpx
 from dataclasses import dataclass
+
+import httpx
+import structlog
 
 logger = structlog.get_logger()
 

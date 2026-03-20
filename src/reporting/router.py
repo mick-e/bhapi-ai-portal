@@ -10,14 +10,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.middleware import get_current_user
 from src.database import get_db
-from src.dependencies import require_active_trial_or_subscription, resolve_group_id as _gid
+from src.dependencies import require_active_trial_or_subscription
+from src.dependencies import resolve_group_id as _gid
 from src.reporting.models import ReportExport, ScheduledReport
 from src.reporting.schemas import CreateReportRequest, ReportRequest, ScheduleConfig, UpdateScheduleRequest
 from src.reporting.service import (
     create_schedule,
     generate_report,
     get_report,
-    list_reports,
     list_schedules,
 )
 from src.schemas import GroupContext

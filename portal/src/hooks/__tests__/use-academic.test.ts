@@ -11,6 +11,7 @@ vi.mock("@/lib/api-client", () => ({
 
 import { analyticsApi } from "@/lib/api-client";
 import { useAcademicReport, academicKeys } from "../use-academic";
+import type { AcademicReport } from "@/types";
 
 function createWrapper() {
   const queryClient = new QueryClient({
@@ -37,7 +38,7 @@ describe("useAcademicReport", () => {
       academic_percentage: 65,
       categories: [],
     };
-    vi.mocked(analyticsApi.academicReport).mockResolvedValueOnce(mockReport);
+    vi.mocked(analyticsApi.academicReport).mockResolvedValueOnce(mockReport as unknown as AcademicReport);
 
     const { result } = renderHook(
       () => useAcademicReport("g1", "m1"),
@@ -68,7 +69,7 @@ describe("useAcademicReport", () => {
   });
 
   it("passes date range parameters", async () => {
-    vi.mocked(analyticsApi.academicReport).mockResolvedValueOnce({});
+    vi.mocked(analyticsApi.academicReport).mockResolvedValueOnce({} as AcademicReport);
 
     renderHook(
       () => useAcademicReport("g1", "m1", "2026-03-01", "2026-03-10"),

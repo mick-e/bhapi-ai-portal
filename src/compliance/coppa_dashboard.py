@@ -52,77 +52,110 @@ _CHECKLIST_DEFS = [
     {
         "id": "consent_all_members",
         "label": "Parental consent for all members",
-        "description": "Verifiable parental consent must be obtained for every minor in the group before collecting personal information.",
+        "description": (
+            "Verifiable parental consent must be obtained for every minor"
+            " in the group before collecting personal information."
+        ),
         "regulation_ref": "16 CFR 312.5(a)",
         "action_url": "/members",
     },
     {
         "id": "ftc_approved_method",
         "label": "FTC-approved consent method",
-        "description": "Consent must be obtained via an FTC-approved verification method such as signed form, video call, or credit card verification.",
+        "description": (
+            "Consent must be obtained via an FTC-approved verification method"
+            " such as signed form, video call, or credit card verification."
+        ),
         "regulation_ref": "16 CFR 312.5(b)",
         "action_url": "/compliance",
     },
     {
         "id": "pii_detection_enabled",
         "label": "PII detection enabled",
-        "description": "Automated PII detection must be active to prevent inadvertent collection of children's personal information.",
+        "description": (
+            "Automated PII detection must be active to prevent inadvertent"
+            " collection of children's personal information."
+        ),
         "regulation_ref": "16 CFR 312.3(e)",
         "action_url": "/settings",
     },
     {
         "id": "content_encryption",
         "label": "Content encryption at rest",
-        "description": "All stored content excerpts and personal data must be encrypted at rest using industry-standard encryption.",
+        "description": (
+            "All stored content excerpts and personal data must be encrypted"
+            " at rest using industry-standard encryption."
+        ),
         "regulation_ref": "16 CFR 312.8",
         "action_url": "/settings",
     },
     {
         "id": "data_retention_policy",
         "label": "Data retention policy defined",
-        "description": "A clear data retention and deletion policy must be established, with content excerpts subject to automatic TTL expiration.",
+        "description": (
+            "A clear data retention and deletion policy must be established,"
+            " with content excerpts subject to automatic TTL expiration."
+        ),
         "regulation_ref": "16 CFR 312.10",
         "action_url": "/settings",
     },
     {
         "id": "deletion_requests_72h",
         "label": "Deletion requests honored within 72 hours",
-        "description": "Data deletion requests from parents must be processed and completed within 72 hours of submission.",
+        "description": (
+            "Data deletion requests from parents must be processed"
+            " and completed within 72 hours of submission."
+        ),
         "regulation_ref": "16 CFR 312.6(a)(2)",
         "action_url": "/compliance",
     },
     {
         "id": "privacy_policy_accessible",
         "label": "Privacy policy accessible",
-        "description": "A clear, prominently placed privacy policy describing data practices for children must be publicly accessible.",
+        "description": (
+            "A clear, prominently placed privacy policy describing data"
+            " practices for children must be publicly accessible."
+        ),
         "regulation_ref": "16 CFR 312.4",
         "action_url": "/legal/privacy",
     },
     {
         "id": "no_marketing_to_children",
         "label": "No marketing to children",
-        "description": "No behavioural advertising, push notifications for marketing, or gamification techniques targeting children.",
+        "description": (
+            "No behavioural advertising, push notifications for marketing,"
+            " or gamification techniques targeting children."
+        ),
         "regulation_ref": "16 CFR 312.7",
         "action_url": "/settings",
     },
     {
         "id": "third_party_audit",
         "label": "Third-party audit scheduled",
-        "description": "An independent third-party audit of data practices should be conducted annually for Safe Harbor certification.",
+        "description": (
+            "An independent third-party audit of data practices should"
+            " be conducted annually for Safe Harbor certification."
+        ),
         "regulation_ref": "16 CFR 312.11",
         "action_url": "/compliance/coppa",
     },
     {
         "id": "infosec_docs",
         "label": "Information security documentation",
-        "description": "Written information security policies and procedures must be maintained and reviewed regularly.",
+        "description": (
+            "Written information security policies and procedures"
+            " must be maintained and reviewed regularly."
+        ),
         "regulation_ref": "16 CFR 312.8",
         "action_url": "/compliance/coppa",
     },
     {
         "id": "biometric_handling",
         "label": "Biometric data handling",
-        "description": "If biometric data (facial recognition, voice) is collected, explicit parental consent and secure handling are required.",
+        "description": (
+            "If biometric data (facial recognition, voice) is collected,"
+            " explicit parental consent and secure handling are required."
+        ),
         "regulation_ref": "16 CFR 312.2 (2024 amendment)",
         "action_url": "/settings",
     },
@@ -277,7 +310,6 @@ async def assess_coppa_compliance(db: AsyncSession, group_id: UUID) -> COPPAComp
         ))
 
     # Calculate score
-    total = len(checklist)
     applicable = [c for c in checklist if c.status != "not_applicable"]
     complete = len([c for c in applicable if c.status == "complete"])
     warnings = len([c for c in applicable if c.status == "warning"])
@@ -433,8 +465,9 @@ async def mark_annual_review(db: AsyncSession, group_id: UUID) -> dict:
 
 async def coppa_reminder_job(db: AsyncSession) -> dict:
     """Daily job to check for COPPA compliance gaps and overdue reviews."""
-    from src.alerts.models import Alert
     from uuid import uuid4
+
+    from src.alerts.models import Alert
 
     groups_result = await db.execute(select(Group))
     groups = list(groups_result.scalars().all())
@@ -449,7 +482,10 @@ async def coppa_reminder_job(db: AsyncSession) -> dict:
                     group_id=group.id,
                     severity="medium",
                     title="COPPA Compliance Action Required",
-                    body=f"Your COPPA compliance score is {report.score}%. Review the compliance dashboard for details.",
+                    body=(
+                        f"Your COPPA compliance score is {report.score}%."
+                        " Review the compliance dashboard for details."
+                    ),
                 )
                 db.add(alert)
                 alerts_created += 1
@@ -467,7 +503,11 @@ async def coppa_reminder_job(db: AsyncSession) -> dict:
                             group_id=group.id,
                             severity="info",
                             title="COPPA Annual Review Due Soon",
-                            body=f"Your annual COPPA review was last completed {days_since} days ago. Schedule a review before the 365-day deadline.",
+                            body=(
+                                f"Your annual COPPA review was last completed"
+                                f" {days_since} days ago. Schedule a review"
+                                " before the 365-day deadline."
+                            ),
                         )
                         db.add(alert)
                         alerts_created += 1

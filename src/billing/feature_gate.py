@@ -1,8 +1,8 @@
 """Feature gating for free tier and plan-based access control."""
 
-import structlog
 from uuid import UUID
 
+import structlog
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 

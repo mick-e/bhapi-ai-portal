@@ -28,6 +28,7 @@ import {
   rewardKeys,
   deviceKeys,
 } from "../use-rewards";
+import type { RewardItem, DeviceSessionSummary } from "@/types";
 
 function createWrapper() {
   const queryClient = new QueryClient({
@@ -50,7 +51,7 @@ describe("useRewards", () => {
   it("fetches rewards for a member", async () => {
     const mockRewards = [
       { id: "r1", title: "Safety Star", badge_type: "star", earned_at: "2026-03-10T00:00:00Z" },
-    ];
+    ] as unknown as RewardItem[];
     vi.mocked(rewardsApi.list).mockResolvedValueOnce(mockRewards);
 
     const { result } = renderHook(() => useRewards("m1"), {
@@ -87,7 +88,7 @@ describe("useCheckRewards", () => {
   });
 
   it("triggers reward check for a member", async () => {
-    const mockResult = [{ id: "r2", title: "New Badge" }];
+    const mockResult = [{ id: "r2", title: "New Badge" }] as unknown as RewardItem[];
     vi.mocked(rewardsApi.checkTriggers).mockResolvedValueOnce(mockResult);
 
     const { result } = renderHook(() => useCheckRewards(), {
@@ -112,7 +113,7 @@ describe("useDeviceSummary", () => {
       total_sessions: 5,
       total_minutes: 120,
       devices: [],
-    };
+    } as unknown as DeviceSessionSummary;
     vi.mocked(deviceApi.getSessionSummary).mockResolvedValueOnce(mockSummary);
 
     const { result } = renderHook(() => useDeviceSummary("m1"), {
@@ -125,7 +126,7 @@ describe("useDeviceSummary", () => {
   });
 
   it("passes date parameter", async () => {
-    vi.mocked(deviceApi.getSessionSummary).mockResolvedValueOnce({});
+    vi.mocked(deviceApi.getSessionSummary).mockResolvedValueOnce({} as DeviceSessionSummary);
 
     renderHook(() => useDeviceSummary("m1", "2026-03-10"), {
       wrapper: createWrapper(),

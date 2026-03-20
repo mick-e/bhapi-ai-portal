@@ -4,23 +4,42 @@ import uuid
 from datetime import datetime, timezone
 
 import structlog
-from sqlalchemy import select, String, DateTime, Boolean, Integer
+from sqlalchemy import Boolean, DateTime, Integer, select
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.database import Base
-from src.exceptions import NotFoundError
 from src.models import JSONType, TimestampMixin, UUIDMixin
 
 logger = structlog.get_logger()
 
 ONBOARDING_STEPS = [
-    {"key": "create_group", "title": "Create your group", "description": "Set up a family, school, or club group"},
-    {"key": "add_members", "title": "Add members", "description": "Invite family members or students"},
-    {"key": "install_extension", "title": "Install extension", "description": "Install the browser extension on devices"},
-    {"key": "configure_safety", "title": "Configure safety", "description": "Set safety levels and alert preferences"},
-    {"key": "first_alert_review", "title": "Review first alert", "description": "Review and action your first safety alert"},
+    {
+        "key": "create_group",
+        "title": "Create your group",
+        "description": "Set up a family, school, or club group",
+    },
+    {
+        "key": "add_members",
+        "title": "Add members",
+        "description": "Invite family members or students",
+    },
+    {
+        "key": "install_extension",
+        "title": "Install extension",
+        "description": "Install the browser extension on devices",
+    },
+    {
+        "key": "configure_safety",
+        "title": "Configure safety",
+        "description": "Set safety levels and alert preferences",
+    },
+    {
+        "key": "first_alert_review",
+        "title": "Review first alert",
+        "description": "Review and action your first safety alert",
+    },
 ]
 
 

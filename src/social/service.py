@@ -1,7 +1,6 @@
 """Social module business logic — profiles, posts, comments, likes, follows, feed."""
 
 import re
-from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
 import structlog
@@ -19,6 +18,7 @@ from src.social.models import (
     Profile,
     SocialPost,
 )
+from src.social.schemas import PostCreate, ProfileCreate, ProfileUpdate
 
 logger = structlog.get_logger()
 
@@ -31,10 +31,9 @@ _HASHTAG_RE = re.compile(r"#([a-zA-Z0-9_]+)")
 
 
 async def create_profile(
-    db: AsyncSession, user_id: UUID, data: "ProfileCreate",
+    db: AsyncSession, user_id: UUID, data: ProfileCreate,
 ) -> Profile:
     """Create a social profile for a user."""
-    from src.social.schemas import ProfileCreate  # noqa: F811
 
     # Check if profile already exists
     existing = await db.execute(
@@ -91,7 +90,7 @@ async def get_profile_by_id(db: AsyncSession, profile_id: UUID) -> Profile:
 
 
 async def update_profile(
-    db: AsyncSession, user_id: UUID, data: "ProfileUpdate",
+    db: AsyncSession, user_id: UUID, data: ProfileUpdate,
 ) -> Profile:
     """Partial update of a user's profile."""
     profile = await get_profile(db, user_id)
@@ -161,7 +160,7 @@ async def get_trending_hashtags(
 async def create_post(
     db: AsyncSession,
     author_id: UUID,
-    data: "PostCreate",
+    data: PostCreate,
     age_tier: str,
 ) -> SocialPost:
     """Create a social post with moderation and hashtag extraction."""

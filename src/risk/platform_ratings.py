@@ -7,7 +7,6 @@ combining static assessments with aggregate data from the DB when available.
 from datetime import datetime, timezone
 
 import structlog
-
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -155,8 +154,8 @@ async def get_platform_ratings(
 
     if db is not None:
         try:
-            from src.risk.models import RiskEvent
             from src.capture.models import CaptureEvent
+            from src.risk.models import RiskEvent
 
             # Count risk events per platform from real data
             stmt = (

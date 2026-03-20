@@ -4,14 +4,14 @@ import uuid
 from datetime import datetime, timezone
 
 import structlog
-from sqlalchemy import select, func, String, DateTime, Text, Integer
+from sqlalchemy import DateTime, String, Text, func, select
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.database import Base
 from src.exceptions import NotFoundError
-from src.models import JSONType, TimestampMixin, UUIDMixin
+from src.models import TimestampMixin, UUIDMixin
 
 logger = structlog.get_logger()
 
@@ -91,8 +91,8 @@ async def get_teacher_dashboard(
     db: AsyncSession, group_id: uuid.UUID, teacher_id: uuid.UUID
 ) -> dict:
     """Get teacher dashboard data for a school group."""
-    from src.groups.models import ClassGroup, ClassGroupMember
     from src.alerts.models import Alert
+    from src.groups.models import ClassGroup, ClassGroupMember
 
     # Get teacher's classes
     classes_result = await db.execute(

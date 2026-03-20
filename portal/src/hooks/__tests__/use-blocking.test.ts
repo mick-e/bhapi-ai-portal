@@ -28,6 +28,7 @@ import {
   useDenyUnblock,
   blockingKeys,
 } from "../use-blocking";
+import type { BlockRule, BlockApproval, BlockEffectiveness } from "@/types";
 
 function createWrapper() {
   const queryClient = new QueryClient({
@@ -50,7 +51,7 @@ describe("useBlockRules", () => {
   it("fetches block rules for a group", async () => {
     const mockRules = [
       { id: "br1", group_id: "g1", member_id: "m1", platforms: ["chatgpt"], active: true },
-    ];
+    ] as unknown as BlockRule[];
     vi.mocked(blockingApi.list).mockResolvedValueOnce(mockRules);
 
     const { result } = renderHook(() => useBlockRules("g1"), {
@@ -95,7 +96,7 @@ describe("useCreateBlockRule", () => {
   });
 
   it("creates a block rule", async () => {
-    const mockRule = { id: "br2", group_id: "g1", member_id: "m1" };
+    const mockRule = { id: "br2", group_id: "g1", member_id: "m1" } as BlockRule;
     vi.mocked(blockingApi.create).mockResolvedValueOnce(mockRule);
 
     const { result } = renderHook(() => useCreateBlockRule(), {
@@ -122,7 +123,7 @@ describe("useRevokeBlockRule", () => {
   });
 
   it("revokes a block rule", async () => {
-    vi.mocked(blockingApi.revoke).mockResolvedValueOnce({ id: "br1", active: false });
+    vi.mocked(blockingApi.revoke).mockResolvedValueOnce({ id: "br1", active: false } as BlockRule);
 
     const { result } = renderHook(() => useRevokeBlockRule(), {
       wrapper: createWrapper(),
@@ -141,7 +142,7 @@ describe("usePendingApprovals", () => {
   });
 
   it("fetches pending approvals", async () => {
-    const mockApprovals = [{ id: "a1", status: "pending" }];
+    const mockApprovals = [{ id: "a1", status: "pending" }] as unknown as BlockApproval[];
     vi.mocked(blockingApi.pendingApprovals).mockResolvedValueOnce(mockApprovals);
 
     const { result } = renderHook(() => usePendingApprovals("g1"), {
@@ -159,7 +160,7 @@ describe("useBlockEffectiveness", () => {
   });
 
   it("fetches block effectiveness stats", async () => {
-    const mockStats = { total_blocks: 5, bypass_attempts: 1 };
+    const mockStats = { total_blocks: 5, bypass_attempts: 1 } as unknown as BlockEffectiveness;
     vi.mocked(blockingApi.effectiveness).mockResolvedValueOnce(mockStats);
 
     const { result } = renderHook(() => useBlockEffectiveness("g1"), {
@@ -177,7 +178,7 @@ describe("useApproveUnblock", () => {
   });
 
   it("approves an unblock request", async () => {
-    vi.mocked(blockingApi.approveUnblock).mockResolvedValueOnce({ id: "a1", status: "approved" });
+    vi.mocked(blockingApi.approveUnblock).mockResolvedValueOnce({ id: "a1", status: "approved" } as BlockApproval);
 
     const { result } = renderHook(() => useApproveUnblock(), {
       wrapper: createWrapper(),
@@ -196,7 +197,7 @@ describe("useDenyUnblock", () => {
   });
 
   it("denies an unblock request", async () => {
-    vi.mocked(blockingApi.denyUnblock).mockResolvedValueOnce({ id: "a1", status: "denied" });
+    vi.mocked(blockingApi.denyUnblock).mockResolvedValueOnce({ id: "a1", status: "denied" } as BlockApproval);
 
     const { result } = renderHook(() => useDenyUnblock(), {
       wrapper: createWrapper(),

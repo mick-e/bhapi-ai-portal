@@ -4,15 +4,13 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 import structlog
-from sqlalchemy import select
+from sqlalchemy import Boolean, DateTime, Integer, String, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Mapped, mapped_column
 
 from src.database import Base
 from src.exceptions import NotFoundError, ValidationError
 from src.models import JSONType, TimestampMixin, UUIDMixin
-from sqlalchemy import DateTime, Integer, String, Boolean
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column
 
 logger = structlog.get_logger()
 
@@ -183,15 +181,31 @@ CASE_STUDIES = [
         "subtitle": "How a 5,000-student district secured AI usage in 30 days",
         "industry": "K-12 Education",
         "size": "5,000 students",
-        "challenge": "Students were using ChatGPT and Gemini for homework without oversight. Teachers had no visibility into AI usage patterns. Three incidents of PII exposure went undetected for weeks.",
-        "solution": "Deployed Bhapi AI Portal across 12 schools with Clever SIS integration. Set up automated blocking for critical risk content and real-time alerts for safeguarding leads.",
+        "challenge": (
+            "Students were using ChatGPT and Gemini for homework without"
+            " oversight. Teachers had no visibility into AI usage patterns."
+            " Three incidents of PII exposure went undetected for weeks."
+        ),
+        "solution": (
+            "Deployed Bhapi AI Portal across 12 schools with Clever SIS"
+            " integration. Set up automated blocking for critical risk"
+            " content and real-time alerts for safeguarding leads."
+        ),
         "results": [
-            {"metric": "AI incidents detected", "before": "3 per quarter (manual)", "after": "47 per month (automated)"},
+            {
+                "metric": "AI incidents detected",
+                "before": "3 per quarter (manual)",
+                "after": "47 per month (automated)",
+            },
             {"metric": "Mean time to respond", "before": "2+ weeks", "after": "< 15 minutes"},
             {"metric": "PII exposure events", "before": "Unknown", "after": "Zero (auto-blocked)"},
             {"metric": "Teacher satisfaction", "before": "32%", "after": "94%"},
         ],
-        "quote": "Bhapi gave us visibility we didn't even know we needed. The first week, we caught three students sharing personal information with AI chatbots.",
+        "quote": (
+            "Bhapi gave us visibility we didn't even know we needed."
+            " The first week, we caught three students sharing personal"
+            " information with AI chatbots."
+        ),
         "quote_author": "Dr. Sarah Mitchell, Director of Technology",
     },
     {
@@ -200,8 +214,16 @@ CASE_STUDIES = [
         "subtitle": "Private school achieves COPPA compliance with zero disruption",
         "industry": "Private Education",
         "size": "800 students",
-        "challenge": "Needed COPPA compliance for students under 13 using AI platforms. Manual consent tracking was consuming 20+ hours per week for the admin team.",
-        "solution": "Bhapi's automated consent workflow and COPPA dashboard eliminated manual tracking. Age verification via Yoti ensured proper consent for all under-13 students.",
+        "challenge": (
+            "Needed COPPA compliance for students under 13 using AI"
+            " platforms. Manual consent tracking was consuming 20+ hours"
+            " per week for the admin team."
+        ),
+        "solution": (
+            "Bhapi's automated consent workflow and COPPA dashboard"
+            " eliminated manual tracking. Age verification via Yoti"
+            " ensured proper consent for all under-13 students."
+        ),
         "results": [
             {"metric": "Consent compliance rate", "before": "67%", "after": "100%"},
             {"metric": "Admin hours on consent", "before": "20+ hours/week", "after": "< 2 hours/week"},
@@ -216,8 +238,17 @@ CASE_STUDIES = [
         "subtitle": "How one family balanced AI learning with safety",
         "industry": "Family",
         "size": "2 children (ages 9 and 13)",
-        "challenge": "Both children were heavy AI users \u2014 one for homework help, the other exploring creative AI tools. Parents wanted visibility without being overly restrictive.",
-        "solution": "Set up age-appropriate safety profiles. Strict mode for the 9-year-old (auto-blocking critical content) and moderate mode for the 13-year-old (alerts only). Weekly family reports kept everyone informed.",
+        "challenge": (
+            "Both children were heavy AI users \u2014 one for homework help,"
+            " the other exploring creative AI tools. Parents wanted"
+            " visibility without being overly restrictive."
+        ),
+        "solution": (
+            "Set up age-appropriate safety profiles. Strict mode for the"
+            " 9-year-old (auto-blocking critical content) and moderate"
+            " mode for the 13-year-old (alerts only). Weekly family"
+            " reports kept everyone informed."
+        ),
         "results": [
             {"metric": "Blocked inappropriate requests", "before": "Unknown", "after": "12 in first month"},
             {"metric": "Family AI discussions", "before": "0 per week", "after": "2-3 per week"},

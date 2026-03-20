@@ -285,7 +285,8 @@ async def generate_school_board_report(
     elements.append(Paragraph("Student Safety Metrics (Anonymized)", heading_style))
 
     try:
-        from sqlalchemy import func, select as sa_select
+        from sqlalchemy import func
+        from sqlalchemy import select as sa_select
 
         from src.risk.models import RiskEvent
 

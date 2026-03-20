@@ -150,13 +150,13 @@ describe("useUpdateTimeBudget", () => {
     result.current.mutate({
       groupId: "g1",
       memberId: "m1",
-      data: { daily_minutes: 90 },
+      data: { weekday_minutes: 90, weekend_minutes: 90 },
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(api.put).toHaveBeenCalledWith(
       expect.stringContaining("/api/v1/blocking/time-budget/m1"),
-      { daily_minutes: 90 }
+      { weekday_minutes: 90, weekend_minutes: 90 }
     );
   });
 });
@@ -177,13 +177,13 @@ describe("useUpdateBedtime", () => {
     result.current.mutate({
       groupId: "g1",
       memberId: "m1",
-      data: { start_time: "22:00", end_time: "07:00" },
+      data: { start_hour: 22, end_hour: 7 },
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(api.put).toHaveBeenCalledWith(
       expect.stringContaining("/api/v1/blocking/bedtime/m1"),
-      { start_time: "22:00", end_time: "07:00" }
+      { start_hour: 22, end_hour: 7 }
     );
   });
 });

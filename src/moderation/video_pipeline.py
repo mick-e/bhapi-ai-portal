@@ -3,8 +3,9 @@
 CF Stream -> frame extraction -> per-frame classification -> worst-frame decision.
 """
 
-import structlog
 from dataclasses import dataclass
+
+import structlog
 
 from src.moderation.image_pipeline import (
     ImageClassification,

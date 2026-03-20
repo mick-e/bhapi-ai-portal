@@ -1,10 +1,10 @@
 """Google Admin Console integration for school extension deployment."""
 
-import structlog
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Optional
 
+import structlog
 
 logger = structlog.get_logger()
 

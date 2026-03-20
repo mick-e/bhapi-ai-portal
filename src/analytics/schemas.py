@@ -1,6 +1,6 @@
 """Analytics schemas."""
 
-from datetime import date, datetime
+from datetime import date
 from uuid import UUID
 
 from pydantic import Field

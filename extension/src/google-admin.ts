@@ -37,27 +37,23 @@ export async function detectManagedEnvironment(): Promise<ManagedInstallState> {
       return DEFAULT_STATE;
     }
 
-    return new Promise((resolve) => {
-      chrome.storage.managed.get(null, (items) => {
-        if (chrome.runtime.lastError || !items || Object.keys(items).length === 0) {
-          resolve(DEFAULT_STATE);
-          return;
-        }
+    const items = await chrome.storage.managed.get();
+    if (!items || Object.keys(items).length === 0) {
+      return DEFAULT_STATE;
+    }
 
-        resolve({
-          isManaged: true,
-          schoolId: items.schoolId ?? undefined,
-          deviceId: items.deviceId ?? undefined,
-          policy: {
-            contentFiltering: items.contentFiltering ?? true,
-            safeSearch: items.safeSearch ?? true,
-            monitoringLevel: items.monitoringLevel ?? "standard",
-            blockedCategories: items.blockedCategories ?? [],
-            allowedDomains: items.allowedDomains ?? [],
-          },
-        });
-      });
-    });
+    return {
+      isManaged: true,
+      schoolId: items.schoolId ?? undefined,
+      deviceId: items.deviceId ?? undefined,
+      policy: {
+        contentFiltering: items.contentFiltering ?? true,
+        safeSearch: items.safeSearch ?? true,
+        monitoringLevel: items.monitoringLevel ?? "standard",
+        blockedCategories: items.blockedCategories ?? [],
+        allowedDomains: items.allowedDomains ?? [],
+      },
+    };
   } catch {
     return DEFAULT_STATE;
   }

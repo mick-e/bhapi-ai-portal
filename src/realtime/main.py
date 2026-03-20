@@ -4,12 +4,12 @@ import asyncio
 from contextlib import asynccontextmanager
 
 import structlog
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query
+from fastapi import FastAPI, Query, WebSocket, WebSocketDisconnect
 
+from src.config import get_settings
 from src.realtime.auth import validate_ws_token
 from src.realtime.connections import ConnectionManager
 from src.realtime.pubsub import EventBridge
-from src.config import get_settings
 
 logger = structlog.get_logger()
 manager = ConnectionManager()

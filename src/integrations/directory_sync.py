@@ -1,6 +1,5 @@
 """Directory sync for SSO providers (Google Workspace, Microsoft Entra)."""
 
-from uuid import UUID
 
 import httpx
 import structlog
@@ -44,7 +43,6 @@ async def sync_google_directory(
 
     try:
         # Retrieve service account access token from config
-        from src.encryption import decrypt_credential
 
         access_token = None
         if sso_config.tenant_id:

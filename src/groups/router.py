@@ -10,16 +10,16 @@ from src.database import get_db
 from src.groups.agreement import FamilyAgreement as _FamilyAgreement  # noqa: F401 — register model
 from src.groups.emergency_contacts import EmergencyContact as _EmergencyContact  # noqa: F401 — register model
 from src.groups.privacy import (
-    check_member_visibility,
     disable_child_self_view,
     enable_child_self_view,
     get_child_self_view,
     get_member_visibility,
     set_member_visibility,
-    ALLOWED_SELF_VIEW_SECTIONS,
 )
 from src.groups.rewards import (
     check_and_award_rewards,
+)
+from src.groups.rewards import (
     list_rewards as list_member_rewards,
 )
 from src.groups.schemas import (
@@ -121,8 +121,8 @@ async def update_agreement_endpoint(
     db: AsyncSession = Depends(get_db),
 ):
     """Update rules of the active agreement."""
-    from src.groups.agreement import get_active_agreement, update_agreement
     from src.exceptions import NotFoundError
+    from src.groups.agreement import get_active_agreement, update_agreement
 
     agreement = await get_active_agreement(db, group_id)
     if not agreement:
@@ -139,8 +139,8 @@ async def sign_agreement_endpoint(
     db: AsyncSession = Depends(get_db),
 ):
     """Member signs the active agreement."""
-    from src.groups.agreement import get_active_agreement, sign_agreement
     from src.exceptions import NotFoundError
+    from src.groups.agreement import get_active_agreement, sign_agreement
 
     agreement = await get_active_agreement(db, group_id)
     if not agreement:
@@ -156,8 +156,8 @@ async def review_agreement_endpoint(
     db: AsyncSession = Depends(get_db),
 ):
     """Mark the active agreement as reviewed."""
-    from src.groups.agreement import get_active_agreement, mark_reviewed
     from src.exceptions import NotFoundError
+    from src.groups.agreement import get_active_agreement, mark_reviewed
 
     agreement = await get_active_agreement(db, group_id)
     if not agreement:

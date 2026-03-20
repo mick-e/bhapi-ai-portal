@@ -1,16 +1,16 @@
 """Cross-product API foundation for App+Portal ecosystem."""
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 
 import structlog
-from sqlalchemy import select, String, DateTime, Text, Boolean
+from sqlalchemy import Boolean, DateTime, String, Text, select
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.database import Base
-from src.exceptions import NotFoundError, ConflictError, ValidationError
+from src.exceptions import ValidationError
 from src.models import JSONType, TimestampMixin, UUIDMixin
 
 logger = structlog.get_logger()

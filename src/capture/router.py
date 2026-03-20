@@ -20,7 +20,6 @@ from src.capture.schemas import (
     SetupCodeResponse,
     SummarizeRequest,
 )
-from src.capture.summary_models import ConversationSummary as _ConversationSummary  # noqa: F401 — register model
 from src.capture.service import (
     create_content_capture,
     create_setup_code,
@@ -32,10 +31,12 @@ from src.capture.service import (
     list_events_enriched,
     register_device,
 )
+from src.capture.summary_models import ConversationSummary as _ConversationSummary  # noqa: F401 — register model
 from src.capture.validators import verify_hmac_signature
 from src.config import get_settings
 from src.database import get_db
-from src.dependencies import require_active_trial_or_subscription, resolve_group_id as _gid
+from src.dependencies import require_active_trial_or_subscription
+from src.dependencies import resolve_group_id as _gid
 from src.exceptions import NotFoundError, UnauthorizedError, ValidationError
 from src.schemas import GroupContext
 
@@ -269,6 +270,7 @@ async def get_summary(
 ):
     """Get a single conversation summary."""
     from sqlalchemy import select
+
     from src.capture.summary_models import ConversationSummary
 
     result = await db.execute(
@@ -289,6 +291,7 @@ async def trigger_summarization(
 ):
     """Trigger manual summarization for a capture event."""
     from sqlalchemy import select
+
     from src.capture.models import CaptureEvent
     from src.capture.summarizer import summarize_conversation
     from src.encryption import decrypt_credential

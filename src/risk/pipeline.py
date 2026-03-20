@@ -14,10 +14,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.alerts.models import Alert
-from src.encryption import encrypt_credential
 from src.alerts.schemas import AlertCreate
 from src.alerts.service import create_alert
 from src.capture.models import CaptureEvent
+from src.encryption import encrypt_credential
 from src.groups.models import GroupMember
 from src.risk.engine import process_event as run_pipeline
 from src.risk.models import RiskConfig, RiskEvent

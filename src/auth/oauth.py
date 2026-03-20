@@ -7,7 +7,8 @@ from uuid import uuid4
 
 import httpx
 import structlog
-from jose import jwt as jose_jwt, JWTError
+from jose import JWTError
+from jose import jwt as jose_jwt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 

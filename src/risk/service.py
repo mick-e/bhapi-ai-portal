@@ -165,10 +165,10 @@ async def acknowledge_risk_event(
 
 async def get_content_excerpt(db: AsyncSession, risk_event_id: UUID, group_id: UUID) -> str | None:
     """Get decrypted content excerpt for a risk event. Verifies group ownership."""
-    from src.risk.models import ContentExcerpt
     from src.encryption import decrypt_credential
+    from src.risk.models import ContentExcerpt
 
-    event = await get_risk_event(db, risk_event_id, group_id)
+    await get_risk_event(db, risk_event_id, group_id)
     result = await db.execute(
         select(ContentExcerpt).where(
             ContentExcerpt.risk_event_id == risk_event_id,

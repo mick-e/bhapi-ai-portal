@@ -1,7 +1,7 @@
 """Presence system — online/offline/last-seen tracking."""
 
-from datetime import datetime, timezone
 from dataclasses import dataclass
+from datetime import datetime, timezone
 
 import structlog
 

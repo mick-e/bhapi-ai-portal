@@ -58,9 +58,10 @@ async def _auto_block_check(db: AsyncSession) -> dict:
 
 async def _anomaly_check(db: AsyncSession) -> dict:
     """Detect anomalous member usage patterns and create alerts."""
+    from sqlalchemy import select
+
     from src.analytics.service import detect_anomalies
     from src.groups.models import Group
-    from sqlalchemy import select
 
     groups_result = await db.execute(select(Group))
     groups = list(groups_result.scalars().all())
@@ -79,9 +80,10 @@ async def _directory_sync(db: AsyncSession) -> dict:
 
 async def _dependency_check(db: AsyncSession) -> dict:
     """Check emotional dependency scores for all groups and create alerts."""
+    from sqlalchemy import select as _select
+
     from src.groups.models import Group
     from src.risk.emotional_dependency import check_dependency_alerts
-    from sqlalchemy import select as _select
 
     groups_result = await db.execute(_select(Group))
     groups = list(groups_result.scalars().all())
@@ -96,7 +98,9 @@ async def _daily_summarization(db: AsyncSession) -> dict:
     """Generate daily conversation summaries for all members."""
     import os
     from datetime import date, timedelta
+
     from sqlalchemy import select
+
     from src.groups.models import Group, GroupMember
 
     api_key = os.environ.get("SUMMARY_LLM_API_KEY") or os.environ.get("ANTHROPIC_API_KEY")

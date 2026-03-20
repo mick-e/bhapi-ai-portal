@@ -10,9 +10,15 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.capture.models import CaptureEvent, DeviceRegistration, SetupCode
-from src.capture.schemas import DeviceRegisterRequest, EnrichedEventResponse, EventPayload, PairResponse, SetupCodeCreate
+from src.capture.schemas import (
+    DeviceRegisterRequest,
+    EnrichedEventResponse,
+    EventPayload,
+    PairResponse,
+    SetupCodeCreate,
+)
 from src.encryption import decrypt_credential, encrypt_credential
-from src.exceptions import ForbiddenError, NotFoundError, UnauthorizedError, ValidationError
+from src.exceptions import ForbiddenError, NotFoundError, UnauthorizedError
 from src.groups.models import Group, GroupMember
 from src.risk.models import RiskEvent
 

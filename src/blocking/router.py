@@ -6,7 +6,6 @@ from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.middleware import get_current_user
-from src.blocking.time_budget import TimeBudget as _TimeBudget  # noqa: F401 — register model
 from src.blocking.approval import (
     approve_unblock,
     deny_unblock,
@@ -15,7 +14,6 @@ from src.blocking.approval import (
 )
 from src.blocking.schemas import (
     AutoBlockRuleCreate,
-    AutoBlockRuleRequest,
     AutoBlockRuleResponse,
     AutoBlockRuleUpdate,
     BlockApprovalDecision,
@@ -24,7 +22,6 @@ from src.blocking.schemas import (
     BlockEffectivenessResponse,
     BlockRuleCreate,
     BlockRuleResponse,
-    BlockStatus,
 )
 from src.blocking.service import (
     check_block_status,
@@ -34,14 +31,15 @@ from src.blocking.service import (
     evaluate_group_auto_block_rules,
     get_active_blocks,
     get_block_effectiveness,
-    list_active_auto_block_rules,
     list_active_rules,
     list_auto_block_rules,
     revoke_block,
     update_auto_block_rule,
 )
+from src.blocking.time_budget import TimeBudget as _TimeBudget  # noqa: F401 — register model
 from src.database import get_db
-from src.dependencies import require_active_trial_or_subscription, resolve_group_id as _gid
+from src.dependencies import require_active_trial_or_subscription
+from src.dependencies import resolve_group_id as _gid
 from src.schemas import GroupContext
 
 router = APIRouter(dependencies=[Depends(require_active_trial_or_subscription)])
@@ -246,8 +244,9 @@ async def create_url_filter(
     db: AsyncSession = Depends(get_db),
 ):
     """Create a URL filter rule."""
-    from src.blocking.url_filter import create_filter_rule
     from uuid import UUID as UUIDType
+
+    from src.blocking.url_filter import create_filter_rule
     gid = _gid(None, auth)
     rule = await create_filter_rule(
         db, group_id=gid, category=data.get("category", ""),
@@ -280,8 +279,9 @@ async def check_url_filter(
     db: AsyncSession = Depends(get_db),
 ):
     """Check if a URL should be filtered."""
-    from src.blocking.url_filter import check_url
     from uuid import UUID as UUIDType
+
+    from src.blocking.url_filter import check_url
     gid = _gid(None, auth)
     return await check_url(
         db, gid, url=data.get("url", ""),

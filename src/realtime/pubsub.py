@@ -1,7 +1,7 @@
 """Redis pub/sub event bridge between monolith and real-time service."""
 
-import json
 import asyncio
+import json
 
 import structlog
 

@@ -25,14 +25,12 @@ from src.auth.schemas import (
     PasswordResetConfirm,
     PasswordResetRequest,
     RegisterRequest,
-    TokenResponse,
     UpdateProfileRequest,
     UserProfile,
 )
 from src.auth.service import (
     authenticate_user,
     confirm_email,
-    create_access_token,
     create_api_key,
     create_session,
     delete_user_account,
@@ -81,6 +79,7 @@ async def _create_auth_response(
     user = await get_user_by_id(db, uid)
 
     from sqlalchemy import select as sa_select
+
     from src.groups.models import GroupMember
     result = await db.execute(
         sa_select(GroupMember.group_id, GroupMember.role)
@@ -128,7 +127,10 @@ async def register(data: RegisterRequest, request: Request, response: Response, 
                 action="privacy_notice_accepted",
                 resource_type="user",
                 resource_id=str(user.id),
-                details={"account_type": data.account_type, "ip_address": request.client.host if request.client else None},
+                details={
+                    "account_type": data.account_type,
+                    "ip_address": request.client.host if request.client else None,
+                },
             )
     except Exception:
         pass  # Audit logging should never block registration
@@ -235,6 +237,7 @@ async def delete_account(
 async def contact_inquiry(data: ContactInquiryRequest):
     """Receive a contact inquiry from the school/club registration form."""
     import structlog
+
     from src.email.service import send_email
 
     log = structlog.get_logger()

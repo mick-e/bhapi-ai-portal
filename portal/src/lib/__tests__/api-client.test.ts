@@ -80,7 +80,7 @@ describe("apiFetch", () => {
       json: () => Promise.resolve({ detail: "Access denied" }),
     });
 
-    const error = await apiFetch("/api/v1/test").catch((err) => err);
+    const error = await apiFetch("/api/v1/test").catch((err) => err) as ApiRequestError;
     expect(error).toBeInstanceOf(ApiRequestError);
     expect(error.status).toBe(403);
     expect(error.detail).toBe("Access denied");

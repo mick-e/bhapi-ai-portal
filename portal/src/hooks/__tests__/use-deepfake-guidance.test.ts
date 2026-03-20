@@ -11,6 +11,7 @@ vi.mock("@/lib/api-client", () => ({
 
 import { riskApi } from "@/lib/api-client";
 import { useDeepfakeGuidance } from "../use-deepfake-guidance";
+import type { DeepfakeGuidance } from "@/types";
 
 function createWrapper() {
   const queryClient = new QueryClient({
@@ -35,7 +36,7 @@ describe("useDeepfakeGuidance", () => {
       tips: ["Never share personal photos with AI tools"],
       warning_signs: ["Unexpected image generation requests"],
       resources: [],
-    };
+    } as unknown as DeepfakeGuidance;
     vi.mocked(riskApi.getDeepfakeGuidance).mockResolvedValueOnce(mockGuidance);
 
     const { result } = renderHook(() => useDeepfakeGuidance(), {

@@ -1,8 +1,8 @@
 """Unified dashboard API for cross-product consumption."""
 
-import structlog
 from uuid import UUID
 
+import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = structlog.get_logger()
@@ -10,8 +10,8 @@ logger = structlog.get_logger()
 
 async def get_unified_dashboard(db: AsyncSession, group_id: UUID) -> dict:
     """Get unified dashboard data aggregating across products."""
-    from src.portal.service import get_dashboard
     from src.integrations.cross_product import list_cross_product_alerts
+    from src.portal.service import get_dashboard
 
     # Get standard dashboard data
     try:

@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.compliance.eu_ai_act_models import AppealRecord, HumanReviewRequest
-from src.exceptions import ForbiddenError, NotFoundError, ValidationError
+from src.exceptions import NotFoundError, ValidationError
 from src.risk.models import RiskConfig, RiskEvent
 
 logger = structlog.get_logger()

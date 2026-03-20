@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime, timezone
 
 import structlog
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, select, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, String, func, select
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
@@ -100,8 +100,8 @@ async def create_panic_report(
 
     # Create a critical alert
     try:
-        from src.alerts.service import create_alert
         from src.alerts.schemas import AlertCreate
+        from src.alerts.service import create_alert
 
         category_label = category.replace("_", " ").title()
         alert_body = f"Panic report: {category_label}"
@@ -124,8 +124,8 @@ async def create_panic_report(
 
     # Send SMS to all parent members
     try:
-        from src.groups.models import GroupMember
         from src.auth.models import User
+        from src.groups.models import GroupMember
 
         # Get parent/admin members in the group
         parents_result = await db.execute(

@@ -8,11 +8,11 @@ from datetime import datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
 import structlog
-from sqlalchemy import delete, func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.compliance.models import RetentionPolicy
-from src.exceptions import NotFoundError, ValidationError
+from src.exceptions import ValidationError
 
 logger = structlog.get_logger()
 

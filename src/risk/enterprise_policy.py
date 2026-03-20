@@ -1,16 +1,16 @@
 """Enterprise AI usage policy management."""
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 
 import structlog
-from sqlalchemy import select, String, DateTime, Text, Boolean
+from sqlalchemy import Boolean, DateTime, String, Text, select
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.database import Base
-from src.exceptions import NotFoundError, ValidationError
+from src.exceptions import ValidationError
 from src.models import JSONType, TimestampMixin, UUIDMixin
 
 logger = structlog.get_logger()
@@ -24,7 +24,8 @@ class AIUsagePolicy(Base, UUIDMixin, TimestampMixin):
     group_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    policy_type: Mapped[str] = mapped_column(String(50), nullable=False)  # acceptable_use, data_handling, model_access, cost_control
+    # acceptable_use, data_handling, model_access, cost_control
+    policy_type: Mapped[str] = mapped_column(String(50), nullable=False)
     rules: Mapped[list | None] = mapped_column(JSONType, nullable=True)
     enforcement_level: Mapped[str] = mapped_column(String(20), nullable=False, default="warn")  # warn, block, audit
     applies_to: Mapped[list | None] = mapped_column(JSONType, nullable=True)  # member IDs or "all"

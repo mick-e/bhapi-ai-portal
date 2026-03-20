@@ -8,10 +8,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.middleware import get_current_user
 from src.database import get_db
-from src.dependencies import require_active_trial_or_subscription, resolve_group_id as _gid
+from src.dependencies import require_active_trial_or_subscription
+from src.dependencies import resolve_group_id as _gid
 from src.exceptions import ValidationError
-from src.risk.deepfake_guidance import get_deepfake_guidance
 from src.groups.models import GroupMember
+from src.risk.deepfake_guidance import get_deepfake_guidance
 from src.risk.schemas import (
     DependencyHistoryEntry,
     DependencyHistoryResponse,
@@ -331,8 +332,8 @@ async def create_policy_endpoint(
     db: AsyncSession = Depends(get_db),
 ):
     """Create an AI usage policy."""
-    from src.risk.enterprise_policy import create_policy
     from src.dependencies import resolve_group_id as _gid2
+    from src.risk.enterprise_policy import create_policy
     gid = _gid2(None, auth)
     policy = await create_policy(
         db, group_id=gid, name=data.get("name", ""),

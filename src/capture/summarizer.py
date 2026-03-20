@@ -8,7 +8,8 @@ processed summary output.
 import hashlib
 import json
 import os
-from datetime import date as date_type, datetime, time, timedelta, timezone
+from datetime import date as date_type
+from datetime import datetime, time, timedelta, timezone
 from uuid import UUID, uuid4
 
 import structlog

@@ -1,17 +1,16 @@
 """Web push notification support for browser-based alerts."""
 
 import uuid
-from datetime import datetime, timezone
 
 import structlog
-from sqlalchemy import select, String, DateTime, Text, Boolean
+from sqlalchemy import Boolean, String, Text, select
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.database import Base
-from src.exceptions import NotFoundError, ValidationError
-from src.models import JSONType, TimestampMixin, UUIDMixin
+from src.exceptions import ValidationError
+from src.models import TimestampMixin, UUIDMixin
 
 logger = structlog.get_logger()
 

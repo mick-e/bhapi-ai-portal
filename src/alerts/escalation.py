@@ -1,10 +1,10 @@
 """Crisis escalation partner hooks."""
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 
 import structlog
-from sqlalchemy import select, String, DateTime, Text, Boolean, Integer
+from sqlalchemy import Boolean, DateTime, String, Text, select
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
@@ -23,7 +23,8 @@ class EscalationPartner(Base, UUIDMixin, TimestampMixin):
 
     group_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    provider_type: Mapped[str] = mapped_column(String(50), nullable=False)  # crisis_text_line, school_counselor, custom_webhook
+    # crisis_text_line, school_counselor, custom_webhook
+    provider_type: Mapped[str] = mapped_column(String(50), nullable=False)
     webhook_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     contact_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     contact_phone: Mapped[str | None] = mapped_column(String(50), nullable=True)
@@ -43,7 +44,8 @@ class EscalationRecord(Base, UUIDMixin, TimestampMixin):
     member_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
     severity: Mapped[str] = mapped_column(String(20), nullable=False)
     category: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")  # pending, sent, acknowledged, resolved
+    # pending, sent, acknowledged, resolved
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
     response_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     responded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 

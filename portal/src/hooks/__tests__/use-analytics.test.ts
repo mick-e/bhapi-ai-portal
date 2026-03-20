@@ -22,6 +22,7 @@ import {
   usePeerComparison,
   analyticsKeys,
 } from "../use-analytics";
+import type { TrendData, UsagePattern, MemberBaseline, AnomalyResponse, PeerComparisonResponse } from "@/types";
 
 function createWrapper() {
   const queryClient = new QueryClient({
@@ -42,7 +43,7 @@ describe("useTrends", () => {
   });
 
   it("fetches trend data for a group", async () => {
-    const mockTrends = { dates: ["2026-03-10"], counts: [5] };
+    const mockTrends = { dates: ["2026-03-10"], counts: [5] } as unknown as TrendData;
     vi.mocked(analyticsApi.trends).mockResolvedValueOnce(mockTrends);
 
     const { result } = renderHook(() => useTrends("g1", 7), {
@@ -79,7 +80,7 @@ describe("useUsagePatterns", () => {
   });
 
   it("fetches usage patterns", async () => {
-    const mockPatterns = { peak_hours: [14, 15, 16], platforms: {} };
+    const mockPatterns = { peak_hours: [14, 15, 16], platforms: {} } as unknown as UsagePattern;
     vi.mocked(analyticsApi.usagePatterns).mockResolvedValueOnce(mockPatterns);
 
     const { result } = renderHook(() => useUsagePatterns("g1"), {
@@ -99,7 +100,7 @@ describe("useMemberBaselines", () => {
   it("fetches member baselines", async () => {
     const mockBaselines = [
       { member_id: "m1", avg_daily_events: 5, std_deviation: 2 },
-    ];
+    ] as unknown as MemberBaseline[];
     vi.mocked(analyticsApi.memberBaselines).mockResolvedValueOnce(mockBaselines);
 
     const { result } = renderHook(() => useMemberBaselines("g1"), {
@@ -118,7 +119,7 @@ describe("useAnomalies", () => {
   });
 
   it("fetches anomalies", async () => {
-    const mockAnomalies = { anomalies: [], total: 0 };
+    const mockAnomalies = { anomalies: [], total: 0 } as unknown as AnomalyResponse;
     vi.mocked(analyticsApi.anomalies).mockResolvedValueOnce(mockAnomalies);
 
     const { result } = renderHook(() => useAnomalies("g1"), {
@@ -136,7 +137,7 @@ describe("usePeerComparison", () => {
   });
 
   it("fetches peer comparison data", async () => {
-    const mockComparison = { group_percentile: 75, peer_avg: 50 };
+    const mockComparison = { group_percentile: 75, peer_avg: 50 } as unknown as PeerComparisonResponse;
     vi.mocked(analyticsApi.peerComparison).mockResolvedValueOnce(mockComparison);
 
     const { result } = renderHook(() => usePeerComparison("g1"), {

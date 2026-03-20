@@ -10,7 +10,6 @@ from src.age_tier.models import AgeTierConfig
 from src.age_tier.rules import (
     AgeTier,
     age_from_dob,
-    check_permission,
     get_permissions,
     get_tier_for_age,
 )

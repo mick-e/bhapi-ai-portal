@@ -11,7 +11,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from src.blocking.models import BlockRule
 from src.database import Base
-from src.exceptions import NotFoundError, ValidationError
+from src.exceptions import ValidationError
 from src.models import TimestampMixin, UUIDMixin
 
 logger = structlog.get_logger()
@@ -210,9 +210,6 @@ async def enforce_time_budgets(db: AsyncSession) -> dict:
 
     Returns summary of actions taken.
     """
-    now = datetime.now(timezone.utc)
-    today = now.date()
-
     # Get all enabled budgets
     result = await db.execute(
         select(TimeBudget).where(TimeBudget.enabled.is_(True))

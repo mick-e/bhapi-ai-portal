@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
 import structlog
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.compliance.models import ConsentRecord
@@ -123,6 +123,7 @@ async def generate_coppa_audit_report(db: AsyncSession, group_id: UUID) -> dict:
 
     # Count members requiring consent (has DOB, is minor)
     import json
+
     from src.groups.consent import requires_consent
 
     minors = [m for m in members if m.date_of_birth and requires_consent(m.date_of_birth, "us")]

@@ -1,10 +1,9 @@
 """Cross-product alert correlation engine."""
 
 import uuid
-from datetime import datetime, timezone
 
 import structlog
-from sqlalchemy import select, func, String, DateTime, Text, Float
+from sqlalchemy import Float, String, Text, func, select
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
@@ -79,8 +78,8 @@ async def analyze_member_correlations(
     db: AsyncSession, group_id: uuid.UUID, member_id: uuid.UUID
 ) -> dict:
     """Analyze cross-product correlations for a member."""
-    from src.risk.models import RiskEvent
     from src.alerts.models import Alert
+    from src.risk.models import RiskEvent
 
     # Get risk event count
     risk_count_result = await db.execute(

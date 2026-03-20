@@ -1,7 +1,6 @@
 """SSO configuration models."""
 
 import uuid
-from datetime import datetime
 
 from sqlalchemy import Boolean, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID

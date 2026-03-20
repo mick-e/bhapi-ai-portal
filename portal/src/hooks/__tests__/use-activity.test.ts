@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
-import type { PaginatedResponse } from "@/types";
+import type { PaginatedResponse, CaptureEvent } from "@/types";
 
 vi.mock("@/lib/api-client", () => ({
   activityApi: {
@@ -31,11 +31,7 @@ function createWrapper() {
   };
 }
 
-const mockEvents: PaginatedResponse<{
-  id: string;
-  platform: string;
-  event_type: string;
-}> = {
+const mockEvents = {
   items: [
     { id: "e1", platform: "chatgpt", event_type: "message" },
   ],
@@ -43,7 +39,7 @@ const mockEvents: PaginatedResponse<{
   page: 1,
   page_size: 20,
   total_pages: 1,
-};
+} as unknown as PaginatedResponse<CaptureEvent>;
 
 describe("useActivity", () => {
   beforeEach(() => {
@@ -92,7 +88,7 @@ describe("useActivityEvent", () => {
   });
 
   it("fetches a single event by ID", async () => {
-    const mockEvent = { id: "e1", platform: "chatgpt", content: "Hello" };
+    const mockEvent = { id: "e1", platform: "chatgpt", content: "Hello" } as unknown as CaptureEvent;
     vi.mocked(activityApi.get).mockResolvedValueOnce(mockEvent);
 
     const { result } = renderHook(() => useActivityEvent("e1"), {

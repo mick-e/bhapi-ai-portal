@@ -1,9 +1,11 @@
 """Public interface for integrations module."""
 
 from src.integrations.google_admin import (
-    GoogleAdminIntegration,
-    DeviceStatus,
     DeploymentStatus,
+    DeviceStatus,
+    GoogleAdminIntegration,
+)
+from src.integrations.google_admin import (
     integration as google_admin_integration,
 )
 
