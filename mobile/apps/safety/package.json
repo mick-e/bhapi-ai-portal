@@ -3,6 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "test": "jest --passWithNoTests",
     "typecheck": "echo 'Expo app — typecheck deferred to Phase 1 when Expo SDK installed'"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.0",
+    "@types/jest": "^29.5.0",
+    "typescript": "^5.4.0"
   }
 }

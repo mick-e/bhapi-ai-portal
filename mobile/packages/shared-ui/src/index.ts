@@ -19,4 +19,16 @@ export type { AvatarProps, AvatarSize } from './Avatar';
 export { BhapiLogo, logoSizes } from './BhapiLogo';
 export type { BhapiLogoProps, LogoSize } from './BhapiLogo';
 
-export const UI_VERSION = '0.2.0';
+export { PostCard, postCardStyles } from './PostCard';
+export type { PostCardProps, PostCardAuthor } from './PostCard';
+
+export { CommentThread, commentThreadStyles } from './CommentThread';
+export type { CommentThreadProps, CommentItem } from './CommentThread';
+
+export { MessageBubble, messageBubbleStyles } from './MessageBubble';
+export type { MessageBubbleProps } from './MessageBubble';
+
+export { ContactRequest, contactRequestStyles } from './ContactRequest';
+export type { ContactRequestProps } from './ContactRequest';
+
+export const UI_VERSION = '0.3.0';

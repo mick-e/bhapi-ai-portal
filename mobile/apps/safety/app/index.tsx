@@ -1,6 +1,69 @@
-// Phase 0 placeholder — Bhapi Safety (Parent App)
-// This file will be replaced with a proper Expo Router layout in Phase 1.
-// Bundle ID: com.bhapi.safety
-// Target: Parents/guardians
-// Features: AI monitoring dashboard, alerts, child activity, settings
-export default {};
+/**
+ * Safety App entry point.
+ *
+ * Redirects to auth flow or dashboard based on authentication state.
+ * In a real Expo Router setup, this would use router.replace().
+ */
+import React, { useEffect, useState } from 'react';
+import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { colors, spacing, typography } from '@bhapi/config';
+import { tokenManager } from '@bhapi/auth';
+import { BhapiLogo } from '@bhapi/ui';
+
+export default function SafetyIndex() {
+  const [checking, setChecking] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    async function check() {
+      try {
+        const auth = await tokenManager.isAuthenticated();
+        setIsAuthenticated(auth);
+      } catch {
+        setIsAuthenticated(false);
+      } finally {
+        setChecking(false);
+      }
+    }
+    check();
+  }, []);
+
+  if (checking) {
+    return React.createElement(
+      View,
+      { style: styles.container, accessibilityLabel: 'Checking authentication' },
+      React.createElement(BhapiLogo, { size: 'lg' }),
+      React.createElement(ActivityIndicator, {
+        size: 'large',
+        color: colors.primary[600],
+        style: { marginTop: spacing.lg },
+      })
+    );
+  }
+
+  // In production, this would call router.replace('/(auth)/login') or
+  // router.replace('/(dashboard)') via expo-router.
+  return React.createElement(
+    View,
+    { style: styles.container, accessibilityLabel: 'Safety app' },
+    React.createElement(
+      Text,
+      { style: styles.redirectText },
+      isAuthenticated ? 'Redirecting to dashboard...' : 'Redirecting to login...'
+    )
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  redirectText: {
+    fontSize: typography.sizes.base,
+    color: colors.neutral[500],
+    fontFamily: typography.fontFamily,
+  },
+});
