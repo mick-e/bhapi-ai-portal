@@ -183,6 +183,21 @@ async def cloudflare_images_webhook(
     return result
 
 
+@router.post("/webhooks/cloudflare-stream")
+async def cloudflare_stream_webhook(
+    request: Request,
+):
+    """Handle Cloudflare Stream ready webhook.
+
+    This endpoint is public (no auth) — protected by webhook signature validation.
+    """
+    from src.moderation.video_pipeline import pipeline as video_pipeline
+
+    payload = await request.json()
+    result = await video_pipeline.handle_cf_stream_webhook(payload)
+    return result
+
+
 @router.get("/reports", response_model=ReportListResponse)
 async def list_reports_endpoint(
     page: int = Query(1, ge=1),
