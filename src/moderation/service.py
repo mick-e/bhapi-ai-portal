@@ -8,6 +8,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.exceptions import ConflictError, NotFoundError, ValidationError
+from src.moderation.csam import check_csam
 from src.moderation.keyword_filter import FilterAction, classify_text
 from src.moderation.models import ContentReport, ModerationDecision, ModerationQueue
 from src.moderation.social_risk import classify_social_risk
@@ -49,6 +50,46 @@ async def submit_for_moderation(
 
     risk_scores: dict | None = None
     status = "pending"
+
+    # ---- CSAM check runs FIRST for media content ----
+    if content_type in ("media", "image", "video") and media_ids:
+        for media_id in media_ids:
+            csam_result = await check_csam(image_url=str(media_id))
+            if csam_result.is_match:
+                entry = ModerationQueue(
+                    id=uuid4(),
+                    content_type=content_type,
+                    content_id=content_id,
+                    pipeline=pipeline,
+                    status="rejected",
+                    risk_scores={
+                        "csam": {
+                            "match": True,
+                            "confidence": csam_result.confidence,
+                            "provider": csam_result.provider,
+                        }
+                    },
+                    age_tier=author_age_tier,
+                )
+                db.add(entry)
+                await db.flush()
+
+                decision = ModerationDecision(
+                    id=uuid4(),
+                    queue_id=entry.id,
+                    action="reject",
+                    reason="[CSAM] PhotoDNA match — content blocked, NCMEC report pending",
+                )
+                db.add(decision)
+                await db.flush()
+                await db.refresh(entry)
+
+                logger.critical(
+                    "csam_content_blocked",
+                    content_id=str(content_id),
+                    media_id=str(media_id),
+                )
+                return entry  # Exit immediately — no further processing
 
     # Run keyword filter on text content
     filter_result = None
