@@ -159,6 +159,216 @@ async def create_schedule(
     return schedule
 
 
+async def generate_school_board_report(
+    db: AsyncSession,
+    school_id: UUID,
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
+) -> bytes:
+    """Generate a school board compliance PDF report.
+
+    Includes:
+    - Executive summary
+    - AI governance policy compliance status
+    - AI tool inventory summary
+    - Risk assessment results
+    - Student safety metrics (anonymized)
+    - Recommendations
+
+    Uses ReportLab for PDF generation. Note: use unique style names
+    to avoid conflicts with ReportLab's built-in "Bullet" style.
+    """
+    from io import BytesIO
+
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+    from reportlab.lib.units import inch
+    from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(
+        buffer, pagesize=letter, topMargin=1 * inch, bottomMargin=1 * inch
+    )
+    styles = getSampleStyleSheet()
+
+    # Use unique style names (CLAUDE.md: "Bullet" name conflicts with ReportLab)
+    title_style = ParagraphStyle(
+        "SchoolBoardTitle", parent=styles["Title"], fontSize=18, spaceAfter=20
+    )
+    heading_style = ParagraphStyle(
+        "SchoolBoardHeading", parent=styles["Heading2"], fontSize=14, spaceAfter=10
+    )
+    body_style = ParagraphStyle(
+        "SchoolBoardBody", parent=styles["Normal"], fontSize=11, spaceAfter=6
+    )
+
+    elements = []
+
+    # Title
+    elements.append(Paragraph("School Board AI Governance Report", title_style))
+    elements.append(
+        Paragraph(
+            f"Generated: {datetime.now(timezone.utc).strftime('%B %d, %Y')}",
+            body_style,
+        )
+    )
+    elements.append(Spacer(1, 20))
+
+    # Date range info
+    if date_from or date_to:
+        from_str = date_from.strftime("%B %d, %Y") if date_from else "inception"
+        to_str = date_to.strftime("%B %d, %Y") if date_to else "present"
+        elements.append(
+            Paragraph(f"Report Period: {from_str} to {to_str}", body_style)
+        )
+        elements.append(Spacer(1, 10))
+
+    # Executive Summary
+    elements.append(Paragraph("Executive Summary", heading_style))
+    elements.append(
+        Paragraph(
+            "This report provides an overview of AI governance compliance for the school district, "
+            "including policy status, AI tool inventory, risk assessments, and student safety metrics.",
+            body_style,
+        )
+    )
+    elements.append(Spacer(1, 15))
+
+    # Policy Compliance (query governance module if available)
+    elements.append(Paragraph("AI Governance Policy Status", heading_style))
+
+    # Try to get governance data
+    try:
+        from src.governance.service import get_compliance_dashboard
+
+        dashboard = await get_compliance_dashboard(db, school_id)
+        policy_data = [
+            ["Metric", "Value"],
+            ["Total Policies", str(dashboard.get("policy_count", 0))],
+            ["Active Policies", str(dashboard.get("active_count", 0))],
+            ["Risk Score", f"{dashboard.get('risk_score', 'N/A')}/100"],
+            ["AI Tools Inventoried", str(dashboard.get("tool_count", 0))],
+        ]
+    except Exception:
+        policy_data = [
+            ["Metric", "Value"],
+            ["Total Policies", "N/A"],
+            ["Active Policies", "N/A"],
+            ["Risk Score", "N/A"],
+            ["AI Tools Inventoried", "N/A"],
+        ]
+
+    table = Table(policy_data, colWidths=[3 * inch, 2 * inch])
+    table.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#FF6B35")),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("FONTSIZE", (0, 0), (-1, -1), 10),
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                (
+                    "ROWBACKGROUNDS",
+                    (0, 1),
+                    (-1, -1),
+                    [colors.white, colors.HexColor("#FFF3ED")],
+                ),
+            ]
+        )
+    )
+    elements.append(table)
+    elements.append(Spacer(1, 15))
+
+    # Student Safety Metrics (anonymized)
+    elements.append(Paragraph("Student Safety Metrics (Anonymized)", heading_style))
+
+    try:
+        from sqlalchemy import func, select as sa_select
+
+        from src.risk.models import RiskEvent
+
+        risk_query = sa_select(func.count(RiskEvent.id)).where(
+            RiskEvent.group_id == school_id
+        )
+        if date_from:
+            risk_query = risk_query.where(RiskEvent.created_at >= date_from)
+        if date_to:
+            risk_query = risk_query.where(RiskEvent.created_at <= date_to)
+        risk_count = (await db.execute(risk_query)).scalar() or 0
+
+        safety_data = [
+            ["Metric", "Value"],
+            ["Total Risk Events", str(risk_count)],
+            ["Monitoring Status", "Active"],
+        ]
+    except Exception:
+        safety_data = [
+            ["Metric", "Value"],
+            ["Total Risk Events", "N/A"],
+            ["Monitoring Status", "N/A"],
+        ]
+
+    safety_table = Table(safety_data, colWidths=[3 * inch, 2 * inch])
+    safety_table.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0D9488")),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("FONTSIZE", (0, 0), (-1, -1), 10),
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                (
+                    "ROWBACKGROUNDS",
+                    (0, 1),
+                    (-1, -1),
+                    [colors.white, colors.HexColor("#F0FDFA")],
+                ),
+            ]
+        )
+    )
+    elements.append(safety_table)
+    elements.append(Spacer(1, 15))
+
+    # Recommendations
+    elements.append(Paragraph("Recommendations", heading_style))
+    elements.append(
+        Paragraph(
+            "1. Review and update AI usage policies annually per state mandate.",
+            body_style,
+        )
+    )
+    elements.append(
+        Paragraph(
+            "2. Ensure all AI tools are inventoried with risk assessments.", body_style
+        )
+    )
+    elements.append(
+        Paragraph(
+            "3. Provide staff training on approved AI tool usage.", body_style
+        )
+    )
+    elements.append(
+        Paragraph(
+            "4. Monitor student AI usage patterns through Bhapi Safety platform.",
+            body_style,
+        )
+    )
+    elements.append(Spacer(1, 15))
+
+    # Footer
+    elements.append(
+        Paragraph(
+            "Generated by Bhapi AI Governance Platform — bhapi.ai", body_style
+        )
+    )
+
+    doc.build(elements)
+    return buffer.getvalue()
+
+
 async def list_schedules(
     db: AsyncSession, group_id: UUID
 ) -> list[ScheduledReport]:

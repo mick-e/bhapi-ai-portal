@@ -211,6 +211,25 @@ async def send_weekly_family_report(
     return {"sent": sent}
 
 
+@router.get("/school-board/{school_id}")
+async def school_board_report(
+    school_id: UUID,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Generate school board compliance PDF report."""
+    from src.reporting.service import generate_school_board_report
+
+    pdf_bytes = await generate_school_board_report(db, school_id)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="school-board-report-{school_id}.pdf"',
+        },
+    )
+
+
 @router.get("/{report_id}/download")
 async def download_report(
     report_id: UUID,
