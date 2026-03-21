@@ -870,14 +870,24 @@ async def au_create_cyberbullying_case_endpoint(
     """Create a structured cyberbullying case."""
     from src.compliance.australian import create_cyberbullying_case
 
+    if "reporter_id" not in data or "target_id" not in data:
+        raise ValidationError("reporter_id and target_id are required")
+
+    try:
+        reporter_id = UUID(data["reporter_id"])
+        target_id = UUID(data["target_id"])
+        group_id = UUID(data["group_id"]) if data.get("group_id") else None
+    except (ValueError, AttributeError):
+        raise ValidationError("Invalid UUID format for reporter_id, target_id, or group_id")
+
     case = await create_cyberbullying_case(
         db,
-        reporter_id=UUID(data["reporter_id"]),
-        target_id=UUID(data["target_id"]),
+        reporter_id=reporter_id,
+        target_id=target_id,
         evidence_ids=data.get("evidence_ids", []),
         severity=data.get("severity", "medium"),
         description=data.get("description"),
-        group_id=UUID(data["group_id"]) if data.get("group_id") else None,
+        group_id=group_id,
     )
     return {
         "id": str(case.id),
