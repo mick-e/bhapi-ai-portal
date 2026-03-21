@@ -26,5 +26,10 @@ export const AgeTierGate = jest.fn((props: any) => ({
   props,
 }));
 export const ContactRequest = noop;
+export const contactRequestStyles = { borderRadius: 8, minButtonHeight: 44 };
+export const SearchResultCard = jest.fn((props: any) => ({
+  type: 'SearchResultCard',
+  props,
+}));
 export const MessageBubble = noop;
 export const UI_VERSION = '0.3.0';

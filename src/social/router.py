@@ -77,6 +77,28 @@ async def get_user_profile(
 
 
 # ---------------------------------------------------------------------------
+# Search
+# ---------------------------------------------------------------------------
+
+
+@router.get("/search", response_model=schemas.SearchProfilesResponse)
+async def search_users(
+    q: str = Query(..., min_length=1, max_length=100, description="Search query"),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Search users by display name (case-insensitive).
+
+    Excludes blocked users, respects visibility settings, paginated.
+    """
+    return await service.search_profiles(
+        db, query=q, requester_id=auth.user_id, page=page, page_size=page_size,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Posts
 # ---------------------------------------------------------------------------
 

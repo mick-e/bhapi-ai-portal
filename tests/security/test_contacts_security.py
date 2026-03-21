@@ -6,6 +6,10 @@ Covers:
 - Only parent can approve
 - Cross-user isolation
 - Blocked user restrictions
+- Rate limiting on contact requests per age tier
+- Cannot bypass parent approval
+- Cannot view other users' contact lists
+- Search security
 """
 
 import uuid
@@ -364,3 +368,179 @@ async def test_cross_group_parent_cannot_approve(sec_engine, sec_session, sec_us
             json={"decision": "approve"},
         )
         assert resp.status_code == 403
+
+
+# ---------------------------------------------------------------------------
+# Tests — Rate Limiting / Max Contacts per Age Tier
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_preteen_tier_max_contacts_enforced(sec_engine, sec_session, sec_users):
+    """Preteen tier (10-12) enforces max_contacts=20 limit."""
+    # Create a preteen user (can_add_contacts=True, max_contacts=20)
+    today = datetime.now(timezone.utc).date()
+    preteen_user = User(
+        id=uuid.uuid4(),
+        email=f"preteen-{uuid.uuid4().hex[:8]}@example.com",
+        display_name="Preteen User",
+        account_type="family",
+        email_verified=False,
+        mfa_enabled=False,
+    )
+    sec_session.add(preteen_user)
+    await sec_session.flush()
+
+    preteen_profile = Profile(
+        id=uuid.uuid4(), user_id=preteen_user.id, display_name="Preteen User",
+        date_of_birth=today.replace(year=today.year - 11), age_tier="preteen",
+        visibility="friends_only",
+    )
+    sec_session.add(preteen_profile)
+    await sec_session.flush()
+
+    group = sec_users["group"]
+
+    # Create 20 accepted contacts to fill the limit
+    for i in range(20):
+        target_user = User(
+            id=uuid.uuid4(),
+            email=f"fill-{i}-{uuid.uuid4().hex[:8]}@example.com",
+            display_name=f"Fill {i}",
+            account_type="family",
+            email_verified=False,
+            mfa_enabled=False,
+        )
+        sec_session.add(target_user)
+        await sec_session.flush()
+
+        contact = Contact(
+            id=uuid.uuid4(), requester_id=preteen_user.id, target_id=target_user.id,
+            status="accepted", parent_approval_status="not_required",
+        )
+        sec_session.add(contact)
+
+    await sec_session.flush()
+
+    # Now try to add one more — should be rejected (max_contacts=20 for preteen)
+    extra_user = User(
+        id=uuid.uuid4(),
+        email=f"extra-{uuid.uuid4().hex[:8]}@example.com",
+        display_name="Extra User",
+        account_type="family",
+        email_verified=False,
+        mfa_enabled=False,
+    )
+    sec_session.add(extra_user)
+    await sec_session.flush()
+
+    async with _make_client(
+        sec_engine, sec_session, preteen_user.id, group.id, "member",
+    ) as client:
+        resp = await client.post(f"/api/v1/contacts/request/{extra_user.id}")
+        assert resp.status_code == 422
+        assert "limit" in resp.json().get("detail", "").lower()
+
+
+@pytest.mark.asyncio
+async def test_cannot_bypass_parent_approval_by_accepting(
+    sec_engine, sec_session, sec_users,
+):
+    """Cannot accept a contact that requires parent approval by directly calling accept."""
+    child = sec_users["child"]
+    target = sec_users["target"]
+
+    contact = Contact(
+        id=uuid.uuid4(), requester_id=child.id, target_id=target.id,
+        status="pending", parent_approval_status="pending",
+    )
+    sec_session.add(contact)
+    await sec_session.flush()
+
+    # Target tries to accept — should fail because parent approval pending
+    async with _make_client(sec_engine, sec_session, target.id) as client:
+        resp = await client.patch(
+            f"/api/v1/contacts/{contact.id}/respond",
+            json={"action": "accept"},
+        )
+        assert resp.status_code == 422
+        assert "parent" in resp.json().get("detail", "").lower()
+
+
+@pytest.mark.asyncio
+async def test_cannot_approve_already_decided_request(
+    sec_engine, sec_session, sec_users,
+):
+    """Cannot approve a contact request that parent already decided on."""
+    child = sec_users["child"]
+    target = sec_users["target"]
+    parent = sec_users["parent"]
+
+    contact = Contact(
+        id=uuid.uuid4(), requester_id=child.id, target_id=target.id,
+        status="pending", parent_approval_status="approved",
+    )
+    sec_session.add(contact)
+    await sec_session.flush()
+
+    async with _make_client(
+        sec_engine, sec_session, parent.id, sec_users["group"].id, "parent",
+    ) as client:
+        resp = await client.patch(
+            f"/api/v1/contacts/{contact.id}/parent-approve",
+            json={"decision": "approve"},
+        )
+        assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_unauthed_block_returns_401(sec_engine, sec_session):
+    """Unauthenticated request to block a user returns 401."""
+    async with _make_unauthed_client(sec_engine, sec_session) as client:
+        resp = await client.post(f"/api/v1/contacts/{uuid.uuid4()}/block")
+        assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_unauthed_search_returns_401(sec_engine, sec_session):
+    """Unauthenticated request to search users returns 401."""
+    async with _make_unauthed_client(sec_engine, sec_session) as client:
+        resp = await client.get("/api/v1/social/search", params={"q": "test"})
+        assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_search_does_not_expose_blocked_user_profiles(
+    sec_engine, sec_session, sec_users,
+):
+    """Search excludes profiles of users who have blocked the requester."""
+    target = sec_users["target"]
+    attacker = sec_users["attacker"]
+
+    # Target creates a profile
+    today = datetime.now(timezone.utc).date()
+    target_profile = Profile(
+        id=uuid.uuid4(), user_id=target.id, display_name="Sec Target Profile",
+        date_of_birth=today.replace(year=today.year - 14), age_tier="teen",
+        visibility="public",
+    )
+    sec_session.add(target_profile)
+    await sec_session.flush()
+
+    # Target blocks attacker
+    block = Contact(
+        id=uuid.uuid4(), requester_id=target.id, target_id=attacker.id,
+        status="blocked", parent_approval_status="not_required",
+    )
+    sec_session.add(block)
+    await sec_session.flush()
+
+    # Attacker searches — should NOT see target's profile
+    async with _make_client(sec_engine, sec_session, attacker.id) as client:
+        resp = await client.get(
+            "/api/v1/social/search", params={"q": "Sec Target"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        user_ids = [item["user_id"] for item in data["items"]]
+        assert str(target.id) not in user_ids

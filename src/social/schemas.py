@@ -151,3 +151,31 @@ class HashtagResponse(BaseModel):
     id: UUID
     name: str
     post_count: int
+
+
+# ---------------------------------------------------------------------------
+# Search
+# ---------------------------------------------------------------------------
+
+
+class SearchProfileResult(BaseModel):
+    """A single profile search result."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    user_id: UUID
+    display_name: str
+    avatar_url: str | None = None
+    bio: str | None = None
+    age_tier: str
+    visibility: str
+
+
+class SearchProfilesResponse(BaseModel):
+    """Paginated profile search results."""
+
+    items: list[SearchProfileResult]
+    total: int
+    page: int
+    page_size: int

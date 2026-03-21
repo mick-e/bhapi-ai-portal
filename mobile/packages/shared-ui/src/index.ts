@@ -28,8 +28,8 @@ export type { CommentThreadProps, CommentItem } from './CommentThread';
 export { MessageBubble, messageBubbleStyles } from './MessageBubble';
 export type { MessageBubbleProps } from './MessageBubble';
 
-export { ContactRequest, contactRequestStyles } from './ContactRequest';
-export type { ContactRequestProps } from './ContactRequest';
+export { ContactRequest, contactRequestStyles, SearchResultCard } from './ContactRequest';
+export type { ContactRequestProps, SearchResultCardProps } from './ContactRequest';
 
 export { AgeTierGate, ageTierGateStyles, checkTierPermission, getFeatureDescription } from './AgeTierGate';
 export type { AgeTierGateProps } from './AgeTierGate';

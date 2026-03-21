@@ -667,3 +667,87 @@ async def list_following(
     items = list(rows.scalars().all())
 
     return {"items": items, "total": total, "page": page, "page_size": page_size}
+
+
+# ---------------------------------------------------------------------------
+# Profile Search
+# ---------------------------------------------------------------------------
+
+
+async def search_profiles(
+    db: AsyncSession,
+    query: str,
+    requester_id: UUID,
+    page: int = 1,
+    page_size: int = 20,
+) -> dict:
+    """Search profiles by display_name (case-insensitive).
+
+    Excludes:
+    - The requester's own profile.
+    - Profiles of users who have blocked the requester (or vice versa).
+    - Private profiles (visibility == "private").
+
+    Results are paginated.
+    """
+    from sqlalchemy import or_
+
+    from src.contacts.models import Contact
+
+    if not query or not query.strip():
+        return {"items": [], "total": 0, "page": page, "page_size": page_size}
+
+    search_term = f"%{query.strip().lower()}%"
+
+    # Find blocked user IDs (both directions)
+    blocked_q = select(Contact).where(
+        or_(
+            Contact.requester_id == requester_id,
+            Contact.target_id == requester_id,
+        ),
+        Contact.status == "blocked",
+    )
+    blocked_result = await db.execute(blocked_q)
+    blocked_contacts = list(blocked_result.scalars().all())
+
+    blocked_ids = set()
+    for c in blocked_contacts:
+        if c.requester_id == requester_id:
+            blocked_ids.add(c.target_id)
+        else:
+            blocked_ids.add(c.requester_id)
+
+    # Build search query
+    base_filters = [
+        func.lower(Profile.display_name).like(search_term),
+        Profile.user_id != requester_id,
+        Profile.visibility != "private",
+    ]
+
+    if blocked_ids:
+        base_filters.append(Profile.user_id.notin_(blocked_ids))
+
+    count_result = await db.execute(
+        select(func.count()).select_from(Profile).where(*base_filters)
+    )
+    total = count_result.scalar() or 0
+
+    offset = (page - 1) * page_size
+    result = await db.execute(
+        select(Profile)
+        .where(*base_filters)
+        .order_by(Profile.display_name)
+        .offset(offset)
+        .limit(page_size)
+    )
+    items = list(result.scalars().all())
+
+    logger.info(
+        "profile_search",
+        requester_id=str(requester_id),
+        query=query,
+        results=len(items),
+        total=total,
+    )
+
+    return {"items": items, "total": total, "page": page, "page_size": page_size}
