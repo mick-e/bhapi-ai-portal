@@ -4,6 +4,12 @@ Public interface for cross-module communication.
 Other modules should import only from this file, never from internal submodules.
 """
 
+from src.governance.state_framework import (
+    StateAlreadyRegisteredError,
+    StateComplianceFramework,
+    StateNotRegisteredError,
+)
+
 from src.governance.eu_ai_act import (
     create_conformity_assessment,
     generate_tech_documentation,
@@ -48,6 +54,9 @@ from src.governance.schemas import (
 )
 
 __all__ = [
+    "StateAlreadyRegisteredError",
+    "StateComplianceFramework",
+    "StateNotRegisteredError",
     "AuditResponse",
     "ComplianceDashboardResponse",
     "EuAiActAssessmentRequest",
