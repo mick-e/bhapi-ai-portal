@@ -15,6 +15,11 @@ from src.governance.schemas import (
     EuAiActBiasTestRequest,
     EuAiActBiasTestResponse,
     EuAiActComplianceStatusResponse,
+    EuAiActRegistrationGenerateRequest,
+    EuAiActRegistrationPayloadResponse,
+    EuAiActRegistrationStatusResponse,
+    EuAiActRegistrationSubmitRequest,
+    EuAiActRegistrationSubmitResponse,
     EuAiActRiskRequest,
     EuAiActRiskResponse,
     EuAiActTechDocsRequest,
@@ -39,10 +44,13 @@ from src.governance.schemas import (
 )
 from src.governance.eu_ai_act import (
     create_conformity_assessment,
+    generate_registration_payload,
     generate_tech_documentation,
     get_compliance_status as get_eu_ai_act_status,
+    get_registration_status,
     run_bias_test,
     run_risk_management_assessment,
+    submit_registration,
     update_assessment_status,
 )
 from src.governance.ohio import (
@@ -403,3 +411,47 @@ async def eu_ai_act_status(
 ):
     """Get overall EU AI Act compliance readiness status."""
     return await get_eu_ai_act_status(db, group_id)
+
+
+# ---------------------------------------------------------------------------
+# EU AI Act Registration endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.post(
+    "/eu-ai-act/registration/generate",
+    response_model=EuAiActRegistrationPayloadResponse,
+)
+async def eu_ai_act_generate_registration(
+    data: EuAiActRegistrationGenerateRequest,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Generate EU database registration payload with all required fields."""
+    return await generate_registration_payload(db, group_id=data.group_id)
+
+
+@router.post(
+    "/eu-ai-act/registration/submit",
+    response_model=EuAiActRegistrationSubmitResponse,
+)
+async def eu_ai_act_submit_registration(
+    data: EuAiActRegistrationSubmitRequest,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Submit EU database registration."""
+    return await submit_registration(db, group_id=data.group_id)
+
+
+@router.get(
+    "/eu-ai-act/registration/status",
+    response_model=EuAiActRegistrationStatusResponse,
+)
+async def eu_ai_act_registration_status(
+    group_id: UUID = Query(..., description="Group ID"),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get EU database registration status."""
+    return await get_registration_status(db, group_id=group_id)

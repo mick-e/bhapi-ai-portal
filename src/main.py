@@ -304,6 +304,9 @@ def _register_routers(app: FastAPI) -> None:
     from src.media.router import router as media_router
     app.include_router(media_router, prefix="/api/v1/media", tags=["Media"])
 
+    from src.device_agent.router import router as device_agent_router
+    app.include_router(device_agent_router, prefix="/api/v1/device", tags=["Device Agent"])
+
 
 _PORTAL_CANDIDATES = [
     Path("/app/portal/out"),

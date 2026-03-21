@@ -386,6 +386,60 @@ async def list_push_subscriptions(
     ]}
 
 
+# ─── Expo Push Tokens (Mobile) ───────────────────────────────────────────────
+
+
+class PushTokenRequest(BaseModel):
+    """Register an Expo push token."""
+    token: str = Field(min_length=1, max_length=255)
+    device_type: str = Field(pattern="^(ios|android)$")
+
+
+@router.post("/push/token", status_code=201)
+async def register_push_token(
+    data: PushTokenRequest,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Register an Expo push token for the current user's mobile device."""
+    from src.alerts.push import expo_push_service
+    pt = await expo_push_service.register_token(
+        db, user_id=auth.user_id, token=data.token, device_type=data.device_type,
+    )
+    return {"id": str(pt.id), "token": pt.token, "device_type": pt.device_type}
+
+
+class PushTokenDeleteRequest(BaseModel):
+    """Remove an Expo push token."""
+    token: str = Field(min_length=1, max_length=255)
+
+
+@router.delete("/push/token")
+async def unregister_push_token(
+    data: PushTokenDeleteRequest,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Remove an Expo push token for the current user."""
+    from src.alerts.push import expo_push_service
+    removed = await expo_push_service.unregister_token(db, user_id=auth.user_id, token=data.token)
+    return {"removed": removed}
+
+
+@router.get("/push/tokens")
+async def list_push_tokens(
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List registered Expo push tokens for the current user."""
+    from src.alerts.push import expo_push_service
+    tokens = await expo_push_service.get_user_tokens(db, auth.user_id)
+    return {"tokens": [
+        {"id": str(t.id), "token": t.token, "device_type": t.device_type}
+        for t in tokens
+    ]}
+
+
 # ─── Escalation Partners ────────────────────────────────────────────────────
 
 

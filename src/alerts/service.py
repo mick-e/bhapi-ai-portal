@@ -52,6 +52,27 @@ async def create_alert(db: AsyncSession, data: AlertCreate) -> Alert:
     except Exception:
         pass  # SSE failure must never block alert creation
 
+    # Send Expo push notification to group owner
+    try:
+        from src.alerts.push import expo_push_service
+        from sqlalchemy import select as sa_select
+        from src.groups.models import Group
+
+        group_result = await db.execute(
+            sa_select(Group.owner_id).where(Group.id == alert.group_id)
+        )
+        owner_id = group_result.scalar_one_or_none()
+        if owner_id:
+            await expo_push_service.send_notification(
+                db,
+                user_id=owner_id,
+                title=f"Alert: {data.severity.upper()}",
+                body=data.title,
+                data={"alert_id": str(alert.id), "severity": data.severity},
+            )
+    except Exception:
+        pass  # Push notification failure must never block alert creation
+
     # Notify emergency contacts on critical alerts
     if data.severity == "critical":
         try:

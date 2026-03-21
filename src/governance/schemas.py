@@ -321,3 +321,50 @@ class EuAiActComplianceStatusResponse(BaseSchema):
     status: str
     components: dict
     eu_ai_act_deadline: str
+
+
+# ---------------------------------------------------------------------------
+# EU AI Act Registration schemas
+# ---------------------------------------------------------------------------
+
+
+class EuAiActRegistrationGenerateRequest(BaseSchema):
+    """Request to generate an EU database registration payload."""
+
+    group_id: UUID
+
+
+class EuAiActRegistrationSubmitRequest(BaseSchema):
+    """Request to submit an EU database registration."""
+
+    group_id: UUID
+
+
+class EuAiActRegistrationPayloadResponse(BaseSchema):
+    """Registration payload generation response."""
+
+    registration_id: str
+    group_id: str
+    status: str
+    payload: dict
+    required_fields: list[str]
+
+
+class EuAiActRegistrationSubmitResponse(BaseSchema):
+    """Registration submission response."""
+
+    registration_id: str
+    group_id: str
+    status: str
+    submitted_at: str | None = None
+    message: str
+
+
+class EuAiActRegistrationStatusResponse(BaseSchema):
+    """Registration status response."""
+
+    group_id: str
+    status: str
+    registration_id: str | None = None
+    payload: dict | None = None
+    submitted_at: str | None = None

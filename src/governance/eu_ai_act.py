@@ -40,6 +40,14 @@ VALID_STATUS_TRANSITIONS = {
     "approved": set(),
 }
 
+VALID_REGISTRATION_STATUSES = {"draft", "submitted", "pending_review", "registered"}
+VALID_REGISTRATION_TRANSITIONS = {
+    "draft": {"submitted"},
+    "submitted": {"pending_review", "draft"},
+    "pending_review": {"registered", "draft"},
+    "registered": set(),
+}
+
 # Articles 9-15 of the EU AI Act
 REQUIRED_ARTICLES = [
     "article_9_risk_management",
@@ -155,6 +163,25 @@ class BiasTestResult(Base, UUIDMixin, TimestampMixin):
     overall_score: Mapped[float] = mapped_column(Float, nullable=False)
     tested_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False,
+    )
+
+
+class RegistrationSubmission(Base, UUIDMixin, TimestampMixin):
+    """EU AI Act database registration submission."""
+
+    __tablename__ = "eu_ai_act_registrations"
+
+    group_id: Mapped[_uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        nullable=False,
+        index=True,
+    )
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="draft",
+    )  # draft, submitted, pending_review, registered
+    payload: Mapped[dict] = mapped_column(JSONType, nullable=False)
+    submitted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True,
     )
 
 
@@ -664,4 +691,236 @@ async def get_compliance_status(
         "status": overall_status,
         "components": components,
         "eu_ai_act_deadline": "2026-08-02",
+    }
+
+
+# ---------------------------------------------------------------------------
+# Registration functions
+# ---------------------------------------------------------------------------
+
+# Required fields for the EU AI database registration payload
+REGISTRATION_REQUIRED_FIELDS = [
+    "provider_name",
+    "provider_address",
+    "system_name",
+    "system_description",
+    "intended_purpose",
+    "risk_classification",
+    "conformity_assessment_id",
+    "technical_documentation_id",
+    "member_state",
+    "contact_email",
+]
+
+
+async def generate_registration_payload(
+    db: AsyncSession,
+    group_id: str | UUID,
+) -> dict:
+    """Generate an EU database registration payload with all required fields.
+
+    Pulls data from existing conformity assessment and technical documentation
+    to pre-populate the registration payload. Requires an approved conformity
+    assessment to proceed.
+    """
+    if isinstance(group_id, str):
+        group_id = UUID(group_id)
+
+    # Check for approved conformity assessment
+    assessment_result = await db.execute(
+        select(ConformityAssessment)
+        .where(
+            ConformityAssessment.group_id == group_id,
+            ConformityAssessment.status == "approved",
+        )
+        .order_by(ConformityAssessment.version.desc())
+        .limit(1)
+    )
+    assessment = assessment_result.scalars().first()
+    if not assessment:
+        raise ValidationError(
+            "An approved conformity assessment is required before generating "
+            "a registration payload. Please complete and approve a conformity "
+            "assessment first."
+        )
+
+    # Check for technical documentation
+    doc_result = await db.execute(
+        select(TechnicalDocumentation)
+        .where(TechnicalDocumentation.group_id == group_id)
+        .order_by(TechnicalDocumentation.version.desc())
+        .limit(1)
+    )
+    doc = doc_result.scalars().first()
+
+    # Build payload with required fields
+    payload = {
+        "provider_name": "",
+        "provider_address": "",
+        "system_name": "",
+        "system_description": "",
+        "intended_purpose": "",
+        "risk_classification": "high",
+        "conformity_assessment_id": str(assessment.id),
+        "conformity_assessment_version": assessment.version,
+        "conformity_assessment_status": assessment.status,
+        "technical_documentation_id": str(doc.id) if doc else None,
+        "member_state": "",
+        "contact_email": "",
+        "eu_ai_act_articles": list(assessment.sections.keys()),
+    }
+
+    # Pre-populate from tech docs if available
+    if doc and doc.sections:
+        general = doc.sections.get("general_description", {})
+        if isinstance(general, dict) and general.get("content"):
+            payload["system_description"] = general["content"]
+
+    # Check or create a draft registration
+    existing_result = await db.execute(
+        select(RegistrationSubmission)
+        .where(
+            RegistrationSubmission.group_id == group_id,
+            RegistrationSubmission.status == "draft",
+        )
+        .order_by(RegistrationSubmission.created_at.desc())
+        .limit(1)
+    )
+    existing = existing_result.scalars().first()
+
+    if existing:
+        # Update existing draft
+        existing.payload = payload
+        await db.flush()
+        await db.refresh(existing)
+        registration_id = str(existing.id)
+    else:
+        # Create new draft
+        reg = RegistrationSubmission(
+            id=uuid4(),
+            group_id=group_id,
+            status="draft",
+            payload=payload,
+        )
+        db.add(reg)
+        await db.flush()
+        await db.refresh(reg)
+        registration_id = str(reg.id)
+
+    logger.info(
+        "eu_ai_act_registration_payload_generated",
+        group_id=str(group_id),
+        registration_id=registration_id,
+    )
+
+    return {
+        "registration_id": registration_id,
+        "group_id": str(group_id),
+        "status": "draft",
+        "payload": payload,
+        "required_fields": REGISTRATION_REQUIRED_FIELDS,
+    }
+
+
+async def submit_registration(
+    db: AsyncSession,
+    group_id: str | UUID,
+) -> dict:
+    """Submit an EU database registration (mock — real integration when API available).
+
+    Validates the registration payload has all required fields populated,
+    then transitions the status from draft to submitted.
+    """
+    if isinstance(group_id, str):
+        group_id = UUID(group_id)
+
+    # Find the latest draft registration
+    result = await db.execute(
+        select(RegistrationSubmission)
+        .where(
+            RegistrationSubmission.group_id == group_id,
+            RegistrationSubmission.status == "draft",
+        )
+        .order_by(RegistrationSubmission.created_at.desc())
+        .limit(1)
+    )
+    registration = result.scalars().first()
+    if not registration:
+        raise NotFoundError("RegistrationSubmission", str(group_id))
+
+    # Validate required fields are populated
+    payload = registration.payload or {}
+    missing = []
+    for field in REGISTRATION_REQUIRED_FIELDS:
+        value = payload.get(field)
+        if not value or (isinstance(value, str) and not value.strip()):
+            missing.append(field)
+
+    if missing:
+        raise ValidationError(
+            f"Registration payload missing required fields: {', '.join(missing)}"
+        )
+
+    # Transition to submitted (mock submission)
+    now = datetime.now(timezone.utc)
+    registration.status = "submitted"
+    registration.submitted_at = now
+    await db.flush()
+    await db.refresh(registration)
+
+    logger.info(
+        "eu_ai_act_registration_submitted",
+        group_id=str(group_id),
+        registration_id=str(registration.id),
+    )
+
+    return {
+        "registration_id": str(registration.id),
+        "group_id": str(group_id),
+        "status": "submitted",
+        "submitted_at": now.isoformat(),
+        "message": "Registration submitted successfully. Status will be updated "
+                   "when the EU AI database processes the submission.",
+    }
+
+
+async def get_registration_status(
+    db: AsyncSession,
+    group_id: str | UUID,
+) -> dict:
+    """Get the current EU database registration status for a group.
+
+    Returns the latest registration submission status, or indicates
+    no registration exists.
+    """
+    if isinstance(group_id, str):
+        group_id = UUID(group_id)
+
+    result = await db.execute(
+        select(RegistrationSubmission)
+        .where(RegistrationSubmission.group_id == group_id)
+        .order_by(RegistrationSubmission.created_at.desc())
+        .limit(1)
+    )
+    registration = result.scalars().first()
+
+    if not registration:
+        return {
+            "group_id": str(group_id),
+            "status": "not_started",
+            "registration_id": None,
+            "payload": None,
+            "submitted_at": None,
+        }
+
+    return {
+        "group_id": str(group_id),
+        "status": registration.status,
+        "registration_id": str(registration.id),
+        "payload": registration.payload,
+        "submitted_at": (
+            registration.submitted_at.isoformat()
+            if registration.submitted_at
+            else None
+        ),
     }

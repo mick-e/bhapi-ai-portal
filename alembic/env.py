@@ -45,6 +45,7 @@ from src.integrations.developer_portal import DeveloperApp, WebhookEndpoint, Web
 from src.risk.enterprise_policy import AIUsagePolicy, PolicyViolation  # noqa: F401
 from src.blocking.url_filter import URLFilterRule, URLCategory  # noqa: F401
 from src.alerts.correlation import AlertCorrelation  # noqa: F401
+from src.alerts.push import PushToken  # noqa: F401
 from src.age_tier.models import AgeTierConfig  # noqa: F401
 from src.social.models import Profile, SocialPost, PostComment, PostLike, Hashtag, PostHashtag, Follow  # noqa: F401
 from src.contacts.models import Contact, ContactApproval  # noqa: F401
@@ -54,6 +55,7 @@ from src.governance.eu_ai_act import ConformityAssessment, TechnicalDocumentatio
 from src.messaging.models import Conversation, ConversationMember, Message, MessageMedia  # noqa: F401
 from src.compliance.uk_aadc_models import AadcAssessment, PrivacyDefault  # noqa: F401
 from src.compliance.australian_models import AgeVerificationRecord, ESafetyReport, CyberbullyingCase  # noqa: F401
+from src.device_agent.models import DeviceSession, AppUsageRecord, ScreenTimeRecord  # noqa: F401
 
 config = context.config
 
