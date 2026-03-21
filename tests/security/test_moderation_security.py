@@ -332,13 +332,13 @@ async def test_admin_sees_all_reports(admin_client, member_client):
     await member_client.post("/api/v1/moderation/reports", json={
         "target_type": "post",
         "target_id": str(uuid.uuid4()),
-        "reason": "Member report",
+        "reason": "inappropriate",
     })
     # Admin creates a report
     await admin_client.post("/api/v1/moderation/reports", json={
         "target_type": "post",
         "target_id": str(uuid.uuid4()),
-        "reason": "Admin report",
+        "reason": "spam",
     })
 
     resp = await admin_client.get("/api/v1/moderation/reports")
