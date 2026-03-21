@@ -60,3 +60,48 @@ class ContactListResponse(BaseModel):
     total: int
     page: int
     page_size: int
+
+
+class ContactWithProfileResponse(BaseModel):
+    """Contact with enriched requester/target profile info."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    requester_id: UUID
+    target_id: UUID
+    status: str
+    parent_approval_status: str
+    created_at: datetime
+    requester_display_name: str | None = None
+    requester_age_tier: str | None = None
+    requester_avatar_url: str | None = None
+    target_display_name: str | None = None
+    target_age_tier: str | None = None
+    target_avatar_url: str | None = None
+
+
+class ContactWithProfileListResponse(BaseModel):
+    """Paginated list of contacts with profile info."""
+
+    items: list[ContactWithProfileResponse]
+    total: int
+    page: int
+    page_size: int
+
+
+class BatchApprovalRequest(BaseModel):
+    """Batch approve or deny multiple contact requests."""
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    contact_ids: list[UUID] = Field(..., min_length=1, description="List of contact IDs")
+    decision: str = Field(..., pattern="^(approve|deny)$", description="approve or deny")
+
+
+class BatchApprovalResponse(BaseModel):
+    """Result of batch approval operation."""
+
+    processed: int
+    failed: int
+    errors: list[dict] = Field(default_factory=list)

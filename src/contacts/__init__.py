@@ -6,8 +6,10 @@ Other modules should import only from this file.
 
 from src.contacts.service import (
     approve_as_parent,
+    batch_approve_as_parent,
     block_contact,
     get_pending_approvals,
+    get_pending_with_profiles,
     list_contacts,
     respond_to_request,
     send_request,
@@ -15,8 +17,10 @@ from src.contacts.service import (
 
 __all__ = [
     "approve_as_parent",
+    "batch_approve_as_parent",
     "block_contact",
     "get_pending_approvals",
+    "get_pending_with_profiles",
     "list_contacts",
     "respond_to_request",
     "send_request",

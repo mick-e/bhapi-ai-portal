@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.age_tier import get_permissions
 from src.age_tier.rules import AgeTier
+from src.alerts.push import expo_push_service
 from src.contacts.models import Contact, ContactApproval
 from src.exceptions import ConflictError, ForbiddenError, NotFoundError, ValidationError
 
@@ -152,6 +153,34 @@ async def send_request(
         target_id=str(target_id),
         parent_approval=parent_approval_status,
     )
+
+    # Notify parent if approval is required
+    if parent_approval_status == "pending":
+        parent_id = await _get_parent_for_user(db, requester_id)
+        if parent_id:
+            try:
+                await expo_push_service.send_notification(
+                    db=db,
+                    user_id=parent_id,
+                    title="Contact Approval Needed",
+                    body="Your child has sent a new contact request that needs your approval.",
+                    data={
+                        "type": "contact_approval",
+                        "contact_id": str(contact.id),
+                    },
+                )
+                logger.info(
+                    "contact_parent_notified",
+                    contact_id=str(contact.id),
+                    parent_user_id=str(parent_id),
+                )
+            except Exception as exc:
+                logger.warning(
+                    "contact_parent_notification_failed",
+                    contact_id=str(contact.id),
+                    parent_user_id=str(parent_id),
+                    error=str(exc),
+                )
 
     return contact
 
@@ -431,4 +460,106 @@ async def get_pending_approvals(
         "total": total,
         "page": page,
         "page_size": page_size,
+    }
+
+
+async def get_pending_with_profiles(
+    db: AsyncSession,
+    parent_user_id: UUID,
+    page: int = 1,
+    page_size: int = 20,
+) -> dict:
+    """List contacts awaiting parent approval, enriched with requester/target profiles.
+
+    Returns items with requester_display_name, requester_age_tier, target_display_name.
+    """
+    from src.social.models import Profile
+
+    # Get base pending approvals
+    pending = await get_pending_approvals(db, parent_user_id, page, page_size)
+
+    if not pending["items"]:
+        return pending
+
+    # Collect all user IDs to fetch profiles
+    user_ids = set()
+    for contact in pending["items"]:
+        user_ids.add(contact.requester_id)
+        user_ids.add(contact.target_id)
+
+    # Fetch profiles in bulk
+    result = await db.execute(
+        select(Profile).where(Profile.user_id.in_(list(user_ids)))
+    )
+    profiles = {p.user_id: p for p in result.scalars().all()}
+
+    # Enrich items
+    enriched = []
+    for contact in pending["items"]:
+        req_profile = profiles.get(contact.requester_id)
+        tgt_profile = profiles.get(contact.target_id)
+        enriched.append({
+            "id": contact.id,
+            "requester_id": contact.requester_id,
+            "target_id": contact.target_id,
+            "status": contact.status,
+            "parent_approval_status": contact.parent_approval_status,
+            "created_at": contact.created_at,
+            "requester_display_name": req_profile.display_name if req_profile else None,
+            "requester_age_tier": req_profile.age_tier if req_profile else None,
+            "requester_avatar_url": req_profile.avatar_url if req_profile else None,
+            "target_display_name": tgt_profile.display_name if tgt_profile else None,
+            "target_age_tier": tgt_profile.age_tier if tgt_profile else None,
+            "target_avatar_url": tgt_profile.avatar_url if tgt_profile else None,
+        })
+
+    return {
+        "items": enriched,
+        "total": pending["total"],
+        "page": pending["page"],
+        "page_size": pending["page_size"],
+    }
+
+
+async def batch_approve_as_parent(
+    db: AsyncSession,
+    parent_user_id: UUID,
+    contact_ids: list[UUID],
+    decision: str,
+) -> dict:
+    """Batch approve or deny multiple contact requests.
+
+    Returns dict with processed count and failed count.
+    Each contact is validated individually — failures don't block others.
+    """
+    processed = 0
+    failed = 0
+    errors = []
+
+    for contact_id in contact_ids:
+        try:
+            await approve_as_parent(db, contact_id, parent_user_id, decision)
+            processed += 1
+        except Exception as exc:
+            failed += 1
+            errors.append({"contact_id": str(contact_id), "error": str(exc)})
+            logger.warning(
+                "batch_approve_item_failed",
+                contact_id=str(contact_id),
+                parent_user_id=str(parent_user_id),
+                error=str(exc),
+            )
+
+    logger.info(
+        "batch_approve_complete",
+        parent_user_id=str(parent_user_id),
+        decision=decision,
+        processed=processed,
+        failed=failed,
+    )
+
+    return {
+        "processed": processed,
+        "failed": failed,
+        "errors": errors,
     }

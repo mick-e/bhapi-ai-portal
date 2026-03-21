@@ -92,3 +92,33 @@ async def list_pending_approvals(
     return await service.get_pending_approvals(
         db, auth.user_id, page=page, page_size=page_size,
     )
+
+
+@router.get(
+    "/pending-with-profiles",
+    response_model=schemas.ContactWithProfileListResponse,
+)
+async def list_pending_with_profiles(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List contacts pending my parental approval with requester/target profiles."""
+    return await service.get_pending_with_profiles(
+        db, auth.user_id, page=page, page_size=page_size,
+    )
+
+
+@router.post("/batch-approve", response_model=schemas.BatchApprovalResponse)
+async def batch_approve(
+    body: schemas.BatchApprovalRequest,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Batch approve or deny multiple contact requests (parent only)."""
+    result = await service.batch_approve_as_parent(
+        db, auth.user_id, body.contact_ids, body.decision,
+    )
+    await db.commit()
+    return result

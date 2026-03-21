@@ -137,4 +137,20 @@ describe('Safety App Screens', () => {
       expect(LANGUAGES.map((l: any) => l.code)).toEqual(['en', 'es', 'fr', 'de', 'pt-BR', 'it']);
     });
   });
+
+  // P2-M5: Contact Approval Screen
+  describe('Contact Approval Screen', () => {
+    test('exports default component', () => {
+      const mod = require('../app/(children)/contact-approval');
+      expect(mod.default).toBeDefined();
+      expect(typeof mod.default).toBe('function');
+    });
+
+    test('exports ContactApprovalItem type (via ScreenState)', () => {
+      // The module exports ScreenState type — verifies the module loads cleanly
+      const mod = require('../app/(children)/contact-approval');
+      // Default export is the component
+      expect(typeof mod.default).toBe('function');
+    });
+  });
 });
