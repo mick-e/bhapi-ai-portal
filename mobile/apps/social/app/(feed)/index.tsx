@@ -18,18 +18,26 @@ import {
   StyleSheet,
 } from 'react-native';
 import { colors, spacing, typography } from '@bhapi/config';
+import type { AgeTier } from '@bhapi/config';
 import type { FeedItem } from '@bhapi/types';
+import { AgeTierGate } from '@bhapi/ui';
 
 // PostCard will be imported from @bhapi/ui once registered in index.ts
 // For now, inline rendering of feed items.
 
 type FeedState = 'loading' | 'loaded' | 'error';
 
+// User's age tier — in production, sourced from auth context or profile
+// Default to 'teen' for adults/parents who have no age tier restriction
+const DEFAULT_AGE_TIER: AgeTier = 'teen';
+
 export default function FeedScreen() {
   const [items, setItems] = useState<FeedItem[]>([]);
   const [state, setState] = useState<FeedState>('loading');
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  // In production, this comes from the user's profile/auth context
+  const [ageTier] = useState<AgeTier>(DEFAULT_AGE_TIER);
 
   useEffect(() => {
     loadFeed();
@@ -147,6 +155,24 @@ export default function FeedScreen() {
   return React.createElement(
     View,
     { style: styles.container, accessibilityLabel: 'Feed' },
+    // Video upload button — gated by can_upload_video permission
+    React.createElement(
+      AgeTierGate,
+      { permission: 'can_upload_video', ageTier },
+      React.createElement(
+        TouchableOpacity,
+        {
+          style: styles.videoUploadButton,
+          accessibilityLabel: 'Upload video',
+          accessibilityRole: 'button',
+        },
+        React.createElement(
+          Text,
+          { style: styles.videoUploadText },
+          'Upload Video'
+        )
+      )
+    ),
     React.createElement(FlatList, {
       data: items,
       keyExtractor: (item: FeedItem) => item.post.id,
@@ -290,6 +316,22 @@ const styles = StyleSheet.create({
     color: colors.primary[700],
     fontSize: typography.sizes.base,
     fontWeight: '500',
+    fontFamily: typography.fontFamily,
+  },
+  videoUploadButton: {
+    backgroundColor: colors.accent[500],
+    borderRadius: 8,
+    padding: spacing.md,
+    marginHorizontal: spacing.md,
+    marginTop: spacing.md,
+    alignItems: 'center',
+    minHeight: 44,
+    justifyContent: 'center',
+  },
+  videoUploadText: {
+    color: '#FFFFFF',
+    fontSize: typography.sizes.base,
+    fontWeight: '600',
     fontFamily: typography.fontFamily,
   },
 });

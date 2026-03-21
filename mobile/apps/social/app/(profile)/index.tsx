@@ -15,15 +15,21 @@ import {
   StyleSheet,
 } from 'react-native';
 import { colors, spacing, typography } from '@bhapi/config';
-import { Avatar, Badge } from '@bhapi/ui';
+import type { AgeTier } from '@bhapi/config';
+import { Avatar, Badge, AgeTierGate } from '@bhapi/ui';
 import type { Profile } from '@bhapi/types';
 
 type ProfileState = 'loading' | 'loaded' | 'error';
+
+// User's age tier — in production, sourced from auth context or profile
+const DEFAULT_AGE_TIER: AgeTier = 'teen';
 
 export default function ProfileScreen() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [state, setState] = useState<ProfileState>('loading');
   const [error, setError] = useState('');
+  // In production, this comes from the user's profile/auth context
+  const [ageTier] = useState<AgeTier>(DEFAULT_AGE_TIER);
 
   useEffect(() => {
     loadProfile();
@@ -166,6 +172,29 @@ export default function ProfileScreen() {
       Text,
       { style: styles.memberSince },
       `Member since ${profile?.created_at ?? '--'}`
+    ),
+
+    // Create group chat — gated by can_create_group_chat permission
+    React.createElement(
+      View,
+      { style: styles.actionSection },
+      React.createElement(
+        AgeTierGate,
+        { permission: 'can_create_group_chat', ageTier },
+        React.createElement(
+          TouchableOpacity,
+          {
+            style: styles.createGroupButton,
+            accessibilityLabel: 'Create group chat',
+            accessibilityRole: 'button',
+          },
+          React.createElement(
+            Text,
+            { style: styles.createGroupText },
+            'Create Group Chat'
+          )
+        )
+      )
     )
   );
 }
@@ -254,6 +283,25 @@ const styles = StyleSheet.create({
     color: colors.primary[700],
     fontSize: typography.sizes.base,
     fontWeight: '500',
+    fontFamily: typography.fontFamily,
+  },
+  actionSection: {
+    marginTop: spacing.lg,
+    width: '100%',
+  },
+  createGroupButton: {
+    backgroundColor: colors.primary[600],
+    borderRadius: 8,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+    minHeight: 44,
+    justifyContent: 'center',
+  },
+  createGroupText: {
+    color: '#FFFFFF',
+    fontSize: typography.sizes.base,
+    fontWeight: '600',
     fontFamily: typography.fontFamily,
   },
 });

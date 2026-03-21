@@ -17,7 +17,8 @@ import {
   StyleSheet,
 } from 'react-native';
 import { colors, spacing, typography } from '@bhapi/config';
-import { Avatar } from '@bhapi/ui';
+import type { AgeTier } from '@bhapi/config';
+import { Avatar, AgeTierGate } from '@bhapi/ui';
 
 interface Conversation {
   id: string;
@@ -30,10 +31,15 @@ interface Conversation {
 
 type ChatListState = 'loading' | 'loaded' | 'error';
 
+// User's age tier — in production, sourced from auth context or profile
+const DEFAULT_AGE_TIER: AgeTier = 'teen';
+
 export default function ChatListScreen() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [state, setState] = useState<ChatListState>('loading');
   const [error, setError] = useState('');
+  // In production, this comes from the user's profile/auth context
+  const [ageTier] = useState<AgeTier>(DEFAULT_AGE_TIER);
 
   useEffect(() => {
     loadConversations();
@@ -143,26 +149,31 @@ export default function ChatListScreen() {
       { style: styles.heading, accessibilityRole: 'header' },
       'Messages'
     ),
-    React.createElement(FlatList, {
-      data: conversations,
-      keyExtractor: (item: Conversation) => item.id,
-      renderItem: renderConversation,
-      contentContainerStyle: styles.listContent,
-      ListEmptyComponent: React.createElement(
-        View,
-        { style: styles.emptyContainer },
-        React.createElement(
-          Text,
-          { style: styles.emptyTitle },
-          'No messages yet'
+    // Entire messaging UI gated by can_message permission
+    React.createElement(
+      AgeTierGate,
+      { permission: 'can_message', ageTier },
+      React.createElement(FlatList, {
+        data: conversations,
+        keyExtractor: (item: Conversation) => item.id,
+        renderItem: renderConversation,
+        contentContainerStyle: styles.listContent,
+        ListEmptyComponent: React.createElement(
+          View,
+          { style: styles.emptyContainer },
+          React.createElement(
+            Text,
+            { style: styles.emptyTitle },
+            'No messages yet'
+          ),
+          React.createElement(
+            Text,
+            { style: styles.emptyText },
+            'Add friends to start chatting!'
+          )
         ),
-        React.createElement(
-          Text,
-          { style: styles.emptyText },
-          'Add friends to start chatting!'
-        )
-      ),
-    })
+      })
+    )
   );
 }
 

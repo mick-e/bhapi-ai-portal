@@ -31,4 +31,7 @@ export type { MessageBubbleProps } from './MessageBubble';
 export { ContactRequest, contactRequestStyles } from './ContactRequest';
 export type { ContactRequestProps } from './ContactRequest';
 
+export { AgeTierGate, ageTierGateStyles, checkTierPermission, getFeatureDescription } from './AgeTierGate';
+export type { AgeTierGateProps } from './AgeTierGate';
+
 export const UI_VERSION = '0.3.0';
