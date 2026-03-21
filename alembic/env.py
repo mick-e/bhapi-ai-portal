@@ -49,7 +49,7 @@ from src.alerts.push import PushToken  # noqa: F401
 from src.age_tier.models import AgeTierConfig  # noqa: F401
 from src.social.models import Profile, SocialPost, PostComment, PostLike, Hashtag, PostHashtag, Follow  # noqa: F401
 from src.contacts.models import Contact, ContactApproval  # noqa: F401
-from src.moderation.models import ModerationQueue, ModerationDecision, ContentReport, MediaAsset  # noqa: F401
+from src.moderation.models import ModerationQueue, ModerationDecision, ContentReport, MediaAsset, ModerationAppeal, ModeratorAssignment, SLAMetric, PatternDetection  # noqa: F401
 from src.governance.models import GovernancePolicy, GovernanceAudit, GovernanceImportLog  # noqa: F401
 from src.governance.eu_ai_act import ConformityAssessment, TechnicalDocumentation, RiskManagementRecord, BiasTestResult  # noqa: F401
 from src.messaging.models import Conversation, ConversationMember, Message, MessageMedia  # noqa: F401

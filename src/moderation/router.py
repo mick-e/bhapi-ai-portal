@@ -9,6 +9,13 @@ from src.auth.middleware import get_current_user
 from src.database import get_db
 from src.exceptions import ForbiddenError
 from src.moderation.schemas import (
+    AppealCreate,
+    AppealDecisionRequest,
+    AppealResponse,
+    AssignModeratorRequest,
+    AssignModeratorResponse,
+    BulkActionRequest,
+    BulkActionResponse,
     ContentReportCreate,
     ContentReportResponse,
     ContentReportStatusUpdate,
@@ -16,14 +23,18 @@ from src.moderation.schemas import (
     ModerationDecisionCreate,
     ModerationQueueCreate,
     ModerationQueueResponse,
+    PatternsResponse,
     QueueListResponse,
     ReportListResponse,
+    SLAMetricsResponse,
     TakedownRequest,
 )
 from src.moderation.service import (
     REPORT_REASON_LABELS,
     ReportReason,
+    create_appeal,
     create_content_report,
+    decide_appeal,
     get_dashboard_stats,
     get_queue_entry,
     get_report,
@@ -116,6 +127,52 @@ async def decide_queue_entry(
     }
 
 
+# ---------------------------------------------------------------------------
+# Appeal endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.post("/queue/{queue_id}/appeal", response_model=AppealResponse, status_code=201)
+async def appeal_queue_entry(
+    queue_id: UUID,
+    data: AppealCreate,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Appeal a moderation decision.
+
+    Any authenticated user can appeal once per queue item.
+    The queue entry must be in 'rejected' status.
+    Creates an escalated entry for human re-review.
+    """
+    appeal = await create_appeal(
+        db,
+        queue_id=queue_id,
+        appellant_id=auth.user_id,
+        reason=data.reason,
+    )
+    return appeal
+
+
+@router.patch("/appeals/{appeal_id}/decide", response_model=AppealResponse)
+async def decide_appeal_endpoint(
+    appeal_id: UUID,
+    data: AppealDecisionRequest,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Accept or deny an appeal (moderators only)."""
+    _require_moderator(auth)
+    appeal = await decide_appeal(
+        db,
+        appeal_id=appeal_id,
+        decision=data.decision,
+        reviewer_id=auth.user_id,
+        review_note=data.review_note,
+    )
+    return appeal
+
+
 @router.post("/takedown")
 async def takedown_endpoint(
     data: TakedownRequest,
@@ -148,6 +205,73 @@ async def dashboard_endpoint(
     """Get moderation dashboard statistics."""
     stats = await get_dashboard_stats(db)
     return stats
+
+
+# ---------------------------------------------------------------------------
+# Dashboard endpoints — queue assignment, bulk actions, SLA, patterns
+# ---------------------------------------------------------------------------
+
+
+@router.post("/queue/{queue_id}/assign", response_model=AssignModeratorResponse)
+async def assign_moderator_endpoint(
+    queue_id: UUID,
+    data: AssignModeratorRequest,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Assign a moderator to a queue item."""
+    _require_moderator(auth)
+    from src.moderation.dashboard_service import assign_moderator
+
+    assignment = await assign_moderator(db, queue_id=queue_id, moderator_id=data.moderator_id)
+    return assignment
+
+
+@router.post("/bulk-action", response_model=BulkActionResponse)
+async def bulk_action_endpoint(
+    data: BulkActionRequest,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Perform a bulk moderation action on multiple queue items."""
+    _require_moderator(auth)
+    from src.moderation.dashboard_service import bulk_action
+
+    result = await bulk_action(
+        db,
+        queue_ids=data.queue_ids,
+        action=data.action,
+        moderator_id=auth.user_id,
+        reason=data.reason,
+    )
+    return result
+
+
+@router.get("/sla", response_model=SLAMetricsResponse)
+async def sla_metrics_endpoint(
+    pipeline: str | None = Query(None, description="Filter by pipeline"),
+    hours: int = Query(24, ge=1, le=720, description="Lookback window in hours"),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get SLA metrics for moderation pipelines."""
+    from src.moderation.dashboard_service import get_sla_metrics
+
+    metrics = await get_sla_metrics(db, pipeline=pipeline, hours=hours)
+    return metrics
+
+
+@router.get("/patterns", response_model=PatternsResponse)
+async def patterns_endpoint(
+    hours: int = Query(24, ge=1, le=720, description="Lookback window in hours"),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Detect content moderation patterns."""
+    from src.moderation.dashboard_service import detect_patterns
+
+    patterns = await detect_patterns(db, hours=hours)
+    return {"patterns": patterns, "total": len(patterns)}
 
 
 @router.get("/reports/reasons")
