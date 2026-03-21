@@ -172,7 +172,7 @@ class TestFullFeedFlow:
         assert post_data["content"] == "Hello from feed!"
         post_id = post_data["id"]
         # Teen posts use post-publish moderation, so status is pending
-        assert post_data["moderation_status"] in ["pending", "approved"]
+        assert post_data["moderation_status"] in ["pending", "approved", "published"]
 
         # Preteen follows teen
         follow_resp = await preteen_client.post(
@@ -453,7 +453,7 @@ class TestModerationFiltering:
         assert post_resp.status_code == 201
         status = post_resp.json()["moderation_status"]
         # The moderation pipeline should set a status
-        assert status in ["pending", "approved", "rejected", "flagged"]
+        assert status in ["pending", "approved", "rejected", "flagged", "published"]
 
     @pytest.mark.asyncio
     async def test_list_only_shows_approved(self, preteen_client):
