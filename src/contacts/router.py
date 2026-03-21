@@ -6,6 +6,7 @@ import structlog
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.age_tier.middleware import enforce_age_tier
 from src.auth.middleware import get_current_user
 from src.contacts import schemas, service
 from src.database import get_db
@@ -13,7 +14,7 @@ from src.schemas import GroupContext
 
 logger = structlog.get_logger()
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(enforce_age_tier)])
 
 
 @router.post("/request/{user_id}", response_model=schemas.ContactResponse, status_code=201)

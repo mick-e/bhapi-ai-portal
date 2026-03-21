@@ -6,6 +6,7 @@ import structlog
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.age_tier.middleware import enforce_age_tier
 from src.auth.middleware import get_current_user
 from src.database import get_db
 from src.schemas import GroupContext
@@ -13,7 +14,7 @@ from src.social import schemas, service
 
 logger = structlog.get_logger()
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(enforce_age_tier)])
 
 
 # ---------------------------------------------------------------------------
