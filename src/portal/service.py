@@ -18,15 +18,19 @@ from src.portal.schemas import (
     ActivityFeedItem,
     AlertSummary,
     CategoryCount,
+    ChildProfileResponse,
     DashboardAlertItem,
     DashboardResponse,
     FlaggedContentItem,
     GroupSettingsResponse,
     NotificationPreferences,
+    PlatformBreakdown,
     RiskSummary,
+    RiskTrendPoint,
     SocialActivityResponse,
     SpendSummary,
     TimeTrendPoint,
+    TimelineItem,
     TrendDataPoint,
     UpdateGroupSettingsRequest,
 )
@@ -781,5 +785,346 @@ async def get_social_activity(
         time_spent_minutes_7d=time_spent_minutes_7d,
         time_spent_minutes_30d=time_spent_minutes_30d,
         time_trend=time_trend,
+        degraded_sections=degraded_sections,
+    )
+
+
+async def get_child_profile(
+    db: AsyncSession, member_id: UUID, auth: GroupContext,
+) -> ChildProfileResponse:
+    """Aggregate a combined child profile with AI + social timeline,
+    risk trend, and platform breakdown (P2-M4).
+
+    Only parents / school_admins / club_admins may call this.
+    Each section is wrapped in try/except for partial-failure resilience.
+    """
+    from src.exceptions import ForbiddenError, NotFoundError, ValidationError
+    from src.moderation.models import ModerationDecision
+
+    admin_roles = {"parent", "school_admin", "club_admin"}
+    if auth.role not in admin_roles:
+        raise ForbiddenError("Parent or admin role required to view child profile")
+
+    if not auth.group_id:
+        raise ValidationError("No group context")
+
+    degraded_sections: list[str] = []
+
+    # --- Resolve target member ---
+    member_result = await db.execute(
+        select(GroupMember).where(
+            GroupMember.id == member_id,
+            GroupMember.group_id == auth.group_id,
+        )
+    )
+    member = member_result.scalar_one_or_none()
+    if not member:
+        raise NotFoundError("Member", str(member_id))
+
+    child_user_id = member.user_id
+    now = datetime.now(timezone.utc)
+    seven_days_ago = now - timedelta(days=7)
+    thirty_days_ago = now - timedelta(days=30)
+
+    # --- Avatar & age tier (from social profile if exists) ---
+    avatar_url: str | None = None
+    age_tier: str | None = None
+    try:
+        if child_user_id:
+            from src.social.models import Profile
+            prof_result = await db.execute(
+                select(Profile).where(Profile.user_id == child_user_id)
+            )
+            profile = prof_result.scalar_one_or_none()
+            if profile:
+                avatar_url = profile.avatar_url
+                age_tier = profile.age_tier
+    except Exception:
+        logger.exception("child_profile_avatar_failed", member_id=str(member_id))
+        degraded_sections.append("profile")
+
+    # --- Risk score (percentage of non-high events in last 30 days) ---
+    risk_score = 0
+    try:
+        total_risk_30d_r = await db.execute(
+            select(func.count(RiskEvent.id)).where(
+                RiskEvent.member_id == member_id,
+                RiskEvent.created_at >= thirty_days_ago,
+            )
+        )
+        total_risk_30d = total_risk_30d_r.scalar() or 0
+
+        high_risk_30d_r = await db.execute(
+            select(func.count(RiskEvent.id)).where(
+                RiskEvent.member_id == member_id,
+                RiskEvent.created_at >= thirty_days_ago,
+                RiskEvent.severity.in_(["critical", "high"]),
+            )
+        )
+        high_risk_30d = high_risk_30d_r.scalar() or 0
+
+        if total_risk_30d > 0:
+            # Higher score = safer; 100 if no high/critical events
+            risk_score = max(0, min(100, 100 - int(high_risk_30d / total_risk_30d * 100)))
+        else:
+            risk_score = 100  # no risk events = safest
+    except Exception:
+        logger.exception("child_profile_risk_score_failed", member_id=str(member_id))
+        degraded_sections.append("risk_score")
+
+    # --- Unified timeline (last 50 events across all sources) ---
+    timeline: list[TimelineItem] = []
+    try:
+        # AI captures
+        captures_r = await db.execute(
+            select(CaptureEvent).where(
+                CaptureEvent.member_id == member_id,
+            ).order_by(CaptureEvent.timestamp.desc()).limit(20)
+        )
+        for ce in captures_r.scalars().all():
+            timeline.append(TimelineItem(
+                id=ce.id,
+                source="ai",
+                event_type=ce.event_type,
+                title=f"AI {ce.event_type} on {ce.platform}",
+                detail="",
+                platform=ce.platform,
+                timestamp=ce.timestamp.isoformat() if ce.timestamp else "",
+            ))
+    except Exception:
+        logger.exception("child_profile_ai_timeline_failed", member_id=str(member_id))
+        degraded_sections.append("ai_timeline")
+
+    try:
+        # Social posts
+        if child_user_id:
+            posts_r = await db.execute(
+                select(SocialPost).where(
+                    SocialPost.author_id == child_user_id,
+                ).order_by(SocialPost.created_at.desc()).limit(15)
+            )
+            for sp in posts_r.scalars().all():
+                timeline.append(TimelineItem(
+                    id=sp.id,
+                    source="social_post",
+                    event_type="post",
+                    title=f"Social post ({sp.post_type})",
+                    detail=sp.content[:100] if sp.content else "",
+                    platform="bhapi_social",
+                    timestamp=sp.created_at.isoformat() if sp.created_at else "",
+                ))
+    except Exception:
+        logger.exception("child_profile_social_timeline_failed", member_id=str(member_id))
+        degraded_sections.append("social_timeline")
+
+    try:
+        # Messages sent
+        if child_user_id:
+            msgs_r = await db.execute(
+                select(Message).where(
+                    Message.sender_id == child_user_id,
+                ).order_by(Message.created_at.desc()).limit(10)
+            )
+            for msg in msgs_r.scalars().all():
+                timeline.append(TimelineItem(
+                    id=msg.id,
+                    source="social_message",
+                    event_type="message",
+                    title="Chat message",
+                    detail=msg.content[:100] if msg.content else "",
+                    platform="bhapi_social",
+                    timestamp=msg.created_at.isoformat() if msg.created_at else "",
+                ))
+    except Exception:
+        logger.exception("child_profile_messages_timeline_failed", member_id=str(member_id))
+        degraded_sections.append("messages_timeline")
+
+    try:
+        # Risk events
+        risk_r = await db.execute(
+            select(RiskEvent).where(
+                RiskEvent.member_id == member_id,
+            ).order_by(RiskEvent.created_at.desc()).limit(10)
+        )
+        for re_item in risk_r.scalars().all():
+            timeline.append(TimelineItem(
+                id=re_item.id,
+                source="risk",
+                event_type="risk_event",
+                title=f"Risk: {re_item.category}",
+                detail="",
+                severity=re_item.severity,
+                timestamp=re_item.created_at.isoformat() if re_item.created_at else "",
+            ))
+    except Exception:
+        logger.exception("child_profile_risk_timeline_failed", member_id=str(member_id))
+        degraded_sections.append("risk_timeline")
+
+    try:
+        # Moderation decisions (for content authored by child)
+        if child_user_id:
+            # Get child's post IDs
+            child_post_ids_r = await db.execute(
+                select(SocialPost.id).where(SocialPost.author_id == child_user_id)
+            )
+            child_post_ids = [r[0] for r in child_post_ids_r.all()]
+            if child_post_ids:
+                mod_r = await db.execute(
+                    select(ModerationQueue).where(
+                        ModerationQueue.content_id.in_(child_post_ids),
+                        ModerationQueue.status.in_(["rejected", "escalated"]),
+                    ).order_by(ModerationQueue.created_at.desc()).limit(5)
+                )
+                for mq in mod_r.scalars().all():
+                    timeline.append(TimelineItem(
+                        id=mq.id,
+                        source="moderation",
+                        event_type="moderation_decision",
+                        title=f"Content {mq.status}",
+                        detail=f"{mq.content_type} moderation",
+                        severity="high" if mq.status == "rejected" else "medium",
+                        platform="bhapi_social",
+                        timestamp=mq.created_at.isoformat() if mq.created_at else "",
+                    ))
+    except Exception:
+        logger.exception("child_profile_moderation_timeline_failed", member_id=str(member_id))
+        degraded_sections.append("moderation_timeline")
+
+    # Sort timeline by timestamp descending
+    timeline.sort(key=lambda t: t.timestamp, reverse=True)
+    timeline = timeline[:50]  # cap at 50
+
+    # --- Risk trend ---
+    risk_trend_7d: list[RiskTrendPoint] = []
+    risk_trend_30d: list[RiskTrendPoint] = []
+    try:
+        for days, trend_list in [(7, risk_trend_7d), (30, risk_trend_30d)]:
+            for i in range(days - 1, -1, -1):
+                day_start = (now - timedelta(days=i)).replace(
+                    hour=0, minute=0, second=0, microsecond=0,
+                )
+                day_end = day_start + timedelta(days=1)
+
+                total_r = await db.execute(
+                    select(func.count(RiskEvent.id)).where(
+                        RiskEvent.member_id == member_id,
+                        RiskEvent.created_at >= day_start,
+                        RiskEvent.created_at < day_end,
+                    )
+                )
+                high_r = await db.execute(
+                    select(func.count(RiskEvent.id)).where(
+                        RiskEvent.member_id == member_id,
+                        RiskEvent.created_at >= day_start,
+                        RiskEvent.created_at < day_end,
+                        RiskEvent.severity.in_(["critical", "high"]),
+                    )
+                )
+                trend_list.append(RiskTrendPoint(
+                    date=day_start.strftime("%Y-%m-%d"),
+                    count=total_r.scalar() or 0,
+                    high_count=high_r.scalar() or 0,
+                ))
+    except Exception:
+        logger.exception("child_profile_risk_trend_failed", member_id=str(member_id))
+        degraded_sections.append("risk_trend")
+
+    # --- Platform breakdown ---
+    platform_breakdown: list[PlatformBreakdown] = []
+    try:
+        platform_r = await db.execute(
+            select(CaptureEvent.platform, func.count(CaptureEvent.id)).where(
+                CaptureEvent.member_id == member_id,
+                CaptureEvent.timestamp >= thirty_days_ago,
+            ).group_by(CaptureEvent.platform).order_by(func.count(CaptureEvent.id).desc())
+        )
+        platform_rows = platform_r.all()
+
+        # Add social activity as a platform
+        social_event_count = 0
+        if child_user_id:
+            social_r = await db.execute(
+                select(func.count(SocialPost.id)).where(
+                    SocialPost.author_id == child_user_id,
+                    SocialPost.created_at >= thirty_days_ago,
+                )
+            )
+            social_event_count = social_r.scalar() or 0
+
+        total_events = sum(r[1] for r in platform_rows) + social_event_count
+
+        for name, count in platform_rows:
+            pct = (count / total_events * 100) if total_events > 0 else 0
+            platform_breakdown.append(PlatformBreakdown(
+                platform=name, event_count=count, percentage=round(pct, 1),
+            ))
+        if social_event_count > 0:
+            pct = (social_event_count / total_events * 100) if total_events > 0 else 0
+            platform_breakdown.append(PlatformBreakdown(
+                platform="bhapi_social", event_count=social_event_count,
+                percentage=round(pct, 1),
+            ))
+    except Exception:
+        logger.exception("child_profile_platform_breakdown_failed", member_id=str(member_id))
+        degraded_sections.append("platform_breakdown")
+
+    # --- Quick-action counts ---
+    unresolved_alerts = 0
+    pending_contacts = 0
+    flagged_count = 0
+    try:
+        ua_r = await db.execute(
+            select(func.count(Alert.id)).where(
+                Alert.member_id == member_id,
+                Alert.status != "acknowledged",
+            )
+        )
+        unresolved_alerts = ua_r.scalar() or 0
+    except Exception:
+        logger.exception("child_profile_unresolved_alerts_failed", member_id=str(member_id))
+        degraded_sections.append("unresolved_alerts")
+
+    try:
+        if child_user_id:
+            pc_r = await db.execute(
+                select(func.count(Contact.id)).where(
+                    or_(
+                        Contact.requester_id == child_user_id,
+                        Contact.target_id == child_user_id,
+                    ),
+                    Contact.status == "pending",
+                )
+            )
+            pending_contacts = pc_r.scalar() or 0
+    except Exception:
+        logger.exception("child_profile_pending_contacts_failed", member_id=str(member_id))
+        degraded_sections.append("pending_contacts")
+
+    try:
+        if child_user_id:
+            fc_r = await db.execute(
+                select(func.count(SocialPost.id)).where(
+                    SocialPost.author_id == child_user_id,
+                    SocialPost.moderation_status.in_(["rejected", "removed"]),
+                )
+            )
+            flagged_count = fc_r.scalar() or 0
+    except Exception:
+        logger.exception("child_profile_flagged_count_failed", member_id=str(member_id))
+        degraded_sections.append("flagged_content")
+
+    return ChildProfileResponse(
+        member_id=member.id,
+        member_name=member.display_name,
+        avatar_url=avatar_url,
+        age_tier=age_tier,
+        risk_score=risk_score,
+        timeline=timeline,
+        risk_trend_7d=risk_trend_7d,
+        risk_trend_30d=risk_trend_30d,
+        platform_breakdown=platform_breakdown,
+        unresolved_alerts=unresolved_alerts,
+        pending_contact_requests=pending_contacts,
+        flagged_content_count=flagged_count,
         degraded_sections=degraded_sections,
     )

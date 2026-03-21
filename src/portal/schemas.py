@@ -212,3 +212,68 @@ class SocialActivityResponse(BaseSchema):
 
     # Degraded sections (partial failure resilience)
     degraded_sections: list[str] = Field(default_factory=list)
+
+
+# ─── Child Profile (P2-M4) ──────────────────────────────────────────────────
+
+
+class TimelineItem(BaseSchema):
+    """Unified timeline entry combining AI captures, social posts, messages,
+    risk events, and moderation decisions."""
+
+    id: UUID
+    source: str  # ai, social_post, social_message, risk, moderation
+    event_type: str  # prompt, response, post, message, risk_event, moderation_decision
+    title: str
+    detail: str = ""
+    severity: str | None = None  # critical, high, medium, low, info
+    platform: str | None = None  # chatgpt, gemini, etc. (AI captures) or "bhapi_social"
+    timestamp: str
+
+
+class RiskTrendPoint(BaseSchema):
+    """Daily risk event count for trend chart."""
+
+    date: str
+    count: int = 0
+    high_count: int = 0  # critical + high severity
+
+
+class PlatformBreakdown(BaseSchema):
+    """Usage breakdown by platform."""
+
+    platform: str
+    event_count: int = 0
+    percentage: float = 0.0
+
+
+class ChildProfileResponse(BaseSchema):
+    """Combined child profile with AI + social timeline, risk trend,
+    platform breakdown and quick-action metadata (P2-M4).
+
+    Returned by GET /api/v1/portal/child-profile?member_id=<id>.
+    """
+
+    member_id: UUID
+    member_name: str
+    avatar_url: str | None = None
+    age_tier: str | None = None  # young (5-9), preteen (10-12), teen (13-15)
+    risk_score: int = 0  # 0-100 aggregate safety score
+
+    # Unified timeline (newest first)
+    timeline: list[TimelineItem] = Field(default_factory=list)
+
+    # Risk trend (daily counts)
+    risk_trend_7d: list[RiskTrendPoint] = Field(default_factory=list)
+    risk_trend_30d: list[RiskTrendPoint] = Field(default_factory=list)
+
+    # Platform breakdown (AI + social combined)
+    platform_breakdown: list[PlatformBreakdown] = Field(default_factory=list)
+
+    # Quick-action counts
+    unresolved_alerts: int = 0
+    pending_contact_requests: int = 0
+    flagged_content_count: int = 0
+
+    # Degraded sections (partial failure resilience)
+    degraded_sections: list[str] = Field(default_factory=list)
