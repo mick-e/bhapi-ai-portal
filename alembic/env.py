@@ -57,6 +57,7 @@ from src.compliance.uk_aadc_models import AadcAssessment, PrivacyDefault  # noqa
 from src.compliance.australian_models import AgeVerificationRecord, ESafetyReport, CyberbullyingCase  # noqa: F401
 from src.device_agent.models import DeviceSession, AppUsageRecord, ScreenTimeRecord  # noqa: F401
 from src.intelligence.models import SocialGraphEdge, AbuseSignal, BehavioralBaseline  # noqa: F401
+from src.moderation.parental_safeguards import TrustedAdultRequest, CustodyConfig, TeenPrivacyConfig  # noqa: F401
 
 config = context.config
 

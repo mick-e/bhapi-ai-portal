@@ -40,4 +40,7 @@ export type { ReportDialogProps, ReportTargetType, ReportReasonValue, ReportReas
 export { ModerationNotice, moderationNoticeStyles } from './ModerationNotice';
 export type { ModerationNoticeProps, ModerationState } from './ModerationNotice';
 
-export const UI_VERSION = '0.4.0';
+export { TrustedAdultButton, trustedAdultButtonStyles } from './TrustedAdultButton';
+export type { TrustedAdultButtonProps } from './TrustedAdultButton';
+
+export const UI_VERSION = '0.5.0';

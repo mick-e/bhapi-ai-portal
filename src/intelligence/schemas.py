@@ -44,7 +44,10 @@ class AbuseSignalCreate(BaseModel):
     """Create an abuse signal."""
 
     member_id: UUID
-    signal_type: str = Field(..., pattern=r"^(age_gap|isolation|influence|farming)$")
+    signal_type: str = Field(
+        ...,
+        pattern=r"^(age_gap|isolation|influence|farming|age_misrepresentation|account_farming|coordinated_harassment|report_abuse|content_manipulation)$",
+    )
     severity: str = Field(default="medium", pattern=r"^(low|medium|high|critical)$")
     details: dict | None = None
 
