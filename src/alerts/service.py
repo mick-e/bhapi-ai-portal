@@ -21,6 +21,7 @@ async def create_alert(db: AsyncSession, data: AlertCreate) -> Alert:
         group_id=data.group_id,
         member_id=data.member_id,
         risk_event_id=data.risk_event_id,
+        source=data.source if hasattr(data, "source") else "ai",
         severity=data.severity,
         title=data.title,
         body=data.body,
@@ -145,6 +146,101 @@ async def get_preferences(
         )
     )
     return list(result.scalars().all())
+
+
+_SEVERITY_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}
+
+
+async def get_unified_alerts(
+    db: AsyncSession,
+    group_id: UUID,
+    member_id: UUID | None = None,
+    source_filter: str | None = None,
+    page: int = 1,
+    page_size: int = 50,
+) -> dict:
+    """Get unified alerts across AI, social, and device sources.
+
+    Returns paginated alerts sorted by severity (critical first) then timestamp (newest first).
+    Optional filters: member_id, source (ai|social|device).
+    """
+    from sqlalchemy import case, func
+
+    base = select(Alert).where(Alert.group_id == group_id)
+    count_q = select(func.count(Alert.id)).where(Alert.group_id == group_id)
+
+    if member_id:
+        base = base.where(Alert.member_id == member_id)
+        count_q = count_q.where(Alert.member_id == member_id)
+
+    if source_filter:
+        base = base.where(Alert.source == source_filter)
+        count_q = count_q.where(Alert.source == source_filter)
+
+    total = (await db.execute(count_q)).scalar() or 0
+
+    # Sort by severity (critical first) then by created_at descending
+    severity_sort = case(
+        {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4},
+        value=Alert.severity,
+        else_=5,
+    )
+    offset = (page - 1) * page_size
+    query = base.order_by(severity_sort, Alert.created_at.desc()).offset(offset).limit(page_size)
+    result = await db.execute(query)
+    alerts = list(result.scalars().all())
+
+    total_pages = max((total + page_size - 1) // page_size, 1)
+
+    return {
+        "items": alerts,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": total_pages,
+    }
+
+
+async def create_social_alert(
+    db: AsyncSession,
+    group_id: UUID,
+    member_id: UUID,
+    severity: str,
+    title: str,
+    body: str,
+) -> Alert:
+    """Create a social-source alert (e.g., when moderation rejects content)."""
+    data = AlertCreate(
+        group_id=group_id,
+        member_id=member_id,
+        source="social",
+        severity=severity,
+        title=title,
+        body=body,
+        channel="portal",
+    )
+    return await create_alert(db, data)
+
+
+async def create_device_alert(
+    db: AsyncSession,
+    group_id: UUID,
+    member_id: UUID,
+    severity: str,
+    title: str,
+    body: str,
+) -> Alert:
+    """Create a device-source alert (e.g., screen time exceeded, new app detected)."""
+    data = AlertCreate(
+        group_id=group_id,
+        member_id=member_id,
+        source="device",
+        severity=severity,
+        title=title,
+        body=body,
+        channel="portal",
+    )
+    return await create_alert(db, data)
 
 
 async def update_preferences(

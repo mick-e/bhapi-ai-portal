@@ -14,6 +14,7 @@ class AlertCreate(BaseSchema):
     group_id: UUID
     member_id: UUID | None = None
     risk_event_id: UUID | None = None
+    source: str = Field(default="ai", pattern="^(ai|social|device)$")
     severity: str = Field(pattern="^(critical|high|medium|low|info)$")
     title: str = Field(min_length=1, max_length=500)
     body: str = Field(min_length=1, max_length=2000)
@@ -27,6 +28,7 @@ class AlertResponse(BaseSchema):
     group_id: UUID
     member_id: UUID | None
     risk_event_id: UUID | None
+    source: str = "ai"
     severity: str
     title: str
     body: str

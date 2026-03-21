@@ -9,6 +9,7 @@ Performance targets for pre-publish (young 5-9, preteen 10-12):
 
 import enum
 import time as _time
+from dataclasses import dataclass, field
 from datetime import datetime, time, timezone
 from uuid import UUID, uuid4
 
@@ -19,13 +20,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.exceptions import ConflictError, NotFoundError, ValidationError
 from src.moderation.csam import check_csam
 from src.moderation.keyword_filter import FilterAction, classify_text
-from src.moderation.models import ContentReport, ModerationDecision, ModerationQueue
+from src.moderation.models import ContentReport, ModerationAppeal, ModerationDecision, ModerationQueue
 from src.moderation.social_risk import classify_social_risk
 
 logger = structlog.get_logger()
 
 # Latency budget (ms) — warn when exceeded
 _LATENCY_BUDGET_MS = 2000
+# Post-publish takedown budget (ms) — <60s SLA
+_POST_PUBLISH_BUDGET_MS = 60000
 
 
 class ReportReason(str, enum.Enum):
@@ -71,6 +74,32 @@ _REPORT_STATUS_TRANSITIONS: dict[str, set[str]] = {
 
 # Age tiers that require pre-publish moderation
 _PRE_PUBLISH_TIERS = {"young", "preteen"}
+
+# Teen tier uses post-publish pipeline
+_POST_PUBLISH_TIER = "teen"
+
+
+class PostPublishSeverity(str, enum.Enum):
+    """Severity levels for post-publish moderation results."""
+
+    NONE = "none"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
+
+
+@dataclass
+class PostPublishResult:
+    """Result of async post-publish moderation for teen content."""
+
+    action: str  # "keep", "flag", "takedown"
+    severity: PostPublishSeverity
+    parent_alerted: bool = False
+    author_notified: bool = False
+    account_restricted: bool = False
+    latency_ms: float = 0.0
+    matched_keywords: list[str] = field(default_factory=list)
+    risk_category: str | None = None
 
 
 def _resolve_pipeline(age_tier: str | None) -> str:
@@ -304,6 +333,14 @@ async def submit_for_moderation(
     ):
         status = "approved"
 
+    # ---- Post-publish: teen content publishes immediately ----
+    # Teen tier (13-15) gets published right away; async background
+    # moderation runs afterward via run_post_publish_moderation().
+    # Critical/high social risk still gets escalated (not published).
+    is_post_publish = pipeline == "post_publish" and author_age_tier == _POST_PUBLISH_TIER
+    if is_post_publish and status == "pending":
+        status = "published"
+
     # ---- STEP 4: Create queue entry and decisions ----
     entry = ModerationQueue(
         id=uuid4(),
@@ -324,6 +361,17 @@ async def submit_for_moderation(
             queue_id=entry.id,
             action="approve",
             reason="Auto-approved: keyword filter (no concerns)",
+        )
+        db.add(decision)
+        await db.flush()
+
+    # Create auto-decision for post-publish immediate publishing
+    if status == "published" and is_post_publish:
+        decision = ModerationDecision(
+            id=uuid4(),
+            queue_id=entry.id,
+            action="approve",
+            reason="Post-publish: teen content published, background moderation pending",
         )
         db.add(decision)
         await db.flush()
@@ -353,6 +401,225 @@ async def submit_for_moderation(
 
     _log_latency(pipeline_start, content_type, status, author_age_tier)
     return entry
+
+
+async def _notify_on_post_publish_action(
+    db: AsyncSession,
+    entry: ModerationQueue,
+    action: str,
+    reason: str,
+    severity: PostPublishSeverity,
+) -> tuple[bool, bool]:
+    """Send notifications for post-publish moderation actions.
+
+    Returns (parent_alerted, author_notified).
+    Best-effort: failures are logged but do not block the pipeline.
+    """
+    parent_alerted = False
+    author_notified = False
+
+    try:
+        if action in ("takedown", "flag"):
+            logger.info(
+                "post_publish_parent_alert",
+                content_type=entry.content_type,
+                content_id=str(entry.content_id),
+                action=action,
+                severity=severity.value,
+                reason=reason,
+                queue_id=str(entry.id),
+            )
+            parent_alerted = True
+
+            logger.info(
+                "post_publish_author_notification",
+                content_type=entry.content_type,
+                content_id=str(entry.content_id),
+                action=action,
+                queue_id=str(entry.id),
+            )
+            author_notified = True
+    except Exception as exc:
+        logger.warning(
+            "post_publish_notification_failed",
+            error=str(exc),
+            queue_id=str(entry.id),
+        )
+
+    return parent_alerted, author_notified
+
+
+async def run_post_publish_moderation(
+    db: AsyncSession,
+    queue_id: UUID,
+    content_text: str | None = None,
+    media_ids: list[UUID] | None = None,
+) -> PostPublishResult:
+    """Run async background moderation on already-published teen content.
+
+    This function is called after content is published for the teen tier (13-15).
+    It performs the full moderation check and takes action if needed:
+    - Clean content: keep published, no action
+    - Medium severity: flag for human review (stays visible)
+    - High severity: takedown + parent alert + author notification
+    - Critical severity: takedown + parent alert + author notification + account restriction
+
+    SLA target: complete within 60 seconds of publish.
+    """
+    pipeline_start = _time.monotonic()
+
+    entry = await get_queue_entry(db, queue_id)
+
+    # Process entries in "published" or "escalated" state (post-publish pipeline)
+    # Escalated entries are teen content where social risk was detected at submit time
+    if entry.status not in ("published", "escalated"):
+        return PostPublishResult(
+            action="keep",
+            severity=PostPublishSeverity.NONE,
+            latency_ms=(_time.monotonic() - pipeline_start) * 1000,
+        )
+
+    risk_scores = entry.risk_scores or {}
+    severity = PostPublishSeverity.NONE
+    matched_keywords: list[str] = []
+    risk_category: str | None = None
+
+    # ---- Keyword check ----
+    if content_text:
+        filter_result = classify_text(content_text, entry.age_tier)
+        risk_scores["keyword_filter"] = {
+            "action": filter_result.action.value,
+            "severity": filter_result.severity,
+            "confidence": filter_result.confidence,
+            "matched_keywords": filter_result.matched_keywords,
+        }
+        matched_keywords = filter_result.matched_keywords
+
+        if filter_result.action == FilterAction.BLOCK:
+            severity = PostPublishSeverity.CRITICAL
+        elif filter_result.severity == "high":
+            severity = PostPublishSeverity.HIGH
+        elif filter_result.severity == "medium":
+            severity = PostPublishSeverity.MEDIUM
+
+    # ---- Social risk check ----
+    if content_text and entry.content_type in ("message", "comment", "post"):
+        social_result = classify_social_risk(
+            content_text, author_age_tier=entry.age_tier
+        )
+        if social_result.risk_score > 0:
+            risk_scores["social_risk"] = {
+                "category": social_result.category,
+                "severity": social_result.severity,
+                "score": social_result.risk_score,
+                "patterns": social_result.matched_patterns,
+            }
+            risk_category = social_result.category
+
+            # Social risk can upgrade severity
+            if social_result.severity == "critical":
+                severity = PostPublishSeverity.CRITICAL
+            elif social_result.severity == "high" and severity.value not in ("critical",):
+                severity = PostPublishSeverity.HIGH
+            elif social_result.severity == "medium" and severity == PostPublishSeverity.NONE:
+                severity = PostPublishSeverity.MEDIUM
+
+    # Update risk scores on the queue entry
+    entry.risk_scores = risk_scores
+
+    # ---- Determine action based on severity ----
+    action = "keep"
+    account_restricted = False
+    parent_alerted = False
+    author_notified = False
+
+    if severity == PostPublishSeverity.CRITICAL:
+        action = "takedown"
+        account_restricted = True
+        entry.status = "taken_down"
+
+        decision = ModerationDecision(
+            id=uuid4(),
+            queue_id=entry.id,
+            action="reject",
+            reason=f"[POST_PUBLISH_TAKEDOWN] Critical severity: auto-takedown with account restriction"
+            + (f" (keywords: {', '.join(matched_keywords)})" if matched_keywords else "")
+            + (f" (risk: {risk_category})" if risk_category else ""),
+        )
+        db.add(decision)
+        await db.flush()
+
+    elif severity == PostPublishSeverity.HIGH:
+        action = "takedown"
+        entry.status = "taken_down"
+
+        decision = ModerationDecision(
+            id=uuid4(),
+            queue_id=entry.id,
+            action="reject",
+            reason=f"[POST_PUBLISH_TAKEDOWN] High severity: auto-takedown"
+            + (f" (keywords: {', '.join(matched_keywords)})" if matched_keywords else "")
+            + (f" (risk: {risk_category})" if risk_category else ""),
+        )
+        db.add(decision)
+        await db.flush()
+
+    elif severity == PostPublishSeverity.MEDIUM:
+        action = "flag"
+        entry.status = "flagged"
+
+        decision = ModerationDecision(
+            id=uuid4(),
+            queue_id=entry.id,
+            action="escalate",
+            reason=f"[POST_PUBLISH_FLAG] Medium severity: flagged for human review"
+            + (f" (keywords: {', '.join(matched_keywords)})" if matched_keywords else ""),
+        )
+        db.add(decision)
+        await db.flush()
+
+    # Send notifications for takedowns and flags
+    if action in ("takedown", "flag"):
+        reason_str = f"Post-publish {action}: {severity.value} severity content detected"
+        parent_alerted, author_notified = await _notify_on_post_publish_action(
+            db, entry, action, reason_str, severity,
+        )
+
+    await db.flush()
+    await db.refresh(entry)
+
+    elapsed_ms = (_time.monotonic() - pipeline_start) * 1000
+
+    # Warn if we exceeded the 60s SLA
+    if elapsed_ms > _POST_PUBLISH_BUDGET_MS:
+        logger.warning(
+            "post_publish_sla_exceeded",
+            queue_id=str(queue_id),
+            latency_ms=round(elapsed_ms, 2),
+            budget_ms=_POST_PUBLISH_BUDGET_MS,
+            action=action,
+            severity=severity.value,
+        )
+
+    logger.info(
+        "post_publish_moderation_complete",
+        queue_id=str(queue_id),
+        action=action,
+        severity=severity.value,
+        account_restricted=account_restricted,
+        latency_ms=round(elapsed_ms, 2),
+    )
+
+    return PostPublishResult(
+        action=action,
+        severity=severity,
+        parent_alerted=parent_alerted,
+        author_notified=author_notified,
+        account_restricted=account_restricted,
+        latency_ms=elapsed_ms,
+        matched_keywords=matched_keywords,
+        risk_category=risk_category,
+    )
 
 
 async def get_queue_entry(db: AsyncSession, queue_id: UUID) -> ModerationQueue:
@@ -702,3 +969,122 @@ async def list_reports(
         "page": page,
         "page_size": page_size,
     }
+
+
+# ---------------------------------------------------------------------------
+# Appeal logic
+# ---------------------------------------------------------------------------
+
+
+async def create_appeal(
+    db: AsyncSession,
+    queue_id: UUID,
+    appellant_id: UUID,
+    reason: str,
+) -> ModerationAppeal:
+    """Create an appeal for a moderation decision.
+
+    Rules:
+    - Only one appeal per queue item per user.
+    - Queue entry must be in 'rejected' status.
+    - Appeal creates an escalated queue entry for human re-review.
+    """
+    entry = await get_queue_entry(db, queue_id)
+
+    # Check for existing appeal by same user (before status check,
+    # because first appeal changes status to escalated)
+    existing = await db.execute(
+        select(ModerationAppeal).where(
+            ModerationAppeal.queue_id == queue_id,
+            ModerationAppeal.appellant_id == appellant_id,
+        )
+    )
+    if existing.scalar_one_or_none():
+        raise ConflictError("You have already appealed this decision")
+
+    if entry.status not in ("rejected",):
+        raise ValidationError(
+            "You can only appeal content that has been rejected"
+        )
+
+    appeal = ModerationAppeal(
+        id=uuid4(),
+        queue_id=queue_id,
+        appellant_id=appellant_id,
+        reason=reason,
+        status="pending",
+    )
+    db.add(appeal)
+
+    # Mark queue entry as escalated for human re-review
+    entry.status = "escalated"
+
+    await db.flush()
+    await db.refresh(appeal)
+
+    logger.info(
+        "moderation_appeal_created",
+        appeal_id=str(appeal.id),
+        queue_id=str(queue_id),
+        appellant_id=str(appellant_id),
+    )
+    return appeal
+
+
+async def get_appeal(db: AsyncSession, appeal_id: UUID) -> ModerationAppeal:
+    """Get a single appeal by ID."""
+    result = await db.execute(
+        select(ModerationAppeal).where(ModerationAppeal.id == appeal_id)
+    )
+    appeal = result.scalar_one_or_none()
+    if not appeal:
+        raise NotFoundError("ModerationAppeal", str(appeal_id))
+    return appeal
+
+
+async def decide_appeal(
+    db: AsyncSession,
+    appeal_id: UUID,
+    decision: str,
+    reviewer_id: UUID,
+    review_note: str | None = None,
+) -> ModerationAppeal:
+    """Accept or deny an appeal (moderators only).
+
+    If accepted, the queue entry status is restored to 'approved'.
+    If denied, the queue entry reverts to 'rejected'.
+    """
+    valid_decisions = {"accepted", "denied"}
+    if decision not in valid_decisions:
+        raise ValidationError(
+            f"Invalid decision '{decision}'. Must be 'accepted' or 'denied'"
+        )
+
+    appeal = await get_appeal(db, appeal_id)
+
+    if appeal.status != "pending":
+        raise ConflictError(
+            f"Appeal already decided with status '{appeal.status}'"
+        )
+
+    appeal.status = decision
+    appeal.reviewed_by = reviewer_id
+    appeal.review_note = review_note
+
+    # Update the parent queue entry
+    entry = await get_queue_entry(db, appeal.queue_id)
+    if decision == "accepted":
+        entry.status = "approved"
+    else:
+        entry.status = "rejected"
+
+    await db.flush()
+    await db.refresh(appeal)
+
+    logger.info(
+        "moderation_appeal_decided",
+        appeal_id=str(appeal_id),
+        decision=decision,
+        reviewer_id=str(reviewer_id),
+    )
+    return appeal

@@ -7,6 +7,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
 import { colors, spacing, typography } from '@bhapi/config';
+import { ModerationNotice } from './ModerationNotice';
+import type { ModerationState } from './ModerationNotice';
 
 export interface PostCardAuthor {
   display_name: string;
@@ -23,6 +25,14 @@ export interface PostCardProps {
   moderationStatus: 'pending' | 'approved' | 'rejected' | 'flagged';
   createdAt: string;
   hashtags?: string[];
+  /** Whether this is the current user's own post (shows ModerationNotice). */
+  isOwnPost?: boolean;
+  /** Rejection reason from moderator. */
+  moderationReason?: string;
+  /** Whether the user has already appealed. */
+  hasAppealed?: boolean;
+  /** Callback for appeal button. */
+  onAppealPress?: () => void;
   onPress?: () => void;
   onLikePress?: () => void;
   onCommentPress?: () => void;
@@ -48,6 +58,10 @@ export function PostCard({
   moderationStatus,
   createdAt,
   hashtags,
+  isOwnPost = false,
+  moderationReason,
+  hasAppealed = false,
+  onAppealPress,
   onPress,
   onLikePress,
   onCommentPress,
@@ -112,6 +126,15 @@ export function PostCard({
           )
         : null
     ),
+    // Moderation notice for own posts (pending/rejected/removed)
+    isOwnPost && moderationStatus !== 'approved'
+      ? React.createElement(ModerationNotice, {
+          status: (moderationStatus === 'flagged' ? 'rejected' : moderationStatus) as ModerationState,
+          reason: moderationReason,
+          hasAppealed,
+          onAppeal: onAppealPress,
+        })
+      : null,
     // Content
     React.createElement(
       Text,

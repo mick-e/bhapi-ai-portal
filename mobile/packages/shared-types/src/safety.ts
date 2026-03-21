@@ -2,10 +2,13 @@
  * Safety and monitoring types for the Bhapi Safety (parent) app.
  */
 
+export type AlertSource = 'ai' | 'social' | 'device';
+
 export interface Alert {
   id: string;
   group_id: string;
   member_id: string;
+  source: AlertSource;
   severity: AlertSeverity;
   category: AlertCategory;
   title: string;

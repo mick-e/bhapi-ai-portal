@@ -25,6 +25,9 @@ class Alert(Base, UUIDMixin, TimestampMixin):
     risk_event_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), nullable=True
     )
+    source: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="ai", server_default="ai"
+    )  # ai, social, device
     severity: Mapped[str] = mapped_column(
         String(20), nullable=False
     )  # critical, high, medium, low, info
@@ -55,6 +58,7 @@ class Alert(Base, UUIDMixin, TimestampMixin):
     __table_args__ = (
         Index("ix_alerts_group_severity_created", "group_id", "severity", "created_at"),
         Index("ix_alerts_group_status_created", "group_id", "status", "created_at"),
+        Index("ix_alerts_group_source_created", "group_id", "source", "created_at"),
     )
 
 

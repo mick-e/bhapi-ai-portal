@@ -21,6 +21,8 @@ import {
 } from 'react-native';
 import { colors, spacing, typography } from '@bhapi/config';
 import type { AgeTier } from '@bhapi/config';
+import { ModerationNotice } from '@bhapi/ui';
+import type { ModerationState } from '@bhapi/ui';
 
 // ---------------------------------------------------------------------------
 // Age-tier post length limits (mirrors backend TIER_PERMISSIONS)
@@ -59,6 +61,7 @@ export default function CreatePostScreen() {
   const [content, setContent] = useState('');
   const [submitState, setSubmitState] = useState<SubmitState>('idle');
   const [moderationMessage, setModerationMessage] = useState('');
+  const [moderationState, setModerationState] = useState<ModerationState>('pending');
   const [errorMessage, setErrorMessage] = useState('');
   const [ageTier] = useState<AgeTier>(DEFAULT_AGE_TIER);
   const [mediaIds, setMediaIds] = useState<string[]>([]);
@@ -89,7 +92,8 @@ export default function CreatePostScreen() {
       //     : 'Your post is being reviewed by our safety team.'
       // );
 
-      // Placeholder:
+      // Placeholder — in production, parse response.moderation_status
+      setModerationState('pending');
       setModerationMessage('Your post is being reviewed by our safety team.');
       setSubmitState('success');
     } catch (e: any) {
@@ -107,6 +111,10 @@ export default function CreatePostScreen() {
     return React.createElement(
       View,
       { style: styles.centered },
+      // ModerationNotice banner
+      React.createElement(ModerationNotice, {
+        status: moderationState,
+      }),
       React.createElement(
         Text,
         { style: styles.successText, accessibilityRole: 'alert' },

@@ -37,4 +37,7 @@ export type { AgeTierGateProps } from './AgeTierGate';
 export { ReportDialog, reportDialogStyles, DEFAULT_REPORT_REASONS } from './ReportDialog';
 export type { ReportDialogProps, ReportTargetType, ReportReasonValue, ReportReasonOption } from './ReportDialog';
 
+export { ModerationNotice, moderationNoticeStyles } from './ModerationNotice';
+export type { ModerationNoticeProps, ModerationState } from './ModerationNotice';
+
 export const UI_VERSION = '0.4.0';

@@ -20,6 +20,7 @@ from src.alerts.schemas import (
 from src.alerts.service import (
     get_alert,
     get_preferences,
+    get_unified_alerts,
     update_preferences,
 )
 from src.alerts.sse import sse_manager
@@ -48,6 +49,7 @@ def _alert_to_frontend(alert: Alert, member_names: dict[UUID, str]) -> dict:
         "id": str(alert.id),
         "group_id": str(alert.group_id),
         "type": "risk" if alert.risk_event_id else "system",
+        "source": getattr(alert, "source", "ai") or "ai",
         "severity": _SEVERITY_MAP.get(alert.severity, "info"),
         "title": alert.title,
         "message": alert.body,
@@ -135,6 +137,64 @@ async def list_alerts_endpoint(
         "page": page,
         "page_size": page_size,
         "total_pages": total_pages,
+    }
+
+
+@router.get("/unified")
+async def unified_alerts_endpoint(
+    group_id: UUID | None = Query(None, description="Group ID (defaults to user's primary group)"),
+    member_id: UUID | None = Query(None, description="Filter by member ID"),
+    source: str | None = Query(None, description="Filter by source: ai, social, device"),
+    severity: str | None = Query(None, description="Filter by severity"),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=100),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Unified alert feed across AI, social, and device sources.
+
+    Returns alerts sorted by severity (critical first) then timestamp (newest first).
+    Supports filtering by source (ai|social|device) and member_id.
+    """
+    gid = _gid(group_id, auth)
+    result = await get_unified_alerts(
+        db, gid,
+        member_id=member_id,
+        source_filter=source,
+        page=page,
+        page_size=page_size,
+    )
+
+    alerts = result["items"]
+
+    # Apply severity filter if provided
+    if severity:
+        reverse_map = {"critical": "critical", "error": "high", "warning": "medium", "info": ["low", "info"]}
+        backend_sev = reverse_map.get(severity, severity)
+        if isinstance(backend_sev, list):
+            alerts = [a for a in alerts if a.severity in backend_sev]
+        else:
+            alerts = [a for a in alerts if a.severity == backend_sev]
+
+    # Member name lookup
+    member_ids = {a.member_id for a in alerts if a.member_id}
+    member_names: dict[UUID, str] = {}
+    if member_ids:
+        mr = await db.execute(
+            select(GroupMember.id, GroupMember.display_name).where(
+                GroupMember.id.in_(member_ids)
+            )
+        )
+        member_names = {row[0]: row[1] for row in mr.all()}
+
+    items = [_alert_to_frontend(a, member_names) for a in alerts]
+
+    return {
+        "items": items,
+        "total": result["total"],
+        "page": result["page"],
+        "page_size": result["page_size"],
+        "total_pages": result["total_pages"],
     }
 
 

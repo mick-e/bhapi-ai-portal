@@ -13,7 +13,7 @@ export type {
   ProfileUpdateRequest, ProfileVisibility,
 } from './social';
 export type {
-  Alert, AlertSeverity, AlertCategory, AlertStatus,
+  Alert, AlertSource, AlertSeverity, AlertCategory, AlertStatus,
   DashboardData, ActivitySummary, RiskOverview, RiskCategoryCount,
   PlatformUsage, SafetyScore, CaptureEvent, TimeBudget, FamilyAgreement,
 } from './safety';
