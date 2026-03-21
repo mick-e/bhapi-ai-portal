@@ -11,8 +11,8 @@ from src.database import get_db
 from src.dependencies import resolve_group_id as _resolve_group_id
 from src.exceptions import BhapiException
 from src.groups.privacy import get_child_dashboard
-from src.portal.schemas import DashboardResponse, GroupSettingsResponse, UpdateGroupSettingsRequest
-from src.portal.service import get_dashboard, get_group_settings, update_group_settings
+from src.portal.schemas import DashboardResponse, GroupSettingsResponse, SocialActivityResponse, UpdateGroupSettingsRequest
+from src.portal.service import get_dashboard, get_group_settings, get_social_activity, update_group_settings
 from src.schemas import GroupContext
 
 logger = structlog.get_logger()
@@ -55,6 +55,30 @@ async def patch_settings(
 ):
     """Update group settings."""
     return await update_group_settings(db, _resolve_group_id(group_id, auth), auth.user_id, data)
+
+
+@router.get("/social-activity", response_model=SocialActivityResponse)
+async def social_activity(
+    member_id: UUID = Query(..., description="The child member ID to monitor"),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get aggregated social activity for a child member (P2-M1).
+
+    Requires parent / school_admin / club_admin role.
+    Returns post counts, message counts, contacts, flagged content, and time estimates.
+    """
+    try:
+        return await get_social_activity(db, member_id, auth)
+    except BhapiException:
+        raise
+    except Exception:
+        logger.exception("social_activity_endpoint_failed", user_id=str(auth.user_id))
+        return SocialActivityResponse(
+            member_id=member_id,
+            member_name="Unknown",
+            degraded_sections=["all"],
+        )
 
 
 @router.get("/child-dashboard")

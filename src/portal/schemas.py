@@ -158,3 +158,57 @@ class UpdateGroupSettingsRequest(BaseSchema):
     pii_detection: bool | None = None
     notifications: dict | None = None
     monthly_budget_usd: float | None = None
+
+
+# ─── Social Activity Monitoring ──────────────────────────────────────────────
+
+
+class FlaggedContentItem(BaseSchema):
+    """A single flagged content item for social activity monitoring."""
+
+    id: UUID
+    content_type: str  # post, comment, message
+    content_id: UUID
+    status: str  # pending, approved, rejected, escalated
+    created_at: str
+
+
+class TimeTrendPoint(BaseSchema):
+    """Daily time estimate data point."""
+
+    date: str
+    minutes: int = 0
+
+
+class SocialActivityResponse(BaseSchema):
+    """Aggregated social activity for a child member (P2-M1).
+
+    Returned by GET /api/v1/portal/social-activity?member_id=<id>.
+    """
+
+    member_id: UUID
+    member_name: str
+
+    # Post counts
+    post_count_7d: int = 0
+    post_count_30d: int = 0
+
+    # Message counts
+    message_count_7d: int = 0
+    message_count_30d: int = 0
+
+    # Contacts
+    contact_count: int = 0
+    pending_contact_requests: int = 0
+
+    # Flagged content
+    flagged_content_count: int = 0
+    flagged_items: list[FlaggedContentItem] = Field(default_factory=list)
+
+    # Time estimates (based on post/message activity)
+    time_spent_minutes_7d: int = 0
+    time_spent_minutes_30d: int = 0
+    time_trend: list[TimeTrendPoint] = Field(default_factory=list)
+
+    # Degraded sections (partial failure resilience)
+    degraded_sections: list[str] = Field(default_factory=list)

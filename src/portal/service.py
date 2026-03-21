@@ -4,29 +4,41 @@ from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 import structlog
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.alerts.models import Alert
 from src.billing.models import BudgetThreshold, LLMAccount, SpendRecord
 from src.capture.models import CaptureEvent
+from src.contacts.models import Contact
 from src.groups.models import Group, GroupMember
+from src.messaging.models import ConversationMember, Message
+from src.moderation.models import ModerationQueue
 from src.portal.schemas import (
     ActivityFeedItem,
     AlertSummary,
     CategoryCount,
     DashboardAlertItem,
     DashboardResponse,
+    FlaggedContentItem,
     GroupSettingsResponse,
     NotificationPreferences,
     RiskSummary,
+    SocialActivityResponse,
     SpendSummary,
+    TimeTrendPoint,
     TrendDataPoint,
     UpdateGroupSettingsRequest,
 )
 from src.risk.models import RiskEvent
+from src.schemas import GroupContext
+from src.social.models import SocialPost
 
 logger = structlog.get_logger()
+
+# Time estimate: average minutes per social interaction (post or message)
+_MINUTES_PER_POST = 5
+_MINUTES_PER_MESSAGE = 2
 
 
 async def get_dashboard(db: AsyncSession, group_id: UUID, user_id: UUID) -> DashboardResponse:
@@ -548,3 +560,226 @@ async def update_group_settings(
     await db.refresh(group)
 
     return await get_group_settings(db, group_id, user_id)
+
+
+async def get_social_activity(
+    db: AsyncSession, member_id: UUID, auth: GroupContext,
+) -> SocialActivityResponse:
+    """Aggregate social activity for a child member (P2-M1).
+
+    Only parents / school_admins / club_admins may call this.
+    Each section is wrapped in try/except for partial-failure resilience.
+    """
+    from src.exceptions import ForbiddenError, NotFoundError
+
+    # --- Verify caller has admin role ---
+    admin_roles = {"parent", "school_admin", "club_admin"}
+    if auth.role not in admin_roles:
+        raise ForbiddenError("Parent or admin role required to view social activity")
+
+    if not auth.group_id:
+        from src.exceptions import ValidationError
+        raise ValidationError("No group context")
+
+    # --- Resolve the target member ---
+    degraded_sections: list[str] = []
+
+    member_result = await db.execute(
+        select(GroupMember).where(
+            GroupMember.id == member_id,
+            GroupMember.group_id == auth.group_id,
+        )
+    )
+    member = member_result.scalar_one_or_none()
+    if not member:
+        raise NotFoundError("Member", str(member_id))
+
+    # The child must have a user_id to query social data
+    child_user_id = member.user_id
+
+    now = datetime.now(timezone.utc)
+    seven_days_ago = now - timedelta(days=7)
+    thirty_days_ago = now - timedelta(days=30)
+
+    # --- Post counts ---
+    post_count_7d = 0
+    post_count_30d = 0
+    try:
+        if child_user_id:
+            r7 = await db.execute(
+                select(func.count(SocialPost.id)).where(
+                    SocialPost.author_id == child_user_id,
+                    SocialPost.created_at >= seven_days_ago,
+                )
+            )
+            post_count_7d = r7.scalar() or 0
+
+            r30 = await db.execute(
+                select(func.count(SocialPost.id)).where(
+                    SocialPost.author_id == child_user_id,
+                    SocialPost.created_at >= thirty_days_ago,
+                )
+            )
+            post_count_30d = r30.scalar() or 0
+    except Exception:
+        logger.exception("social_activity_posts_failed", member_id=str(member_id))
+        degraded_sections.append("posts")
+
+    # --- Message counts ---
+    message_count_7d = 0
+    message_count_30d = 0
+    try:
+        if child_user_id:
+            m7 = await db.execute(
+                select(func.count(Message.id)).where(
+                    Message.sender_id == child_user_id,
+                    Message.created_at >= seven_days_ago,
+                )
+            )
+            message_count_7d = m7.scalar() or 0
+
+            m30 = await db.execute(
+                select(func.count(Message.id)).where(
+                    Message.sender_id == child_user_id,
+                    Message.created_at >= thirty_days_ago,
+                )
+            )
+            message_count_30d = m30.scalar() or 0
+    except Exception:
+        logger.exception("social_activity_messages_failed", member_id=str(member_id))
+        degraded_sections.append("messages")
+
+    # --- Contacts ---
+    contact_count = 0
+    pending_contact_requests = 0
+    try:
+        if child_user_id:
+            accepted = await db.execute(
+                select(func.count(Contact.id)).where(
+                    or_(
+                        Contact.requester_id == child_user_id,
+                        Contact.target_id == child_user_id,
+                    ),
+                    Contact.status == "accepted",
+                )
+            )
+            contact_count = accepted.scalar() or 0
+
+            pending = await db.execute(
+                select(func.count(Contact.id)).where(
+                    or_(
+                        Contact.requester_id == child_user_id,
+                        Contact.target_id == child_user_id,
+                    ),
+                    Contact.status == "pending",
+                )
+            )
+            pending_contact_requests = pending.scalar() or 0
+    except Exception:
+        logger.exception("social_activity_contacts_failed", member_id=str(member_id))
+        degraded_sections.append("contacts")
+
+    # --- Flagged content ---
+    flagged_content_count = 0
+    flagged_items: list[FlaggedContentItem] = []
+    try:
+        if child_user_id:
+            # Find flagged posts
+            flagged_post_ids_result = await db.execute(
+                select(SocialPost.id).where(
+                    SocialPost.author_id == child_user_id,
+                    SocialPost.moderation_status.in_(["rejected", "removed"]),
+                )
+            )
+            flagged_post_ids = [r[0] for r in flagged_post_ids_result.all()]
+
+            # Find moderation queue items for the child's content
+            if flagged_post_ids:
+                mod_result = await db.execute(
+                    select(ModerationQueue).where(
+                        ModerationQueue.content_id.in_(flagged_post_ids),
+                        ModerationQueue.status.in_(["rejected", "escalated"]),
+                    ).order_by(ModerationQueue.created_at.desc()).limit(10)
+                )
+                mod_items = list(mod_result.scalars().all())
+                flagged_content_count = len(flagged_post_ids)
+                flagged_items = [
+                    FlaggedContentItem(
+                        id=item.id,
+                        content_type=item.content_type,
+                        content_id=item.content_id,
+                        status=item.status,
+                        created_at=item.created_at.isoformat() if item.created_at else "",
+                    )
+                    for item in mod_items
+                ]
+            else:
+                # Also check moderation queue directly for messages
+                msg_mod_result = await db.execute(
+                    select(func.count(ModerationQueue.id)).where(
+                        ModerationQueue.content_type == "message",
+                        ModerationQueue.status.in_(["rejected", "escalated"]),
+                    )
+                )
+                flagged_content_count = msg_mod_result.scalar() or 0
+    except Exception:
+        logger.exception("social_activity_flagged_failed", member_id=str(member_id))
+        degraded_sections.append("flagged")
+
+    # --- Time estimates ---
+    time_spent_minutes_7d = (post_count_7d * _MINUTES_PER_POST) + (message_count_7d * _MINUTES_PER_MESSAGE)
+    time_spent_minutes_30d = (post_count_30d * _MINUTES_PER_POST) + (message_count_30d * _MINUTES_PER_MESSAGE)
+
+    # --- Time trend (daily for last 7 days) ---
+    time_trend: list[TimeTrendPoint] = []
+    try:
+        if child_user_id:
+            for i in range(6, -1, -1):
+                day_start = (now - timedelta(days=i)).replace(
+                    hour=0, minute=0, second=0, microsecond=0,
+                )
+                day_end = day_start + timedelta(days=1)
+
+                day_posts_r = await db.execute(
+                    select(func.count(SocialPost.id)).where(
+                        SocialPost.author_id == child_user_id,
+                        SocialPost.created_at >= day_start,
+                        SocialPost.created_at < day_end,
+                    )
+                )
+                day_posts = day_posts_r.scalar() or 0
+
+                day_msgs_r = await db.execute(
+                    select(func.count(Message.id)).where(
+                        Message.sender_id == child_user_id,
+                        Message.created_at >= day_start,
+                        Message.created_at < day_end,
+                    )
+                )
+                day_msgs = day_msgs_r.scalar() or 0
+
+                day_minutes = (day_posts * _MINUTES_PER_POST) + (day_msgs * _MINUTES_PER_MESSAGE)
+                time_trend.append(TimeTrendPoint(
+                    date=day_start.strftime("%Y-%m-%d"),
+                    minutes=day_minutes,
+                ))
+    except Exception:
+        logger.exception("social_activity_time_trend_failed", member_id=str(member_id))
+        degraded_sections.append("time_trend")
+
+    return SocialActivityResponse(
+        member_id=member.id,
+        member_name=member.display_name,
+        post_count_7d=post_count_7d,
+        post_count_30d=post_count_30d,
+        message_count_7d=message_count_7d,
+        message_count_30d=message_count_30d,
+        contact_count=contact_count,
+        pending_contact_requests=pending_contact_requests,
+        flagged_content_count=flagged_content_count,
+        flagged_items=flagged_items,
+        time_spent_minutes_7d=time_spent_minutes_7d,
+        time_spent_minutes_30d=time_spent_minutes_30d,
+        time_trend=time_trend,
+        degraded_sections=degraded_sections,
+    )
