@@ -1,35 +1,50 @@
 /**
- * Profile Screen
+ * Profile Screen — Full profile view with avatar, display name, bio,
+ * age tier badge, follower/following counts, post grid/list, edit button.
  *
- * Shows user avatar, display name, bio, follower/following counts.
- * API: GET /api/v1/social/profile/me
- * Response: Profile
+ * API: GET /api/v1/social/profiles/me
+ * API: GET /api/v1/social/posts?author_id=<id>
+ * API: GET /api/v1/social/followers
+ * API: GET /api/v1/social/following
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   ScrollView,
   ActivityIndicator,
   TouchableOpacity,
+  FlatList,
   StyleSheet,
 } from 'react-native';
 import { colors, spacing, typography } from '@bhapi/config';
 import type { AgeTier } from '@bhapi/config';
 import { Avatar, Badge, AgeTierGate } from '@bhapi/ui';
-import type { Profile } from '@bhapi/types';
+import type { Profile, SocialPost, ProfileVisibility } from '@bhapi/types';
 
 type ProfileState = 'loading' | 'loaded' | 'error';
+type PostViewMode = 'grid' | 'list';
 
 // User's age tier — in production, sourced from auth context or profile
 const DEFAULT_AGE_TIER: AgeTier = 'teen';
+
+// Exported constants for testing
+export const POST_PAGE_SIZE = 20;
+export const VISIBILITY_LABELS: Record<string, string> = {
+  public: 'Public',
+  friends_only: 'Friends Only',
+  private: 'Private',
+};
 
 export default function ProfileScreen() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [state, setState] = useState<ProfileState>('loading');
   const [error, setError] = useState('');
-  // In production, this comes from the user's profile/auth context
   const [ageTier] = useState<AgeTier>(DEFAULT_AGE_TIER);
+  const [posts, setPosts] = useState<SocialPost[]>([]);
+  const [postViewMode, setPostViewMode] = useState<PostViewMode>('list');
+  const [followerCount, setFollowerCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
 
   useEffect(() => {
     loadProfile();
@@ -38,15 +53,23 @@ export default function ProfileScreen() {
   async function loadProfile() {
     try {
       setState('loading');
-      // API call: GET /api/v1/social/profile/me
-      // const data = await apiClient.get<Profile>('/api/v1/social/profile/me');
+      // API call: GET /api/v1/social/profiles/me
+      // const data = await apiClient.get<Profile>('/api/v1/social/profiles/me');
       // setProfile(data);
+      // const postsData = await apiClient.get('/api/v1/social/posts?author_id=' + data.user_id);
+      // setPosts(postsData.items);
+      // setFollowerCount(data.follower_count);
+      // setFollowingCount(data.following_count);
       setState('loaded');
     } catch (e: any) {
       setState('error');
       setError(e?.message ?? 'Could not load profile.');
     }
   }
+
+  const togglePostView = useCallback(() => {
+    setPostViewMode((prev) => (prev === 'grid' ? 'list' : 'grid'));
+  }, []);
 
   if (state === 'loading') {
     return React.createElement(
@@ -83,13 +106,15 @@ export default function ProfileScreen() {
       contentContainerStyle: styles.content,
       accessibilityLabel: 'Profile',
     },
-    // Avatar
+
+    // Avatar (with upload indicator)
     React.createElement(
       View,
       { style: styles.avatarContainer },
       React.createElement(Avatar, {
         name: profile?.display_name ?? '?',
         size: 'lg',
+        ...(profile?.avatar_url ? { source: { uri: profile.avatar_url } } : {}),
       })
     ),
 
@@ -124,6 +149,17 @@ export default function ProfileScreen() {
         )
       : null,
 
+    // Visibility badge
+    React.createElement(
+      View,
+      { style: styles.visibilityContainer },
+      React.createElement(Badge, {
+        text: VISIBILITY_LABELS[(profile as any)?.visibility ?? 'friends_only'] ?? 'Friends Only',
+        variant: 'default',
+        accessibilityLabel: 'Profile visibility',
+      })
+    ),
+
     // Bio
     profile?.bio
       ? React.createElement(
@@ -131,19 +167,27 @@ export default function ProfileScreen() {
           { style: styles.bio },
           profile.bio
         )
-      : null,
+      : React.createElement(
+          Text,
+          { style: styles.bioEmpty },
+          'No bio yet'
+        ),
 
-    // Follower counts
+    // Follower / Following counts (tappable)
     React.createElement(
       View,
       { style: styles.countsRow },
       React.createElement(
-        View,
-        { style: styles.countItem, accessibilityLabel: `${profile?.follower_count ?? 0} followers` },
+        TouchableOpacity,
+        {
+          style: styles.countItem,
+          accessibilityLabel: `${followerCount} followers`,
+          accessibilityRole: 'button',
+        },
         React.createElement(
           Text,
           { style: styles.countValue },
-          String(profile?.follower_count ?? 0)
+          String(followerCount)
         ),
         React.createElement(
           Text,
@@ -152,12 +196,16 @@ export default function ProfileScreen() {
         )
       ),
       React.createElement(
-        View,
-        { style: styles.countItem, accessibilityLabel: `${profile?.following_count ?? 0} following` },
+        TouchableOpacity,
+        {
+          style: styles.countItem,
+          accessibilityLabel: `${followingCount} following`,
+          accessibilityRole: 'button',
+        },
         React.createElement(
           Text,
           { style: styles.countValue },
-          String(profile?.following_count ?? 0)
+          String(followingCount)
         ),
         React.createElement(
           Text,
@@ -165,6 +213,70 @@ export default function ProfileScreen() {
           'Following'
         )
       )
+    ),
+
+    // Edit Profile button (own profile only)
+    React.createElement(
+      TouchableOpacity,
+      {
+        style: styles.editProfileButton,
+        accessibilityLabel: 'Edit Profile',
+        accessibilityRole: 'button',
+      },
+      React.createElement(
+        Text,
+        { style: styles.editProfileText },
+        'Edit Profile'
+      )
+    ),
+
+    // Post view mode toggle
+    React.createElement(
+      View,
+      { style: styles.postViewToggle },
+      React.createElement(
+        TouchableOpacity,
+        {
+          onPress: togglePostView,
+          style: styles.toggleButton,
+          accessibilityLabel: `Switch to ${postViewMode === 'grid' ? 'list' : 'grid'} view`,
+          accessibilityRole: 'button',
+        },
+        React.createElement(
+          Text,
+          { style: styles.toggleText },
+          postViewMode === 'grid' ? 'List View' : 'Grid View'
+        )
+      )
+    ),
+
+    // Post history section
+    React.createElement(
+      View,
+      { style: styles.postsSection },
+      React.createElement(
+        Text,
+        { style: styles.sectionTitle, accessibilityRole: 'header' },
+        'Posts'
+      ),
+      posts.length === 0
+        ? React.createElement(
+            Text,
+            { style: styles.emptyPosts },
+            'No posts yet'
+          )
+        : posts.map((post) =>
+            React.createElement(
+              View,
+              { key: post.id, style: postViewMode === 'grid' ? styles.postGrid : styles.postList },
+              React.createElement(Text, { style: styles.postContent }, post.content),
+              React.createElement(
+                Text,
+                { style: styles.postMeta },
+                `${post.likes_count} likes · ${post.comments_count} comments`
+              )
+            )
+          )
     ),
 
     // Member since
@@ -200,7 +312,7 @@ export default function ProfileScreen() {
 }
 
 // Exported for testing
-export { type ProfileState };
+export { type ProfileState, type PostViewMode };
 
 const styles = StyleSheet.create({
   container: {
@@ -233,6 +345,9 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamily,
   },
   tierContainer: {
+    marginBottom: spacing.xs,
+  },
+  visibilityContainer: {
     marginBottom: spacing.md,
   },
   bio: {
@@ -243,6 +358,14 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     fontFamily: typography.fontFamily,
   },
+  bioEmpty: {
+    fontSize: typography.sizes.base,
+    color: colors.neutral[400],
+    textAlign: 'center',
+    marginBottom: spacing.lg,
+    fontStyle: 'italic',
+    fontFamily: typography.fontFamily,
+  },
   countsRow: {
     flexDirection: 'row',
     gap: spacing.xl,
@@ -250,6 +373,8 @@ const styles = StyleSheet.create({
   },
   countItem: {
     alignItems: 'center',
+    minHeight: 44,
+    justifyContent: 'center',
   },
   countValue: {
     fontSize: typography.sizes.xl,
@@ -260,6 +385,81 @@ const styles = StyleSheet.create({
   countLabel: {
     fontSize: typography.sizes.sm,
     color: colors.neutral[500],
+    fontFamily: typography.fontFamily,
+  },
+  editProfileButton: {
+    borderColor: colors.primary[600],
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.lg,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  editProfileText: {
+    color: colors.primary[600],
+    fontSize: typography.sizes.base,
+    fontWeight: '600',
+    fontFamily: typography.fontFamily,
+  },
+  postViewToggle: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    width: '100%',
+    marginBottom: spacing.sm,
+  },
+  toggleButton: {
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
+  },
+  toggleText: {
+    color: colors.primary[700],
+    fontSize: typography.sizes.sm,
+    fontWeight: '500',
+    fontFamily: typography.fontFamily,
+  },
+  postsSection: {
+    width: '100%',
+    marginBottom: spacing.lg,
+  },
+  sectionTitle: {
+    fontSize: typography.sizes.lg,
+    fontWeight: '600',
+    color: colors.neutral[900],
+    marginBottom: spacing.md,
+    fontFamily: typography.fontFamily,
+  },
+  emptyPosts: {
+    fontSize: typography.sizes.base,
+    color: colors.neutral[400],
+    textAlign: 'center',
+    paddingVertical: spacing.lg,
+    fontFamily: typography.fontFamily,
+  },
+  postGrid: {
+    padding: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.neutral[200],
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  postList: {
+    padding: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.neutral[200],
+  },
+  postContent: {
+    fontSize: typography.sizes.base,
+    color: colors.neutral[800],
+    fontFamily: typography.fontFamily,
+  },
+  postMeta: {
+    fontSize: typography.sizes.sm,
+    color: colors.neutral[500],
+    marginTop: spacing.xs,
     fontFamily: typography.fontFamily,
   },
   memberSince: {

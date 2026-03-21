@@ -109,6 +109,15 @@ export interface ProfileCreateRequest {
   date_of_birth: string;
 }
 
+export interface ProfileUpdateRequest {
+  display_name?: string;
+  bio?: string;
+  avatar_url?: string;
+  visibility?: ProfileVisibility;
+}
+
+export type ProfileVisibility = 'public' | 'friends_only' | 'private';
+
 // ---------------------------------------------------------------------------
 // Post creation / detail
 // ---------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Image, StyleSheet, ViewStyle, ImageSourcePropType } from 'react-native';
+import { View, Text, Image, TouchableOpacity, StyleSheet, ViewStyle, ImageSourcePropType } from 'react-native';
 import { colors, typography } from '@bhapi/config';
 
 export type AvatarSize = 'sm' | 'md' | 'lg';
@@ -10,6 +10,10 @@ export interface AvatarProps {
   size?: AvatarSize;
   style?: ViewStyle;
   accessibilityLabel?: string;
+  /** When provided, renders a tappable overlay for uploading a new avatar. */
+  onUploadPress?: () => void;
+  /** Show uploading indicator. */
+  isUploading?: boolean;
 }
 
 export const avatarSizes: Record<AvatarSize, number> = {
@@ -31,6 +35,8 @@ export function Avatar({
   size = 'md',
   style,
   accessibilityLabel,
+  onUploadPress,
+  isUploading = false,
 }: AvatarProps) {
   const dimension = avatarSizes[size];
   const fontSize = dimension * 0.4;
@@ -43,39 +49,67 @@ export function Avatar({
     minHeight: 44,
   };
 
-  if (source) {
-    return React.createElement(Image, {
-      source,
-      style: [
-        containerStyle,
-        { resizeMode: 'cover' },
-        style,
-      ] as any,
-      accessibilityLabel: accessibilityLabel ?? name,
-    });
+  const avatarContent = source
+    ? React.createElement(Image, {
+        source,
+        style: [
+          containerStyle,
+          { resizeMode: 'cover' },
+          style,
+        ] as any,
+        accessibilityLabel: accessibilityLabel ?? name,
+      })
+    : React.createElement(
+        View,
+        {
+          style: [
+            styles.fallback,
+            containerStyle,
+            style,
+          ],
+          accessibilityLabel: accessibilityLabel ?? name,
+        },
+        React.createElement(
+          Text,
+          {
+            style: [
+              styles.initials,
+              { fontSize },
+            ],
+          },
+          getInitials(name)
+        )
+      );
+
+  // Wrap with upload overlay when onUploadPress is provided
+  if (onUploadPress) {
+    return React.createElement(
+      View,
+      { style: styles.uploadContainer },
+      avatarContent,
+      React.createElement(
+        TouchableOpacity,
+        {
+          onPress: onUploadPress,
+          style: [styles.uploadOverlay, containerStyle],
+          accessibilityLabel: isUploading ? 'Uploading avatar' : 'Upload avatar',
+          accessibilityRole: 'button',
+          disabled: isUploading,
+        },
+        React.createElement(
+          View,
+          { style: styles.uploadBadge },
+          React.createElement(
+            Text,
+            { style: styles.uploadBadgeText },
+            isUploading ? '...' : '+'
+          )
+        )
+      )
+    );
   }
 
-  return React.createElement(
-    View,
-    {
-      style: [
-        styles.fallback,
-        containerStyle,
-        style,
-      ],
-      accessibilityLabel: accessibilityLabel ?? name,
-    },
-    React.createElement(
-      Text,
-      {
-        style: [
-          styles.initials,
-          { fontSize },
-        ],
-      },
-      getInitials(name)
-    )
-  );
+  return avatarContent;
 }
 
 const styles = StyleSheet.create({
@@ -86,6 +120,33 @@ const styles = StyleSheet.create({
   },
   initials: {
     color: '#FFFFFF',
+    fontWeight: '700',
+    fontFamily: typography.fontFamily,
+  },
+  uploadContainer: {
+    position: 'relative',
+  },
+  uploadOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+  },
+  uploadBadge: {
+    backgroundColor: colors.primary[600],
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    marginBottom: 2,
+  },
+  uploadBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 14,
     fontWeight: '700',
     fontFamily: typography.fontFamily,
   },

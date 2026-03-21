@@ -10,6 +10,7 @@ export type {
   YotiVerificationResult, ParentConsentRequest, ProfileCreateRequest,
   CreatePostRequest, CreatePostResponse, PostDetailResponse,
   CommentResponse, CreateCommentRequest, Hashtag,
+  ProfileUpdateRequest, ProfileVisibility,
 } from './social';
 export type {
   Alert, AlertSeverity, AlertCategory, AlertStatus,
