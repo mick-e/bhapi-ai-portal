@@ -1,0 +1,79 @@
+appId: com.bhapi.social
+name: "Social App - Onboarding Flow"
+tags:
+  - social
+  - onboarding
+  - e2e
+
+---
+
+# Launch the app and verify splash/welcome screen
+- assertVisible: "Bhapi Social"
+- assertVisible: "Sign In"
+
+# Navigate to login
+- tapOn: "Sign In"
+- assertVisible: "Email"
+- assertVisible: "Password"
+
+# Enter login credentials
+- tapOn:
+    id: "email-input"
+- inputText: "test-child@example.com"
+- tapOn:
+    id: "password-input"
+- inputText: "TestPassword123!"
+- tapOn: "Sign In"
+
+# Age verification screen
+- assertVisible: "Verify Your Age"
+- assertVisible: "Date of Birth"
+- tapOn:
+    id: "dob-input"
+- inputText: "2015-06-15"
+- tapOn: "Continue"
+
+# Parent consent confirmation
+- assertVisible: "Parent Consent"
+- assertVisible:
+    text: "parent or guardian"
+    optional: true
+- tapOn: "I Have Parent Permission"
+
+# Profile setup screen
+- assertVisible: "Set Up Your Profile"
+- assertVisible: "Display Name"
+- tapOn:
+    id: "display-name-input"
+- inputText: "TestKid"
+
+# Avatar selection
+- assertVisible: "Choose an Avatar"
+- tapOn:
+    id: "avatar-option-1"
+
+# Confirm profile creation
+- tapOn: "Create Profile"
+
+# Onboarding tips/tutorial
+- assertVisible:
+    text: "Welcome"
+- tapOn:
+    text: "Next"
+    optional: true
+- tapOn:
+    text: "Get Started"
+    optional: true
+
+# Verify we land on the feed
+- assertVisible:
+    id: "feed-screen"
+- assertVisible: "Home"
+
+# Verify bottom navigation is present
+- assertVisible:
+    id: "tab-home"
+- assertVisible:
+    id: "tab-chat"
+- assertVisible:
+    id: "tab-profile"

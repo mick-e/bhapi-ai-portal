@@ -1,0 +1,96 @@
+appId: com.bhapi.social
+name: "Social App - Feed Interactions"
+tags:
+  - social
+  - feed
+  - e2e
+
+---
+
+# Precondition: user is logged in and on the feed screen
+- assertVisible:
+    id: "feed-screen"
+- assertVisible: "Home"
+
+# Tap the create post button
+- tapOn:
+    id: "create-post-button"
+- assertVisible: "New Post"
+
+# Type post content with a hashtag
+- tapOn:
+    id: "post-content-input"
+- inputText: "Hello from Maestro test! #testing"
+
+# Submit the post
+- tapOn:
+    id: "post-submit-button"
+
+# Verify post submission feedback
+- assertVisible:
+    text: "Post submitted"
+    optional: true
+
+# For pre-moderated users, post may show pending state
+- assertVisible:
+    text: ".*(?:pending|submitted|Hello from Maestro).*"
+    regex: true
+    optional: true
+
+# Scroll the feed to verify content loads
+- scroll:
+    direction: "DOWN"
+    duration: 1000
+
+# Verify feed items are visible
+- assertVisible:
+    id: "feed-list"
+
+# Like a post
+- tapOn:
+    id: "like-button-0"
+
+# Verify like state changed
+- assertVisible:
+    id: "like-button-0-active"
+
+# Open comments on a post
+- tapOn:
+    id: "comment-button-0"
+- assertVisible: "Comments"
+
+# Type and submit a comment
+- tapOn:
+    id: "comment-input"
+- inputText: "Great post!"
+- tapOn:
+    id: "comment-submit-button"
+
+# Verify comment appears or is pending moderation
+- assertVisible:
+    text: ".*(?:Great post|pending|submitted).*"
+    regex: true
+
+# Go back to feed
+- tapOn:
+    id: "back-button"
+
+# Tap on a hashtag to view hashtag feed
+- tapOn:
+    text: "#testing"
+    optional: true
+
+# Verify hashtag feed loads
+- assertVisible:
+    text: ".*(?:#testing|testing|Hashtag).*"
+    regex: true
+    optional: true
+
+# Navigate back to main feed
+- tapOn:
+    id: "back-button"
+    optional: true
+
+# Verify we are back on the home feed
+- assertVisible:
+    id: "feed-screen"

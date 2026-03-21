@@ -1,0 +1,131 @@
+appId: com.bhapi.safety
+name: "Safety App - Monitoring Flow"
+tags:
+  - safety
+  - monitoring
+  - parent
+  - e2e
+
+---
+
+# Launch the app and verify login screen
+- assertVisible: "Bhapi Safety"
+- assertVisible: "Sign In"
+
+# Enter parent login credentials
+- tapOn:
+    id: "email-input"
+- inputText: "test-parent@example.com"
+- tapOn:
+    id: "password-input"
+- inputText: "ParentPassword123!"
+- tapOn: "Sign In"
+
+# Verify dashboard loads
+- assertVisible:
+    id: "dashboard-screen"
+- assertVisible: "Dashboard"
+
+# Verify key dashboard sections are visible
+- assertVisible:
+    text: ".*(?:Activity|Recent Activity).*"
+    regex: true
+- assertVisible:
+    text: ".*(?:Alerts|Safety Alerts).*"
+    regex: true
+
+# Verify family members section shows children
+- assertVisible:
+    text: ".*(?:Family|Members|Children).*"
+    regex: true
+
+# Navigate to alerts tab/section
+- tapOn:
+    id: "tab-alerts"
+    optional: true
+- tapOn:
+    text: "Alerts"
+    optional: true
+
+# Verify alerts screen loads
+- assertVisible:
+    id: "alerts-screen"
+- assertVisible:
+    text: ".*(?:Alerts|Safety Alerts|Notifications).*"
+    regex: true
+
+# Verify alert list is visible (may be empty for new accounts)
+- assertVisible:
+    id: "alerts-list"
+
+# Check for alert severity indicators
+- assertVisible:
+    text: ".*(?:High|Medium|Low|No alerts).*"
+    regex: true
+
+# Navigate back to dashboard
+- tapOn:
+    id: "tab-dashboard"
+    optional: true
+- tapOn:
+    text: "Dashboard"
+    optional: true
+
+# Tap on a child profile
+- tapOn:
+    id: "child-profile-0"
+
+# Verify child profile screen loads
+- assertVisible:
+    id: "child-profile-screen"
+
+# Verify child profile sections
+- assertVisible:
+    text: ".*(?:Activity|AI Usage|Social Activity).*"
+    regex: true
+- assertVisible:
+    text: ".*(?:Risk|Safety Score|Safety).*"
+    regex: true
+
+# Verify contact approval section is visible
+- assertVisible:
+    text: ".*(?:Contacts|Contact Requests|Approved Contacts).*"
+    regex: true
+
+# Navigate to contact approval section
+- tapOn:
+    text: ".*(?:Contact Requests|Contacts|Pending).*"
+    regex: true
+    optional: true
+
+# Verify contact approval screen loads
+- assertVisible:
+    text: ".*(?:Contact|Contacts|Approval).*"
+    regex: true
+
+# Verify approval/deny actions are available (if pending requests exist)
+- assertVisible:
+    text: ".*(?:Approve|Deny|No pending|requests).*"
+    regex: true
+    optional: true
+
+# Navigate back to child profile
+- tapOn:
+    id: "back-button"
+    optional: true
+
+# Navigate to settings
+- tapOn:
+    id: "tab-settings"
+    optional: true
+
+# Verify settings screen
+- assertVisible:
+    text: ".*(?:Settings|Account|Preferences).*"
+    regex: true
+
+# Verify notification settings are accessible
+- assertVisible:
+    text: ".*(?:Notifications|Alert Preferences).*"
+    regex: true
+    optional: true

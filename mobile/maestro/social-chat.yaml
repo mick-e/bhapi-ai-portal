@@ -1,0 +1,89 @@
+appId: com.bhapi.social
+name: "Social App - Chat Flow"
+tags:
+  - social
+  - chat
+  - messaging
+  - e2e
+
+---
+
+# Precondition: user is logged in and on the feed screen
+- assertVisible:
+    id: "feed-screen"
+
+# Navigate to chat tab
+- tapOn:
+    id: "tab-chat"
+
+# Verify chat screen loads
+- assertVisible:
+    id: "chat-screen"
+- assertVisible: "Messages"
+
+# Verify conversations list is visible
+- assertVisible:
+    id: "conversations-list"
+
+# Select the first conversation
+- tapOn:
+    id: "conversation-item-0"
+
+# Verify conversation detail screen
+- assertVisible:
+    id: "conversation-detail"
+- assertVisible:
+    id: "message-list"
+- assertVisible:
+    id: "message-input"
+
+# Type a message
+- tapOn:
+    id: "message-input"
+- inputText: "Hello from Maestro E2E test!"
+
+# Send the message
+- tapOn:
+    id: "send-button"
+
+# Verify message appears in the conversation
+- assertVisible: "Hello from Maestro E2E test!"
+
+# Verify delivery indicator shows
+- assertVisible:
+    id: "message-status-sent"
+    optional: true
+- assertVisible:
+    text: ".*(?:Sent|Delivered|sent).*"
+    regex: true
+    optional: true
+
+# Verify message input is cleared after send
+- assertNotVisible:
+    id: "message-input"
+    text: "Hello from Maestro E2E test!"
+    optional: true
+
+# Scroll up to verify older messages load
+- scroll:
+    direction: "UP"
+    duration: 500
+
+# Verify message list still visible after scroll
+- assertVisible:
+    id: "message-list"
+
+# Go back to conversations list
+- tapOn:
+    id: "back-button"
+
+# Verify we are back on conversations screen
+- assertVisible:
+    id: "conversations-list"
+- assertVisible: "Messages"
+
+# Verify the conversation we just messaged shows the latest message preview
+- assertVisible:
+    text: ".*(?:Hello from Maestro|E2E test).*"
+    regex: true
+    optional: true
