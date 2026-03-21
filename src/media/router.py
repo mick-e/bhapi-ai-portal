@@ -4,6 +4,7 @@ from uuid import UUID
 
 import structlog
 from fastapi import APIRouter, Depends, Query
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.age_tier.middleware import enforce_age_tier
@@ -33,6 +34,25 @@ async def request_upload_url(
     )
     await db.commit()
     return result
+
+
+@router.post(
+    "/upload/batch",
+    response_model=schemas.BatchUploadURLResponse,
+    status_code=201,
+)
+async def request_batch_upload_urls(
+    data: schemas.BatchUploadURLRequest,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Request presigned upload URLs for multiple files (max 10)."""
+    files = [f.model_dump() for f in data.files]
+    results = await service.create_batch_upload_urls(
+        db, owner_id=auth.user_id, files=files,
+    )
+    await db.commit()
+    return {"uploads": results}
 
 
 @router.post("/register", response_model=schemas.MediaAssetResponse, status_code=201)
@@ -84,12 +104,18 @@ async def get_media(
 @router.get("/{media_id}/variants")
 async def get_variants(
     media_id: UUID,
+    variant: str | None = Query(default=None, max_length=50),
     auth: GroupContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Get processed variants for a media asset."""
-    variants = await service.get_variants(db, media_id)
-    return {"media_id": str(media_id), "variants": variants}
+    """Get processed variants for a media asset with Cache-Control headers."""
+    variants = await service.get_cached_variants(db, media_id, variant=variant)
+    return JSONResponse(
+        content={"media_id": str(media_id), "variants": variants},
+        headers={
+            "Cache-Control": "public, max-age=300, stale-while-revalidate=60",
+        },
+    )
 
 
 @router.delete("/{media_id}", status_code=204)

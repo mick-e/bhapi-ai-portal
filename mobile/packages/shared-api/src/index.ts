@@ -6,3 +6,5 @@ export { OfflineQueue } from './offline-queue';
 export type { QueuedRequest, ReplayResult, ReplayClient } from './offline-queue';
 export { registerForPushNotifications, unregisterPushToken, resolveDeepLink, setupNotificationResponseHandler } from './push-notifications';
 export type { PushTokenResponse, PushNotificationData } from './push-notifications';
+export { uploadMedia, uploadMediaBatch } from './media-upload';
+export type { MediaFile, UploadProgress, ProgressCallback, UploadResult, BatchUploadResult } from './media-upload';

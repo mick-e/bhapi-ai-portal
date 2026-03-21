@@ -1,6 +1,8 @@
 """Media module business logic — Cloudflare R2/Images/Stream."""
 
+import time
 import uuid
+from collections import OrderedDict
 from datetime import datetime, timedelta, timezone
 
 import structlog
@@ -18,6 +20,76 @@ IMAGE_MAX_BYTES = 10 * 1024 * 1024  # 10 MB
 VIDEO_MAX_BYTES = 100 * 1024 * 1024  # 100 MB
 
 UPLOAD_URL_EXPIRY_MINUTES = 30
+
+# Batch limits
+MAX_BATCH_SIZE = 10
+
+# ---------------------------------------------------------------------------
+# In-memory LRU cache for variant URLs
+# ---------------------------------------------------------------------------
+
+VARIANT_CACHE_TTL_SECONDS = 300  # 5 minutes
+VARIANT_CACHE_MAX_SIZE = 1024
+
+
+class _VariantCache:
+    """Thread-safe LRU cache for variant URLs keyed by (media_id, variant)."""
+
+    def __init__(self, max_size: int = VARIANT_CACHE_MAX_SIZE, ttl: int = VARIANT_CACHE_TTL_SECONDS):
+        self._store: OrderedDict[str, tuple[dict | None, float]] = OrderedDict()
+        self._max_size = max_size
+        self._ttl = ttl
+
+    def _make_key(self, media_id: uuid.UUID, variant: str | None = None) -> str:
+        return f"{media_id}:{variant or '__all__'}"
+
+    def get(self, media_id: uuid.UUID, variant: str | None = None) -> dict | None | type[...]:
+        """Return cached variants or Ellipsis (sentinel) if not cached / expired."""
+        key = self._make_key(media_id, variant)
+        entry = self._store.get(key)
+        if entry is None:
+            return ...
+        value, ts = entry
+        if time.monotonic() - ts > self._ttl:
+            # Expired
+            self._store.pop(key, None)
+            return ...
+        # Move to end (most recently used)
+        self._store.move_to_end(key)
+        return value
+
+    def put(self, media_id: uuid.UUID, variants: dict | None, variant: str | None = None) -> None:
+        """Cache variant data."""
+        key = self._make_key(media_id, variant)
+        self._store[key] = (variants, time.monotonic())
+        self._store.move_to_end(key)
+        # Evict oldest if over capacity
+        while len(self._store) > self._max_size:
+            self._store.popitem(last=False)
+
+    def invalidate(self, media_id: uuid.UUID) -> None:
+        """Remove all cached entries for a media asset."""
+        prefix = f"{media_id}:"
+        keys_to_remove = [k for k in self._store if k.startswith(prefix)]
+        for k in keys_to_remove:
+            del self._store[k]
+
+    def clear(self) -> None:
+        """Clear all cached entries."""
+        self._store.clear()
+
+    @property
+    def size(self) -> int:
+        return len(self._store)
+
+
+# Module-level cache instance
+variant_cache = _VariantCache()
+
+
+# ---------------------------------------------------------------------------
+# Upload URL generation
+# ---------------------------------------------------------------------------
 
 
 def _generate_upload_url(r2_key: str) -> str:
@@ -96,6 +168,53 @@ async def create_upload_url(
         "media_id": asset_id,
         "expires_at": expires_at,
     }
+
+
+async def create_batch_upload_urls(
+    db: AsyncSession,
+    owner_id: uuid.UUID,
+    files: list[dict],
+) -> list[dict]:
+    """Generate presigned R2 upload URLs for multiple files.
+
+    Args:
+        db: Database session.
+        owner_id: UUID of the asset owner.
+        files: List of dicts with media_type, content_length, filename.
+
+    Returns:
+        List of dicts with upload_url, media_id, expires_at per file.
+
+    Raises:
+        ValidationError: If batch size exceeds MAX_BATCH_SIZE or any file is invalid.
+    """
+    if not files:
+        raise ValidationError("files list must not be empty")
+    if len(files) > MAX_BATCH_SIZE:
+        raise ValidationError(f"Batch size must not exceed {MAX_BATCH_SIZE}")
+
+    results = []
+    for f in files:
+        result = await create_upload_url(
+            db,
+            owner_id=owner_id,
+            media_type=f["media_type"],
+            content_length=f.get("content_length"),
+            filename=f.get("filename"),
+        )
+        results.append(result)
+
+    logger.info(
+        "batch_upload_urls_created",
+        count=len(results),
+        owner_id=str(owner_id),
+    )
+    return results
+
+
+# ---------------------------------------------------------------------------
+# Media registration and retrieval
+# ---------------------------------------------------------------------------
 
 
 async def register_media(
@@ -212,6 +331,45 @@ async def get_variants(db: AsyncSession, media_id: uuid.UUID) -> dict | None:
     return asset.variants
 
 
+async def get_cached_variants(
+    db: AsyncSession, media_id: uuid.UUID, variant: str | None = None,
+) -> dict | None:
+    """Return variants with LRU caching — check cache before hitting DB.
+
+    Args:
+        db: Database session.
+        media_id: UUID of the media asset.
+        variant: Optional specific variant name to filter.
+
+    Returns:
+        Variants dict or None.
+    """
+    cached = variant_cache.get(media_id, variant)
+    if cached is not ...:
+        logger.debug("variant_cache_hit", media_id=str(media_id), variant=variant)
+        return cached
+
+    # Cache miss — fetch from DB
+    logger.debug("variant_cache_miss", media_id=str(media_id), variant=variant)
+    asset = await get_media(db, media_id)
+    variants = asset.variants
+
+    # If a specific variant was requested, extract it
+    result = variants
+    if variant and variants and variant in variants:
+        result = {variant: variants[variant]}
+    elif variant and (not variants or variant not in variants):
+        result = None
+
+    variant_cache.put(media_id, result, variant)
+    return result
+
+
+# ---------------------------------------------------------------------------
+# Webhook handlers
+# ---------------------------------------------------------------------------
+
+
 async def handle_image_ready(db: AsyncSession, payload: dict) -> MediaAsset:
     """Handle Cloudflare Images webhook — update MediaAsset with image_id and variants.
 
@@ -228,6 +386,9 @@ async def handle_image_ready(db: AsyncSession, payload: dict) -> MediaAsset:
     asset.cloudflare_image_id = payload.get("image_id")
     asset.variants = payload.get("variants")
     asset.moderation_status = payload.get("moderation_status", "approved")
+
+    # Invalidate cache so next read gets fresh data
+    variant_cache.invalidate(media_id)
 
     await db.flush()
     logger.info("image_ready", media_id=str(media_id))
@@ -249,6 +410,9 @@ async def handle_video_ready(db: AsyncSession, payload: dict) -> MediaAsset:
 
     asset.cloudflare_stream_id = payload.get("stream_id")
     asset.moderation_status = payload.get("moderation_status", "approved")
+
+    # Invalidate cache
+    variant_cache.invalidate(media_id)
 
     await db.flush()
     logger.info("video_ready", media_id=str(media_id))
@@ -276,6 +440,10 @@ async def delete_media(
         raise ForbiddenError("You can only delete your own media")
 
     asset.moderation_status = "deleted"
+
+    # Invalidate cache
+    variant_cache.invalidate(media_id)
+
     await db.flush()
 
     logger.info(

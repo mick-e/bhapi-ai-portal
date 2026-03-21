@@ -18,6 +18,26 @@ class UploadURLRequest(BaseModel):
     filename: str | None = Field(default=None, max_length=255)
 
 
+class BatchUploadFileRequest(BaseModel):
+    """Single file in a batch upload request."""
+
+    media_type: str = Field(..., pattern=r"^(image|video)$")
+    content_length: int | None = Field(default=None, ge=1)
+    filename: str | None = Field(default=None, max_length=255)
+
+
+class BatchUploadURLRequest(BaseModel):
+    """Request presigned upload URLs for multiple files."""
+
+    files: list[BatchUploadFileRequest] = Field(..., min_length=1, max_length=10)
+
+
+class BatchUploadURLResponse(BaseModel):
+    """Response with presigned upload URLs for multiple files."""
+
+    uploads: list["UploadURLResponse"]
+
+
 class RegisterMediaRequest(BaseModel):
     """Register a media asset after upload completes."""
 
