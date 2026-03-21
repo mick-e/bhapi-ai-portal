@@ -3,7 +3,11 @@
  *
  * Children sign in with a link sent by their parent, or with
  * a simple username/password provided by the parent.
+ * After successful login, checks for an existing Profile. If the
+ * user has no profile, redirects to the onboarding flow.
+ *
  * API: POST /api/v1/auth/login { email, password }
+ *      GET  /api/v1/social/profiles/me → 404 if no profile
  */
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
@@ -12,12 +16,26 @@ import { Button, Input, BhapiLogo } from '@bhapi/ui';
 import { tokenManager } from '@bhapi/auth';
 
 type LoginState = 'idle' | 'loading' | 'error';
+type PostLoginDestination = 'feed' | 'onboarding' | null;
 
 export default function SocialLoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loginState, setLoginState] = useState<LoginState>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  const [destination, setDestination] = useState<PostLoginDestination>(null);
+
+  async function checkProfileExists(): Promise<boolean> {
+    try {
+      // API call: GET /api/v1/social/profiles/me
+      // Returns 200 if profile exists, 404 if not.
+      // const profile = await apiClient.get('/api/v1/social/profiles/me');
+      // return !!profile;
+      return false; // Default: new users need onboarding
+    } catch {
+      return false;
+    }
+  }
 
   async function handleLogin() {
     if (!email.trim() || !password.trim()) {
@@ -36,7 +54,17 @@ export default function SocialLoginScreen() {
       //   password,
       // });
       // await tokenManager.setToken(response.access_token);
-      // router.replace('/(feed)');
+
+      // Check if user has completed onboarding (has a profile)
+      const hasProfile = await checkProfileExists();
+      if (hasProfile) {
+        setDestination('feed');
+        // router.replace('/(feed)');
+      } else {
+        setDestination('onboarding');
+        // router.replace('/(auth)/onboarding');
+      }
+
       setLoginState('idle');
     } catch (e: any) {
       setLoginState('error');
@@ -106,7 +134,7 @@ export default function SocialLoginScreen() {
 }
 
 // Exported for testing
-export { type LoginState };
+export { type LoginState, type PostLoginDestination };
 
 const styles = StyleSheet.create({
   container: {

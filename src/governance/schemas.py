@@ -217,3 +217,107 @@ class OhioComplianceStatusResponse(BaseSchema):
     active_policy_count: int
     tool_count: int
     ready_for_board: bool
+
+
+# ---------------------------------------------------------------------------
+# EU AI Act schemas
+# ---------------------------------------------------------------------------
+
+
+class EuAiActAssessmentRequest(BaseSchema):
+    """Request to create a conformity assessment."""
+
+    group_id: UUID
+    assessor: str = Field(max_length=200, min_length=1)
+
+
+class EuAiActAssessmentStatusRequest(BaseSchema):
+    """Request to update assessment status."""
+
+    status: str = Field(max_length=20)
+
+
+class EuAiActAssessmentResponse(BaseSchema):
+    """Conformity assessment response."""
+
+    assessment_id: str
+    group_id: str
+    version: int
+    status: str
+    sections: dict
+    assessor: str
+    assessed_at: str | None = None
+
+
+class EuAiActTechDocsRequest(BaseSchema):
+    """Request to generate technical documentation."""
+
+    group_id: UUID
+    system_name: str = Field(max_length=200, min_length=1)
+    system_description: str = Field(max_length=2000, min_length=1)
+
+
+class EuAiActTechDocsResponse(BaseSchema):
+    """Technical documentation response."""
+
+    doc_id: str
+    group_id: str
+    version: int
+    system_name: str
+    sections: dict
+    generated_at: str | None = None
+
+
+class EuAiActRiskRequest(BaseSchema):
+    """Request to create a risk management record."""
+
+    group_id: UUID
+    risk_type: str = Field(max_length=50)
+    description: str = Field(max_length=2000, min_length=1)
+    severity: str = Field(max_length=20)
+    likelihood: str = Field(max_length=20)
+    mitigation: str = Field(max_length=2000, min_length=1)
+
+
+class EuAiActRiskResponse(BaseSchema):
+    """Risk management record response."""
+
+    record_id: str
+    group_id: str
+    risk_type: str
+    description: str
+    severity: str
+    likelihood: str
+    mitigation: str
+    residual_risk: str
+    reviewed_at: str | None = None
+
+
+class EuAiActBiasTestRequest(BaseSchema):
+    """Request to run bias testing."""
+
+    group_id: UUID
+    model_id: str = Field(max_length=200, min_length=1)
+    test_data: dict
+
+
+class EuAiActBiasTestResponse(BaseSchema):
+    """Bias test result response."""
+
+    test_id: str
+    group_id: str
+    model_id: str
+    test_data_hash: str
+    results: dict
+    overall_score: float
+    tested_at: str | None = None
+
+
+class EuAiActComplianceStatusResponse(BaseSchema):
+    """EU AI Act compliance status response."""
+
+    group_id: str
+    overall_readiness_score: int
+    status: str
+    components: dict
+    eu_ai_act_deadline: str

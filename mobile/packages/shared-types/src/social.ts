@@ -71,3 +71,40 @@ export interface FeedItem {
   post: SocialPost;
   author: Pick<Profile, 'id' | 'display_name' | 'avatar_url' | 'is_verified'>;
 }
+
+// ---------------------------------------------------------------------------
+// Onboarding
+// ---------------------------------------------------------------------------
+
+export type OnboardingStep = 'age_verify' | 'parent_consent' | 'profile_create' | 'complete';
+
+export interface OnboardingState {
+  step: OnboardingStep;
+  age_verified: boolean;
+  parent_consent_given: boolean;
+  profile_created: boolean;
+}
+
+export interface YotiVerificationRequest {
+  session_id: string;
+  redirect_url: string;
+}
+
+export interface YotiVerificationResult {
+  verified: boolean;
+  age_estimate: number | null;
+  session_id: string;
+}
+
+export interface ParentConsentRequest {
+  child_user_id: string;
+  parent_email: string;
+  consent_type: 'social_access';
+}
+
+export interface ProfileCreateRequest {
+  display_name: string;
+  avatar_url?: string;
+  bio?: string;
+  date_of_birth: string;
+}

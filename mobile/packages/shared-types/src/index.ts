@@ -1,8 +1,13 @@
-export type { User, AuthTokenPayload, LoginRequest, LoginResponse } from './auth';
+export type {
+  User, AuthTokenPayload, LoginRequest, LoginResponse,
+  ConsentType, ConsentRecord, ParentConsentStatus,
+} from './auth';
 export type { PaginatedResponse, PagedResponse, ErrorResponse, ApiResponse } from './common';
 export type {
   Profile, AgeTier, SocialPost, ModerationStatus, PostVisibility,
   SocialComment, Follow, FollowStatus, ContactRequest, FeedItem,
+  OnboardingStep, OnboardingState, YotiVerificationRequest,
+  YotiVerificationResult, ParentConsentRequest, ProfileCreateRequest,
 } from './social';
 export type {
   Alert, AlertSeverity, AlertCategory, AlertStatus,

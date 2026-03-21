@@ -9,6 +9,16 @@ from src.auth.middleware import get_current_user
 from src.database import get_db
 from src.governance.schemas import (
     ComplianceDashboardResponse,
+    EuAiActAssessmentRequest,
+    EuAiActAssessmentResponse,
+    EuAiActAssessmentStatusRequest,
+    EuAiActBiasTestRequest,
+    EuAiActBiasTestResponse,
+    EuAiActComplianceStatusResponse,
+    EuAiActRiskRequest,
+    EuAiActRiskResponse,
+    EuAiActTechDocsRequest,
+    EuAiActTechDocsResponse,
     OhioBoardReportResponse,
     OhioComplianceStatusResponse,
     OhioCustomizeRequest,
@@ -26,6 +36,14 @@ from src.governance.schemas import (
     TemplateResponse,
     ToolCreate,
     ToolResponse,
+)
+from src.governance.eu_ai_act import (
+    create_conformity_assessment,
+    generate_tech_documentation,
+    get_compliance_status as get_eu_ai_act_status,
+    run_bias_test,
+    run_risk_management_assessment,
+    update_assessment_status,
 )
 from src.governance.ohio import (
     customize_ohio_policy,
@@ -276,3 +294,112 @@ async def ohio_status_endpoint(
 ):
     """Check Ohio compliance status for a school."""
     return await get_ohio_compliance_status(db, school_id)
+
+
+# ---------------------------------------------------------------------------
+# EU AI Act endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.post(
+    "/eu-ai-act/assessment",
+    response_model=EuAiActAssessmentResponse,
+    status_code=201,
+)
+async def eu_ai_act_create_assessment(
+    data: EuAiActAssessmentRequest,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create or update a conformity assessment per EU AI Act Articles 9-15."""
+    return await create_conformity_assessment(
+        db,
+        group_id=data.group_id,
+        assessor=data.assessor,
+    )
+
+
+@router.get(
+    "/eu-ai-act/assessment",
+    response_model=EuAiActComplianceStatusResponse,
+)
+async def eu_ai_act_get_assessment(
+    group_id: UUID = Query(..., description="Group ID"),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get current EU AI Act compliance status including assessment."""
+    return await get_eu_ai_act_status(db, group_id)
+
+
+@router.post(
+    "/eu-ai-act/tech-docs",
+    response_model=EuAiActTechDocsResponse,
+    status_code=201,
+)
+async def eu_ai_act_generate_tech_docs(
+    data: EuAiActTechDocsRequest,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Generate technical documentation per EU AI Act Annex IV."""
+    return await generate_tech_documentation(
+        db,
+        group_id=data.group_id,
+        system_name=data.system_name,
+        system_description=data.system_description,
+    )
+
+
+@router.post(
+    "/eu-ai-act/risk-management",
+    response_model=EuAiActRiskResponse,
+    status_code=201,
+)
+async def eu_ai_act_risk_management(
+    data: EuAiActRiskRequest,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a risk management record per EU AI Act Article 9."""
+    return await run_risk_management_assessment(
+        db,
+        group_id=data.group_id,
+        risk_type=data.risk_type,
+        description=data.description,
+        severity=data.severity,
+        likelihood=data.likelihood,
+        mitigation=data.mitigation,
+    )
+
+
+@router.post(
+    "/eu-ai-act/bias-test",
+    response_model=EuAiActBiasTestResponse,
+    status_code=201,
+)
+async def eu_ai_act_bias_test(
+    data: EuAiActBiasTestRequest,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Run bias testing per EU AI Act Article 10."""
+    return await run_bias_test(
+        db,
+        group_id=data.group_id,
+        model_id=data.model_id,
+        test_data=data.test_data,
+    )
+
+
+@router.get(
+    "/eu-ai-act/status",
+    response_model=EuAiActComplianceStatusResponse,
+)
+async def eu_ai_act_status(
+    group_id: UUID = Query(..., description="Group ID"),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get overall EU AI Act compliance readiness status."""
+    return await get_eu_ai_act_status(db, group_id)

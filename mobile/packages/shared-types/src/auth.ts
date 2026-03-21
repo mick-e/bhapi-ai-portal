@@ -26,3 +26,27 @@ export interface LoginResponse {
   token_type: 'bearer';
   user: User;
 }
+
+// ---------------------------------------------------------------------------
+// Consent
+// ---------------------------------------------------------------------------
+
+export type ConsentType = 'social_access' | 'data_processing' | 'third_party';
+
+export interface ConsentRecord {
+  id: string;
+  user_id: string;
+  consent_type: ConsentType;
+  granted: boolean;
+  granted_by: string | null;
+  granted_at: string | null;
+  expires_at: string | null;
+}
+
+export interface ParentConsentStatus {
+  child_user_id: string;
+  consent_type: ConsentType;
+  status: 'pending' | 'granted' | 'denied' | 'expired';
+  parent_email: string | null;
+  requested_at: string;
+}

@@ -1,9 +1,17 @@
-"""Governance — AI policy generator, state compliance, audit.
+"""Governance — AI policy generator, state compliance, audit, EU AI Act.
 
 Public interface for cross-module communication.
 Other modules should import only from this file, never from internal submodules.
 """
 
+from src.governance.eu_ai_act import (
+    create_conformity_assessment,
+    generate_tech_documentation,
+    get_compliance_status,
+    run_bias_test,
+    run_risk_management_assessment,
+    update_assessment_status,
+)
 from src.governance.ohio import (
     customize_ohio_policy,
     generate_board_report,
@@ -13,6 +21,15 @@ from src.governance.ohio import (
 from src.governance.schemas import (
     AuditResponse,
     ComplianceDashboardResponse,
+    EuAiActAssessmentRequest,
+    EuAiActAssessmentResponse,
+    EuAiActBiasTestRequest,
+    EuAiActBiasTestResponse,
+    EuAiActComplianceStatusResponse,
+    EuAiActRiskRequest,
+    EuAiActRiskResponse,
+    EuAiActTechDocsRequest,
+    EuAiActTechDocsResponse,
     OhioBoardReportResponse,
     OhioComplianceStatusResponse,
     OhioCustomizeRequest,
@@ -33,6 +50,15 @@ from src.governance.schemas import (
 __all__ = [
     "AuditResponse",
     "ComplianceDashboardResponse",
+    "EuAiActAssessmentRequest",
+    "EuAiActAssessmentResponse",
+    "EuAiActBiasTestRequest",
+    "EuAiActBiasTestResponse",
+    "EuAiActComplianceStatusResponse",
+    "EuAiActRiskRequest",
+    "EuAiActRiskResponse",
+    "EuAiActTechDocsRequest",
+    "EuAiActTechDocsResponse",
     "OhioBoardReportResponse",
     "OhioComplianceStatusResponse",
     "OhioCustomizeRequest",
@@ -48,8 +74,14 @@ __all__ = [
     "TemplateResponse",
     "ToolCreate",
     "ToolResponse",
+    "create_conformity_assessment",
     "customize_ohio_policy",
     "generate_board_report",
+    "generate_tech_documentation",
+    "get_compliance_status",
     "get_ohio_compliance_status",
     "import_tools_csv",
+    "run_bias_test",
+    "run_risk_management_assessment",
+    "update_assessment_status",
 ]

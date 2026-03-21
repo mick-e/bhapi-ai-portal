@@ -50,6 +50,7 @@ from src.social.models import Profile, SocialPost, PostComment, PostLike, Hashta
 from src.contacts.models import Contact, ContactApproval  # noqa: F401
 from src.moderation.models import ModerationQueue, ModerationDecision, ContentReport, MediaAsset  # noqa: F401
 from src.governance.models import GovernancePolicy, GovernanceAudit, GovernanceImportLog  # noqa: F401
+from src.governance.eu_ai_act import ConformityAssessment, TechnicalDocumentation, RiskManagementRecord, BiasTestResult  # noqa: F401
 from src.messaging.models import Conversation, ConversationMember, Message, MessageMedia  # noqa: F401
 
 config = context.config
