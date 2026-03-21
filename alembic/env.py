@@ -52,6 +52,8 @@ from src.moderation.models import ModerationQueue, ModerationDecision, ContentRe
 from src.governance.models import GovernancePolicy, GovernanceAudit, GovernanceImportLog  # noqa: F401
 from src.governance.eu_ai_act import ConformityAssessment, TechnicalDocumentation, RiskManagementRecord, BiasTestResult  # noqa: F401
 from src.messaging.models import Conversation, ConversationMember, Message, MessageMedia  # noqa: F401
+from src.compliance.uk_aadc_models import AadcAssessment, PrivacyDefault  # noqa: F401
+from src.compliance.australian_models import AgeVerificationRecord, ESafetyReport, CyberbullyingCase  # noqa: F401
 
 config = context.config
 

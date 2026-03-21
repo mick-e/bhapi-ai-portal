@@ -716,6 +716,73 @@ async def get_safe_harbor_certificate_pdf(
     )
 
 
+# ─── UK AADC — Gap Analysis & Privacy-by-Default ─────────────────────────────
+
+
+@router.post("/uk/aadc/gap-analysis")
+async def run_aadc_gap_analysis(
+    group_id: UUID = Query(...),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Run UK AADC gap analysis for a group."""
+    from src.compliance.uk_aadc import run_gap_analysis
+
+    return await run_gap_analysis(db, group_id, assessor=str(auth.user_id))
+
+
+@router.get("/uk/aadc/gap-analysis")
+async def get_aadc_gap_analysis(
+    group_id: UUID = Query(...),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get latest AADC gap analysis for a group."""
+    from src.compliance.uk_aadc import get_latest_assessment
+
+    result = await get_latest_assessment(db, group_id)
+    if not result:
+        return {"message": "No AADC assessment found. Run a gap analysis first."}
+    return result
+
+
+@router.get("/uk/aadc/privacy-defaults")
+async def get_aadc_privacy_defaults(
+    age_tier: str = Query(..., description="Age tier: young, preteen, or teen"),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get AADC privacy-by-default settings for an age tier."""
+    from src.compliance.uk_aadc import get_default_privacy_settings
+
+    return get_default_privacy_settings(age_tier)
+
+
+@router.post("/uk/aadc/apply-defaults")
+async def apply_aadc_defaults(
+    user_id: UUID = Query(...),
+    age_tier: str = Query(..., description="Age tier: young, preteen, or teen"),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Apply AADC privacy-by-default settings to a user."""
+    from src.compliance.uk_aadc import apply_privacy_defaults
+
+    return await apply_privacy_defaults(db, user_id, age_tier)
+
+
+@router.get("/uk/aadc/assessment-history")
+async def get_aadc_assessment_history(
+    group_id: UUID = Query(...),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get all AADC gap analysis assessments for a group."""
+    from src.compliance.uk_aadc import get_assessment_history
+
+    return await get_assessment_history(db, group_id)
+
+
 @router.get("/coppa/video-verification-status")
 async def check_video_verification_status(
     group_id: UUID = Query(...),
@@ -727,3 +794,162 @@ async def check_video_verification_status(
 
     has_valid = await has_valid_video_verification(db, group_id, auth.user_id)
     return {"group_id": str(group_id), "has_valid_verification": has_valid}
+
+
+# ─── Australian Online Safety ────────────────────────────────────────────────
+
+
+@router.get("/au/age-requirement")
+async def au_age_requirement_endpoint(
+    user_id: UUID = Query(...),
+    country_code: str = Query(...),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Check AU age verification requirement for social access."""
+    from src.compliance.australian import check_au_age_requirement
+
+    return await check_au_age_requirement(db, user_id, country_code)
+
+
+@router.post("/au/age-verification", status_code=201)
+async def au_create_age_verification_endpoint(
+    data: dict,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create age verification record for an AU user."""
+    from src.compliance.australian import create_age_verification
+
+    record = await create_age_verification(
+        db,
+        user_id=auth.user_id,
+        country_code=data.get("country_code", "AU"),
+        method=data.get("method", ""),
+        verification_data=data.get("verification_data"),
+    )
+    return {
+        "id": str(record.id),
+        "user_id": str(record.user_id),
+        "method": record.method,
+        "verified": record.verified,
+        "verified_at": record.verified_at.isoformat() if record.verified_at else None,
+    }
+
+
+@router.get("/au/esafety-sla")
+async def au_esafety_sla_endpoint(
+    group_id: UUID | None = Query(None),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Check eSafety 24-hour SLA compliance status."""
+    from src.compliance.australian import check_esafety_sla
+
+    return await check_esafety_sla(db, group_id)
+
+
+@router.get("/au/esafety-report")
+async def au_esafety_report_endpoint(
+    group_id: UUID | None = Query(None),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Generate eSafety Commissioner compliance report."""
+    from src.compliance.australian import get_esafety_report
+
+    return await get_esafety_report(db, group_id)
+
+
+@router.post("/au/cyberbullying-case", status_code=201)
+async def au_create_cyberbullying_case_endpoint(
+    data: dict,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a structured cyberbullying case."""
+    from src.compliance.australian import create_cyberbullying_case
+
+    case = await create_cyberbullying_case(
+        db,
+        reporter_id=UUID(data["reporter_id"]),
+        target_id=UUID(data["target_id"]),
+        evidence_ids=data.get("evidence_ids", []),
+        severity=data.get("severity", "medium"),
+        description=data.get("description"),
+        group_id=UUID(data["group_id"]) if data.get("group_id") else None,
+    )
+    return {
+        "id": str(case.id),
+        "reporter_id": str(case.reporter_id),
+        "target_id": str(case.target_id),
+        "severity": case.severity,
+        "status": case.status,
+        "workflow_steps": case.workflow_steps,
+    }
+
+
+@router.get("/au/cyberbullying-case/{case_id}")
+async def au_get_cyberbullying_case_endpoint(
+    case_id: UUID,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get a cyberbullying case by ID."""
+    from src.compliance.australian import get_cyberbullying_case
+
+    case = await get_cyberbullying_case(db, case_id)
+    return {
+        "id": str(case.id),
+        "reporter_id": str(case.reporter_id),
+        "target_id": str(case.target_id),
+        "severity": case.severity,
+        "status": case.status,
+        "description": case.description,
+        "evidence_ids": case.evidence_ids,
+        "workflow_steps": case.workflow_steps,
+        "resolution": case.resolution,
+        "resolved_at": case.resolved_at.isoformat() if case.resolved_at else None,
+        "created_at": case.created_at.isoformat() if case.created_at else None,
+    }
+
+
+@router.patch("/au/cyberbullying-case/{case_id}/workflow")
+async def au_advance_cyberbullying_workflow_endpoint(
+    case_id: UUID,
+    data: dict,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Advance a cyberbullying case workflow step."""
+    from src.compliance.australian import advance_cyberbullying_workflow
+
+    case = await advance_cyberbullying_workflow(
+        db, case_id, step_name=data["step"], notes=data.get("notes"),
+    )
+    return {
+        "id": str(case.id),
+        "status": case.status,
+        "workflow_steps": case.workflow_steps,
+    }
+
+
+@router.post("/au/cyberbullying-case/{case_id}/close")
+async def au_close_cyberbullying_case_endpoint(
+    case_id: UUID,
+    data: dict,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Close a cyberbullying case with resolution."""
+    from src.compliance.australian import close_cyberbullying_case
+
+    case = await close_cyberbullying_case(
+        db, case_id, resolution=data["resolution"], notes=data.get("notes"),
+    )
+    return {
+        "id": str(case.id),
+        "status": case.status,
+        "resolution": case.resolution,
+        "resolved_at": case.resolved_at.isoformat() if case.resolved_at else None,
+    }
