@@ -66,3 +66,46 @@ class MessageListResponse(BaseModel):
     total: int
     page: int
     page_size: int
+
+
+class MediaMessageCreate(BaseModel):
+    """Schema for sending a media message."""
+
+    content: str = Field(default="", description="Optional caption text")
+    message_type: str = Field(default="image", description="image or video")
+    media_url: str = Field(..., min_length=1, description="Cloudflare media URL or ID")
+    media_type: str = Field(default="image", description="image or video")
+
+
+class TypingIndicator(BaseModel):
+    """Schema for typing indicator requests."""
+
+    conversation_id: UUID
+
+
+class TypingStatusResponse(BaseModel):
+    """Schema for typing status response."""
+
+    conversation_id: UUID
+    typing_users: list[str]
+
+
+class UnreadCountResponse(BaseModel):
+    """Schema for unread count response."""
+
+    conversation_id: UUID
+    unread_count: int
+
+
+class ReadReceiptCreate(BaseModel):
+    """Schema for creating a read receipt."""
+
+    conversation_id: UUID
+
+
+class ConversationWithUnread(ConversationResponse):
+    """Conversation response with unread count and last message preview."""
+
+    unread_count: int = 0
+    last_message_preview: str | None = None
+    last_message_at: datetime | None = None

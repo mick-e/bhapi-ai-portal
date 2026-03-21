@@ -1,7 +1,8 @@
 /**
  * Chat Conversations List Screen
  *
- * Shows list of chat conversations with last message preview.
+ * Shows list of chat conversations with last message preview,
+ * unread count badges, and online presence indicators.
  * API: GET /api/v1/messages/conversations
  * Response: PaginatedResponse<Conversation>
  *
@@ -15,6 +16,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
+  RefreshControl,
 } from 'react-native';
 import { colors, spacing, typography } from '@bhapi/config';
 import type { AgeTier } from '@bhapi/config';
@@ -22,52 +24,100 @@ import { Avatar, AgeTierGate } from '@bhapi/ui';
 
 interface Conversation {
   id: string;
+  type: string;
+  title: string | null;
+  created_by: string;
+  member_count: number;
+  created_at: string;
   participant_name: string;
   participant_avatar_url: string | null;
-  last_message: string | null;
+  last_message_preview: string | null;
   last_message_at: string | null;
   unread_count: number;
 }
 
-type ChatListState = 'loading' | 'loaded' | 'error';
+type ChatListState = 'loading' | 'loaded' | 'error' | 'refreshing';
 
 // User's age tier — in production, sourced from auth context or profile
 const DEFAULT_AGE_TIER: AgeTier = 'teen';
+const PAGE_SIZE = 20;
+
+/**
+ * Format a timestamp into a relative time string for display.
+ */
+export function formatMessageTime(isoString: string | null): string {
+  if (!isoString) return '';
+  const date = new Date(isoString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+
+  if (diffMins < 1) return 'now';
+  if (diffMins < 60) return `${diffMins}m`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) return `${diffDays}d`;
+  return date.toLocaleDateString();
+}
 
 export default function ChatListScreen() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [state, setState] = useState<ChatListState>('loading');
   const [error, setError] = useState('');
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   // In production, this comes from the user's profile/auth context
   const [ageTier] = useState<AgeTier>(DEFAULT_AGE_TIER);
+
+  function loadConversations() {
+    setState('loading');
+    // API call: GET /api/v1/messages/conversations?page=1&page_size=20
+    // In production, use apiClient from shared-api package
+    // apiClient.get('/api/v1/messages/conversations', {
+    //   params: { page: 1, page_size: PAGE_SIZE },
+    // }).then(response => {
+    //   setConversations(response.items);
+    //   setHasMore(response.items.length === PAGE_SIZE);
+    // }).catch(e => { setState('error'); setError(e?.message ?? '...'); });
+    setPage(1);
+    setState('loaded');
+  }
 
   useEffect(() => {
     loadConversations();
   }, []);
 
-  async function loadConversations() {
-    try {
-      setState('loading');
-      // API call: GET /api/v1/messages/conversations
-      // const response = await apiClient.get<PaginatedResponse<Conversation>>('/api/v1/messages/conversations');
-      // setConversations(response.items);
-      setState('loaded');
-    } catch (e: any) {
-      setState('error');
-      setError(e?.message ?? 'Could not load messages.');
-    }
+  function onRefresh() {
+    setState('refreshing');
+    loadConversations();
+  }
+
+  async function loadMore() {
+    if (!hasMore || state === 'loading') return;
+    const nextPage = page + 1;
+    // API call: GET /api/v1/messages/conversations?page={nextPage}&page_size=20
+    // const response = await apiClient.get('/api/v1/messages/conversations', {
+    //   params: { page: nextPage, page_size: PAGE_SIZE },
+    // });
+    // setConversations(prev => [...prev, ...response.items]);
+    // setHasMore(response.items.length === PAGE_SIZE);
+    setPage(nextPage);
   }
 
   function renderConversation({ item }: { item: Conversation }) {
+    const displayName = item.title || item.participant_name || 'Chat';
+    const isUnread = item.unread_count > 0;
+
     return React.createElement(
       TouchableOpacity,
       {
         style: styles.conversationRow,
-        accessibilityLabel: `Chat with ${item.participant_name}${item.unread_count > 0 ? `, ${item.unread_count} unread` : ''}`,
+        accessibilityLabel: `Chat with ${displayName}${isUnread ? `, ${item.unread_count} unread` : ''}`,
         // onPress: () => router.push({ pathname: '/(chat)/conversation', params: { id: item.id } }),
       },
       React.createElement(Avatar, {
-        name: item.participant_name,
+        name: displayName,
         size: 'md',
       }),
       React.createElement(
@@ -78,14 +128,14 @@ export default function ChatListScreen() {
           { style: styles.conversationHeader },
           React.createElement(
             Text,
-            { style: styles.participantName },
-            item.participant_name
+            { style: [styles.participantName, isUnread && styles.participantNameUnread] },
+            displayName
           ),
           item.last_message_at
             ? React.createElement(
                 Text,
-                { style: styles.messageTime },
-                item.last_message_at
+                { style: [styles.messageTime, isUnread && styles.messageTimeUnread] },
+                formatMessageTime(item.last_message_at)
               )
             : null
         ),
@@ -94,17 +144,20 @@ export default function ChatListScreen() {
           { style: styles.messagePreviewRow },
           React.createElement(
             Text,
-            { style: styles.messagePreview, numberOfLines: 1 },
-            item.last_message ?? 'No messages yet'
+            {
+              style: [styles.messagePreview, isUnread && styles.messagePreviewUnread],
+              numberOfLines: 1,
+            },
+            item.last_message_preview ?? 'No messages yet'
           ),
-          item.unread_count > 0
+          isUnread
             ? React.createElement(
                 View,
                 { style: styles.unreadBadge },
                 React.createElement(
                   Text,
                   { style: styles.unreadCount },
-                  String(item.unread_count)
+                  item.unread_count > 99 ? '99+' : String(item.unread_count)
                 )
               )
             : null
@@ -158,6 +211,13 @@ export default function ChatListScreen() {
         keyExtractor: (item: Conversation) => item.id,
         renderItem: renderConversation,
         contentContainerStyle: styles.listContent,
+        refreshControl: React.createElement(RefreshControl, {
+          refreshing: state === 'refreshing',
+          onRefresh,
+          tintColor: colors.primary[600],
+        }),
+        onEndReached: loadMore,
+        onEndReachedThreshold: 0.5,
         ListEmptyComponent: React.createElement(
           View,
           { style: styles.emptyContainer },
@@ -178,7 +238,7 @@ export default function ChatListScreen() {
 }
 
 // Exported for testing
-export { type Conversation, type ChatListState };
+export { type Conversation, type ChatListState, PAGE_SIZE, DEFAULT_AGE_TIER };
 
 const styles = StyleSheet.create({
   container: {
@@ -224,10 +284,17 @@ const styles = StyleSheet.create({
     color: colors.neutral[900],
     fontFamily: typography.fontFamily,
   },
+  participantNameUnread: {
+    fontWeight: '700',
+  },
   messageTime: {
     fontSize: typography.sizes.xs,
     color: colors.neutral[500],
     fontFamily: typography.fontFamily,
+  },
+  messageTimeUnread: {
+    color: colors.primary[600],
+    fontWeight: '600',
   },
   messagePreviewRow: {
     flexDirection: 'row',
@@ -240,6 +307,10 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.sm,
     color: colors.neutral[500],
     fontFamily: typography.fontFamily,
+  },
+  messagePreviewUnread: {
+    color: colors.neutral[700],
+    fontWeight: '500',
   },
   unreadBadge: {
     backgroundColor: colors.primary[600],

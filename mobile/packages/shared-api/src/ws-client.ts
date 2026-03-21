@@ -3,12 +3,40 @@
  * Supports auto-reconnect with exponential backoff.
  */
 
-export type WebSocketEventType = 'open' | 'close' | 'error' | 'message';
+export type WebSocketEventType =
+  | 'open'
+  | 'close'
+  | 'error'
+  | 'message'
+  | 'new_message'
+  | 'typing_start'
+  | 'typing_stop'
+  | 'read_receipt';
 
 export interface WebSocketMessage {
   type: string;
   data: unknown;
   timestamp?: number;
+}
+
+export interface NewMessageEvent {
+  message_id: string;
+  conversation_id: string;
+  sender_id: string;
+  content: string;
+  message_type: string;
+  created_at: string;
+}
+
+export interface TypingEvent {
+  user_id: string;
+  conversation_id: string;
+}
+
+export interface ReadReceiptEvent {
+  user_id: string;
+  conversation_id: string;
+  read_at: string;
 }
 
 type EventCallback = (data: any) => void;
@@ -87,6 +115,44 @@ export class WebSocketClient {
    */
   off(event: string, callback: EventCallback): void {
     this.listeners.get(event)?.delete(callback);
+  }
+
+  /**
+   * Send a typing start indicator for a conversation.
+   */
+  sendTypingStart(conversationId: string): void {
+    this.send('typing_start', { conversation_id: conversationId });
+  }
+
+  /**
+   * Send a typing stop indicator for a conversation.
+   */
+  sendTypingStop(conversationId: string): void {
+    this.send('typing_stop', { conversation_id: conversationId });
+  }
+
+  /**
+   * Send a read receipt for a conversation.
+   */
+  sendReadReceipt(conversationId: string): void {
+    this.send('read_receipt', {
+      conversation_id: conversationId,
+      read_at: new Date().toISOString(),
+    });
+  }
+
+  /**
+   * Join a conversation room to receive real-time messages.
+   */
+  joinConversation(conversationId: string): void {
+    this.send('join_room', { room: `conversation:${conversationId}` });
+  }
+
+  /**
+   * Leave a conversation room.
+   */
+  leaveConversation(conversationId: string): void {
+    this.send('leave_room', { room: `conversation:${conversationId}` });
   }
 
   /**

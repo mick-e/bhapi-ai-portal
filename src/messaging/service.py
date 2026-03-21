@@ -1,5 +1,6 @@
 """Messaging module business logic — conversations, messages, membership."""
 
+import json
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
@@ -9,7 +10,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.age_tier import check_permission, get_permissions
 from src.exceptions import ForbiddenError, NotFoundError, ValidationError
-from src.messaging.models import Conversation, ConversationMember, Message
+from src.messaging.models import (
+    Conversation,
+    ConversationMember,
+    Message,
+    MessageMedia,
+)
 
 logger = structlog.get_logger()
 
@@ -119,20 +125,36 @@ async def list_conversations(
     )
     total = (await db.execute(count_stmt)).scalar() or 0
 
-    # Get conversations ordered by created_at desc (latest message ordering
-    # deferred to Phase 2 with real-time support)
+    # Get conversations, ordered by last message time (then created_at)
+    # Subquery for latest message time per conversation
+    last_msg_subq = (
+        select(
+            Message.conversation_id,
+            func.max(Message.created_at).label("last_msg_at"),
+        )
+        .group_by(Message.conversation_id)
+        .subquery()
+    )
+
     offset = (page - 1) * page_size
     stmt = (
         select(Conversation)
+        .outerjoin(
+            last_msg_subq,
+            Conversation.id == last_msg_subq.c.conversation_id,
+        )
         .where(Conversation.id.in_(select(member_subq.c.conversation_id)))
-        .order_by(Conversation.created_at.desc())
+        .order_by(
+            last_msg_subq.c.last_msg_at.desc().nulls_last(),
+            Conversation.created_at.desc(),
+        )
         .offset(offset)
         .limit(page_size)
     )
     result = await db.execute(stmt)
     conversations = result.scalars().all()
 
-    # Get member counts for each conversation
+    # Get member counts and last message preview for each conversation
     items = []
     for conv in conversations:
         count_result = await db.execute(
@@ -141,6 +163,16 @@ async def list_conversations(
             )
         )
         member_count = count_result.scalar() or 0
+
+        # Get last message for preview
+        last_msg_result = await db.execute(
+            select(Message)
+            .where(Message.conversation_id == conv.id)
+            .order_by(Message.created_at.desc())
+            .limit(1)
+        )
+        last_msg = last_msg_result.scalar_one_or_none()
+
         items.append({
             "id": conv.id,
             "type": conv.type,
@@ -148,6 +180,10 @@ async def list_conversations(
             "created_by": conv.created_by,
             "member_count": member_count,
             "created_at": conv.created_at,
+            "last_message_preview": (
+                last_msg.content[:100] if last_msg else None
+            ),
+            "last_message_at": last_msg.created_at if last_msg else None,
         })
 
     return {
@@ -261,7 +297,98 @@ async def send_message(
         sender_id=str(sender_id),
     )
 
+    # Publish real-time event (best-effort, non-blocking)
+    await _publish_message_event(conversation_id, sender_id, message)
+
     return message
+
+
+async def send_media_message(
+    db: AsyncSession,
+    conversation_id: UUID,
+    sender_id: UUID,
+    media_url: str,
+    media_type: str = "image",
+    caption: str = "",
+    age_tier: str | None = None,
+) -> Message:
+    """Send a media message with optional caption.
+
+    Creates both a Message and a MessageMedia record.
+    """
+    # Validate media type
+    if media_type not in ("image", "video"):
+        raise ValidationError("Media type must be 'image' or 'video'")
+
+    # Check messaging permission
+    if age_tier:
+        _check_can_message(age_tier)
+
+    # Verify sender is a member
+    await _verify_membership(db, conversation_id, sender_id)
+
+    # Create message with media type
+    message = Message(
+        id=uuid4(),
+        conversation_id=conversation_id,
+        sender_id=sender_id,
+        content=caption or f"[{media_type}]",
+        message_type=media_type,
+        moderation_status="pending",
+    )
+    db.add(message)
+    await db.flush()
+
+    # Create media attachment
+    media = MessageMedia(
+        id=uuid4(),
+        message_id=message.id,
+        cloudflare_id=media_url,
+        media_type=media_type,
+        moderation_status="pending",
+    )
+    db.add(media)
+    await db.flush()
+    await db.refresh(message)
+
+    # Submit to moderation pipeline
+    try:
+        from src.moderation import submit_for_moderation
+        await submit_for_moderation(
+            db,
+            content_type="message",
+            content_id=message.id,
+            author_age_tier=age_tier,
+            content_text=caption,
+        )
+    except Exception:
+        logger.warning(
+            "moderation_submission_failed",
+            message_id=str(message.id),
+            exc_info=True,
+        )
+
+    logger.info(
+        "media_message_sent",
+        message_id=str(message.id),
+        conversation_id=str(conversation_id),
+        media_type=media_type,
+    )
+
+    # Publish real-time event
+    await _publish_message_event(conversation_id, sender_id, message)
+
+    return message
+
+
+async def get_unread_count(
+    db: AsyncSession,
+    conversation_id: UUID,
+    user_id: UUID,
+) -> int:
+    """Get unread message count for a user in a conversation."""
+    from src.realtime.receipts import receipt_manager
+    return await receipt_manager.get_unread_count(db, conversation_id, user_id)
 
 
 async def list_messages(
@@ -332,6 +459,52 @@ async def mark_read(
         conversation_id=str(conversation_id),
         user_id=str(user_id),
     )
+
+
+# ---------------------------------------------------------------------------
+# Real-time event publishing
+# ---------------------------------------------------------------------------
+
+
+async def _publish_message_event(
+    conversation_id: UUID,
+    sender_id: UUID,
+    message: "Message",
+) -> None:
+    """Publish a new_message event to the messaging Redis channel.
+
+    Best-effort — failures are logged but do not affect message delivery.
+    """
+    try:
+        import redis.asyncio as aioredis
+        from src.config import get_settings
+
+        settings = get_settings()
+        redis_url = getattr(settings, "redis_url", None) or ""
+        if not redis_url:
+            return
+
+        r = aioredis.from_url(redis_url)
+        try:
+            event = {
+                "type": "new_message",
+                "target_room": f"conversation:{conversation_id}",
+                "data": {
+                    "message_id": str(message.id),
+                    "conversation_id": str(conversation_id),
+                    "sender_id": str(sender_id),
+                    "content": message.content,
+                    "message_type": message.message_type,
+                    "created_at": message.created_at.isoformat()
+                    if message.created_at
+                    else None,
+                },
+            }
+            await r.publish("messaging", json.dumps(event))
+        finally:
+            await r.close()
+    except Exception:
+        logger.debug("realtime_publish_skipped", exc_info=True)
 
 
 # ---------------------------------------------------------------------------

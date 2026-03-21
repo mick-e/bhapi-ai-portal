@@ -28,10 +28,13 @@ class EventBridge:
 
             self._redis = aioredis.from_url(redis_url)
             self._pubsub = self._redis.pubsub()
-            await self._pubsub.subscribe("alerts", "social", "moderation")
+            await self._pubsub.subscribe(
+                "alerts", "social", "moderation", "messaging"
+            )
             self._running = True
             logger.info(
-                "pubsub_started", channels=["alerts", "social", "moderation"]
+                "pubsub_started",
+                channels=["alerts", "social", "moderation", "messaging"],
             )
         except Exception as e:
             logger.warning("pubsub_start_failed", error=str(e))

@@ -134,6 +134,37 @@ async def list_messages(
 
 
 # ---------------------------------------------------------------------------
+# Media messages
+# ---------------------------------------------------------------------------
+
+
+@router.post(
+    "/conversations/{conversation_id}/media",
+    response_model=schemas.MessageResponse,
+    status_code=201,
+)
+async def send_media_message(
+    conversation_id: UUID,
+    data: schemas.MediaMessageCreate,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Send a media message (image or video) to a conversation."""
+    age_tier = await _get_user_age_tier(db, auth.user_id)
+    message = await service.send_media_message(
+        db,
+        conversation_id=conversation_id,
+        sender_id=auth.user_id,
+        media_url=data.media_url,
+        media_type=data.media_type,
+        caption=data.content,
+        age_tier=age_tier,
+    )
+    await db.commit()
+    return message
+
+
+# ---------------------------------------------------------------------------
 # Read receipts
 # ---------------------------------------------------------------------------
 
@@ -148,3 +179,58 @@ async def mark_read(
     await service.mark_read(db, conversation_id, auth.user_id)
     await db.commit()
     return {"status": "ok"}
+
+
+@router.get(
+    "/conversations/{conversation_id}/unread",
+    response_model=schemas.UnreadCountResponse,
+)
+async def get_unread_count(
+    conversation_id: UUID,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get unread message count for current user in a conversation."""
+    count = await service.get_unread_count(db, conversation_id, auth.user_id)
+    return {"conversation_id": conversation_id, "unread_count": count}
+
+
+# ---------------------------------------------------------------------------
+# Typing indicators
+# ---------------------------------------------------------------------------
+
+
+@router.post("/conversations/{conversation_id}/typing", status_code=200)
+async def start_typing(
+    conversation_id: UUID,
+    auth: GroupContext = Depends(get_current_user),
+):
+    """Signal that the current user is typing in a conversation."""
+    from src.realtime.typing import typing_manager
+    typing_manager.start_typing(str(auth.user_id), str(conversation_id))
+    return {"status": "ok"}
+
+
+@router.delete("/conversations/{conversation_id}/typing", status_code=200)
+async def stop_typing(
+    conversation_id: UUID,
+    auth: GroupContext = Depends(get_current_user),
+):
+    """Signal that the current user stopped typing."""
+    from src.realtime.typing import typing_manager
+    typing_manager.stop_typing(str(auth.user_id))
+    return {"status": "ok"}
+
+
+@router.get(
+    "/conversations/{conversation_id}/typing",
+    response_model=schemas.TypingStatusResponse,
+)
+async def get_typing_status(
+    conversation_id: UUID,
+    auth: GroupContext = Depends(get_current_user),
+):
+    """Get list of users currently typing in a conversation."""
+    from src.realtime.typing import typing_manager
+    users = typing_manager.get_typing_users(str(conversation_id))
+    return {"conversation_id": conversation_id, "typing_users": users}
