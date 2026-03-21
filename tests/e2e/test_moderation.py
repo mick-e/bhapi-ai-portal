@@ -437,7 +437,7 @@ async def test_create_report(mod_client):
     resp = await mod_client.post("/api/v1/moderation/reports", json={
         "target_type": "post",
         "target_id": str(uuid.uuid4()),
-        "reason": "This is spam",
+        "reason": "spam",
     })
     assert resp.status_code == 201
     body = resp.json()
@@ -467,7 +467,7 @@ async def test_list_reports(mod_client):
     await mod_client.post("/api/v1/moderation/reports", json={
         "target_type": "comment",
         "target_id": str(uuid.uuid4()),
-        "reason": "Offensive",
+        "reason": "inappropriate",
     })
     resp = await mod_client.get("/api/v1/moderation/reports")
     assert resp.status_code == 200
@@ -483,7 +483,7 @@ async def test_member_sees_only_own_reports(member_client, mod_client):
     await member_client.post("/api/v1/moderation/reports", json={
         "target_type": "post",
         "target_id": str(uuid.uuid4()),
-        "reason": "Spam",
+        "reason": "spam",
     })
     resp = await member_client.get("/api/v1/moderation/reports")
     assert resp.status_code == 200

@@ -188,8 +188,8 @@ async def test_clean_text_pre_publish_approved(kw_client):
 
 
 @pytest.mark.asyncio
-async def test_clean_text_post_publish_pending(kw_client):
-    """Clean text in post-publish pipeline stays pending."""
+async def test_clean_text_post_publish_published(kw_client):
+    """Clean text in post-publish pipeline is published immediately (teen tier)."""
     resp = await submit(
         kw_client,
         content_text="I had a great day at school",
@@ -197,7 +197,7 @@ async def test_clean_text_post_publish_pending(kw_client):
     )
     assert resp.status_code == 201
     body = resp.json()
-    assert body["status"] == "pending"
+    assert body["status"] == "published"
     assert body["pipeline"] == "post_publish"
 
 
@@ -233,8 +233,8 @@ async def test_clean_text_risk_scores_show_allow(kw_client):
 
 
 @pytest.mark.asyncio
-async def test_uncertain_text_stays_pending(kw_client):
-    """High-severity keyword for teen stays pending (UNCERTAIN)."""
+async def test_uncertain_text_teen_published(kw_client):
+    """High-severity keyword for teen is published (post-publish pipeline)."""
     resp = await submit(
         kw_client,
         content_text="someone offered me drugs",
@@ -242,7 +242,7 @@ async def test_uncertain_text_stays_pending(kw_client):
     )
     assert resp.status_code == 201
     body = resp.json()
-    assert body["status"] == "pending"
+    assert body["status"] == "published"
     kf = body["risk_scores"]["keyword_filter"]
     assert kf["action"] == "uncertain"
 
@@ -309,8 +309,8 @@ async def test_high_keyword_young_auto_blocks(kw_client):
 
 
 @pytest.mark.asyncio
-async def test_medium_teen_post_publish_allow(kw_client):
-    """Medium keyword for teen in post-publish stays pending (ALLOW but post-pub)."""
+async def test_medium_teen_post_publish_published(kw_client):
+    """Medium keyword for teen in post-publish is published immediately."""
     resp = await submit(
         kw_client,
         content_text="that test was dumb",
@@ -318,8 +318,8 @@ async def test_medium_teen_post_publish_allow(kw_client):
     )
     assert resp.status_code == 201
     body = resp.json()
-    # Teen -> post_publish, ALLOW action -> stays pending (ALLOW only auto-approves pre_publish)
-    assert body["status"] == "pending"
+    # Teen -> post_publish, published immediately (background moderation pending)
+    assert body["status"] == "published"
 
 
 # ---------------------------------------------------------------------------

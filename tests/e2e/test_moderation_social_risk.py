@@ -153,8 +153,8 @@ async def test_comment_grooming_detected(mod_client):
 
 
 @pytest.mark.asyncio
-async def test_post_no_social_risk(mod_client):
-    """Post content type does NOT trigger social risk (only message/comment)."""
+async def test_post_social_risk_detected(mod_client):
+    """Post content type now triggers social risk detection (P2-E4)."""
     headers = await _register(mod_client, "post@example.com")
 
     resp = await _submit(
@@ -162,9 +162,9 @@ async def test_post_no_social_risk(mod_client):
     )
     assert resp.status_code == 201
     data = resp.json()
-    # social_risk should NOT be in risk_scores for posts
-    if data.get("risk_scores"):
-        assert "social_risk" not in data["risk_scores"]
+    # Posts now run social risk checks (expanded in Phase 2)
+    assert "social_risk" in data["risk_scores"]
+    assert data["risk_scores"]["social_risk"]["category"] == "grooming"
 
 
 @pytest.mark.asyncio

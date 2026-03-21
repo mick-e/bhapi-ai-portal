@@ -97,7 +97,7 @@ async def e2e_users(e2e_session):
     today = datetime.now(timezone.utc).date()
     child_profile = Profile(
         id=uuid.uuid4(), user_id=child.id, display_name="Child",
-        date_of_birth=today.replace(year=today.year - 7), age_tier="young",
+        date_of_birth=today.replace(year=today.year - 11), age_tier="preteen",
         visibility="friends_only",
     )
     teen_profile = Profile(
