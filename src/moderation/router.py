@@ -11,6 +11,7 @@ from src.exceptions import ForbiddenError
 from src.moderation.schemas import (
     ContentReportCreate,
     ContentReportResponse,
+    ContentReportStatusUpdate,
     ModerationDashboard,
     ModerationDecisionCreate,
     ModerationQueueCreate,
@@ -20,14 +21,18 @@ from src.moderation.schemas import (
     TakedownRequest,
 )
 from src.moderation.service import (
+    REPORT_REASON_LABELS,
+    ReportReason,
     create_content_report,
     get_dashboard_stats,
     get_queue_entry,
+    get_report,
     list_queue,
     list_reports,
     process_queue_entry,
     submit_for_moderation,
     takedown_content,
+    update_report_status,
 )
 from src.schemas import GroupContext
 
@@ -145,6 +150,17 @@ async def dashboard_endpoint(
     return stats
 
 
+@router.get("/reports/reasons")
+async def list_report_reasons():
+    """Get the taxonomy of report reasons with age-appropriate labels."""
+    return {
+        "reasons": [
+            {"value": r.value, "label": REPORT_REASON_LABELS[r]}
+            for r in ReportReason
+        ]
+    }
+
+
 @router.post("/reports", response_model=ContentReportResponse, status_code=201)
 async def create_report_endpoint(
     data: ContentReportCreate,
@@ -158,6 +174,39 @@ async def create_report_endpoint(
         target_type=data.target_type,
         target_id=data.target_id,
         reason=data.reason,
+        description=data.description,
+    )
+    return report
+
+
+@router.get("/reports/{report_id}", response_model=ContentReportResponse)
+async def get_report_endpoint(
+    report_id: UUID,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get a specific content report."""
+    report = await get_report(db, report_id)
+    # Non-moderators can only see their own reports
+    if auth.role not in _MODERATOR_ROLES and report.reporter_id != auth.user_id:
+        raise ForbiddenError("You can only view your own reports")
+    return report
+
+
+@router.patch("/reports/{report_id}/status", response_model=ContentReportResponse)
+async def update_report_status_endpoint(
+    report_id: UUID,
+    data: ContentReportStatusUpdate,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update a report's status (moderators only)."""
+    _require_moderator(auth)
+    report = await update_report_status(
+        db,
+        report_id=report_id,
+        new_status=data.status,
+        moderator_id=auth.user_id,
     )
     return report
 
@@ -313,6 +362,7 @@ async def esafety_overdue(
 
 @router.get("/reports", response_model=ReportListResponse)
 async def list_reports_endpoint(
+    status: str | None = Query(None, description="Filter by report status"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     auth: GroupContext = Depends(get_current_user),
@@ -322,5 +372,7 @@ async def list_reports_endpoint(
     reporter_id = None
     if auth.role not in _MODERATOR_ROLES:
         reporter_id = auth.user_id
-    result = await list_reports(db, reporter_id=reporter_id, page=page, page_size=page_size)
+    result = await list_reports(
+        db, reporter_id=reporter_id, status=status, page=page, page_size=page_size,
+    )
     return result

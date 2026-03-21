@@ -1,8 +1,8 @@
 import { UI_VERSION } from '../src';
 
 describe('shared-ui', () => {
-  test('exports version 0.3.0', () => {
-    expect(UI_VERSION).toBe('0.3.0');
+  test('exports version 0.4.0', () => {
+    expect(UI_VERSION).toBe('0.4.0');
   });
 
   test('exports all social components', () => {
@@ -11,6 +11,7 @@ describe('shared-ui', () => {
     expect(mod.CommentThread).toBeDefined();
     expect(mod.MessageBubble).toBeDefined();
     expect(mod.ContactRequest).toBeDefined();
+    expect(mod.ReportDialog).toBeDefined();
   });
 
   test('exports all social style helpers', () => {
@@ -19,6 +20,8 @@ describe('shared-ui', () => {
     expect(mod.commentThreadStyles).toBeDefined();
     expect(mod.messageBubbleStyles).toBeDefined();
     expect(mod.contactRequestStyles).toBeDefined();
+    expect(mod.reportDialogStyles).toBeDefined();
+    expect(mod.DEFAULT_REPORT_REASONS).toBeDefined();
   });
 
   test('exports original components', () => {

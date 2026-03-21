@@ -60,7 +60,25 @@ class ContentReportCreate(BaseModel):
         description="Type of content being reported",
     )
     target_id: UUID
-    reason: str = Field(..., min_length=1, max_length=2000)
+    reason: str = Field(
+        ...,
+        pattern="^(inappropriate|bullying|spam|impersonation|self_harm|adult_content|other)$",
+        description="Report reason from the taxonomy",
+    )
+    description: str | None = Field(
+        None, max_length=2000,
+        description="Optional description providing additional context",
+    )
+
+
+class ContentReportStatusUpdate(BaseModel):
+    """Request to update a report's status."""
+
+    status: str = Field(
+        ...,
+        pattern="^(under_review|action_taken|dismissed)$",
+        description="New status for the report",
+    )
 
 
 class ContentReportResponse(BaseModel):
@@ -71,6 +89,7 @@ class ContentReportResponse(BaseModel):
     target_type: str
     target_id: UUID
     reason: str
+    description: str | None = None
     status: str
     created_at: datetime
     updated_at: datetime

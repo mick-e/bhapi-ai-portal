@@ -236,3 +236,46 @@ async def create_baseline(
         sample_count=sample_count,
     )
     return baseline
+
+
+# ---------------------------------------------------------------------------
+# Behavioral Baseline Analysis (delegates to src.social.behavioral)
+# ---------------------------------------------------------------------------
+
+
+async def compute_member_baseline(
+    db: AsyncSession,
+    member_id: UUID,
+    window_days: int = 14,
+) -> BehavioralBaseline:
+    """Compute behavioral baseline for a member from activity data."""
+    from src.social.behavioral import compute_baseline as _compute
+    return await _compute(db, member_id, window_days=window_days)
+
+
+async def detect_member_deviation(
+    db: AsyncSession,
+    member_id: UUID,
+    threshold: float = 2.0,
+) -> list[dict]:
+    """Detect behavioral deviations for a member against their baseline."""
+    from src.social.behavioral import detect_deviation as _detect
+    return await _detect(db, member_id, threshold=threshold)
+
+
+async def get_member_baseline_summary(
+    db: AsyncSession,
+    member_id: UUID,
+) -> dict:
+    """Get human-readable baseline summary for parent dashboard."""
+    from src.social.behavioral import get_baseline_summary as _summary
+    return await _summary(db, member_id)
+
+
+async def run_baseline_batch(
+    db: AsyncSession,
+    window_days: int = 14,
+) -> list[BehavioralBaseline]:
+    """Scheduled job: recompute baselines for all active children."""
+    from src.social.behavioral import update_baselines_batch as _batch
+    return await _batch(db, window_days=window_days)

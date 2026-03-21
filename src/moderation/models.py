@@ -71,9 +71,10 @@ class ContentReport(Base, UUIDMixin, TimestampMixin):
         UUID(as_uuid=True), nullable=False, index=True,
     )
     reason: Mapped[str] = mapped_column(Text, nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(
         String(20), nullable=False, default="pending",
-    )  # pending, reviewed, dismissed
+    )  # pending, under_review, action_taken, dismissed
 
 
 class MediaAsset(Base, UUIDMixin, TimestampMixin):

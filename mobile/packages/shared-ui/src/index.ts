@@ -34,4 +34,7 @@ export type { ContactRequestProps, SearchResultCardProps } from './ContactReques
 export { AgeTierGate, ageTierGateStyles, checkTierPermission, getFeatureDescription } from './AgeTierGate';
 export type { AgeTierGateProps } from './AgeTierGate';
 
-export const UI_VERSION = '0.3.0';
+export { ReportDialog, reportDialogStyles, DEFAULT_REPORT_REASONS } from './ReportDialog';
+export type { ReportDialogProps, ReportTargetType, ReportReasonValue, ReportReasonOption } from './ReportDialog';
+
+export const UI_VERSION = '0.4.0';

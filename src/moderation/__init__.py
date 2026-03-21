@@ -21,7 +21,15 @@ from src.moderation.image_pipeline import (
     classify_image,
 )
 from src.moderation.keyword_filter import FilterAction, FilterResult, classify_text
-from src.moderation.service import submit_for_moderation, takedown_content
+from src.moderation.service import (
+    REPORT_REASON_LABELS,
+    ReportReason,
+    ReportStatus,
+    create_content_report,
+    submit_for_moderation,
+    takedown_content,
+    update_report_status,
+)
 from src.moderation.social_risk import (
     SocialRiskCategory,
     SocialRiskResult,
@@ -49,8 +57,13 @@ __all__ = [
     "classify_social_risk",
     "classify_text",
     "classify_video",
+    "REPORT_REASON_LABELS",
+    "ReportReason",
+    "ReportStatus",
+    "create_content_report",
     "submit_for_moderation",
     "takedown_content",
+    "update_report_status",
     "SocialRiskCategory",
     "SocialRiskResult",
     "ESafetyCategory",
