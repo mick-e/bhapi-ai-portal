@@ -1,8 +1,8 @@
 import { UI_VERSION } from '../src';
 
 describe('shared-ui', () => {
-  test('exports version 0.4.0', () => {
-    expect(UI_VERSION).toBe('0.4.0');
+  test('exports version 0.5.0', () => {
+    expect(UI_VERSION).toBe('0.5.0');
   });
 
   test('exports all social components', () => {
