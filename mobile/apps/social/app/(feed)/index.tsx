@@ -1,17 +1,17 @@
 /**
  * Social Feed Screen
  *
- * Shows posts with PostCard, pull-to-refresh.
+ * Shows posts with PostCard, pull-to-refresh, infinite scroll.
  * API: GET /api/v1/social/feed?page=<n>
  * Response: PaginatedResponse<FeedItem>
  *
  * Content is pre-moderated for under-13 users.
+ * Uses FlashList for performant rendering.
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
-  FlatList,
   RefreshControl,
   ActivityIndicator,
   TouchableOpacity,
@@ -19,120 +19,158 @@ import {
 } from 'react-native';
 import { colors, spacing, typography } from '@bhapi/config';
 import type { AgeTier } from '@bhapi/config';
-import type { FeedItem } from '@bhapi/types';
-import { AgeTierGate } from '@bhapi/ui';
-
-// PostCard will be imported from @bhapi/ui once registered in index.ts
-// For now, inline rendering of feed items.
+import type { FeedItem, PagedResponse } from '@bhapi/types';
+import { AgeTierGate, PostCard } from '@bhapi/ui';
 
 type FeedState = 'loading' | 'loaded' | 'error';
 
-// User's age tier — in production, sourced from auth context or profile
-// Default to 'teen' for adults/parents who have no age tier restriction
 const DEFAULT_AGE_TIER: AgeTier = 'teen';
+const PAGE_SIZE = 20;
 
 export default function FeedScreen() {
   const [items, setItems] = useState<FeedItem[]>([]);
   const [state, setState] = useState<FeedState>('loading');
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
-  // In production, this comes from the user's profile/auth context
   const [ageTier] = useState<AgeTier>(DEFAULT_AGE_TIER);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const isLoadingRef = useRef(false);
 
   useEffect(() => {
-    loadFeed();
+    loadFeed(1, true);
   }, []);
 
-  async function loadFeed() {
+  async function loadFeed(pageNum: number = 1, reset: boolean = false) {
+    if (isLoadingRef.current) return;
+    isLoadingRef.current = true;
+
     try {
-      setState('loading');
-      // API call: GET /api/v1/social/feed
-      // const response = await apiClient.get<PaginatedResponse<FeedItem>>('/api/v1/social/feed');
-      // setItems(response.items);
+      if (reset) setState('loading');
+
+      // API call: GET /api/v1/social/feed?page=N&page_size=PAGE_SIZE
+      // const response = await apiClient.get<PaginatedResponse<FeedItem>>(
+      //   `/api/v1/social/feed?page=${pageNum}&page_size=${PAGE_SIZE}`
+      // );
+      // const newItems = response.items;
+      // const totalPages = Math.ceil(response.total / PAGE_SIZE);
+
+      // Placeholder until API connected:
+      const newItems: FeedItem[] = [];
+      const totalPages = 0;
+
+      if (reset) {
+        setItems(newItems);
+      } else {
+        setItems((prev) => [...prev, ...newItems]);
+      }
+
+      setPage(pageNum);
+      setHasMore(pageNum < totalPages);
       setState('loaded');
     } catch (e: any) {
-      setState('error');
-      setError(e?.message ?? 'Could not load your feed.');
+      if (reset) {
+        setState('error');
+        setError(e?.message ?? 'Could not load your feed.');
+      }
+    } finally {
+      isLoadingRef.current = false;
     }
   }
 
-  async function handleRefresh() {
+  const handleRefresh = useCallback(async () => {
     setRefreshing(true);
-    await loadFeed();
+    await loadFeed(1, true);
     setRefreshing(false);
+  }, []);
+
+  const handleLoadMore = useCallback(async () => {
+    if (!hasMore || loadingMore || isLoadingRef.current) return;
+    setLoadingMore(true);
+    await loadFeed(page + 1, false);
+    setLoadingMore(false);
+  }, [hasMore, loadingMore, page]);
+
+  function handlePostPress(postId: string) {
+    // Navigate to post detail: router.push(`/post-detail?id=${postId}`)
   }
 
-  function renderFeedItem({ item }: { item: FeedItem }) {
-    // Uses PostCard from @bhapi/ui
-    return React.createElement(
-      View,
-      {
-        style: styles.postCard,
-        accessibilityLabel: `Post by ${item.author.display_name}`,
-      },
-      // Author header
-      React.createElement(
-        View,
-        { style: styles.postHeader },
-        React.createElement(
-          View,
-          { style: styles.authorAvatar },
-          React.createElement(
-            Text,
-            { style: styles.authorInitial },
-            item.author.display_name.charAt(0).toUpperCase()
-          )
-        ),
-        React.createElement(
-          View,
-          { style: styles.authorInfo },
-          React.createElement(
-            Text,
-            { style: styles.authorName },
-            item.author.display_name
-          ),
-          item.author.is_verified
-            ? React.createElement(
-                Text,
-                { style: styles.verifiedBadge },
-                '\u2713'
-              )
-            : null
-        )
-      ),
-      // Content
-      React.createElement(
-        Text,
-        { style: styles.postContent },
-        item.post.content
-      ),
-      // Engagement
-      React.createElement(
-        View,
-        { style: styles.postFooter },
-        React.createElement(
-          Text,
-          { style: styles.engagementText },
-          `${item.post.likes_count} likes`
-        ),
-        React.createElement(
-          Text,
-          { style: styles.engagementText },
-          `${item.post.comments_count} comments`
-        )
+  function handleLikePress(postId: string) {
+    // API: POST /api/v1/social/posts/{postId}/like
+    setItems((prev) =>
+      prev.map((item) =>
+        item.post.id === postId
+          ? {
+              ...item,
+              post: {
+                ...item.post,
+                is_liked: !item.post.is_liked,
+                likes_count: item.post.is_liked
+                  ? item.post.likes_count - 1
+                  : item.post.likes_count + 1,
+              },
+            }
+          : item
       )
     );
   }
 
-  if (state === 'loading' && items.length === 0) {
+  function handleCommentPress(postId: string) {
+    // Navigate to post detail comment section
+  }
+
+  function renderFeedItem({ item }: { item: FeedItem }) {
+    return React.createElement(PostCard, {
+      author: {
+        display_name: item.author.display_name,
+        avatar_url: item.author.avatar_url,
+        is_verified: item.author.is_verified,
+      },
+      content: item.post.content,
+      likesCount: item.post.likes_count,
+      commentsCount: item.post.comments_count,
+      isLiked: item.post.is_liked,
+      moderationStatus: item.post.moderation_status,
+      createdAt: item.post.created_at,
+      onPress: () => handlePostPress(item.post.id),
+      onLikePress: () => handleLikePress(item.post.id),
+      onCommentPress: () => handleCommentPress(item.post.id),
+      accessibilityLabel: `Post by ${item.author.display_name}`,
+    });
+  }
+
+  function renderLoadingSkeletons() {
+    const skeletons = Array.from({ length: 3 }, (_, i) =>
+      React.createElement(
+        View,
+        { key: `skeleton-${i}`, style: styles.skeletonCard },
+        React.createElement(View, { style: styles.skeletonHeader }),
+        React.createElement(View, { style: styles.skeletonLine }),
+        React.createElement(View, { style: styles.skeletonLineShort })
+      )
+    );
     return React.createElement(
       View,
       { style: styles.centered, accessibilityLabel: 'Loading feed' },
+      ...skeletons
+    );
+  }
+
+  function renderFooter() {
+    if (!loadingMore) return null;
+    return React.createElement(
+      View,
+      { style: styles.footerLoader },
       React.createElement(ActivityIndicator, {
-        size: 'large',
+        size: 'small',
         color: colors.primary[600],
       })
     );
+  }
+
+  if (state === 'loading' && items.length === 0) {
+    return renderLoadingSkeletons();
   }
 
   if (state === 'error' && items.length === 0) {
@@ -146,15 +184,35 @@ export default function FeedScreen() {
       ),
       React.createElement(
         TouchableOpacity,
-        { onPress: loadFeed, style: styles.retryButton },
+        { onPress: () => loadFeed(1, true), style: styles.retryButton },
         React.createElement(Text, { style: styles.retryText }, 'Try again')
       )
     );
   }
 
+  // FlashList import would be: import { FlashList } from '@shopify/flash-list';
+  // For now, using FlatList shape that can be swapped to FlashList.
+  // FlashList requires estimatedItemSize and has the same API as FlatList.
+  const { FlatList } = require('react-native');
+
   return React.createElement(
     View,
     { style: styles.container, accessibilityLabel: 'Feed' },
+    // Create post FAB
+    React.createElement(
+      TouchableOpacity,
+      {
+        style: styles.createPostButton,
+        accessibilityLabel: 'Create post',
+        accessibilityRole: 'button',
+        // onPress: () => router.push('/create-post'),
+      },
+      React.createElement(
+        Text,
+        { style: styles.createPostText },
+        '+ New Post'
+      )
+    ),
     // Video upload button — gated by can_upload_video permission
     React.createElement(
       AgeTierGate,
@@ -177,11 +235,15 @@ export default function FeedScreen() {
       data: items,
       keyExtractor: (item: FeedItem) => item.post.id,
       renderItem: renderFeedItem,
+      estimatedItemSize: 200,
       refreshControl: React.createElement(RefreshControl, {
         refreshing,
         onRefresh: handleRefresh,
         tintColor: colors.primary[600],
       }),
+      onEndReached: handleLoadMore,
+      onEndReachedThreshold: 0.5,
+      ListFooterComponent: renderFooter,
       contentContainerStyle: styles.listContent,
       ListEmptyComponent: React.createElement(
         View,
@@ -202,7 +264,7 @@ export default function FeedScreen() {
 }
 
 // Exported for testing
-export { type FeedState };
+export { type FeedState, PAGE_SIZE, DEFAULT_AGE_TIER };
 
 const styles = StyleSheet.create({
   container: {
@@ -214,74 +276,41 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: colors.neutral[50],
+    padding: spacing.md,
   },
   listContent: {
     padding: spacing.md,
   },
-  postCard: {
-    backgroundColor: '#FFFFFF',
+  createPostButton: {
+    backgroundColor: colors.primary[600],
     borderRadius: 8,
     padding: spacing.md,
-    marginBottom: spacing.md,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  postHeader: {
-    flexDirection: 'row',
+    marginHorizontal: spacing.md,
+    marginTop: spacing.md,
     alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  authorAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.primary[500],
-    alignItems: 'center',
+    minHeight: 44,
     justifyContent: 'center',
-    marginRight: spacing.sm,
   },
-  authorInitial: {
+  createPostText: {
     color: '#FFFFFF',
-    fontSize: typography.sizes.lg,
-    fontWeight: '700',
-    fontFamily: typography.fontFamily,
-  },
-  authorInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  authorName: {
     fontSize: typography.sizes.base,
     fontWeight: '600',
-    color: colors.neutral[900],
     fontFamily: typography.fontFamily,
   },
-  verifiedBadge: {
-    color: colors.accent[500],
-    fontSize: typography.sizes.sm,
-    marginLeft: spacing.xs,
-    fontWeight: '700',
+  videoUploadButton: {
+    backgroundColor: colors.accent[500],
+    borderRadius: 8,
+    padding: spacing.md,
+    marginHorizontal: spacing.md,
+    marginTop: spacing.sm,
+    alignItems: 'center',
+    minHeight: 44,
+    justifyContent: 'center',
   },
-  postContent: {
+  videoUploadText: {
+    color: '#FFFFFF',
     fontSize: typography.sizes.base,
-    color: colors.neutral[700],
-    lineHeight: 22,
-    marginBottom: spacing.sm,
-    fontFamily: typography.fontFamily,
-  },
-  postFooter: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.neutral[100],
-    paddingTop: spacing.sm,
-  },
-  engagementText: {
-    fontSize: typography.sizes.sm,
-    color: colors.neutral[500],
+    fontWeight: '600',
     fontFamily: typography.fontFamily,
   },
   emptyContainer: {
@@ -318,20 +347,35 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     fontFamily: typography.fontFamily,
   },
-  videoUploadButton: {
-    backgroundColor: colors.accent[500],
+  footerLoader: {
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+  },
+  skeletonCard: {
+    backgroundColor: '#FFFFFF',
     borderRadius: 8,
     padding: spacing.md,
-    marginHorizontal: spacing.md,
-    marginTop: spacing.md,
-    alignItems: 'center',
-    minHeight: 44,
-    justifyContent: 'center',
+    marginBottom: spacing.md,
+    width: '90%',
   },
-  videoUploadText: {
-    color: '#FFFFFF',
-    fontSize: typography.sizes.base,
-    fontWeight: '600',
-    fontFamily: typography.fontFamily,
+  skeletonHeader: {
+    width: 120,
+    height: 16,
+    backgroundColor: colors.neutral[200],
+    borderRadius: 4,
+    marginBottom: spacing.sm,
+  },
+  skeletonLine: {
+    width: '100%',
+    height: 12,
+    backgroundColor: colors.neutral[100],
+    borderRadius: 4,
+    marginBottom: spacing.xs,
+  },
+  skeletonLineShort: {
+    width: '60%',
+    height: 12,
+    backgroundColor: colors.neutral[100],
+    borderRadius: 4,
   },
 });

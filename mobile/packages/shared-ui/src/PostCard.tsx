@@ -22,9 +22,12 @@ export interface PostCardProps {
   isLiked: boolean;
   moderationStatus: 'pending' | 'approved' | 'rejected' | 'flagged';
   createdAt: string;
+  hashtags?: string[];
   onPress?: () => void;
   onLikePress?: () => void;
   onCommentPress?: () => void;
+  onReportPress?: () => void;
+  onSharePress?: () => void;
   style?: ViewStyle;
   accessibilityLabel?: string;
 }
@@ -44,9 +47,12 @@ export function PostCard({
   isLiked,
   moderationStatus,
   createdAt,
+  hashtags,
   onPress,
   onLikePress,
   onCommentPress,
+  onReportPress,
+  onSharePress,
   style,
   accessibilityLabel,
 }: PostCardProps) {
@@ -112,6 +118,20 @@ export function PostCard({
       { style: styles.content },
       content
     ),
+    // Hashtags
+    hashtags && hashtags.length > 0
+      ? React.createElement(
+          View,
+          { style: styles.hashtagRow },
+          ...hashtags.map((tag) =>
+            React.createElement(
+              Text,
+              { key: tag, style: styles.hashtagText },
+              `#${tag}`
+            )
+          )
+        )
+      : null,
     // Footer — likes and comments
     React.createElement(
       View,
@@ -143,7 +163,22 @@ export function PostCard({
           { style: styles.actionText },
           `\u{1F4AC} ${commentsCount}`
         )
-      )
+      ),
+      onReportPress
+        ? React.createElement(
+            TouchableOpacity,
+            {
+              style: styles.footerAction,
+              onPress: onReportPress,
+              accessibilityLabel: 'Report post',
+            },
+            React.createElement(
+              Text,
+              { style: styles.actionText },
+              '\u26A0'
+            )
+          )
+        : null
     )
   );
 }
@@ -224,6 +259,18 @@ const styles = StyleSheet.create({
     color: colors.neutral[700],
     lineHeight: 22,
     marginBottom: spacing.sm,
+    fontFamily: typography.fontFamily,
+  },
+  hashtagRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  hashtagText: {
+    fontSize: typography.sizes.sm,
+    color: colors.primary[600],
+    fontWeight: '500',
     fontFamily: typography.fontFamily,
   },
   footer: {

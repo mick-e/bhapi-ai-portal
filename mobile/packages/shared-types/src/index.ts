@@ -8,6 +8,8 @@ export type {
   SocialComment, Follow, FollowStatus, ContactRequest, FeedItem,
   OnboardingStep, OnboardingState, YotiVerificationRequest,
   YotiVerificationResult, ParentConsentRequest, ProfileCreateRequest,
+  CreatePostRequest, CreatePostResponse, PostDetailResponse,
+  CommentResponse, CreateCommentRequest, Hashtag,
 } from './social';
 export type {
   Alert, AlertSeverity, AlertCategory, AlertStatus,

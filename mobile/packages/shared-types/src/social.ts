@@ -108,3 +108,49 @@ export interface ProfileCreateRequest {
   bio?: string;
   date_of_birth: string;
 }
+
+// ---------------------------------------------------------------------------
+// Post creation / detail
+// ---------------------------------------------------------------------------
+
+export interface CreatePostRequest {
+  content: string;
+  media_ids?: string[];
+  visibility?: PostVisibility;
+  hashtags?: string[];
+}
+
+export interface CreatePostResponse {
+  id: string;
+  moderation_status: ModerationStatus;
+  message: string;
+}
+
+export interface PostDetailResponse extends SocialPost {
+  author: Pick<Profile, 'id' | 'display_name' | 'avatar_url' | 'is_verified'>;
+  comments: CommentResponse[];
+  comment_count: number;
+}
+
+export interface CommentResponse {
+  id: string;
+  author_id: string;
+  author_name: string;
+  author_avatar: string | null;
+  content: string;
+  created_at: string;
+}
+
+export interface CreateCommentRequest {
+  content: string;
+}
+
+// ---------------------------------------------------------------------------
+// Hashtags
+// ---------------------------------------------------------------------------
+
+export interface Hashtag {
+  id: string;
+  name: string;
+  post_count: number;
+}
