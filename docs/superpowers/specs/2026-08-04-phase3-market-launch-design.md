@@ -167,7 +167,8 @@ src/screen_time/
 - Teen (13-15): Warning at 80%, soft block at 100% (dismissible with acknowledgment, parent notified). Extension requests allowed (max 5/day). Auto-deny if parent doesn't respond within 15 minutes.
 
 **Integration with device agent:**
-- `src/device_agent/` already tracks app usage (AppUsageRecord). Screen time rules are evaluated against device agent data.
+- `src/device_agent/` is fully implemented with three models: `DeviceSession` (agent sessions with device_id, os_version, battery_level), `AppUsageRecord` (per-app usage with bundle_id, category, foreground_minutes), and `ScreenTimeRecord` (daily summaries with app_breakdown JSON, category_breakdown JSON, pickups count). All indexed on `(member_id, started_at)` and `(member_id, category)`.
+- Screen time rules are evaluated against `AppUsageRecord` data from the device agent.
 - Device agent polls `/api/v1/screen-time/rules/{child_id}` every 60 seconds for active rules.
 - Enforcement is local on device (notification + optional block). Server-side is the source of truth for rules.
 
@@ -299,7 +300,7 @@ Extends existing module (SocialGraphEdge, AbuseSignal, BehavioralBaseline from P
 **New models:**
 - `CorrelationRule`: `id`, `name`, `description`, `condition` (JSON — signal types, thresholds, time window), `action` (alert_severity, notification_type), `age_tier_filter`, `enabled`, `created_at`
 - `EnrichedAlert`: `id`, `alert_id` (FK to Alert), `correlation_context` (text — human-readable explanation), `contributing_signals` (JSON — list of signal references), `unified_risk_score`, `confidence`
-- `AnomalyModel`: `id`, `child_id`, `signal_type`, `baseline_mean`, `baseline_stddev`, `sample_count`, `last_updated`
+**Note on BehavioralBaseline:** The existing `BehavioralBaseline` model (Phase 2) stores per-child baselines with a `metrics` JSON field, `sample_count`, and `window_days`. Phase 3 does NOT create a separate `AnomalyModel` table — instead, the `anomaly.py` service computes multi-signal deviation scores at runtime by reading from `BehavioralBaseline` (social/device baselines) combined with AI risk event history and location patterns. No new baseline table is needed; the existing model's `metrics` JSON is flexible enough to store per-signal-type means and standard deviations.
 
 **Default correlation rules (14 categories):**
 1. AI dependency + social withdrawal → emotional_dependency (HIGH)
@@ -455,16 +456,17 @@ Extends existing module (SocialGraphEdge, AbuseSignal, BehavioralBaseline from P
 
 | Number | Tables | Task |
 |--------|--------|------|
-| 042 | `location_records`, `geofences`, `geofence_events`, `school_checkins`, `location_sharing_consents`, `location_kill_switches`, `location_audit_logs` | P3-F3 |
-| 043 | `screen_time_rules`, `screen_time_schedules`, `extension_requests` | P3-F2 |
-| 044 | `art_generations`, `story_templates`, `story_creations`, `sticker_packs`, `stickers`, `drawing_assets` | P3-F1 |
-| 045 | `oauth_clients`, `oauth_tokens`, `api_key_tiers`, `webhook_endpoints`, `webhook_deliveries`, `api_usage_records` | P3-B3 |
-| 046 | `feature_gates` + seed data for tier-feature mappings | P3-B1 |
-| 047 | `correlation_rules`, `enriched_alerts`, `anomaly_models` + seed 14 default correlation rules | P3-I1/I2 |
-| 048 | `audit_policies`, `evidence_collections`, `compliance_controls` | P3-B4 |
+| 045 | `location_records`, `geofences`, `geofence_events`, `school_checkins`, `location_sharing_consents`, `location_kill_switches`, `location_audit_logs` | P3-F3 |
+| 046 | `screen_time_rules`, `screen_time_schedules`, `extension_requests` | P3-F2 |
+| 047 | `art_generations`, `story_templates`, `story_creations`, `sticker_packs`, `stickers`, `drawing_assets` | P3-F1 |
+| 048 | `oauth_clients`, `oauth_tokens`, `api_key_tiers`, `webhook_endpoints`, `webhook_deliveries`, `api_usage_records` | P3-B3 |
+| 049 | `feature_gates` + seed data for tier-feature mappings | P3-B1 |
+| 050 | `correlation_rules`, `enriched_alerts` + seed 14 default correlation rules | P3-I1/I2 |
+| 051 | `audit_policies`, `evidence_collections`, `compliance_controls` | P3-B4 |
 
 **Migration notes:**
-- Migrations 042-048 each modify `alembic/env.py` (model imports) — must be sequenced, not parallel
+- Latest existing migration is 044 (`parental_safeguards`). Phase 3 starts at **045**.
+- Migrations 045-051 each modify `alembic/env.py` (model imports) — must be sequenced, not parallel
 - All migrations must be committed and pushed (lesson from 2026-03-12 outage)
 - Location records use compound index on `(child_id, timestamp)` for efficient range queries
 - Geofence uses PostGIS-style lat/lng + radius (no PostGIS dependency — Haversine distance in Python)
@@ -562,6 +564,7 @@ Three paths, one destination:
 | P3-F3 | ≥30 | ≥25 | ≥15 | Comp ≥15 |
 | P3-F4 | — | — | — | Comp ≥20, Portal ≥15 |
 | P3-B1 | ≥20 | ≥15 | ≥10 | — |
+| P3-B2 | — | — | — | — (documentation only, unless ROI calculator is a web tool) |
 | P3-B3 | ≥30 | ≥20 | ≥15 | Portal ≥10 |
 | P3-B4 | ≥10 | ≥5 | — | — |
 | P3-L1/L2 | — | — | — | Maestro ≥15 each |
