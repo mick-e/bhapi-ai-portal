@@ -394,7 +394,7 @@ async def test_create_report(test_session: AsyncSession, test_user):
         reporter_id=test_user.id,
         target_type="post",
         target_id=uuid.uuid4(),
-        reason="Inappropriate content",
+        reason="inappropriate",
     )
     assert report.id is not None
     assert report.reporter_id == test_user.id
@@ -410,7 +410,7 @@ async def test_create_report_duplicate_raises_conflict(test_session: AsyncSessio
         reporter_id=test_user.id,
         target_type="post",
         target_id=target_id,
-        reason="Spam",
+        reason="spam",
     )
     with pytest.raises(ConflictError):
         await create_content_report(
@@ -418,7 +418,7 @@ async def test_create_report_duplicate_raises_conflict(test_session: AsyncSessio
             reporter_id=test_user.id,
             target_type="post",
             target_id=target_id,
-            reason="Spam again",
+            reason="spam",
         )
 
 
@@ -433,14 +433,14 @@ async def test_different_users_can_report_same_target(
         reporter_id=test_user.id,
         target_type="post",
         target_id=target_id,
-        reason="Spam",
+        reason="spam",
     )
     r2 = await create_content_report(
         test_session,
         reporter_id=second_user.id,
         target_type="post",
         target_id=target_id,
-        reason="Hateful",
+        reason="bullying",
     )
     assert r1.id != r2.id
 
@@ -454,7 +454,7 @@ async def test_list_reports_all(test_session: AsyncSession, test_user):
             reporter_id=test_user.id,
             target_type="comment",
             target_id=uuid.uuid4(),
-            reason=f"Reason {i}",
+            reason=["spam", "bullying", "other"][i],
         )
     result = await list_reports(test_session)
     assert result["total"] == 3
@@ -468,14 +468,14 @@ async def test_list_reports_by_reporter(test_session: AsyncSession, test_user, s
         reporter_id=test_user.id,
         target_type="post",
         target_id=uuid.uuid4(),
-        reason="Spam",
+        reason="spam",
     )
     await create_content_report(
         test_session,
         reporter_id=second_user.id,
         target_type="post",
         target_id=uuid.uuid4(),
-        reason="Hateful",
+        reason="bullying",
     )
 
     result = await list_reports(test_session, reporter_id=test_user.id)
