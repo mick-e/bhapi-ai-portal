@@ -328,8 +328,8 @@ Extends existing module (SocialGraphEdge, AbuseSignal, BehavioralBaseline from P
 | Location | 0.20 | 0.20 | 0.20 |
 
 **Trend tracking:**
-- Rolling 7-day and 30-day averages stored per child in `AnomalyModel`
-- Dashboard shows trend direction (arrow up/down/stable) and magnitude
+- Rolling 7-day and 30-day averages stored per child in `BehavioralBaseline` (existing model, `metrics` JSON extended with per-signal-type means and standard deviations)
+- Dashboard shows trend direction (arrow up/down/stable) and magnitude (see P3-F4 unified dashboard)
 - Trend reversal (risk decreasing after period of increase) triggers positive notification to parent
 
 #### `src/billing/` — Bundle Pricing Extension
@@ -465,7 +465,7 @@ Extends existing module (SocialGraphEdge, AbuseSignal, BehavioralBaseline from P
 | 051 | `audit_policies`, `evidence_collections`, `compliance_controls` | P3-B4 |
 
 **Migration notes:**
-- Latest existing migration is 044 (`parental_safeguards`). Phase 3 starts at **045**.
+- Latest existing migration is 044 (`parental_safeguards`). The Phase 2 plan defined 033-041, but implementation added 3 additional migrations: 042 (`alert_source_column`), 043 (`moderation_dashboard`), 044 (`parental_safeguards`). Phase 3 starts at **045**.
 - Migrations 045-051 each modify `alembic/env.py` (model imports) — must be sequenced, not parallel
 - All migrations must be committed and pushed (lesson from 2026-03-12 outage)
 - Location records use compound index on `(child_id, timestamp)` for efficient range queries
@@ -601,7 +601,7 @@ Three paths, one destination:
 - [ ] Feature gating enforced on all tier-restricted endpoints
 - [ ] **Test count: ≥5,623 total**
 - [ ] **Mobile test coverage: ≥80% screen coverage**
-- [ ] **All Alembic migrations (042-048) committed and pushed**
+- [ ] **All Alembic migrations (045-051) committed and pushed**
 - [ ] **0 open critical/high security findings**
 - [ ] **Prod E2E: ≥130 tests, all passing post-deploy**
 
