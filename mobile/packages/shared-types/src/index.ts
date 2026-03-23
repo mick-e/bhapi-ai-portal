@@ -22,3 +22,8 @@ export type {
   FlagType, ContentReport, ReportReason, ReportStatus,
   ModerationAction, ActionType, ModerationStats,
 } from './moderation';
+export type {
+  ScreenTimeRule, ScreenTimeSchedule, ExtensionRequest, UsageEvaluation,
+  WeeklyReport, DailyTotal, CategoryTotal,
+  AppCategory, EnforcementAction, ExtensionRequestStatus, DayType,
+} from './screen-time';
