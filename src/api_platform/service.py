@@ -359,3 +359,61 @@ async def list_webhooks(
         )
     )
     return list(rows.scalars().all())
+
+
+async def get_webhook(
+    db: AsyncSession,
+    endpoint_id: UUID,
+) -> PlatformWebhookEndpoint:
+    """Get a single webhook endpoint by ID."""
+    result = await db.execute(
+        select(PlatformWebhookEndpoint).where(PlatformWebhookEndpoint.id == endpoint_id)
+    )
+    endpoint = result.scalar_one_or_none()
+    if not endpoint:
+        raise NotFoundError("PlatformWebhookEndpoint", str(endpoint_id))
+    return endpoint
+
+
+async def delete_webhook(
+    db: AsyncSession,
+    endpoint_id: UUID,
+    client_db_id: UUID,
+) -> None:
+    """Delete (deactivate) a webhook endpoint.
+
+    Raises ForbiddenError if the endpoint does not belong to client_db_id.
+    Raises NotFoundError if it does not exist.
+    """
+    endpoint = await get_webhook(db, endpoint_id)
+    if endpoint.client_id != client_db_id:
+        raise ForbiddenError("Webhook does not belong to this client")
+
+    endpoint.is_active = False
+    await db.flush()
+    logger.info(
+        "platform_webhook_deleted",
+        endpoint_id=str(endpoint_id),
+        client_id=str(client_db_id),
+    )
+
+
+async def list_webhook_deliveries(
+    db: AsyncSession,
+    endpoint_id: UUID,
+    offset: int = 0,
+    limit: int = 50,
+) -> tuple[list[PlatformWebhookDelivery], int]:
+    """List delivery attempts for a webhook endpoint (paginated)."""
+    base = select(PlatformWebhookDelivery).where(
+        PlatformWebhookDelivery.endpoint_id == endpoint_id,
+    )
+    count_q = select(func.count()).select_from(base.subquery())
+    total = (await db.execute(count_q)).scalar() or 0
+
+    rows = await db.execute(
+        base.order_by(PlatformWebhookDelivery.created_at.desc())
+        .offset(offset)
+        .limit(limit)
+    )
+    return list(rows.scalars().all()), total

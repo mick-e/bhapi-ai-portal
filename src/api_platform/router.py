@@ -1,4 +1,4 @@
-"""API platform FastAPI router — OAuth 2.0 clients, tokens, usage."""
+"""API platform FastAPI router — OAuth 2.0 clients, tokens, usage, webhooks."""
 
 from uuid import UUID
 
@@ -13,9 +13,10 @@ from src.api_platform.oauth import (
     refresh_access_token,
     revoke_token,
 )
+from src.api_platform.webhooks import WEBHOOK_EVENTS, deliver_webhook
 from src.auth.middleware import get_current_user
 from src.database import get_db
-from src.exceptions import ForbiddenError
+from src.exceptions import ForbiddenError, NotFoundError
 from src.schemas import GroupContext
 
 logger = structlog.get_logger()
@@ -244,3 +245,150 @@ async def list_tiers(
     """List API tier configurations."""
     tiers = await service.list_tiers(db)
     return [schemas.APIKeyTierResponse.model_validate(t) for t in tiers]
+
+
+# ---------------------------------------------------------------------------
+# Webhook management
+# ---------------------------------------------------------------------------
+
+
+async def _get_caller_client(
+    db: AsyncSession,
+    user_id: UUID,
+    client_db_id: UUID | None = None,
+):
+    """Resolve the caller's OAuthClient.
+
+    If client_db_id is provided, verify ownership.
+    Otherwise, return the caller's first client.
+    Raises ForbiddenError if not found or not owned.
+    """
+    if client_db_id:
+        client = await service.get_client(db, client_db_id)
+        if client.owner_id != user_id:
+            raise ForbiddenError("Access denied to this client")
+        return client
+
+    clients, _ = await service.list_clients(db, owner_id=user_id, limit=1)
+    if not clients:
+        raise ForbiddenError("No API client registered for this account")
+    return clients[0]
+
+
+@router.post("/webhooks", response_model=schemas.WebhookEndpointResponse, status_code=201)
+async def register_webhook(
+    data: schemas.WebhookEndpointCreate,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    client_db_id: UUID | None = Query(default=None),
+):
+    """Register a webhook endpoint for an approved OAuth client.
+
+    The caller must own the client.  Requires the client to be approved.
+    """
+    client = await _get_caller_client(db, auth.user_id, client_db_id)
+    if not client.is_approved:
+        raise ForbiddenError("OAuth client must be approved before registering webhooks")
+
+    # Validate event types
+    invalid_events = [e for e in data.events if e not in WEBHOOK_EVENTS and e != "*"]
+    if invalid_events:
+        from src.exceptions import ValidationError
+        raise ValidationError(f"Invalid event types: {', '.join(invalid_events)}")
+
+    endpoint = await service.register_webhook(
+        db,
+        client_db_id=client.id,
+        url=data.url,
+        events=data.events,
+        secret=data.secret,
+    )
+    await db.commit()
+    await db.refresh(endpoint)
+
+    logger.info(
+        "webhook_endpoint_registered",
+        client_id=str(client.id),
+        endpoint_id=str(endpoint.id),
+    )
+    return schemas.WebhookEndpointResponse.model_validate(endpoint)
+
+
+@router.get("/webhooks", response_model=schemas.WebhookEndpointListResponse)
+async def list_webhooks(
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    client_db_id: UUID | None = Query(default=None),
+):
+    """List webhook endpoints registered for the caller's client."""
+    client = await _get_caller_client(db, auth.user_id, client_db_id)
+    endpoints = await service.list_webhooks(db, client.id)
+    return schemas.WebhookEndpointListResponse(
+        items=[schemas.WebhookEndpointResponse.model_validate(e) for e in endpoints],
+        total=len(endpoints),
+    )
+
+
+@router.delete("/webhooks/{endpoint_id}", status_code=204)
+async def delete_webhook(
+    endpoint_id: UUID,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    client_db_id: UUID | None = Query(default=None),
+):
+    """Remove (deactivate) a webhook endpoint."""
+    client = await _get_caller_client(db, auth.user_id, client_db_id)
+    await service.delete_webhook(db, endpoint_id=endpoint_id, client_db_id=client.id)
+    await db.commit()
+
+
+@router.post("/webhooks/{endpoint_id}/test", response_model=schemas.WebhookDeliveryResponse, status_code=200)
+async def test_webhook(
+    endpoint_id: UUID,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    client_db_id: UUID | None = Query(default=None),
+):
+    """Send a test event to a registered webhook endpoint.
+
+    Dispatches a synthetic `ping` event and returns the delivery record.
+    """
+    client = await _get_caller_client(db, auth.user_id, client_db_id)
+    endpoint = await service.get_webhook(db, endpoint_id)
+    if endpoint.client_id != client.id:
+        raise ForbiddenError("Webhook does not belong to this client")
+
+    test_payload = {
+        "event": "ping",
+        "message": "This is a test webhook from bhapi.ai",
+        "endpoint_id": str(endpoint_id),
+    }
+    delivery = await deliver_webhook(db, endpoint, event_type="ping", payload=test_payload)
+    await db.commit()
+    await db.refresh(delivery)
+
+    return schemas.WebhookDeliveryResponse.model_validate(delivery)
+
+
+@router.get("/webhooks/{endpoint_id}/deliveries", response_model=schemas.WebhookDeliveryListResponse)
+async def list_webhook_deliveries(
+    endpoint_id: UUID,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    client_db_id: UUID | None = Query(default=None),
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=100),
+):
+    """List delivery attempts for a webhook endpoint (paginated)."""
+    client = await _get_caller_client(db, auth.user_id, client_db_id)
+    endpoint = await service.get_webhook(db, endpoint_id)
+    if endpoint.client_id != client.id:
+        raise ForbiddenError("Webhook does not belong to this client")
+
+    deliveries, total = await service.list_webhook_deliveries(
+        db, endpoint_id=endpoint_id, offset=offset, limit=limit,
+    )
+    return schemas.WebhookDeliveryListResponse(
+        items=[schemas.WebhookDeliveryResponse.model_validate(d) for d in deliveries],
+        total=total,
+    )

@@ -178,6 +178,30 @@ class WebhookEndpointListResponse(BaseModel):
     total: int
 
 
+class WebhookDeliveryResponse(BaseModel):
+    """Schema for a single webhook delivery attempt."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    endpoint_id: UUID
+    event_type: str
+    payload: dict
+    status_code: int | None = None
+    response_time_ms: int | None = None
+    attempt_count: int
+    delivered: bool
+    error: str | None = None
+    created_at: datetime
+
+
+class WebhookDeliveryListResponse(BaseModel):
+    """Paginated delivery log for a webhook endpoint."""
+
+    items: list[WebhookDeliveryResponse]
+    total: int
+
+
 # ---------------------------------------------------------------------------
 # Usage
 # ---------------------------------------------------------------------------
