@@ -21,6 +21,12 @@ from src.intelligence.event_bus import (
     publish_event,
     subscribe,
 )
+from src.intelligence.scoring import (
+    compute_unified_score,
+    get_score_breakdown,
+    get_score_history,
+    get_score_trend,
+)
 from src.intelligence.service import (
     compute_member_baseline,
     create_abuse_signal,
@@ -55,6 +61,11 @@ __all__ = [
     "EVENT_SOCIAL_ACTIVITY",
     "publish_event",
     "subscribe",
+    # Scoring
+    "compute_unified_score",
+    "get_score_breakdown",
+    "get_score_history",
+    "get_score_trend",
     # Service
     "compute_member_baseline",
     "create_abuse_signal",

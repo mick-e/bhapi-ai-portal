@@ -228,3 +228,49 @@ class BehavioralBaselineResponse(BaseModel):
     computed_at: datetime
     sample_count: int
     created_at: datetime
+
+
+# ---------------------------------------------------------------------------
+# Unified Risk Scoring
+# ---------------------------------------------------------------------------
+
+
+class SourceScore(BaseModel):
+    """Sub-score from a single signal source."""
+
+    source: str  # ai_monitoring, social_behavior, device_usage, location
+    sub_score: float = Field(ge=0, le=100)
+    weight: float = Field(ge=0, le=1)
+    weighted_contribution: float
+
+
+class UnifiedRiskScoreResponse(BaseModel):
+    """Unified risk score response for a child."""
+
+    child_id: UUID
+    unified_score: float = Field(ge=0, le=100)
+    confidence: str  # low, medium, high
+    trend: str  # increasing, stable, decreasing
+    age_tier: str  # young, preteen, teen
+
+
+class ScoreBreakdownResponse(BaseModel):
+    """Per-source score breakdown."""
+
+    child_id: UUID
+    sources: list[SourceScore]
+    unified_score: float = Field(ge=0, le=100)
+
+
+class ScoreDataPoint(BaseModel):
+    """A single daily score data point."""
+
+    date: str  # ISO date YYYY-MM-DD
+    score: float = Field(ge=0, le=100)
+
+
+class ScoreHistoryResponse(BaseModel):
+    """Historical score series for a child."""
+
+    child_id: UUID
+    history: list[ScoreDataPoint]

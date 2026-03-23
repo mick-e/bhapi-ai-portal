@@ -10,7 +10,7 @@ from src.auth.middleware import get_current_user
 from src.database import get_db
 from src.dependencies import resolve_group_id
 from src.exceptions import ForbiddenError, NotFoundError
-from src.intelligence import correlation, schemas, service
+from src.intelligence import correlation, schemas, scoring, service
 from src.schemas import GroupContext
 
 logger = structlog.get_logger()
@@ -210,3 +210,55 @@ async def get_enriched_alert(
     if not enriched:
         raise NotFoundError("EnrichedAlert")
     return enriched
+
+
+# ---------------------------------------------------------------------------
+# Unified Risk Scoring
+# ---------------------------------------------------------------------------
+
+
+@router.get("/risk-score/{child_id}", response_model=schemas.UnifiedRiskScoreResponse)
+async def get_unified_risk_score(
+    child_id: UUID,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get the unified risk score for a child member.
+
+    Returns a 0-100 score weighted across AI monitoring, social behaviour,
+    device usage, and location signals, calibrated to the child's age tier.
+    """
+    result = await scoring.compute_unified_score(db, child_id)
+    return schemas.UnifiedRiskScoreResponse(**result)
+
+
+@router.get("/risk-score/{child_id}/breakdown", response_model=schemas.ScoreBreakdownResponse)
+async def get_risk_score_breakdown(
+    child_id: UUID,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get per-source sub-scores, weights, and weighted contributions."""
+    result = await scoring.get_score_breakdown(db, child_id)
+    sources = [schemas.SourceScore(**s) for s in result["sources"]]
+    return schemas.ScoreBreakdownResponse(
+        child_id=result["child_id"],
+        sources=sources,
+        unified_score=result["unified_score"],
+    )
+
+
+@router.get("/risk-score/{child_id}/history", response_model=schemas.ScoreHistoryResponse)
+async def get_risk_score_history(
+    child_id: UUID,
+    days: int = Query(default=30, ge=1, le=365),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get daily score history for the last N days (default 30)."""
+    result = await scoring.get_score_history(db, child_id, days=days)
+    history = [schemas.ScoreDataPoint(**p) for p in result["history"]]
+    return schemas.ScoreHistoryResponse(
+        child_id=result["child_id"],
+        history=history,
+    )
