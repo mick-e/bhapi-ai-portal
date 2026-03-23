@@ -9,7 +9,7 @@ import sqlalchemy as sa
 from migration_helpers import table_exists
 
 revision = "050"
-down_revision = "044"
+down_revision = "049"
 branch_labels = None
 depends_on = None
 

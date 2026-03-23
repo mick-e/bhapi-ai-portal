@@ -1,15 +1,27 @@
-"""Feature gating for free tier and plan-based access control."""
+"""Feature gating for free tier and plan-based access control.
+
+Provides two complementary gating mechanisms:
+- Static plan limits (PLAN_LIMITS) — fast, in-memory checks for legacy feature keys.
+- DB-backed FeatureGate model — dynamic tier-hierarchy checks for Phase 3 features.
+"""
 
 from uuid import UUID
 
 import structlog
+from fastapi import Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.billing.models import Subscription
+from src.billing.models import FeatureGate, Subscription
 from src.exceptions import ForbiddenError
 
 logger = structlog.get_logger()
+
+# ---------------------------------------------------------------------------
+# Tier hierarchy (used by check_feature_gate dependency factory)
+# ---------------------------------------------------------------------------
+
+TIER_HIERARCHY = ["free", "family", "family_plus", "school", "enterprise"]
 
 # Feature limits per plan tier
 PLAN_LIMITS = {
@@ -154,3 +166,121 @@ async def get_feature_summary(db: AsyncSession, group_id: UUID) -> dict:
         "platform_limit": limits["platform_limit"],
         "features": limits["features"],
     }
+
+
+# ---------------------------------------------------------------------------
+# DB-backed feature gate dependency factory (Phase 3)
+# ---------------------------------------------------------------------------
+
+
+def check_feature_gate(feature_key: str):
+    """FastAPI dependency factory. Returns a dependency that checks tier access.
+
+    Usage::
+
+        @router.get("/location")
+        async def get_location(
+            _gate: None = Depends(check_feature_gate("location_tracking")),
+        ):
+            ...
+    """
+
+    async def _check(
+        db: AsyncSession = Depends(_get_db_local),
+        auth=Depends(_get_current_user_local),
+    ):
+        gate_result = await db.execute(
+            select(FeatureGate).where(FeatureGate.feature_key == feature_key)
+        )
+        gate = gate_result.scalar_one_or_none()
+        if gate is None:
+            return  # No gate = feature not gated = allowed
+
+        # Get user's subscription tier (most recent active sub)
+        group_id = getattr(auth, "group_id", None)
+        sub_result = await db.execute(
+            select(Subscription)
+            .where(
+                Subscription.group_id == group_id,
+                Subscription.status.in_(["active", "trialing", "past_due"]),
+            )
+            .order_by(Subscription.created_at.desc())
+            .limit(1)
+        )
+        sub = sub_result.scalar_one_or_none()
+        user_tier = sub.plan_type if sub else "free"
+        if user_tier == "starter":
+            user_tier = "family"
+
+        # Check tier hierarchy
+        user_level = TIER_HIERARCHY.index(user_tier) if user_tier in TIER_HIERARCHY else 0
+        required_level = (
+            TIER_HIERARCHY.index(gate.required_tier)
+            if gate.required_tier in TIER_HIERARCHY
+            else 0
+        )
+
+        if user_level < required_level:
+            raise ForbiddenError(
+                f"This feature requires {gate.required_tier} tier or higher. "
+                f"Upgrade at /pricing"
+            )
+
+    return _check
+
+
+def _get_db_local():
+    """Late import of get_db to avoid circular imports at module load."""
+    from src.database import get_db
+    return Depends(get_db)
+
+
+def _get_current_user_local():
+    """Late import of get_current_user to avoid circular imports at module load."""
+    from src.auth.middleware import get_current_user
+    return Depends(get_current_user)
+
+
+async def check_tier_access(db: AsyncSession, group_id: UUID, feature_key: str) -> None:
+    """Programmatic tier check (non-dependency version).
+
+    Raises ForbiddenError if the group's subscription tier does not meet
+    the requirement recorded in feature_gates for feature_key.
+    Uses the most recent active/trialing subscription; cancelled subs → free.
+    """
+    gate_result = await db.execute(
+        select(FeatureGate).where(FeatureGate.feature_key == feature_key)
+    )
+    gate = gate_result.scalar_one_or_none()
+    if gate is None:
+        return  # ungated
+
+    # Get the most recent active subscription for the group
+    sub_result = await db.execute(
+        select(Subscription)
+        .where(
+            Subscription.group_id == group_id,
+            Subscription.status.in_(["active", "trialing", "past_due"]),
+        )
+        .order_by(Subscription.created_at.desc())
+        .limit(1)
+    )
+    sub = sub_result.scalar_one_or_none()
+    user_tier = sub.plan_type if sub else "free"
+
+    # Normalise legacy tier
+    if user_tier == "starter":
+        user_tier = "family"
+
+    user_level = TIER_HIERARCHY.index(user_tier) if user_tier in TIER_HIERARCHY else 0
+    required_level = (
+        TIER_HIERARCHY.index(gate.required_tier)
+        if gate.required_tier in TIER_HIERARCHY
+        else 0
+    )
+
+    if user_level < required_level:
+        raise ForbiddenError(
+            f"This feature requires {gate.required_tier} tier or higher. "
+            f"Upgrade at /pricing"
+        )

@@ -14,13 +14,18 @@ from src.billing.schemas import (
     CheckoutRequest,
     CheckoutResponse,
     LLMAccountResponse,
+    MyTierResponse,
     PortalResponse,
     ProviderConnect,
     SubscribeRequest,
     SubscriptionStatus,
     ThresholdConfig,
     ThresholdResponse,
+    TierListResponse,
+    TierResponse,
     TrialStatusResponse,
+    UpgradeRequest,
+    UpgradeResponse,
 )
 from src.billing.service import (
     connect_llm_account,
@@ -56,6 +61,118 @@ async def get_plans():
     from src.billing.plans import get_all_plans
 
     return {"plans": get_all_plans()}
+
+
+# ─── Phase 3 Bundle Tiers (public + authenticated) ───────────────────────────
+
+
+@router.get("/tiers", response_model=TierListResponse)
+async def list_tiers():
+    """List all bundle pricing tier definitions with features (public, no auth required)."""
+    from src.billing.tiers import TIERS, get_tier_features
+
+    tier_responses = []
+    for tier_key, tier_data in TIERS.items():
+        tier_responses.append(
+            TierResponse(
+                tier_key=tier_key,
+                name=tier_data["name"],
+                price_monthly=tier_data["price_monthly"],
+                price_annual=tier_data["price_annual"],
+                max_children=tier_data["max_children"],
+                max_parents=tier_data["max_parents"],
+                features=get_tier_features(tier_key),
+                stripe_product_id=tier_data["stripe_product_id"],
+            )
+        )
+    return TierListResponse(tiers=tier_responses)
+
+
+@router.get("/my-tier", response_model=MyTierResponse)
+async def get_my_tier(
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get the current user's subscription tier with resolved features and upgrade options."""
+    from src.billing.tiers import TIER_HIERARCHY, TIERS, get_tier_features
+    from src.billing.models import Subscription
+    from sqlalchemy import select
+
+    gid = _gid(None, auth)
+
+    sub_result = await db.execute(
+        select(Subscription)
+        .where(
+            Subscription.group_id == gid,
+            Subscription.status.in_(["active", "trialing", "past_due"]),
+        )
+        .order_by(Subscription.created_at.desc())
+        .limit(1)
+    )
+    sub = sub_result.scalar_one_or_none()
+    user_tier = sub.plan_type if sub else "free"
+
+    # Normalise legacy "starter" tier
+    if user_tier == "starter":
+        user_tier = "family"
+
+    tier_data = TIERS.get(user_tier, TIERS["free"])
+    features = get_tier_features(user_tier)
+
+    # Build upgrade options (tiers higher than current)
+    user_level = TIER_HIERARCHY.index(user_tier) if user_tier in TIER_HIERARCHY else 0
+    upgrade_options = []
+    for tier_key, td in TIERS.items():
+        level = TIER_HIERARCHY.index(tier_key) if tier_key in TIER_HIERARCHY else 0
+        if level > user_level:
+            upgrade_options.append(
+                TierResponse(
+                    tier_key=tier_key,
+                    name=td["name"],
+                    price_monthly=td["price_monthly"],
+                    price_annual=td["price_annual"],
+                    max_children=td["max_children"],
+                    max_parents=td["max_parents"],
+                    features=get_tier_features(tier_key),
+                    stripe_product_id=td["stripe_product_id"],
+                )
+            )
+
+    return MyTierResponse(
+        current_tier=user_tier,
+        tier_name=tier_data["name"],
+        features=features,
+        price_monthly=tier_data["price_monthly"],
+        price_annual=tier_data["price_annual"],
+        upgrade_options=upgrade_options,
+    )
+
+
+@router.post("/upgrade", response_model=UpgradeResponse)
+async def upgrade_tier(
+    data: UpgradeRequest,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Redirect to Stripe Checkout for a tier upgrade."""
+    from src.auth.service import get_user_by_id
+
+    user = await get_user_by_id(db, auth.user_id)
+    gid = _gid(None, auth)
+
+    try:
+        result = await create_checkout_session_for_group(
+            db=db,
+            group_id=gid,
+            user_email=user.email,
+            user_name=user.display_name,
+            plan_type=data.plan_type,
+            billing_cycle=data.billing_cycle,
+        )
+    except StripeError as exc:
+        raise BhapiValidationError(str(exc))
+
+    return UpgradeResponse(checkout_url=result["url"], session_id=result["session_id"])
 
 
 # ─── Feature Gating ─────────────────────────────────────────────────────────

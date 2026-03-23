@@ -148,3 +148,15 @@ class FiredThresholdAlert(Base, UUIDMixin, TimestampMixin):
     period_start: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )
+
+
+class FeatureGate(Base, UUIDMixin, TimestampMixin):
+    """Maps features to required subscription tiers."""
+
+    __tablename__ = "feature_gates"
+
+    feature_key: Mapped[str] = mapped_column(String(50), nullable=False, unique=True)
+    required_tier: Mapped[str] = mapped_column(
+        String(20), nullable=False
+    )  # free, family, family_plus, school, enterprise
+    description: Mapped[str | None] = mapped_column(String(255), nullable=True)

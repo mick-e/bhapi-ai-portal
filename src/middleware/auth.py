@@ -26,6 +26,7 @@ PUBLIC_PREFIXES = (
     "/api/v1/auth/contact-inquiry",
     "/api/v1/billing/webhooks",
     "/api/v1/billing/plans",
+    "/api/v1/billing/tiers",
     "/api/v1/billing/vendor-risk",
     "/api/v1/billing/platform-safety",
     "/api/v1/capture/pair",

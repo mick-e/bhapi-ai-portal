@@ -215,3 +215,52 @@ class FeatureCheckResponse(BaseSchema):
     feature: str
     enabled: bool
     plan: str
+
+
+# ---------------------------------------------------------------------------
+# Phase 3 tier schemas
+# ---------------------------------------------------------------------------
+
+
+class TierResponse(BaseSchema):
+    """Single tier definition response."""
+
+    tier_key: str
+    name: str
+    price_monthly: float | None
+    price_annual: float | None
+    max_children: int | None
+    max_parents: int | None
+    features: list[str]
+    stripe_product_id: str | None
+
+
+class TierListResponse(BaseSchema):
+    """List of all tier definitions."""
+
+    tiers: list[TierResponse]
+
+
+class MyTierResponse(BaseSchema):
+    """Current user's tier with resolved features and upgrade options."""
+
+    current_tier: str
+    tier_name: str
+    features: list[str]
+    price_monthly: float | None
+    price_annual: float | None
+    upgrade_options: list[TierResponse]
+
+
+class UpgradeRequest(BaseSchema):
+    """Request to upgrade subscription tier."""
+
+    plan_type: str = Field(pattern="^(family|family_plus|school|enterprise)$")
+    billing_cycle: str = Field(default="monthly", pattern="^(monthly|annual)$")
+
+
+class UpgradeResponse(BaseSchema):
+    """Stripe checkout redirect for tier upgrade."""
+
+    checkout_url: str
+    session_id: str | None = None
