@@ -5,6 +5,7 @@ Other modules should import only from this file.
 """
 
 from src.intelligence.event_bus import (
+    ALL_CHANNELS,
     EVENT_AI_SESSION,
     EVENT_DEVICE,
     EVENT_LOCATION,
@@ -32,6 +33,7 @@ from src.intelligence.service import (
 
 __all__ = [
     # Event bus
+    "ALL_CHANNELS",
     "EVENT_AI_SESSION",
     "EVENT_DEVICE",
     "EVENT_LOCATION",
