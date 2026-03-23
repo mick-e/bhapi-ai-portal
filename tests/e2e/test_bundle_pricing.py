@@ -368,3 +368,157 @@ async def test_upgrade_returns_checkout_url(bp_client):
     data = res.json()
     assert "checkout_url" in data
     assert "stripe.com" in data["checkout_url"]
+
+
+@pytest.mark.asyncio
+async def test_upgrade_invalid_plan_type_returns_422(bp_client):
+    """POST /upgrade with unknown plan_type returns 422 validation error."""
+    client, _ = bp_client
+    headers, _ = await _setup(client, "upgrade-invalid@example.com")
+    res = await client.post(
+        "/api/v1/billing/upgrade",
+        json={"plan_type": "turbo_ultra"},
+        headers=headers,
+    )
+    assert res.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_upgrade_family_plus_plan(bp_client):
+    """POST /upgrade accepts family_plus as a valid plan_type (schema-level validation)."""
+    client, _ = bp_client
+    headers, _ = await _setup(client, "upgrade-family-plus@example.com")
+
+    # Patch create_checkout_session_for_group to bypass PLAN_PRICES lookup
+    with patch("src.billing.router.create_checkout_session_for_group") as mock_checkout:
+        mock_checkout.return_value = {
+            "session_id": "cs_test_fp",
+            "url": "https://checkout.stripe.com/pay/cs_test_fp",
+        }
+        res = await client.post(
+            "/api/v1/billing/upgrade",
+            json={"plan_type": "family_plus", "billing_cycle": "monthly"},
+            headers=headers,
+        )
+    assert res.status_code == 200
+    data = res.json()
+    assert "checkout_url" in data
+    # Verify the service was called with family_plus
+    mock_checkout.assert_called_once()
+    call_kwargs = mock_checkout.call_args.kwargs
+    assert call_kwargs.get("plan_type") == "family_plus"
+
+
+@pytest.mark.asyncio
+async def test_upgrade_annual_billing_cycle(bp_client):
+    """POST /upgrade with annual billing_cycle is accepted."""
+    client, _ = bp_client
+    headers, _ = await _setup(client, "upgrade-annual@example.com")
+
+    mock_session = MagicMock()
+    mock_session.id = "cs_test_annual"
+    mock_session.url = "https://checkout.stripe.com/pay/cs_test_annual"
+
+    with patch("src.billing.stripe_client._get_stripe") as mock_stripe:
+        stripe_mod = MagicMock()
+        stripe_mod.Customer.list.return_value = MagicMock(data=[MagicMock(id="cus_annual")])
+        stripe_mod.checkout.Session.create.return_value = mock_session
+        stripe_mod.StripeError = Exception
+        mock_stripe.return_value = stripe_mod
+
+        res = await client.post(
+            "/api/v1/billing/upgrade",
+            json={"plan_type": "school", "billing_cycle": "annual"},
+            headers=headers,
+        )
+    assert res.status_code == 200
+    data = res.json()
+    assert data.get("session_id") == "cs_test_annual"
+
+
+@pytest.mark.asyncio
+async def test_upgrade_response_has_session_id(bp_client):
+    """POST /upgrade response includes session_id field."""
+    client, _ = bp_client
+    headers, _ = await _setup(client, "upgrade-session-id@example.com")
+
+    with patch("src.billing.router.create_checkout_session_for_group") as mock_checkout:
+        mock_checkout.return_value = {
+            "session_id": "cs_test_sid",
+            "url": "https://checkout.stripe.com/pay/cs_test_sid",
+        }
+        res = await client.post(
+            "/api/v1/billing/upgrade",
+            json={"plan_type": "school", "billing_cycle": "annual"},
+            headers=headers,
+        )
+    assert res.status_code == 200
+    assert res.json()["session_id"] == "cs_test_sid"
+
+
+# ---------------------------------------------------------------------------
+# GET /api/v1/billing/tiers — additional coverage
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_tiers_school_features_include_sis(bp_client):
+    """School tier advertises SIS integration feature."""
+    client, _ = bp_client
+    tiers = (await client.get("/api/v1/billing/tiers")).json()["tiers"]
+    school = next(t for t in tiers if t["tier_key"] == "school")
+    feature_names = " ".join(school["features"]).lower()
+    assert any("sis" in f or "integration" in f for f in school["features"]), (
+        f"SIS/integration feature not found in school tier features: {school['features']}"
+    )
+
+
+@pytest.mark.asyncio
+async def test_tiers_tier_order_matches_hierarchy(bp_client):
+    """Tiers list keys match expected hierarchy order (free → enterprise)."""
+    client, _ = bp_client
+    tiers = (await client.get("/api/v1/billing/tiers")).json()["tiers"]
+    keys = [t["tier_key"] for t in tiers]
+    expected_order = ["free", "family", "family_plus", "school", "enterprise"]
+    assert keys == expected_order, f"Tier order mismatch: {keys}"
+
+
+# ---------------------------------------------------------------------------
+# GET /api/v1/billing/my-tier — additional coverage
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_my_tier_returns_price_fields(bp_client):
+    """GET /my-tier includes price_monthly and price_annual fields."""
+    client, _ = bp_client
+    headers, _ = await _setup(client, "my-tier-prices@example.com")
+    res = await client.get("/api/v1/billing/my-tier", headers=headers)
+    assert res.status_code == 200
+    data = res.json()
+    assert "price_monthly" in data
+    assert "price_annual" in data
+
+
+@pytest.mark.asyncio
+async def test_my_tier_trialing_user_gets_family_features(bp_client):
+    """User with trialing status is treated as family tier."""
+    import uuid as _uuid
+    client, session = bp_client
+    headers, gid = await _setup(client, "my-tier-trial@example.com")
+
+    sub = Subscription(
+        id=uuid4(),
+        group_id=_uuid.UUID(gid),
+        plan_type="family",
+        billing_cycle="monthly",
+        status="trialing",
+    )
+    session.add(sub)
+    await session.flush()
+
+    res = await client.get("/api/v1/billing/my-tier", headers=headers)
+    assert res.status_code == 200
+    data = res.json()
+    assert data["current_tier"] == "family"
+    assert len(data["features"]) > 0

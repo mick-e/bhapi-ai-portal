@@ -12,7 +12,9 @@ from fastapi import Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.auth.middleware import get_current_user
 from src.billing.models import FeatureGate, Subscription
+from src.database import get_db
 from src.exceptions import ForbiddenError
 
 logger = structlog.get_logger()
@@ -186,8 +188,8 @@ def check_feature_gate(feature_key: str):
     """
 
     async def _check(
-        db: AsyncSession = Depends(_get_db_local),
-        auth=Depends(_get_current_user_local),
+        auth=Depends(get_current_user),
+        db: AsyncSession = Depends(get_db),
     ):
         gate_result = await db.execute(
             select(FeatureGate).where(FeatureGate.feature_key == feature_key)
@@ -227,18 +229,6 @@ def check_feature_gate(feature_key: str):
             )
 
     return _check
-
-
-def _get_db_local():
-    """Late import of get_db to avoid circular imports at module load."""
-    from src.database import get_db
-    return Depends(get_db)
-
-
-def _get_current_user_local():
-    """Late import of get_current_user to avoid circular imports at module load."""
-    from src.auth.middleware import get_current_user
-    return Depends(get_current_user)
 
 
 async def check_tier_access(db: AsyncSession, group_id: UUID, feature_key: str) -> None:

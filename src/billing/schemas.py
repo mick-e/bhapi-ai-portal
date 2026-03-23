@@ -12,7 +12,7 @@ class SubscribeRequest(BaseSchema):
     """Create subscription request."""
 
     group_id: UUID
-    plan_type: str = Field(pattern="^(free|starter|family|school|enterprise)$")
+    plan_type: str = Field(pattern="^(free|starter|family|family_plus|school|enterprise)$")
     billing_cycle: str = Field(default="monthly", pattern="^(monthly|annual)$")
     stripe_payment_method_id: str | None = None
 
