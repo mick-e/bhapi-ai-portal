@@ -60,6 +60,7 @@ from src.intelligence.models import SocialGraphEdge, AbuseSignal, BehavioralBase
 from src.moderation.parental_safeguards import TrustedAdultRequest, CustodyConfig, TeenPrivacyConfig  # noqa: F401
 from src.api_platform.models import OAuthClient, OAuthToken, APIKeyTier, PlatformWebhookEndpoint, PlatformWebhookDelivery, APIUsageRecord  # noqa: F401
 from src.location.models import LocationRecord, Geofence, GeofenceEvent, SchoolCheckIn, LocationSharingConsent, LocationKillSwitch, LocationAuditLog  # noqa: F401
+from src.screen_time.models import ScreenTimeRule, ScreenTimeSchedule, ExtensionRequest  # noqa: F401
 
 config = context.config
 
