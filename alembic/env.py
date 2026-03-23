@@ -58,6 +58,7 @@ from src.compliance.australian_models import AgeVerificationRecord, ESafetyRepor
 from src.device_agent.models import DeviceSession, AppUsageRecord, ScreenTimeRecord  # noqa: F401
 from src.intelligence.models import SocialGraphEdge, AbuseSignal, BehavioralBaseline, CorrelationRule, EnrichedAlert  # noqa: F401
 from src.moderation.parental_safeguards import TrustedAdultRequest, CustodyConfig, TeenPrivacyConfig  # noqa: F401
+from src.api_platform.models import OAuthClient, OAuthToken, APIKeyTier, PlatformWebhookEndpoint, PlatformWebhookDelivery, APIUsageRecord  # noqa: F401
 
 config = context.config
 

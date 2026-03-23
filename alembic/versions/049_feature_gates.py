@@ -11,7 +11,7 @@ import uuid as _uuid
 from migration_helpers import table_exists
 
 revision = "049"
-down_revision = "044"
+down_revision = "048"
 branch_labels = None
 depends_on = None
 
