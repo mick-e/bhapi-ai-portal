@@ -11,6 +11,50 @@ from src.database import Base
 from src.models import JSONType, TimestampMixin, UUIDMixin
 
 
+class CorrelationRule(Base, UUIDMixin, TimestampMixin):
+    """A configurable rule that matches patterns across event types."""
+
+    __tablename__ = "correlation_rules"
+
+    name: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    condition: Mapped[dict] = mapped_column(JSONType, nullable=False)
+    action_severity: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="medium"
+    )  # low, medium, high, critical
+    notification_type: Mapped[str] = mapped_column(
+        String(30), nullable=False, default="alert"
+    )  # alert, email, push, sms
+    age_tier_filter: Mapped[str | None] = mapped_column(
+        String(20), nullable=True
+    )  # young, preteen, teen, null=all
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+
+class EnrichedAlert(Base, UUIDMixin, TimestampMixin):
+    """An alert enriched with cross-product correlation context."""
+
+    __tablename__ = "enriched_alerts"
+
+    alert_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("alerts.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    correlation_rule_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("correlation_rules.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    correlation_context: Mapped[str] = mapped_column(Text, nullable=False)
+    contributing_signals: Mapped[dict] = mapped_column(JSONType, nullable=False)
+    unified_risk_score: Mapped[float] = mapped_column(Float, nullable=False)
+    confidence: Mapped[str] = mapped_column(
+        String(10), nullable=False, default="medium"
+    )  # low, medium, high
+
+
 class SocialGraphEdge(Base, UUIDMixin, TimestampMixin):
     """An edge in the social graph connecting two members."""
 

@@ -3,13 +3,14 @@
 from uuid import UUID
 
 import structlog
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.middleware import get_current_user
 from src.database import get_db
 from src.dependencies import resolve_group_id
-from src.intelligence import schemas, service
+from src.exceptions import ForbiddenError, NotFoundError
+from src.intelligence import correlation, schemas, service
 from src.schemas import GroupContext
 
 logger = structlog.get_logger()
@@ -136,3 +137,76 @@ async def get_age_pattern(
     result = await service.run_age_pattern_check(db, member_id)
     await db.commit()
     return result
+
+
+# ---------------------------------------------------------------------------
+# Correlation Rules (admin only)
+# ---------------------------------------------------------------------------
+
+
+_ADMIN_ROLES = frozenset({"school_admin", "club_admin"})
+
+
+def _require_admin(auth: GroupContext) -> None:
+    """Raise ForbiddenError if the caller is not an admin-tier role."""
+    if auth.role not in _ADMIN_ROLES:
+        raise ForbiddenError("Admin access required")
+
+
+@router.get("/correlation-rules", response_model=schemas.CorrelationRuleListResponse)
+async def list_correlation_rules(
+    age_tier: str | None = Query(default=None),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List active correlation rules. Admin only."""
+    _require_admin(auth)
+    rules = await correlation.get_rules(db, age_tier=age_tier)
+    return schemas.CorrelationRuleListResponse(items=rules, total=len(rules))
+
+
+@router.post("/correlation-rules", response_model=schemas.CorrelationRuleResponse, status_code=201)
+async def create_correlation_rule(
+    body: schemas.CorrelationRuleCreate,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a correlation rule. Admin only."""
+    _require_admin(auth)
+    rule = await correlation.create_rule(db, body.model_dump())
+    await db.commit()
+    await db.refresh(rule)
+    return rule
+
+
+@router.put("/correlation-rules/{rule_id}", response_model=schemas.CorrelationRuleResponse)
+async def update_correlation_rule(
+    rule_id: UUID,
+    body: schemas.CorrelationRuleUpdate,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update a correlation rule. Admin only."""
+    _require_admin(auth)
+    rule = await correlation.update_rule(db, rule_id, body.model_dump(exclude_none=True))
+    await db.commit()
+    await db.refresh(rule)
+    return rule
+
+
+# ---------------------------------------------------------------------------
+# Enriched Alerts
+# ---------------------------------------------------------------------------
+
+
+@router.get("/enriched-alerts/{alert_id}", response_model=schemas.EnrichedAlertResponse)
+async def get_enriched_alert(
+    alert_id: UUID,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get enrichment context for an alert. Only the parent of the associated child can view."""
+    enriched = await correlation.get_enriched_alert(db, alert_id)
+    if not enriched:
+        raise NotFoundError("EnrichedAlert")
+    return enriched

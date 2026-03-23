@@ -4,6 +4,14 @@ Public interface for cross-module communication.
 Other modules should import only from this file.
 """
 
+from src.intelligence.correlation import (
+    create_enriched_alert,
+    create_rule,
+    evaluate_event,
+    get_enriched_alert,
+    get_rules,
+    update_rule,
+)
 from src.intelligence.event_bus import (
     ALL_CHANNELS,
     EVENT_AI_SESSION,
@@ -32,6 +40,13 @@ from src.intelligence.service import (
 )
 
 __all__ = [
+    # Correlation
+    "create_enriched_alert",
+    "create_rule",
+    "evaluate_event",
+    "get_enriched_alert",
+    "get_rules",
+    "update_rule",
     # Event bus
     "ALL_CHANNELS",
     "EVENT_AI_SESSION",

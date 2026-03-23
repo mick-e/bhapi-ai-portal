@@ -7,6 +7,79 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 # ---------------------------------------------------------------------------
+# Correlation Rules
+# ---------------------------------------------------------------------------
+
+
+class CorrelationRuleCreate(BaseModel):
+    """Create a correlation rule."""
+
+    name: str = Field(..., min_length=1, max_length=100)
+    description: str | None = None
+    condition: dict = Field(..., description="JSON condition with signals, logic, time_window_hours")
+    action_severity: str = Field(default="medium", pattern=r"^(low|medium|high|critical)$")
+    notification_type: str = Field(default="alert", pattern=r"^(alert|email|push|sms)$")
+    age_tier_filter: str | None = Field(default=None, pattern=r"^(young|preteen|teen)$")
+    enabled: bool = True
+
+
+class CorrelationRuleUpdate(BaseModel):
+    """Update a correlation rule (all fields optional)."""
+
+    name: str | None = Field(default=None, min_length=1, max_length=100)
+    description: str | None = None
+    condition: dict | None = None
+    action_severity: str | None = Field(default=None, pattern=r"^(low|medium|high|critical)$")
+    notification_type: str | None = Field(default=None, pattern=r"^(alert|email|push|sms)$")
+    age_tier_filter: str | None = Field(default=None, pattern=r"^(young|preteen|teen)$")
+    enabled: bool | None = None
+
+
+class CorrelationRuleResponse(BaseModel):
+    """Correlation rule response."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    name: str
+    description: str | None = None
+    condition: dict
+    action_severity: str
+    notification_type: str
+    age_tier_filter: str | None = None
+    enabled: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class CorrelationRuleListResponse(BaseModel):
+    """List of correlation rules."""
+
+    items: list[CorrelationRuleResponse]
+    total: int
+
+
+# ---------------------------------------------------------------------------
+# Enriched Alerts
+# ---------------------------------------------------------------------------
+
+
+class EnrichedAlertResponse(BaseModel):
+    """Enriched alert response."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    alert_id: UUID
+    correlation_rule_id: UUID | None = None
+    correlation_context: str
+    contributing_signals: dict
+    unified_risk_score: float
+    confidence: str
+    created_at: datetime
+
+
+# ---------------------------------------------------------------------------
 # Social Graph Edge
 # ---------------------------------------------------------------------------
 
