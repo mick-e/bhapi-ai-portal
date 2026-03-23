@@ -316,6 +316,9 @@ def _register_routers(app: FastAPI) -> None:
     from src.location.router import router as location_router
     app.include_router(location_router, prefix="/api/v1/location", tags=["Location"])
 
+    from src.screen_time.router import router as screen_time_router
+    app.include_router(screen_time_router, prefix="/api/v1/screen-time", tags=["screen-time"])
+
 
 _PORTAL_CANDIDATES = [
     Path("/app/portal/out"),
