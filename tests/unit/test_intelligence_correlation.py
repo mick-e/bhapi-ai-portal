@@ -5,7 +5,7 @@ from uuid import uuid4
 
 import pytest
 
-from src.exceptions import NotFoundError, ValidationError
+from src.exceptions import ConflictError, NotFoundError, ValidationError
 from src.intelligence.correlation import (
     _apply_operator,
     _compute_confidence,
@@ -110,6 +110,17 @@ class TestCreateRule:
                         {"operator": "BETWEEN", "threshold_multiplier": 1.0},
                     ]
                 },
+            })
+
+    async def test_create_rule_duplicate_name_raises_conflict(self, test_session):
+        await create_rule(test_session, {
+            "name": "DuplicateRuleName",
+            "condition": _simple_condition(),
+        })
+        with pytest.raises(ConflictError):
+            await create_rule(test_session, {
+                "name": "DuplicateRuleName",
+                "condition": _simple_condition(),
             })
 
 
@@ -351,6 +362,36 @@ class TestEvaluateEvent:
         event = {"metrics": {"risk_score": 0.9}}  # no age_tier key
         matches = await evaluate_event(test_session, event)
         assert any(m["rule"].name == "EvNullTierUniversal" for m in matches)
+
+    async def test_source_mismatch_does_not_match(self, test_session):
+        """A rule with source=social_activity must not match an ai_session event."""
+        await create_rule(test_session, {
+            "name": "EvSourceMismatch",
+            "condition": {
+                "logic": "AND",
+                "signals": [
+                    {"source": "social_activity", "metric": "risk_score", "operator": "gt", "threshold_multiplier": 0.1},
+                ],
+            },
+        })
+        event = {"source": "ai_session", "metrics": {"risk_score": 0.99}}
+        matches = await evaluate_event(test_session, event)
+        assert matches == []
+
+    async def test_source_match_does_match(self, test_session):
+        """A rule with source=ai_session must match an ai_session event."""
+        await create_rule(test_session, {
+            "name": "EvSourceMatch",
+            "condition": {
+                "logic": "AND",
+                "signals": [
+                    {"source": "ai_session", "metric": "risk_score", "operator": "gt", "threshold_multiplier": 0.1},
+                ],
+            },
+        })
+        event = {"source": "ai_session", "metrics": {"risk_score": 0.99}}
+        matches = await evaluate_event(test_session, event)
+        assert len(matches) == 1
 
     async def test_match_result_contains_expected_keys(self, test_session):
         await create_rule(test_session, {

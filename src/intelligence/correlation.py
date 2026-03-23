@@ -7,7 +7,9 @@ import structlog
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.exceptions import NotFoundError, ValidationError
+from sqlalchemy.exc import IntegrityError
+
+from src.exceptions import ConflictError, NotFoundError, ValidationError
 from src.intelligence.models import CorrelationRule, EnrichedAlert
 
 logger = structlog.get_logger()
@@ -55,7 +57,11 @@ async def create_rule(db: AsyncSession, data: dict) -> CorrelationRule:
         enabled=data.get("enabled", True),
     )
     db.add(rule)
-    await db.flush()
+    try:
+        await db.flush()
+    except IntegrityError:
+        await db.rollback()
+        raise ConflictError(f"Correlation rule with name '{data['name']}' already exists")
     await db.refresh(rule)
 
     logger.info(
@@ -172,11 +178,12 @@ def _evaluate_signals(
         operator = signal.get("operator", "gt")
         threshold_multiplier = signal.get("threshold_multiplier", 1.0)
 
-        # Check source matches
+        # Check source matches — skip signals from a different source
         event_source = event.get("source", event.get("type", ""))
         if source and event_source and source != event_source:
-            # Multi-source events: check if metric exists anyway
-            pass
+            if logic == "AND":
+                return [], 0.0
+            continue
 
         value = event_metrics.get(metric)
         if value is None:
