@@ -306,7 +306,12 @@ def test_art_generation_schema_prompt_too_long():
 
 def test_art_generation_schema_valid_prompt():
     """ArtGenerationCreate accepts a valid prompt."""
-    schema = ArtGenerationCreate(prompt="A sunny day at the beach")
+    import uuid
+    schema = ArtGenerationCreate(
+        prompt="A sunny day at the beach",
+        member_id=uuid.uuid4(),
+        group_id=uuid.uuid4(),
+    )
     assert schema.prompt == "A sunny day at the beach"
     assert schema.model == "dalle3"
 

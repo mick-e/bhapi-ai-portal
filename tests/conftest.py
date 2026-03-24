@@ -14,13 +14,25 @@ from collections.abc import AsyncGenerator
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import event
+from sqlalchemy import event, text
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from src.database import Base, get_db
 from src.main import create_app
+
+# Import all models so Base.metadata.create_all creates every table.
+# Without this, lazily-imported models (e.g. AuditLog) won't have their
+# tables created, causing "no such table" errors in tests.
+import src.auth.models  # noqa: F401
+import src.groups.models  # noqa: F401
+import src.compliance.audit_logger  # noqa: F401
+import src.intelligence.models  # noqa: F401
+import src.creative.models  # noqa: F401
+import src.screen_time.models  # noqa: F401
+import src.location.models  # noqa: F401
+import src.api_platform.models  # noqa: F401
 
 
 async def make_test_group(session, name="Test", group_type="family", **kwargs):
@@ -91,6 +103,8 @@ async def test_engine():
     yield engine
 
     async with engine.begin() as conn:
+        # Disable FK constraints before dropping to avoid circular-FK errors
+        await conn.execute(text("PRAGMA foreign_keys=OFF"))
         await conn.run_sync(Base.metadata.drop_all)
 
     await engine.dispose()

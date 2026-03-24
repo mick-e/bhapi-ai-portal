@@ -585,8 +585,10 @@ async def test_gdpr_erasure_removes_school_checkins(test_session: AsyncSession, 
 @pytest.mark.asyncio
 async def test_purge_expired_locations(test_session: AsyncSession, loc_data):
     """purge_expired_locations deletes records older than 30 days."""
-    old_time = datetime.now(timezone.utc) - timedelta(days=35)
-    recent_time = datetime.now(timezone.utc) - timedelta(days=5)
+    # Use naive datetimes to match SQLite storage and avoid
+    # SQLAlchemy evaluator tz-aware vs tz-naive comparison errors
+    old_time = (datetime.now(timezone.utc) - timedelta(days=35)).replace(tzinfo=None)
+    recent_time = (datetime.now(timezone.utc) - timedelta(days=5)).replace(tzinfo=None)
 
     old_record = LocationRecord(
         id=uuid.uuid4(),

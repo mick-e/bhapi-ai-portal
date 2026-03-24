@@ -55,7 +55,9 @@ class Alert(Base, UUIDMixin, TimestampMixin):
         Integer, nullable=False, default=0, server_default="0"
     )
     enriched_alert_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("enriched_alerts.id"), nullable=True
+        UUID(as_uuid=True),
+        ForeignKey("enriched_alerts.id", use_alter=True, name="fk_alerts_enriched_alert_id"),
+        nullable=True,
     )
 
     __table_args__ = (
