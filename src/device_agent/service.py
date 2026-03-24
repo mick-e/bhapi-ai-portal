@@ -17,6 +17,21 @@ from src.device_agent.schemas import (
 
 logger = structlog.get_logger()
 
+# AI-related app bundle IDs that trigger intelligence events
+AI_APP_BUNDLES = {
+    "com.openai.chatgpt", "com.anthropic.claude", "com.google.android.apps.bard",
+    "com.microsoft.copilot", "com.character.ai", "ai.replika",
+}
+
+
+async def _publish_intelligence_event(channel: str, event_data: dict) -> None:
+    """Best-effort publish to intelligence event bus."""
+    try:
+        from src.intelligence import publish_event
+        await publish_event(channel, event_data)
+    except Exception:
+        logger.warning("event_bus_publish_failed", channel=channel)
+
 
 # ---------------------------------------------------------------------------
 # Device Sessions
@@ -115,6 +130,16 @@ async def record_app_usage(
         app_name=data.app_name,
         minutes=data.foreground_minutes,
     )
+
+    if data.bundle_id in AI_APP_BUNDLES:
+        await _publish_intelligence_event("ai_session", {
+            "type": "ai_app_usage",
+            "member_id": str(data.member_id),
+            "app_name": data.app_name,
+            "bundle_id": data.bundle_id,
+            "foreground_minutes": data.foreground_minutes,
+        })
+
     return record
 
 
@@ -321,6 +346,14 @@ async def sync_device_data(
         usage=usage_created,
         dates_updated=len(dates_to_update),
     )
+
+    await _publish_intelligence_event("device", {
+        "type": "device_sync",
+        "member_id": str(data.member_id),
+        "group_id": str(group_id),
+        "sessions_count": len(data.sessions),
+        "usage_count": len(data.usage_records),
+    })
 
     return {
         "sessions_created": sessions_created,
