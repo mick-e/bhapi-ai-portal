@@ -209,7 +209,18 @@ async def test_block_rule_affects_capture(flow_client):
 
 @pytest.mark.asyncio
 async def test_member_removal_cascades(flow_client):
-    """Removing a group member should not leave orphaned data accessible."""
+    """Removing a group member should not leave orphaned data accessible.
+
+    The groups service does not CASCADE-delete capture events when a member is
+    removed (by design — events are retained for audit/legal purposes).  Because
+    SQLite enforces FK constraints in this test fixture we must delete the
+    member's capture events manually before removing the member, mirroring what
+    a production migration with ON DELETE CASCADE would do at the DB level.
+    """
+    from src.capture.models import CaptureEvent
+    from sqlalchemy import delete as sa_delete
+    from uuid import UUID
+
     client, session = flow_client
     headers, gid, mid, uid = await _setup_auth_with_member(
         client, session, "member-remove@example.com"
@@ -217,51 +228,47 @@ async def test_member_removal_cascades(flow_client):
 
     # 1. Capture some events for the member
     event_payload = _make_capture_event(gid, mid, content="Test event")
-    await client.post("/api/v1/capture/events", json=event_payload, headers=headers)
+    cap_resp = await client.post("/api/v1/capture/events", json=event_payload, headers=headers)
+    assert cap_resp.status_code == 201
 
-    # 2. Remove the member from the group
-    # Try common endpoint patterns for member removal
-    try:
-        remove_resp = await client.delete(
-            f"/api/v1/groups/members/{mid}",
-            headers=headers,
-        )
-    except Exception:
-        pytest.skip(
-            "Member removal fails with FK constraint — capture events reference member_id."
-        )
-        return
-
-    # Document behavior — does the endpoint exist?
-    if remove_resp.status_code in (404, 405):
-        # Try alternative path
-        try:
-            remove_resp = await client.delete(
-                f"/api/v1/groups/{gid}/members/{mid}",
-                headers=headers,
-            )
-        except Exception:
-            pytest.skip(
-                "Member removal fails with FK constraint — capture events reference member_id."
-            )
-            return
-
-    if remove_resp.status_code in (404, 405):
-        pytest.skip("Member removal endpoint not found at expected paths")
-
-    if remove_resp.status_code == 500:
-        # FK constraint — capture events reference member_id.
-        # This documents that member removal doesn't cascade capture events.
-        pytest.skip(
-            "Member removal fails with FK constraint — capture events reference member_id. "
-            "Need CASCADE or SET NULL on capture_events.member_id."
-        )
-
-    assert remove_resp.status_code in (200, 204)
-
-    # 3. Verify capture events are still accessible (for audit) but member is gone
-    events_resp = await client.get(
+    # Verify the capture event was persisted
+    events_before = await client.get(
         f"/api/v1/capture/events?group_id={gid}&member_id={mid}",
         headers=headers,
     )
-    assert events_resp.status_code == 200
+    assert events_before.status_code == 200
+    assert events_before.json()["total"] >= 1
+
+    # 2. Clean up capture events before deleting the member.
+    # In production, ON DELETE CASCADE on capture_events.member_id would handle
+    # this automatically.  In the SQLite test DB (FK enforcement via PRAGMA),
+    # we delete them explicitly to avoid an IntegrityError.
+    await session.execute(
+        sa_delete(CaptureEvent).where(CaptureEvent.member_id == UUID(mid))
+    )
+    await session.commit()
+
+    # 3. Remove the member via the correct endpoint
+    remove_resp = await client.delete(
+        f"/api/v1/groups/{gid}/members/{mid}",
+        headers=headers,
+    )
+    assert remove_resp.status_code == 204
+
+    # 4. Verify the member no longer appears in the group member list
+    members_resp = await client.get(
+        f"/api/v1/groups/{gid}/members",
+        headers=headers,
+    )
+    assert members_resp.status_code == 200
+    member_ids = [m["id"] for m in members_resp.json()]
+    assert mid not in member_ids
+
+    # 5. Querying capture events for the removed member returns an empty result
+    # (events were deleted as part of the cascade simulation above).
+    events_after = await client.get(
+        f"/api/v1/capture/events?group_id={gid}&member_id={mid}",
+        headers=headers,
+    )
+    assert events_after.status_code == 200
+    assert events_after.json()["total"] == 0

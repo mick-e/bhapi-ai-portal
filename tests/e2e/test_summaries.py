@@ -51,40 +51,39 @@ async def _create_group_and_member(client, headers):
 
 
 async def _seed_summary(session, group_id, member_id, summary_date=None, action_needed=False):
-    """Seed a ConversationSummary via raw SQL to avoid SQLite UUID type issues."""
+    """Seed a ConversationSummary via ORM to ensure consistent UUID handling with SQLite."""
     import hashlib
+    from uuid import UUID
 
-    from sqlalchemy import text
+    from src.capture.summary_models import ConversationSummary
 
-    sid = uuid4().hex
+    sid = uuid4()
     content_hash = hashlib.sha256(f"seed-{sid}".encode()).hexdigest()
-    # Convert UUID to the hex format SQLite uses (no hyphens)
-    gid_hex = group_id.hex if hasattr(group_id, "hex") else str(group_id).replace("-", "")
-    mid_hex = member_id.hex if hasattr(member_id, "hex") else str(member_id).replace("-", "")
+    # Ensure group_id and member_id are UUID objects (not strings)
+    gid = group_id if isinstance(group_id, UUID) else UUID(str(group_id))
+    mid = member_id if isinstance(member_id, UUID) else UUID(str(member_id))
     sd = summary_date or date.today()
 
-    await session.execute(text("PRAGMA foreign_keys=OFF"))
-    await session.execute(text(
-        "INSERT INTO conversation_summaries "
-        "(id, group_id, member_id, platform, date, topics, emotional_tone, "
-        "risk_flags, key_quotes, action_needed, action_reason, summary_text, "
-        "detail_level, llm_model, content_hash, created_at, updated_at) "
-        "VALUES (:id, :gid, :mid, :platform, :date, :topics, :tone, "
-        ":flags, :quotes, :action, :reason, :text, :detail, :model, :hash, "
-        ":now, :now)"
-    ), {
-        "id": sid, "gid": gid_hex, "mid": mid_hex,
-        "platform": "chatgpt", "date": sd.isoformat(),
-        "topics": '["homework"]', "tone": "neutral",
-        "flags": "[]", "quotes": '["I need help"]',
-        "action": 1 if action_needed else 0,
-        "reason": "Test reason" if action_needed else None,
-        "text": "Test summary text", "detail": "full",
-        "model": "anthropic/test-model", "hash": content_hash,
-        "now": datetime.now(timezone.utc).isoformat(),
-    })
-    await session.execute(text("PRAGMA foreign_keys=ON"))
+    summary = ConversationSummary(
+        id=sid,
+        group_id=gid,
+        member_id=mid,
+        platform="chatgpt",
+        date=sd,
+        topics=["homework"],
+        emotional_tone="neutral",
+        risk_flags=[],
+        key_quotes=["I need help"],
+        action_needed=action_needed,
+        action_reason="Test reason" if action_needed else None,
+        summary_text="Test summary text",
+        detail_level="full",
+        llm_model="anthropic/test-model",
+        content_hash=content_hash,
+    )
+    session.add(summary)
     await session.flush()
+    return summary
 
 
 # ---------------------------------------------------------------------------
@@ -167,7 +166,6 @@ async def test_list_summaries_empty(summary_client):
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(reason="SQLite UUID type mismatch — works with PostgreSQL in production")
 async def test_list_summaries_returns_seeded(summary_client):
     """GET /capture/summaries returns seeded summaries."""
     client, session = summary_client
@@ -180,7 +178,7 @@ async def test_list_summaries_returns_seeded(summary_client):
     await session.commit()
 
     resp = await client.get(
-        f"/api/v1/capture/summaries?member_id={member_id}",
+        f"/api/v1/capture/summaries?group_id={group_id}&member_id={member_id}",
         headers=headers,
     )
     assert resp.status_code == 200
@@ -194,7 +192,6 @@ async def test_list_summaries_returns_seeded(summary_client):
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(reason="SQLite UUID type mismatch — works with PostgreSQL in production")
 async def test_list_summaries_pagination(summary_client):
     """GET /capture/summaries respects page and page_size."""
     client, session = summary_client
@@ -208,7 +205,7 @@ async def test_list_summaries_pagination(summary_client):
     await session.commit()
 
     resp = await client.get(
-        f"/api/v1/capture/summaries?member_id={member_id}&page=1&page_size=2",
+        f"/api/v1/capture/summaries?group_id={group_id}&member_id={member_id}&page=1&page_size=2",
         headers=headers,
     )
     assert resp.status_code == 200
@@ -220,7 +217,6 @@ async def test_list_summaries_pagination(summary_client):
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(reason="SQLite UUID type mismatch — works with PostgreSQL in production")
 async def test_list_summaries_date_filter(summary_client):
     """GET /capture/summaries filters by date range."""
     from datetime import timedelta
@@ -239,7 +235,7 @@ async def test_list_summaries_date_filter(summary_client):
     await session.commit()
 
     resp = await client.get(
-        f"/api/v1/capture/summaries?member_id={member_id}&start_date={today}&end_date={today}",
+        f"/api/v1/capture/summaries?group_id={group_id}&member_id={member_id}&start_date={today}&end_date={today}",
         headers=headers,
     )
     assert resp.status_code == 200
@@ -252,7 +248,6 @@ async def test_list_summaries_date_filter(summary_client):
 # ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(reason="SQLite UUID type mismatch — works with PostgreSQL in production")
 async def test_get_summary_by_id(summary_client):
     """GET /capture/summaries/{id} returns a single summary."""
     client, session = summary_client

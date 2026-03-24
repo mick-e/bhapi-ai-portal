@@ -71,7 +71,7 @@ async def test_dashboard_degraded_sections_always_present(test_session):
 @pytest.mark.asyncio
 async def test_dashboard_total_degradation_on_group_db_error(test_session):
     """When group lookup DB query fails, returns degraded_sections=["all"]."""
-    import structlog
+    from unittest.mock import MagicMock, patch
 
     group, owner_id = await make_test_group(test_session)
 
@@ -85,17 +85,19 @@ async def test_dashboard_total_degradation_on_group_db_error(test_session):
             raise Exception("DB connection timeout")
         return await original_execute(*args, **kwargs)
 
-    # Use a simple logger to avoid structlog/Rich compatibility issues
-    structlog.get_logger()
+    # Mock the portal service logger to avoid structlog/Rich incompatibility
+    # on Python 3.14 where rich.Traceback.from_exception() changed its API.
+    mock_logger = MagicMock()
+    mock_logger.exception = MagicMock()
+    mock_logger.warning = MagicMock()
+    mock_logger.info = MagicMock()
+    mock_logger.error = MagicMock()
 
     test_session.execute = failing_execute
     try:
-        result = await get_dashboard(test_session, group.id, owner_id)
+        with patch("src.portal.service.logger", mock_logger):
+            result = await get_dashboard(test_session, group.id, owner_id)
         assert result.degraded_sections == ["all"]
         assert result.total_members == 0
-    except TypeError:
-        # structlog/Rich compatibility issue on some Python versions —
-        # the important thing is the exception was caught, not re-raised
-        pytest.skip("structlog/Rich incompatibility on this Python version")
     finally:
         test_session.execute = original_execute

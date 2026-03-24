@@ -18,19 +18,15 @@ async def test_sms_dev_mode_logs_only():
     assert settings.twilio_account_sid is None or settings.environment == "test"
 
     # Import SMS module to verify it doesn't crash without Twilio
-    try:
-        from src.sms import service as sms_service
-        # If the module has a send function, verify it handles missing config
-        if hasattr(sms_service, "send_sms"):
-            # In dev mode, send_sms should return False or log without sending
-            result = await sms_service.send_sms(
-                to_number="+1234567890",
-                message="Test SMS — should not actually send",
-            )
-            # Should return False (not sent) or True (logged only)
-            assert isinstance(result, bool)
-    except ImportError:
-        pytest.skip("SMS module not available")
-    except TypeError:
-        # Function signature may differ
-        pytest.skip("SMS send function has unexpected signature")
+    from src.sms import service as sms_service
+
+    assert hasattr(sms_service, "send_sms"), "SMS service must expose send_sms()"
+
+    # In dev/test mode, send_sms should log only and return True (logged) or False (rate-limited/no-consent)
+    # The actual parameter name is `to_phone` (not `to_number`)
+    result = await sms_service.send_sms(
+        to_phone="+1234567890",
+        message="Test SMS — should not actually send",
+    )
+    # Should return a bool — True means logged in dev mode, False means skipped
+    assert isinstance(result, bool)
