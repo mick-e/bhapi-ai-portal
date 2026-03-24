@@ -7,6 +7,7 @@ import structlog
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.alerts.push import expo_push_service
 from src.auth.middleware import get_current_user
 from src.database import get_db
 from src.dependencies import resolve_group_id
@@ -131,3 +132,55 @@ async def sync_device_data(
     result = await service.sync_device_data(db, gid, data)
     await db.commit()
     return schemas.DeviceSyncResponse(**result)
+
+
+# ---------------------------------------------------------------------------
+# Push Tokens
+# ---------------------------------------------------------------------------
+
+
+@router.post("/push-token", response_model=schemas.PushTokenResponse, status_code=201)
+async def register_push_token(
+    data: schemas.PushTokenCreate,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Register an Expo push token for the current user's device."""
+    push_token = await expo_push_service.register_token(
+        db, auth.user_id, data.token, data.device_type
+    )
+    await db.commit()
+    return schemas.PushTokenResponse(
+        token=push_token.token,
+        device_type=push_token.device_type,
+        registered=True,
+    )
+
+
+@router.get("/push-tokens", response_model=schemas.PushTokenListResponse)
+async def list_push_tokens(
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List all push tokens registered for the current user."""
+    tokens = await expo_push_service.get_user_tokens(db, auth.user_id)
+    items = [
+        schemas.PushTokenResponse(
+            token=t.token,
+            device_type=t.device_type,
+            registered=True,
+        )
+        for t in tokens
+    ]
+    return schemas.PushTokenListResponse(items=items, total=len(items))
+
+
+@router.delete("/push-token/{token:path}", status_code=204)
+async def unregister_push_token(
+    token: str,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Unregister an Expo push token for the current user."""
+    await expo_push_service.unregister_token(db, auth.user_id, token)
+    await db.commit()

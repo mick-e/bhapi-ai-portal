@@ -139,3 +139,30 @@ class DeviceSyncResponse(BaseModel):
     sessions_created: int
     usage_records_created: int
     screen_time_updated: bool
+
+
+# ---------------------------------------------------------------------------
+# Push Tokens
+# ---------------------------------------------------------------------------
+
+
+class PushTokenCreate(BaseModel):
+    """Register an Expo push token."""
+
+    token: str = Field(..., pattern=r"^ExponentPushToken\[.+\]$")
+    device_type: str = Field(..., pattern=r"^(ios|android)$")
+
+
+class PushTokenResponse(BaseModel):
+    """Push token registration confirmation."""
+
+    token: str
+    device_type: str
+    registered: bool
+
+
+class PushTokenListResponse(BaseModel):
+    """List of registered push tokens."""
+
+    items: list[PushTokenResponse]
+    total: int
