@@ -11,7 +11,7 @@ from src.config import get_settings
 from src.database import Base
 
 # Import ALL models so they register with Base.metadata
-from src.auth.models import User, OAuthConnection, ApiKey, Session  # noqa: F401
+from src.auth.models import User, OAuthConnection, ApiKey, Session, ChildInviteCode, ParentApprovalRequest  # noqa: F401
 from src.groups.models import Group, GroupMember, Invitation, ClassGroup, ClassGroupMember  # noqa: F401
 from src.groups.agreement import FamilyAgreement  # noqa: F401
 from src.groups.emergency_contacts import EmergencyContact  # noqa: F401

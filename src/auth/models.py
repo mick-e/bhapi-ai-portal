@@ -10,6 +10,10 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from src.database import Base
 from src.models import JSONType, SoftDeleteMixin, TimestampMixin, UUIDMixin
 
+# ---------------------------------------------------------------------------
+# Onboarding models — added for P3-L5 cross-app onboarding
+# ---------------------------------------------------------------------------
+
 
 class User(Base, UUIDMixin, TimestampMixin, SoftDeleteMixin):
     """User account."""
@@ -75,3 +79,29 @@ class Session(Base, UUIDMixin):
     )
 
     user: Mapped["User"] = relationship(back_populates="sessions")
+
+
+class ChildInviteCode(Base, UUIDMixin, TimestampMixin):
+    """Short-lived 6-character code that a parent generates to add a child."""
+
+    __tablename__ = "child_invite_codes"
+
+    code: Mapped[str] = mapped_column(String(6), unique=True, nullable=False, index=True)
+    group_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("groups.id"), nullable=False)
+    created_by: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class ParentApprovalRequest(Base, UUIDMixin, TimestampMixin):
+    """Request created when a child submits a parent e-mail for approval."""
+
+    __tablename__ = "parent_approval_requests"
+
+    child_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    parent_email: Mapped[str] = mapped_column(String(255), nullable=False)
+    # Token stored hashed so it can't be read from DB if compromised
+    token_hash: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(20), default="pending", nullable=False)  # pending, approved, denied
+    group_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("groups.id"), nullable=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

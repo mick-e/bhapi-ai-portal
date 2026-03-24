@@ -10,5 +10,6 @@ module.exports = {
     '^@bhapi/ui$': '<rootDir>/__tests__/__mocks__/@bhapi/ui',
     '^@bhapi/types$': '<rootDir>/../../packages/shared-types/src',
     '^@bhapi/api$': '<rootDir>/__tests__/__mocks__/@bhapi/api',
+    '^@tanstack/react-query$': '<rootDir>/__tests__/__mocks__/@tanstack/react-query',
   },
 };

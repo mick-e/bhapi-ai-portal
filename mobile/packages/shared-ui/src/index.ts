@@ -46,4 +46,10 @@ export type { TrustedAdultButtonProps } from './TrustedAdultButton';
 export { RiskScoreCard, scoreColor, trendLabel, trendVariant, confidenceVariant } from './RiskScoreCard';
 export type { RiskScoreCardProps, RiskTrend, RiskConfidence } from './RiskScoreCard';
 
+export { CreativeToolbar, PRESET_COLORS, SIZE_PRESETS, creativeToolbarStyles } from './CreativeToolbar';
+export type { CreativeToolbarProps, BrushSize } from './CreativeToolbar';
+
+export { StickerGrid, STICKER_CATEGORIES, stickerGridStyles } from './StickerGrid';
+export type { StickerGridProps, Sticker, StickerCategory } from './StickerGrid';
+
 export const UI_VERSION = '0.5.0';

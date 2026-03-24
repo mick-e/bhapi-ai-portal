@@ -15,31 +15,43 @@ from src.auth.oauth import (
     get_oauth_user_info,
 )
 from src.auth.schemas import (
+    AcceptInviteRequest,
+    AcceptInviteResponse,
     ApiKeyResponse,
+    ApproveChildRequest,
+    ApproveChildResponse,
     AuthResponse,
     ContactInquiryRequest,
     CreateApiKeyRequest,
     CreateApiKeyResponse,
+    GenerateInviteCodeRequest,
+    GenerateInviteCodeResponse,
     LoginRequest,
     OAuthAuthorizeResponse,
     PasswordResetConfirm,
     PasswordResetRequest,
     RegisterRequest,
+    RequestParentApprovalRequest,
+    RequestParentApprovalResponse,
     UpdateProfileRequest,
     UserProfile,
 )
 from src.auth.service import (
+    approve_child_account,
     authenticate_user,
     confirm_email,
     create_api_key,
     create_session,
     delete_user_account,
+    generate_invite_code,
     get_user_by_id,
     list_api_keys,
+    redeem_invite_code,
     register_user,
     request_password_reset,
     reset_password,
     revoke_api_key,
+    send_parent_approval,
     send_verification_email,
     user_to_profile,
 )
@@ -363,3 +375,72 @@ async def oauth_callback(
     redirect = RedirectResponse(url=redirect_url, status_code=302)
     _set_session_cookie(redirect, session_token)
     return redirect
+
+
+# ---------------------------------------------------------------------------
+# Cross-app onboarding (P3-L5)
+# ---------------------------------------------------------------------------
+
+
+@router.post("/invite-child", response_model=GenerateInviteCodeResponse, status_code=201)
+async def invite_child(
+    data: GenerateInviteCodeRequest,
+    db: AsyncSession = Depends(get_db),
+    auth: "GroupContext" = Depends(get_current_user),
+):
+    """Parent generates a 6-char alphanumeric invite code for a child to join their group.
+
+    The code expires in 48 hours. Requires an authenticated parent session.
+    """
+    invite = await generate_invite_code(db, data.group_id, auth.user_id)
+    return GenerateInviteCodeResponse(
+        code=invite.code,
+        group_id=invite.group_id,
+        expires_at=invite.expires_at,
+    )
+
+
+@router.post("/accept-invite", response_model=AcceptInviteResponse, status_code=200)
+async def accept_invite(
+    data: AcceptInviteRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Child redeems an invite code to join a family group.
+
+    Public endpoint — child may not have a session yet when entering the code.
+    Returns the group and member IDs once linked.
+    """
+    group_id, member_id = await redeem_invite_code(db, data.code, data.child_user_id)
+    return AcceptInviteResponse(group_id=group_id, member_id=member_id)
+
+
+@router.post("/request-parent-approval", response_model=RequestParentApprovalResponse, status_code=201)
+async def request_parent_approval(
+    data: RequestParentApprovalRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Child submits a parent e-mail to trigger the approval flow.
+
+    Public endpoint. Creates a pending approval and e-mails the parent an
+    approval link (best-effort — failure does not block the response).
+    """
+    approval = await send_parent_approval(db, data.child_id, data.parent_email)
+    return RequestParentApprovalResponse(
+        request_id=approval.id,
+        status=approval.status,
+    )
+
+
+@router.post("/approve-child", response_model=ApproveChildResponse, status_code=200)
+async def approve_child(
+    data: ApproveChildRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Parent approves a child account using the single-use token from the approval email.
+
+    Public endpoint — parent clicks the link in their email and lands on the
+    web approval page which calls this endpoint. Links the child to the
+    parent's group and marks the request approved.
+    """
+    child_id, group_id = await approve_child_account(db, data.token)
+    return ApproveChildResponse(child_id=child_id, group_id=group_id)

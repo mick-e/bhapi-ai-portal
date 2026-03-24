@@ -41,6 +41,10 @@ PUBLIC_PREFIXES = (
     "/api/v1/blocking/url-filter/categories",
     "/api/v1/integrations/yoti/callback",
     "/api/v1/moderation/webhooks/",
+    # Cross-app onboarding (P3-L5) — child enters code, requests parent approval, parent approves
+    "/api/v1/auth/accept-invite",
+    "/api/v1/auth/request-parent-approval",
+    "/api/v1/auth/approve-child",
 )
 
 

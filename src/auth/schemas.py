@@ -158,3 +158,63 @@ class CreateApiKeyResponse(ApiKeyResponse):
     """Create API key response — full key shown only once."""
 
     key: str
+
+
+# ---------------------------------------------------------------------------
+# Cross-app onboarding schemas (P3-L5)
+# ---------------------------------------------------------------------------
+
+
+class GenerateInviteCodeRequest(BaseSchema):
+    """Parent generates a child invite code."""
+
+    group_id: UUID
+
+
+class GenerateInviteCodeResponse(BaseSchema):
+    """Invite code response."""
+
+    code: str
+    group_id: UUID
+    expires_at: datetime
+
+
+class AcceptInviteRequest(BaseSchema):
+    """Child redeems an invite code."""
+
+    code: str
+    child_user_id: UUID
+
+
+class AcceptInviteResponse(BaseSchema):
+    """Successful invite acceptance."""
+
+    group_id: UUID
+    member_id: UUID
+
+
+class RequestParentApprovalRequest(BaseSchema):
+    """Child submits a parent email to trigger the approval flow."""
+
+    child_id: UUID
+    parent_email: EmailStr
+
+
+class RequestParentApprovalResponse(BaseSchema):
+    """Pending approval created."""
+
+    request_id: UUID
+    status: str = "pending"
+
+
+class ApproveChildRequest(BaseSchema):
+    """Parent approves the child account using the token from their email."""
+
+    token: str
+
+
+class ApproveChildResponse(BaseSchema):
+    """Child approved and linked to group."""
+
+    child_id: UUID
+    group_id: UUID

@@ -30,3 +30,6 @@ export type {
 export type {
   LocationPoint, Geofence, LocationHistory, LocationSettings, GeofenceType,
 } from './location';
+export type {
+  OnboardingPath, InviteCode, ParentApprovalRequest,
+} from './onboarding';
