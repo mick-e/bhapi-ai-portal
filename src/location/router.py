@@ -11,6 +11,7 @@ from src.auth.middleware import get_current_user
 from src.billing.feature_gate import check_feature_gate
 from src.database import get_db
 from src.dependencies import resolve_group_id
+from src.exceptions import ForbiddenError
 from src.location import schemas, service
 from src.schemas import GroupContext
 
@@ -246,4 +247,125 @@ async def get_audit_log(
         offset=offset,
         limit=limit,
         has_more=(offset + limit) < total,
+    )
+
+
+# ---------------------------------------------------------------------------
+# School Check-In — consent management
+# ---------------------------------------------------------------------------
+
+
+@router.post("/school-consent", response_model=schemas.LocationConsentResponse, status_code=201)
+async def grant_school_consent(
+    data: schemas.SchoolConsentCreate,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    _gate: None = Depends(check_feature_gate(_FEATURE)),
+):
+    """Parent grants consent for a school to see check-in/check-out times.
+
+    Consent covers attendance timestamps only — never GPS coordinates.
+    """
+    consent = await service.create_school_consent(
+        db,
+        member_id=data.member_id,
+        school_group_id=data.school_group_id,
+        parent_id=auth.user_id,
+    )
+    await db.commit()
+    await db.refresh(consent)
+    return consent
+
+
+@router.delete("/school-consent/{consent_id}", response_model=schemas.LocationConsentResponse)
+async def revoke_school_consent(
+    consent_id: UUID,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    _gate: None = Depends(check_feature_gate(_FEATURE)),
+):
+    """Parent revokes school location-sharing consent (soft delete)."""
+    consent = await service.revoke_school_consent(
+        db,
+        consent_id=consent_id,
+        parent_id=auth.user_id,
+    )
+    await db.commit()
+    await db.refresh(consent)
+    return consent
+
+
+# ---------------------------------------------------------------------------
+# School Check-In — check-in / check-out recording
+# ---------------------------------------------------------------------------
+
+
+@router.post("/check-in", response_model=schemas.SchoolCheckInResponse, status_code=201)
+async def record_check_in(
+    data: schemas.CheckInCreate,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    _gate: None = Depends(check_feature_gate(_FEATURE)),
+):
+    """Record a school check-in.
+
+    Requires active parental consent for the school that owns the geofence.
+    Returns 403 if no consent exists.
+    """
+    checkin = await service.record_check_in(
+        db,
+        member_id=data.member_id,
+        geofence_id=data.geofence_id,
+    )
+    await db.commit()
+    await db.refresh(checkin)
+    return checkin
+
+
+@router.post("/check-out", response_model=schemas.SchoolCheckInResponse)
+async def record_check_out(
+    data: schemas.CheckOutCreate,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    _gate: None = Depends(check_feature_gate(_FEATURE)),
+):
+    """Record a school check-out matching the latest open check-in."""
+    checkin = await service.record_check_out(
+        db,
+        member_id=data.member_id,
+        geofence_id=data.geofence_id,
+    )
+    await db.commit()
+    await db.refresh(checkin)
+    return checkin
+
+
+# ---------------------------------------------------------------------------
+# School attendance view (timestamps only — no coordinates)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/school/{group_id}/attendance", response_model=schemas.AttendanceListResponse)
+async def get_school_attendance(
+    group_id: UUID,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    date: datetime = Query(..., description="Date to fetch attendance for (ISO 8601)"),
+    _gate: None = Depends(check_feature_gate(_FEATURE)),
+):
+    """School admin: view check-in/check-out times for a date.
+
+    Returns timestamps only — GPS coordinates are NEVER included.
+    Only the school group's own members are shown.
+    """
+    items = await service.get_school_attendance(
+        db,
+        school_group_id=group_id,
+        date=date,
+    )
+    await db.commit()
+    return schemas.AttendanceListResponse(
+        items=items,
+        total=len(items),
+        date=date,
     )

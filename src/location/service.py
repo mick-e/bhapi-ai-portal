@@ -9,7 +9,7 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.encryption import decrypt_credential, encrypt_credential
-from src.exceptions import NotFoundError, ValidationError
+from src.exceptions import ForbiddenError, NotFoundError, ValidationError
 from src.intelligence import EVENT_LOCATION, publish_event
 from src.location.models import (
     Geofence,
@@ -17,6 +17,7 @@ from src.location.models import (
     LocationAuditLog,
     LocationKillSwitch,
     LocationRecord,
+    LocationSharingConsent,
     SchoolCheckIn,
 )
 
@@ -526,3 +527,242 @@ async def get_audit_log(
         base.order_by(LocationAuditLog.accessed_at.desc()).offset(offset).limit(limit)
     )
     return list(rows.scalars().all()), total
+
+
+# ---------------------------------------------------------------------------
+# School check-in — parent consent + attendance records
+# ---------------------------------------------------------------------------
+
+
+async def create_school_consent(
+    db: AsyncSession,
+    member_id: UUID,
+    school_group_id: UUID,
+    parent_id: UUID,
+) -> LocationSharingConsent:
+    """Grant consent for the school to see check-in/check-out times.
+
+    Consent covers attendance timestamps only — never GPS coordinates.
+    Idempotent: if active consent already exists, returns it unchanged.
+    """
+    # Check if active consent already exists for this member/school pair
+    result = await db.execute(
+        select(LocationSharingConsent).where(
+            LocationSharingConsent.member_id == member_id,
+            LocationSharingConsent.group_id == school_group_id,
+        )
+    )
+    existing = result.scalar_one_or_none()
+
+    if existing is not None:
+        if existing.revoked_at is None:
+            # Already active — idempotent return
+            return existing
+        # Re-activate a previously revoked consent
+        existing.revoked_at = None
+        existing.granted_by = parent_id
+        existing.granted_at = datetime.now(timezone.utc)
+        await db.flush()
+        await db.refresh(existing)
+        logger.info(
+            "school_consent_reactivated",
+            member_id=str(member_id),
+            school_group_id=str(school_group_id),
+            parent_id=str(parent_id),
+        )
+        return existing
+
+    now = datetime.now(timezone.utc)
+    consent = LocationSharingConsent(
+        id=uuid4(),
+        member_id=member_id,
+        group_id=school_group_id,
+        granted_by=parent_id,
+        granted_at=now,
+        revoked_at=None,
+    )
+    db.add(consent)
+    await db.flush()
+    await db.refresh(consent)
+
+    logger.info(
+        "school_consent_created",
+        consent_id=str(consent.id),
+        member_id=str(member_id),
+        school_group_id=str(school_group_id),
+        parent_id=str(parent_id),
+    )
+    return consent
+
+
+async def revoke_school_consent(
+    db: AsyncSession,
+    consent_id: UUID,
+    parent_id: UUID,
+) -> LocationSharingConsent:
+    """Revoke a school location-sharing consent (soft delete).
+
+    After revocation future check-ins for that geofence will be blocked.
+    """
+    result = await db.execute(
+        select(LocationSharingConsent).where(LocationSharingConsent.id == consent_id)
+    )
+    consent = result.scalar_one_or_none()
+    if consent is None:
+        raise NotFoundError("LocationSharingConsent")
+
+    if consent.revoked_at is not None:
+        # Already revoked — idempotent
+        return consent
+
+    consent.revoked_at = datetime.now(timezone.utc)
+    await db.flush()
+    await db.refresh(consent)
+
+    logger.info(
+        "school_consent_revoked",
+        consent_id=str(consent_id),
+        member_id=str(consent.member_id),
+        parent_id=str(parent_id),
+    )
+    return consent
+
+
+async def _get_active_school_consent(
+    db: AsyncSession, member_id: UUID, school_group_id: UUID
+) -> LocationSharingConsent | None:
+    """Return the active (non-revoked) consent for this member/school, or None."""
+    result = await db.execute(
+        select(LocationSharingConsent).where(
+            LocationSharingConsent.member_id == member_id,
+            LocationSharingConsent.group_id == school_group_id,
+            LocationSharingConsent.revoked_at.is_(None),
+        )
+    )
+    return result.scalar_one_or_none()
+
+
+async def record_check_in(
+    db: AsyncSession,
+    member_id: UUID,
+    geofence_id: UUID,
+) -> SchoolCheckIn:
+    """Record a school check-in for a child.
+
+    Requires active parental consent for the school that owns the geofence.
+    Raises ForbiddenError if consent is missing.
+    """
+    # Load the geofence to determine which school group it belongs to
+    geo_result = await db.execute(select(Geofence).where(Geofence.id == geofence_id))
+    geofence = geo_result.scalar_one_or_none()
+    if geofence is None:
+        raise NotFoundError("Geofence")
+
+    # Verify active parental consent exists for this school group
+    consent = await _get_active_school_consent(db, member_id, geofence.group_id)
+    if consent is None:
+        raise ForbiddenError(
+            "Parent consent required before recording school check-in. "
+            "Please ask the parent or guardian to grant school location consent."
+        )
+
+    now = datetime.now(timezone.utc)
+    checkin = SchoolCheckIn(
+        id=uuid4(),
+        member_id=member_id,
+        group_id=geofence.group_id,
+        geofence_id=geofence_id,
+        check_in_at=now,
+        check_out_at=None,
+    )
+    db.add(checkin)
+    await db.flush()
+    await db.refresh(checkin)
+
+    logger.info(
+        "school_check_in_recorded",
+        checkin_id=str(checkin.id),
+        member_id=str(member_id),
+        geofence_id=str(geofence_id),
+        school_group_id=str(geofence.group_id),
+    )
+    return checkin
+
+
+async def record_check_out(
+    db: AsyncSession,
+    member_id: UUID,
+    geofence_id: UUID,
+) -> SchoolCheckIn:
+    """Record check-out by matching the latest open check-in for this geofence.
+
+    Raises NotFoundError if no open check-in exists.
+    """
+    # Load the geofence to get the group_id
+    geo_result = await db.execute(select(Geofence).where(Geofence.id == geofence_id))
+    geofence = geo_result.scalar_one_or_none()
+    if geofence is None:
+        raise NotFoundError("Geofence")
+
+    # Find the latest open check-in (no check_out_at) for this member + geofence
+    result = await db.execute(
+        select(SchoolCheckIn)
+        .where(
+            SchoolCheckIn.member_id == member_id,
+            SchoolCheckIn.geofence_id == geofence_id,
+            SchoolCheckIn.check_out_at.is_(None),
+        )
+        .order_by(SchoolCheckIn.check_in_at.desc())
+        .limit(1)
+    )
+    checkin = result.scalar_one_or_none()
+    if checkin is None:
+        raise NotFoundError("Open SchoolCheckIn")
+
+    checkin.check_out_at = datetime.now(timezone.utc)
+    await db.flush()
+    await db.refresh(checkin)
+
+    logger.info(
+        "school_check_out_recorded",
+        checkin_id=str(checkin.id),
+        member_id=str(member_id),
+        geofence_id=str(geofence_id),
+    )
+    return checkin
+
+
+async def get_school_attendance(
+    db: AsyncSession,
+    school_group_id: UUID,
+    date: datetime,
+) -> list[dict]:
+    """Return attendance records for a school for a specific date.
+
+    Returns only check-in/check-out timestamps — NEVER GPS coordinates.
+    School admins see attendance data for members of their school group only.
+    """
+    # Compute day boundaries in UTC
+    day_start = date.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
+    day_end = date.replace(hour=23, minute=59, second=59, microsecond=999999, tzinfo=timezone.utc)
+
+    result = await db.execute(
+        select(SchoolCheckIn).where(
+            SchoolCheckIn.group_id == school_group_id,
+            SchoolCheckIn.check_in_at >= day_start,
+            SchoolCheckIn.check_in_at <= day_end,
+        ).order_by(SchoolCheckIn.check_in_at.asc())
+    )
+    checkins = list(result.scalars().all())
+
+    # Return safe attendance data — timestamps only, no location coordinates
+    return [
+        {
+            "id": c.id,
+            "member_id": c.member_id,
+            "geofence_id": c.geofence_id,
+            "check_in_at": c.check_in_at,
+            "check_out_at": c.check_out_at,
+        }
+        for c in checkins
+    ]

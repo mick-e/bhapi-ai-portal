@@ -194,3 +194,54 @@ class AuditLogListResponse(BaseModel):
     offset: int
     limit: int
     has_more: bool
+
+
+# ---------------------------------------------------------------------------
+# School Check-In — request schemas
+# ---------------------------------------------------------------------------
+
+
+class SchoolConsentCreate(BaseModel):
+    """Schema for granting school check-in consent (parent → school)."""
+
+    member_id: UUID
+    school_group_id: UUID
+
+
+class CheckInCreate(BaseModel):
+    """Schema for recording a school check-in."""
+
+    member_id: UUID
+    geofence_id: UUID
+
+
+class CheckOutCreate(BaseModel):
+    """Schema for recording a school check-out."""
+
+    member_id: UUID
+    geofence_id: UUID
+
+
+# ---------------------------------------------------------------------------
+# School attendance — response schemas (no coordinates)
+# ---------------------------------------------------------------------------
+
+
+class AttendanceRecord(BaseModel):
+    """A single attendance entry — timestamps only, never coordinates."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    member_id: UUID
+    geofence_id: UUID
+    check_in_at: datetime
+    check_out_at: datetime | None = None
+
+
+class AttendanceListResponse(BaseModel):
+    """List of attendance records for a school on a given date."""
+
+    items: list[AttendanceRecord]
+    total: int
+    date: datetime
