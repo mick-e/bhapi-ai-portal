@@ -1,7 +1,7 @@
 """Create API platform tables — OAuth clients, tokens, tiers, webhooks, usage.
 
 Revision ID: 048
-Revises: 044
+Revises: 047
 Create Date: 2026-03-23
 """
 
@@ -12,7 +12,7 @@ from alembic import op
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 
 revision = "048"
-down_revision = "046"
+down_revision = "047"
 branch_labels = None
 depends_on = None
 
