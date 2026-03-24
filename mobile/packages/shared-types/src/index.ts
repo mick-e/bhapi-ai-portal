@@ -27,3 +27,6 @@ export type {
   WeeklyReport, DailyTotal, CategoryTotal,
   AppCategory, EnforcementAction, ExtensionRequestStatus, DayType,
 } from './screen-time';
+export type {
+  LocationPoint, Geofence, LocationHistory, LocationSettings, GeofenceType,
+} from './location';
