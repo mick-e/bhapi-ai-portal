@@ -2,7 +2,7 @@
   "expo": {
     "name": "Bhapi Safety",
     "slug": "bhapi-safety",
-    "version": "1.0.0",
+    "version": "4.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -24,7 +24,56 @@
       },
       "infoPlist": {
         "NSCameraUsageDescription": "Bhapi Safety needs camera access to scan QR codes for device pairing.",
-        "NSPhotoLibraryUsageDescription": "Bhapi Safety needs photo library access to save safety reports."
+        "NSPhotoLibraryUsageDescription": "Bhapi Safety needs photo library access to save safety reports.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Bhapi Safety uses location to help parents verify their child's device is at expected locations such as school or home.",
+        "NSLocationWhenInUseUsageDescription": "Bhapi Safety uses location to help parents verify their child's device is at expected locations such as school or home.",
+        "NSLocationAlwaysUsageDescription": "Bhapi Safety uses background location so parents can receive alerts when their child's device leaves or arrives at safe zones.",
+        "UIBackgroundModes": [
+          "location",
+          "fetch",
+          "remote-notification"
+        ],
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSPrivacyAccessedAPITypes": [],
+        "NSUserTrackingUsageDescription": "Bhapi Safety does not track users for advertising purposes.",
+        "coppaDirectedToChildren": false
+      },
+      "privacyManifest": {
+        "NSPrivacyCollectedDataTypes": [
+          {
+            "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypeLocation",
+            "NSPrivacyCollectedDataTypeLinked": false,
+            "NSPrivacyCollectedDataTypeTracking": false,
+            "NSPrivacyCollectedDataTypePurposes": [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality"
+            ]
+          },
+          {
+            "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypeContactInfo",
+            "NSPrivacyCollectedDataTypeLinked": true,
+            "NSPrivacyCollectedDataTypeTracking": false,
+            "NSPrivacyCollectedDataTypePurposes": [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality"
+            ]
+          },
+          {
+            "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypeEmailAddress",
+            "NSPrivacyCollectedDataTypeLinked": true,
+            "NSPrivacyCollectedDataTypeTracking": false,
+            "NSPrivacyCollectedDataTypePurposes": [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality"
+            ]
+          },
+          {
+            "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypeUserID",
+            "NSPrivacyCollectedDataTypeLinked": true,
+            "NSPrivacyCollectedDataTypeTracking": false,
+            "NSPrivacyCollectedDataTypePurposes": [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality"
+            ]
+          }
+        ],
+        "NSPrivacyAccessedAPITypes": []
       }
     },
     "android": {
@@ -33,14 +82,19 @@
         "backgroundColor": "#0D9488"
       },
       "package": "com.bhapi.safety",
-      "versionCode": 1,
+      "versionCode": 4,
       "permissions": [
         "CAMERA",
         "POST_NOTIFICATIONS",
         "INTERNET",
         "ACCESS_NETWORK_STATE",
-        "VIBRATE"
-      ]
+        "VIBRATE",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION"
+      ],
+      "intentFilters": [],
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "bundler": "metro",
@@ -60,6 +114,16 @@
         {
           "cameraPermission": "Bhapi Safety needs camera access to scan QR codes for device pairing."
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Bhapi Safety uses location to help parents verify their child's device is at expected locations such as school or home.",
+          "locationAlwaysPermission": "Bhapi Safety uses background location so parents can receive alerts when their child's device leaves or arrives at safe zones.",
+          "locationWhenInUsePermission": "Bhapi Safety uses location to help parents verify their child's device is at expected locations such as school or home.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true
+        }
       ]
     ],
     "extra": {
@@ -67,7 +131,14 @@
         "projectId": "REPLACE_WITH_EAS_PROJECT_ID"
       },
       "apiUrl": "https://bhapi.ai/api/v1",
-      "wsUrl": "wss://bhapi.ai/ws"
+      "wsUrl": "wss://bhapi.ai/ws",
+      "coppa": {
+        "directedToChildren": false,
+        "targetAudience": "parents",
+        "ageGating": false,
+        "declaration": "Bhapi Safety is a parent-facing monitoring application. It is not directed to children. Users must be 18 or older.",
+        "complianceDate": "2026-04-22"
+      }
     },
     "owner": "bhapi",
     "runtimeVersion": {

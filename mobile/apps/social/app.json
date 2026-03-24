@@ -2,7 +2,7 @@
   "expo": {
     "name": "Bhapi Social",
     "slug": "bhapi-social",
-    "version": "1.0.0",
+    "version": "4.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -26,7 +26,55 @@
         "NSCameraUsageDescription": "Bhapi Social needs camera access to take photos for posts and your profile picture.",
         "NSPhotoLibraryUsageDescription": "Bhapi Social needs photo library access to share images in posts and set your profile picture.",
         "NSPhotoLibraryAddUsageDescription": "Bhapi Social needs permission to save images to your photo library.",
-        "NSMicrophoneUsageDescription": "Bhapi Social needs microphone access for voice messages."
+        "NSMicrophoneUsageDescription": "Bhapi Social needs microphone access for voice messages.",
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSUserTrackingUsageDescription": "Bhapi Social does not track users for advertising purposes.",
+        "coppaDirectedToChildren": true
+      },
+      "privacyManifest": {
+        "NSPrivacyCollectedDataTypes": [
+          {
+            "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypePhotosOrVideos",
+            "NSPrivacyCollectedDataTypeLinked": false,
+            "NSPrivacyCollectedDataTypeTracking": false,
+            "NSPrivacyCollectedDataTypePurposes": [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality"
+            ]
+          },
+          {
+            "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypeContactInfo",
+            "NSPrivacyCollectedDataTypeLinked": true,
+            "NSPrivacyCollectedDataTypeTracking": false,
+            "NSPrivacyCollectedDataTypePurposes": [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality"
+            ]
+          },
+          {
+            "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypeEmailAddress",
+            "NSPrivacyCollectedDataTypeLinked": true,
+            "NSPrivacyCollectedDataTypeTracking": false,
+            "NSPrivacyCollectedDataTypePurposes": [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality"
+            ]
+          },
+          {
+            "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypeUserID",
+            "NSPrivacyCollectedDataTypeLinked": true,
+            "NSPrivacyCollectedDataTypeTracking": false,
+            "NSPrivacyCollectedDataTypePurposes": [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality"
+            ]
+          },
+          {
+            "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypeUserContent",
+            "NSPrivacyCollectedDataTypeLinked": false,
+            "NSPrivacyCollectedDataTypeTracking": false,
+            "NSPrivacyCollectedDataTypePurposes": [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality"
+            ]
+          }
+        ],
+        "NSPrivacyAccessedAPITypes": []
       }
     },
     "android": {
@@ -35,7 +83,7 @@
         "backgroundColor": "#FF6B35"
       },
       "package": "com.bhapi.social",
-      "versionCode": 1,
+      "versionCode": 4,
       "permissions": [
         "CAMERA",
         "READ_MEDIA_IMAGES",
@@ -44,7 +92,9 @@
         "INTERNET",
         "ACCESS_NETWORK_STATE",
         "VIBRATE"
-      ]
+      ],
+      "contentRating": "EVERYONE_10_PLUS",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "bundler": "metro",
@@ -84,7 +134,17 @@
         "projectId": "REPLACE_WITH_EAS_PROJECT_ID"
       },
       "apiUrl": "https://bhapi.ai/api/v1",
-      "wsUrl": "wss://bhapi.ai/ws"
+      "wsUrl": "wss://bhapi.ai/ws",
+      "coppa": {
+        "directedToChildren": true,
+        "targetAudience": "mixed",
+        "ageGating": true,
+        "minimumAge": 5,
+        "parentalConsentRequired": true,
+        "declaration": "Bhapi Social is directed to children and has a mixed audience (children and parents). Verifiable parental consent is required before children can use the app. Content is moderated and age-appropriate.",
+        "complianceDate": "2026-04-22",
+        "contentRating": "Everyone 10+"
+      }
     },
     "owner": "bhapi",
     "runtimeVersion": {
