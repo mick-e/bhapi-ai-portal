@@ -43,4 +43,7 @@ export type { ModerationNoticeProps, ModerationState } from './ModerationNotice'
 export { TrustedAdultButton, trustedAdultButtonStyles } from './TrustedAdultButton';
 export type { TrustedAdultButtonProps } from './TrustedAdultButton';
 
+export { RiskScoreCard, scoreColor, trendLabel, trendVariant, confidenceVariant } from './RiskScoreCard';
+export type { RiskScoreCardProps, RiskTrend, RiskConfidence } from './RiskScoreCard';
+
 export const UI_VERSION = '0.5.0';

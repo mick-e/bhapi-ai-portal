@@ -13,4 +13,5 @@ export const Input = noop;
 export const Badge = noop;
 export const Avatar = noop;
 export const Toast = noop;
+export const RiskScoreCard = noop;
 export const UI_VERSION = '0.3.0';
