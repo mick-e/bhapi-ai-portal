@@ -317,3 +317,14 @@ async def get_enriched_alert(
         select(EnrichedAlert).where(EnrichedAlert.alert_id == alert_id)
     )
     return result.scalar_one_or_none()
+
+
+async def get_enriched_alert_by_id(
+    db: AsyncSession,
+    enriched_alert_id: UUID,
+) -> EnrichedAlert | None:
+    """Get an enriched alert by its own primary key."""
+    result = await db.execute(
+        select(EnrichedAlert).where(EnrichedAlert.id == enriched_alert_id)
+    )
+    return result.scalar_one_or_none()

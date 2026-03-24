@@ -4,11 +4,18 @@ Public interface for cross-module communication.
 Other modules should import only from this file.
 """
 
+from src.intelligence.anomaly import (
+    compute_multi_signal_deviation,
+    detect_cross_signal_anomalies,
+    detect_evasion,
+    run_anomaly_scan,
+)
 from src.intelligence.correlation import (
     create_enriched_alert,
     create_rule,
     evaluate_event,
     get_enriched_alert,
+    get_enriched_alert_by_id,
     get_rules,
     update_rule,
 )
@@ -46,11 +53,17 @@ from src.intelligence.service import (
 )
 
 __all__ = [
+    # Anomaly detection
+    "compute_multi_signal_deviation",
+    "detect_cross_signal_anomalies",
+    "detect_evasion",
+    "run_anomaly_scan",
     # Correlation
     "create_enriched_alert",
     "create_rule",
     "evaluate_event",
     "get_enriched_alert",
+    "get_enriched_alert_by_id",
     "get_rules",
     "update_rule",
     # Event bus

@@ -54,6 +54,9 @@ class Alert(Base, UUIDMixin, TimestampMixin):
     renotify_count: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0, server_default="0"
     )
+    enriched_alert_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("enriched_alerts.id"), nullable=True
+    )
 
     __table_args__ = (
         Index("ix_alerts_group_severity_created", "group_id", "severity", "created_at"),

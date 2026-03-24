@@ -39,6 +39,62 @@ async def create_alert(db: AsyncSession, data: AlertCreate) -> Alert:
         channel=data.channel,
     )
 
+    # Link enriched alert if correlation context exists for this alert's member + source
+    try:
+        from src.intelligence import create_enriched_alert, get_enriched_alert
+
+        existing_enrichment = await get_enriched_alert(db, alert.id)
+        if existing_enrichment is None and data.member_id is not None:
+            # Build a lightweight event context for correlation evaluation
+            event_context = {
+                "source": data.source if hasattr(data, "source") else "ai",
+                "member_id": str(data.member_id),
+                "severity": data.severity,
+                "metrics": {
+                    "risk_score": 1.0 if data.severity in ("critical", "high") else 0.5,
+                },
+            }
+            from src.intelligence.correlation import evaluate_event
+
+            matches = await evaluate_event(db, event_context)
+            if matches:
+                best = matches[0]
+                rule = best["rule"]
+                signals = best["signals"]
+                score = best["score"]
+                confidence = best["confidence"]
+
+                context_str = (
+                    f"Correlated alert for member {data.member_id}: "
+                    f"rule '{rule.name}' matched {len(signals)} signal(s) "
+                    f"with score {score:.2f} [{confidence} confidence]"
+                )
+                enriched = await create_enriched_alert(
+                    db,
+                    alert_id=alert.id,
+                    rule_id=rule.id,
+                    context=context_str,
+                    signals={"matched": signals, "source": event_context["source"]},
+                    score=score,
+                    confidence=confidence,
+                )
+                alert.enriched_alert_id = enriched.id
+                await db.flush()
+                await db.refresh(alert)
+                logger.info(
+                    "alert_enriched",
+                    alert_id=str(alert.id),
+                    enriched_id=str(enriched.id),
+                    rule=rule.name,
+                    confidence=confidence,
+                )
+    except Exception as exc:
+        logger.warning(
+            "alert_enrichment_failed",
+            alert_id=str(alert.id),
+            error=str(exc),
+        )
+
     # Broadcast to SSE for real-time notification
     try:
         from src.alerts.sse import sse_manager

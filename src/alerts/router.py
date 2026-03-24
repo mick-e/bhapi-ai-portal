@@ -605,9 +605,33 @@ async def get_alert_endpoint(
     auth: GroupContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Get a specific alert."""
+    """Get a specific alert, including enrichment context when available."""
     alert = await get_alert(db, alert_id)
-    return _alert_to_frontend(alert, {})
+    payload = _alert_to_frontend(alert, {})
+
+    # Attach enrichment context if this alert has a linked enriched alert
+    if getattr(alert, "enriched_alert_id", None) is not None:
+        try:
+            from src.intelligence import get_enriched_alert_by_id
+
+            enriched = await get_enriched_alert_by_id(db, alert.enriched_alert_id)
+            if enriched:
+                payload["enrichment"] = {
+                    "id": str(enriched.id),
+                    "correlation_context": enriched.correlation_context,
+                    "contributing_signals": enriched.contributing_signals,
+                    "unified_risk_score": enriched.unified_risk_score,
+                    "confidence": enriched.confidence,
+                    "created_at": enriched.created_at.isoformat() if enriched.created_at else None,
+                }
+            else:
+                payload["enrichment"] = None
+        except Exception:
+            payload["enrichment"] = None
+    else:
+        payload["enrichment"] = None
+
+    return payload
 
 
 @router.patch("/{alert_id}")
