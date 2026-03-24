@@ -24,6 +24,8 @@ ALLOWED_AGE_TIERS = {"young", "preteen", "teen"}
 class ArtGenerationCreate(BaseModel):
     """Schema for requesting AI art generation."""
 
+    member_id: UUID
+    group_id: UUID
     prompt: str = Field(..., min_length=1, max_length=500)
     model: str = Field(default="dalle3", max_length=30)
 
@@ -112,6 +114,7 @@ class StoryTemplateResponse(BaseModel):
 class StoryCreationCreate(BaseModel):
     """Schema for creating a member story."""
 
+    member_id: UUID | None = None  # optional — defaults to auth user
     template_id: UUID | None = None
     content: str = Field(..., min_length=1)
 
@@ -199,6 +202,8 @@ class StickerResponse(BaseModel):
 class DrawingAssetCreate(BaseModel):
     """Schema for submitting a member drawing."""
 
+    member_id: UUID | None = None  # optional — defaults to auth user
+    group_id: UUID | None = None   # optional — defaults to auth group
     image_url: str = Field(..., max_length=500)
 
 
