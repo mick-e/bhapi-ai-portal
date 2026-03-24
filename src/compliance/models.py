@@ -11,6 +11,73 @@ from src.database import Base
 from src.models import JSONType, TimestampMixin, UUIDMixin
 
 
+# ---------------------------------------------------------------------------
+# SOC 2 — Audit policies, evidence collection, compliance controls
+# ---------------------------------------------------------------------------
+
+
+class AuditPolicy(Base, UUIDMixin, TimestampMixin):
+    """SOC 2 audit policy document record.
+
+    Tracks formal policy documents mapped to Trust Services Criteria categories.
+    Each policy covers a specific area of security, availability, or privacy.
+    """
+
+    __tablename__ = "audit_policies"
+
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    category: Mapped[str] = mapped_column(
+        String(50), nullable=False
+    )  # security / availability / confidentiality / privacy
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    version: Mapped[str] = mapped_column(String(20), nullable=False, default="1.0")
+    effective_date: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+
+class EvidenceCollection(Base, UUIDMixin, TimestampMixin):
+    """SOC 2 evidence artifact collected during audit preparation.
+
+    Stores deployment logs, access-control snapshots, encryption status records,
+    backup verifications, and incident timelines as JSON blobs.
+    """
+
+    __tablename__ = "evidence_collections"
+
+    policy_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("audit_policies.id"), nullable=True
+    )
+    evidence_type: Mapped[str] = mapped_column(
+        String(50), nullable=False
+    )  # deployment_log / access_control / encryption / backup / incident
+    collected_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    data: Mapped[dict | None] = mapped_column(JSONType, nullable=True)
+
+
+class ComplianceControl(Base, UUIDMixin, TimestampMixin):
+    """SOC 2 Trust Services Criteria control mapping.
+
+    Maps individual controls (e.g. CC6.1) to implementation status and
+    evidence artifact IDs collected for the auditor.
+    """
+
+    __tablename__ = "compliance_controls"
+
+    control_id: Mapped[str] = mapped_column(
+        String(20), nullable=False, unique=True
+    )  # e.g. "CC6.1"
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="planned"
+    )  # implemented / partial / planned
+    evidence_ids: Mapped[list | None] = mapped_column(
+        JSONType, nullable=True
+    )  # list of EvidenceCollection UUIDs
+
+
 class ConsentRecord(Base, UUIDMixin, TimestampMixin):
     """Record of consent given or withdrawn (GDPR, COPPA, LGPD)."""
 

@@ -337,6 +337,139 @@ async def resolve_appeal_endpoint(
     return appeal
 
 
+# ─── SOC 2 — Audit Initiation (P3-B4) ───────────────────────────────────────
+
+
+@router.get("/soc2/policies")
+async def soc2_list_policies(
+    category: str | None = Query(None, description="Filter by category: security/availability/confidentiality/privacy"),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List SOC 2 audit policies, optionally filtered by category."""
+    from src.compliance.soc2 import get_policies
+
+    policies = await get_policies(db, category=category)
+    return [
+        {
+            "id": str(p.id),
+            "name": p.name,
+            "category": p.category,
+            "description": p.description,
+            "version": p.version,
+            "effective_date": p.effective_date.isoformat() if p.effective_date else None,
+            "created_at": p.created_at.isoformat() if p.created_at else None,
+        }
+        for p in policies
+    ]
+
+
+@router.post("/soc2/policies", status_code=201)
+async def soc2_create_policy(
+    data: dict,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a new SOC 2 audit policy."""
+    from src.compliance.soc2 import create_policy
+
+    if not data.get("name"):
+        raise ValidationError("name is required")
+    if not data.get("category"):
+        raise ValidationError("category is required")
+
+    from datetime import datetime, timezone as tz
+    effective_date = None
+    if data.get("effective_date"):
+        try:
+            effective_date = datetime.fromisoformat(data["effective_date"])
+            if effective_date.tzinfo is None:
+                effective_date = effective_date.replace(tzinfo=tz.utc)
+        except (ValueError, TypeError):
+            raise ValidationError("effective_date must be a valid ISO 8601 datetime string")
+
+    policy = await create_policy(
+        db,
+        name=data["name"],
+        category=data["category"],
+        description=data.get("description"),
+        version=data.get("version", "1.0"),
+        effective_date=effective_date,
+    )
+    return {
+        "id": str(policy.id),
+        "name": policy.name,
+        "category": policy.category,
+        "description": policy.description,
+        "version": policy.version,
+        "effective_date": policy.effective_date.isoformat() if policy.effective_date else None,
+        "created_at": policy.created_at.isoformat() if policy.created_at else None,
+    }
+
+
+@router.get("/soc2/readiness")
+async def soc2_readiness_report(
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get SOC 2 readiness report — control mapping and overall readiness percentage."""
+    from src.compliance.soc2 import get_readiness_report
+
+    return await get_readiness_report(db)
+
+
+@router.post("/soc2/evidence/collect", status_code=201)
+async def soc2_collect_evidence(
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Trigger SOC 2 evidence collection (admin only)."""
+    from src.compliance.soc2 import collect_evidence
+
+    items = await collect_evidence(db)
+    return {
+        "collected": len(items),
+        "evidence": [
+            {
+                "id": str(e.id),
+                "evidence_type": e.evidence_type,
+                "collected_at": e.collected_at.isoformat() if e.collected_at else None,
+            }
+            for e in items
+        ],
+    }
+
+
+@router.put("/soc2/controls/{control_id}")
+async def soc2_update_control(
+    control_id: str,
+    data: dict,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update or create a SOC 2 compliance control status."""
+    from src.compliance.soc2 import update_control_status
+
+    if not data.get("status"):
+        raise ValidationError("status is required")
+
+    control = await update_control_status(
+        db,
+        control_id=control_id,
+        status=data["status"],
+        description=data.get("description"),
+        evidence_ids=data.get("evidence_ids"),
+    )
+    return {
+        "id": str(control.id),
+        "control_id": control.control_id,
+        "description": control.description,
+        "status": control.status,
+        "evidence_ids": control.evidence_ids or [],
+        "created_at": control.created_at.isoformat() if control.created_at else None,
+    }
+
+
 # ─── SOC 2 & Audit ─────────────────────────────────────────────────────────
 
 
