@@ -228,11 +228,11 @@ function FaqAccordion({ question, answer }: FaqItem) {
 // --- Page ---
 
 const TIERS = [
-  { key: "free", label: "Free", price: "$0", period: "", cta: "Get Started Free", href: "/register" },
+  { key: "free", label: "Free", price: "$0", period: "", cta: "Get Started Free", href: "/register", highlight: false },
   { key: "family", label: "Family", price: "$9.99", period: "/mo", cta: "Start Free Trial", href: "/register", highlight: true },
-  { key: "familyPlus", label: "Family+", price: "$19.99", period: "/mo", cta: "Start Free Trial", href: "/register" },
-  { key: "school", label: "School", price: "From $3", period: "/student/mo", cta: "Request Demo", href: "/contact" },
-  { key: "enterprise", label: "Enterprise", price: "Custom", period: "", cta: "Contact Sales", href: "/contact" },
+  { key: "familyPlus", label: "Family+", price: "$19.99", period: "/mo", cta: "Start Free Trial", href: "/register", highlight: false },
+  { key: "school", label: "School", price: "From $3", period: "/student/mo", cta: "Request Demo", href: "/contact", highlight: false },
+  { key: "enterprise", label: "Enterprise", price: "Custom", period: "", cta: "Contact Sales", href: "/contact", highlight: false },
 ] as const;
 
 type TierKey = (typeof TIERS)[number]["key"];
