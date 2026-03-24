@@ -3,14 +3,14 @@
 from uuid import UUID
 
 import structlog
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Body, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.middleware import get_current_user
 from src.database import get_db
 from src.dependencies import resolve_group_id
 from src.exceptions import ForbiddenError, NotFoundError
-from src.intelligence import correlation, schemas, scoring, service
+from src.intelligence import anomaly, correlation, schemas, scoring, service
 from src.schemas import GroupContext
 
 logger = structlog.get_logger()
@@ -262,3 +262,56 @@ async def get_risk_score_history(
         child_id=result["child_id"],
         history=history,
     )
+
+
+# ---------------------------------------------------------------------------
+# Behavioral Anomaly Correlation (P3-I4)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/anomalies/{child_id}")
+async def get_anomalies(
+    child_id: UUID,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List detected anomalies for a child member.
+
+    Runs multi-signal deviation, evasion detection, and cross-signal pattern
+    checks against BehavioralBaseline records for the last 30 days.
+
+    Returns combined results without persisting any alerts.
+    """
+    signal_anomalies = await anomaly.compute_multi_signal_deviation(db, child_id)
+    evasion = await anomaly.detect_evasion(db, child_id)
+    cross_signal = await anomaly.detect_cross_signal_anomalies(db, child_id)
+
+    return {
+        "child_id": str(child_id),
+        "signal_anomalies": signal_anomalies,
+        "evasion": evasion,
+        "cross_signal_anomalies": cross_signal,
+        "total_anomalies": (
+            sum(1 for s in signal_anomalies if s["is_anomalous"])
+            + (1 if evasion else 0)
+            + len(cross_signal)
+        ),
+    }
+
+
+@router.post("/anomalies/scan")
+async def trigger_anomaly_scan(
+    child_id: UUID = Body(..., embed=True),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Trigger a full behavioral anomaly scan for a child member.
+
+    Runs all detectors and creates EnrichedAlert entries for any findings.
+    Commits the session after creating alerts.
+
+    Body: {"child_id": "<uuid>"}
+    """
+    result = await anomaly.run_anomaly_scan(db, child_id)
+    await db.commit()
+    return result
