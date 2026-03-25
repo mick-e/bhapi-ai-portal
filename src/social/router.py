@@ -229,10 +229,21 @@ async def list_comments(
 async def get_feed(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
+    algorithm: str = Query(
+        default="chronological",
+        pattern="^(chronological|engagement)$",
+        description="Feed ordering algorithm: 'chronological' (newest first) or 'engagement' (likes + comments + recency).",
+    ),
     auth: GroupContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Get personalized feed from followed users."""
+    """Get personalized feed from followed users.
+
+    Use `algorithm=engagement` to rank posts by likes, comments, and recency decay
+    instead of strict reverse-chronological order.
+    """
+    if algorithm == "engagement":
+        return await service.get_feed_engagement(db, auth.user_id, page=page, page_size=page_size)
     return await service.get_feed(db, auth.user_id, page=page, page_size=page_size)
 
 

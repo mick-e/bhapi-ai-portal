@@ -1,6 +1,7 @@
 """Social module business logic — profiles, posts, comments, likes, follows, feed."""
 
 import re
+from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
 import structlog
@@ -521,6 +522,95 @@ async def get_feed(
         })
 
     return {"items": items, "total": total, "page": page, "page_size": page_size}
+
+
+def _engagement_score(post: SocialPost, like_count: int = 0, comment_count: int = 0) -> float:
+    """Calculate engagement score: recency (decay) + likes + comments."""
+    now = datetime.now(timezone.utc)
+    created = post.created_at
+    # SQLite returns naive datetimes; treat them as UTC for scoring
+    if created.tzinfo is None:
+        created = created.replace(tzinfo=timezone.utc)
+    age_hours = max(1, (now - created).total_seconds() / 3600)
+    like_score = like_count * 1.0
+    comment_score = comment_count * 3.0
+    recency_factor = max(0.1, 1.0 - (age_hours / 48.0))
+    return (like_score + comment_score + 1) * recency_factor
+
+
+async def get_feed_engagement(
+    db: AsyncSession, user_id: UUID, page: int = 1, page_size: int = 20,
+) -> dict:
+    """Get personalized feed sorted by engagement score (likes + comments + recency decay)."""
+    # Get IDs of users this user follows (accepted only)
+    following_q = select(Follow.following_id).where(
+        Follow.follower_id == user_id,
+        Follow.status == "accepted",
+    )
+    following_result = await db.execute(following_q)
+    following_ids = [row[0] for row in following_result.all()]
+
+    if not following_ids:
+        return {"items": [], "total": 0, "page": page, "page_size": page_size}
+
+    base = select(SocialPost).where(
+        SocialPost.author_id.in_(following_ids),
+        SocialPost.moderation_status == "approved",
+    )
+    count_q = select(func.count(SocialPost.id)).where(
+        SocialPost.author_id.in_(following_ids),
+        SocialPost.moderation_status == "approved",
+    )
+
+    total = (await db.execute(count_q)).scalar() or 0
+
+    # Fetch all approved posts (no DB-level ordering — we sort in Python by score)
+    rows = await db.execute(base)
+    all_posts = list(rows.scalars().all())
+
+    # Build scored items
+    scored: list[tuple[float, dict]] = []
+    for p in all_posts:
+        like_count = (
+            await db.execute(
+                select(func.count(PostLike.id)).where(PostLike.post_id == p.id)
+            )
+        ).scalar() or 0
+        comment_count = (
+            await db.execute(
+                select(func.count(PostComment.id)).where(
+                    PostComment.post_id == p.id,
+                    PostComment.deleted_at.is_(None),
+                )
+            )
+        ).scalar() or 0
+        score = _engagement_score(p, like_count=like_count, comment_count=comment_count)
+        scored.append((score, {
+            "id": p.id,
+            "author_id": p.author_id,
+            "content": p.content,
+            "post_type": p.post_type,
+            "media_urls": p.media_urls,
+            "moderation_status": p.moderation_status,
+            "like_count": like_count,
+            "comment_count": comment_count,
+            "created_at": p.created_at,
+        }))
+
+    # Sort by score descending
+    scored.sort(key=lambda x: x[0], reverse=True)
+
+    # Paginate in Python after scoring
+    offset = (page - 1) * page_size
+    page_items = [item for _, item in scored[offset: offset + page_size]]
+
+    logger.info(
+        "feed_engagement_served",
+        user_id=str(user_id),
+        total=total,
+        page=page,
+    )
+    return {"items": page_items, "total": total, "page": page, "page_size": page_size}
 
 
 # ---------------------------------------------------------------------------
