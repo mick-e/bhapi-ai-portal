@@ -300,6 +300,26 @@ async def send_message(
     # Publish real-time event (best-effort, non-blocking)
     await _publish_message_event(conversation_id, sender_id, message)
 
+    # Publish via EventBridge (best-effort, non-blocking)
+    try:
+        await _publish_to_realtime(
+            str(conversation_id),
+            {
+                "message_id": str(message.id),
+                "conversation_id": str(conversation_id),
+                "sender_id": str(sender_id),
+                "content": message.content,
+                "message_type": message.message_type,
+                "created_at": message.created_at.isoformat() if message.created_at else None,
+            },
+        )
+    except Exception:
+        logger.warning(
+            "realtime_publish_failed",
+            message_id=str(message.id),
+            conversation_id=str(conversation_id),
+        )
+
     return message
 
 
@@ -464,6 +484,31 @@ async def mark_read(
 # ---------------------------------------------------------------------------
 # Real-time event publishing
 # ---------------------------------------------------------------------------
+
+
+async def _publish_to_realtime(conversation_id: str, message_data: dict) -> None:
+    """Publish message to realtime service via Redis (best-effort)."""
+    try:
+        import redis.asyncio as aioredis
+        from src.config import get_settings
+
+        settings = get_settings()
+        redis_url = getattr(settings, "redis_url", None) or ""
+        if not redis_url:
+            return
+
+        r = aioredis.from_url(redis_url)
+        try:
+            payload = {
+                "type": "new_message",
+                "conversation_id": conversation_id,
+                **message_data,
+            }
+            await r.publish("messaging", __import__("json").dumps(payload))
+        finally:
+            await r.close()
+    except Exception:
+        logger.warning("realtime_publish_failed", conversation_id=conversation_id)
 
 
 async def _publish_message_event(
