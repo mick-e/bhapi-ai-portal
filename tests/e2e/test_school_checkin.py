@@ -168,20 +168,26 @@ async def test_consent_then_checkin_succeeds(ci_engine, ci_session, ci_data):
 
     async with _make_client(ci_engine, ci_session, d["parent"].id, d["family_group"].id) as client:
         # Grant consent
-        resp = await client.post("/api/v1/location/school-consent", json={
-            "member_id": str(d["child"].id),
-            "school_group_id": str(d["school_group"].id),
-        })
+        resp = await client.post(
+            "/api/v1/location/school-consent",
+            json={
+                "member_id": str(d["child"].id),
+                "school_group_id": str(d["school_group"].id),
+            },
+        )
         assert resp.status_code == 201
         body = resp.json()
         assert body["member_id"] == str(d["child"].id)
         assert body["revoked_at"] is None
 
         # Check-in succeeds now that consent exists
-        resp2 = await client.post("/api/v1/location/check-in", json={
-            "member_id": str(d["child"].id),
-            "geofence_id": str(d["geofence"].id),
-        })
+        resp2 = await client.post(
+            "/api/v1/location/check-in",
+            json={
+                "member_id": str(d["child"].id),
+                "geofence_id": str(d["geofence"].id),
+            },
+        )
         assert resp2.status_code == 201
         ci_body = resp2.json()
         assert ci_body["member_id"] == str(d["child"].id)
@@ -199,10 +205,13 @@ async def test_checkin_without_consent_returns_403(ci_engine, ci_session, ci_dat
     d = ci_data
 
     async with _make_client(ci_engine, ci_session, d["parent"].id, d["family_group"].id) as client:
-        resp = await client.post("/api/v1/location/check-in", json={
-            "member_id": str(d["child"].id),
-            "geofence_id": str(d["geofence"].id),
-        })
+        resp = await client.post(
+            "/api/v1/location/check-in",
+            json={
+                "member_id": str(d["child"].id),
+                "geofence_id": str(d["geofence"].id),
+            },
+        )
         assert resp.status_code == 403
 
 
@@ -218,24 +227,33 @@ async def test_checkout_matches_latest_checkin(ci_engine, ci_session, ci_data):
 
     async with _make_client(ci_engine, ci_session, d["parent"].id, d["family_group"].id) as client:
         # Grant consent
-        await client.post("/api/v1/location/school-consent", json={
-            "member_id": str(d["child"].id),
-            "school_group_id": str(d["school_group"].id),
-        })
+        await client.post(
+            "/api/v1/location/school-consent",
+            json={
+                "member_id": str(d["child"].id),
+                "school_group_id": str(d["school_group"].id),
+            },
+        )
 
         # Check-in
-        ci_resp = await client.post("/api/v1/location/check-in", json={
-            "member_id": str(d["child"].id),
-            "geofence_id": str(d["geofence"].id),
-        })
+        ci_resp = await client.post(
+            "/api/v1/location/check-in",
+            json={
+                "member_id": str(d["child"].id),
+                "geofence_id": str(d["geofence"].id),
+            },
+        )
         assert ci_resp.status_code == 201
         checkin_id = ci_resp.json()["id"]
 
         # Check-out
-        co_resp = await client.post("/api/v1/location/check-out", json={
-            "member_id": str(d["child"].id),
-            "geofence_id": str(d["geofence"].id),
-        })
+        co_resp = await client.post(
+            "/api/v1/location/check-out",
+            json={
+                "member_id": str(d["child"].id),
+                "geofence_id": str(d["geofence"].id),
+            },
+        )
         assert co_resp.status_code == 200
         co_body = co_resp.json()
         assert co_body["id"] == checkin_id
@@ -252,17 +270,25 @@ async def test_attendance_returns_timestamps_only(ci_engine, ci_session, ci_data
     """School attendance endpoint returns timestamps — no lat/lng fields."""
     d = ci_data
 
-    async with _make_client(ci_engine, ci_session, d["school_owner"].id, d["school_group"].id, role="school_admin") as client:
+    async with _make_client(
+        ci_engine, ci_session, d["school_owner"].id, d["school_group"].id, role="school_admin"
+    ) as client:
         # Grant consent and record a check-in as parent first
         async with _make_client(ci_engine, ci_session, d["parent"].id, d["family_group"].id) as parent_client:
-            await parent_client.post("/api/v1/location/school-consent", json={
-                "member_id": str(d["child"].id),
-                "school_group_id": str(d["school_group"].id),
-            })
-            await parent_client.post("/api/v1/location/check-in", json={
-                "member_id": str(d["child"].id),
-                "geofence_id": str(d["geofence"].id),
-            })
+            await parent_client.post(
+                "/api/v1/location/school-consent",
+                json={
+                    "member_id": str(d["child"].id),
+                    "school_group_id": str(d["school_group"].id),
+                },
+            )
+            await parent_client.post(
+                "/api/v1/location/check-in",
+                json={
+                    "member_id": str(d["child"].id),
+                    "geofence_id": str(d["geofence"].id),
+                },
+            )
 
         today = datetime.now(timezone.utc).date().isoformat() + "T00:00:00Z"
         resp = await client.get(
@@ -294,25 +320,34 @@ async def test_revoke_consent_blocks_future_checkins(ci_engine, ci_session, ci_d
 
     async with _make_client(ci_engine, ci_session, d["parent"].id, d["family_group"].id) as client:
         # Grant consent
-        grant_resp = await client.post("/api/v1/location/school-consent", json={
-            "member_id": str(d["child"].id),
-            "school_group_id": str(d["school_group"].id),
-        })
+        grant_resp = await client.post(
+            "/api/v1/location/school-consent",
+            json={
+                "member_id": str(d["child"].id),
+                "school_group_id": str(d["school_group"].id),
+            },
+        )
         assert grant_resp.status_code == 201
         consent_id = grant_resp.json()["id"]
 
         # Check-in succeeds
-        ci_resp = await client.post("/api/v1/location/check-in", json={
-            "member_id": str(d["child"].id),
-            "geofence_id": str(d["geofence"].id),
-        })
+        ci_resp = await client.post(
+            "/api/v1/location/check-in",
+            json={
+                "member_id": str(d["child"].id),
+                "geofence_id": str(d["geofence"].id),
+            },
+        )
         assert ci_resp.status_code == 201
 
         # Check-out to close the open record
-        await client.post("/api/v1/location/check-out", json={
-            "member_id": str(d["child"].id),
-            "geofence_id": str(d["geofence"].id),
-        })
+        await client.post(
+            "/api/v1/location/check-out",
+            json={
+                "member_id": str(d["child"].id),
+                "geofence_id": str(d["geofence"].id),
+            },
+        )
 
         # Revoke consent
         revoke_resp = await client.delete(f"/api/v1/location/school-consent/{consent_id}")
@@ -320,10 +355,13 @@ async def test_revoke_consent_blocks_future_checkins(ci_engine, ci_session, ci_d
         assert revoke_resp.json()["revoked_at"] is not None
 
         # Check-in now fails
-        ci_resp2 = await client.post("/api/v1/location/check-in", json={
-            "member_id": str(d["child"].id),
-            "geofence_id": str(d["geofence"].id),
-        })
+        ci_resp2 = await client.post(
+            "/api/v1/location/check-in",
+            json={
+                "member_id": str(d["child"].id),
+                "geofence_id": str(d["geofence"].id),
+            },
+        )
         assert ci_resp2.status_code == 403
 
 
@@ -339,27 +377,38 @@ async def test_full_attendance_flow(ci_engine, ci_session, ci_data):
 
     async with _make_client(ci_engine, ci_session, d["parent"].id, d["family_group"].id) as client:
         # Grant consent
-        await client.post("/api/v1/location/school-consent", json={
-            "member_id": str(d["child"].id),
-            "school_group_id": str(d["school_group"].id),
-        })
+        await client.post(
+            "/api/v1/location/school-consent",
+            json={
+                "member_id": str(d["child"].id),
+                "school_group_id": str(d["school_group"].id),
+            },
+        )
 
         # Check-in
-        ci_resp = await client.post("/api/v1/location/check-in", json={
-            "member_id": str(d["child"].id),
-            "geofence_id": str(d["geofence"].id),
-        })
+        ci_resp = await client.post(
+            "/api/v1/location/check-in",
+            json={
+                "member_id": str(d["child"].id),
+                "geofence_id": str(d["geofence"].id),
+            },
+        )
         assert ci_resp.status_code == 201
 
         # Check-out
-        co_resp = await client.post("/api/v1/location/check-out", json={
-            "member_id": str(d["child"].id),
-            "geofence_id": str(d["geofence"].id),
-        })
+        co_resp = await client.post(
+            "/api/v1/location/check-out",
+            json={
+                "member_id": str(d["child"].id),
+                "geofence_id": str(d["geofence"].id),
+            },
+        )
         assert co_resp.status_code == 200
 
     # School admin sees attendance with both check-in and check-out timestamps
-    async with _make_client(ci_engine, ci_session, d["school_owner"].id, d["school_group"].id, role="school_admin") as school_client:
+    async with _make_client(
+        ci_engine, ci_session, d["school_owner"].id, d["school_group"].id, role="school_admin"
+    ) as school_client:
         today = datetime.now(timezone.utc).date().isoformat() + "T00:00:00Z"
         att_resp = await school_client.get(
             f"/api/v1/location/school/{d['school_group'].id}/attendance",
@@ -384,17 +433,23 @@ async def test_grant_consent_idempotent(ci_engine, ci_session, ci_data):
     d = ci_data
 
     async with _make_client(ci_engine, ci_session, d["parent"].id, d["family_group"].id) as client:
-        resp1 = await client.post("/api/v1/location/school-consent", json={
-            "member_id": str(d["child"].id),
-            "school_group_id": str(d["school_group"].id),
-        })
+        resp1 = await client.post(
+            "/api/v1/location/school-consent",
+            json={
+                "member_id": str(d["child"].id),
+                "school_group_id": str(d["school_group"].id),
+            },
+        )
         assert resp1.status_code == 201
         id1 = resp1.json()["id"]
 
-        resp2 = await client.post("/api/v1/location/school-consent", json={
-            "member_id": str(d["child"].id),
-            "school_group_id": str(d["school_group"].id),
-        })
+        resp2 = await client.post(
+            "/api/v1/location/school-consent",
+            json={
+                "member_id": str(d["child"].id),
+                "school_group_id": str(d["school_group"].id),
+            },
+        )
         assert resp2.status_code == 201
         # Same consent ID returned (idempotent)
         assert resp2.json()["id"] == id1
@@ -427,16 +482,22 @@ async def test_checkout_without_checkin_404(ci_engine, ci_session, ci_data):
 
     async with _make_client(ci_engine, ci_session, d["parent"].id, d["family_group"].id) as client:
         # Grant consent so we can attempt check-out
-        await client.post("/api/v1/location/school-consent", json={
-            "member_id": str(d["child"].id),
-            "school_group_id": str(d["school_group"].id),
-        })
+        await client.post(
+            "/api/v1/location/school-consent",
+            json={
+                "member_id": str(d["child"].id),
+                "school_group_id": str(d["school_group"].id),
+            },
+        )
 
         # No check-in exists — check-out should fail
-        resp = await client.post("/api/v1/location/check-out", json={
-            "member_id": str(d["child"].id),
-            "geofence_id": str(d["geofence"].id),
-        })
+        resp = await client.post(
+            "/api/v1/location/check-out",
+            json={
+                "member_id": str(d["child"].id),
+                "geofence_id": str(d["geofence"].id),
+            },
+        )
         assert resp.status_code == 404
 
 
@@ -450,7 +511,9 @@ async def test_attendance_empty_day(ci_engine, ci_session, ci_data):
     """Attendance for a day with no check-ins returns empty items list."""
     d = ci_data
 
-    async with _make_client(ci_engine, ci_session, d["school_owner"].id, d["school_group"].id, role="school_admin") as client:
+    async with _make_client(
+        ci_engine, ci_session, d["school_owner"].id, d["school_group"].id, role="school_admin"
+    ) as client:
         past_date = "2020-01-01T00:00:00Z"
         resp = await client.get(
             f"/api/v1/location/school/{d['school_group'].id}/attendance",
@@ -473,10 +536,13 @@ async def test_checkin_unknown_geofence_404(ci_engine, ci_session, ci_data):
     d = ci_data
 
     async with _make_client(ci_engine, ci_session, d["parent"].id, d["family_group"].id) as client:
-        resp = await client.post("/api/v1/location/check-in", json={
-            "member_id": str(d["child"].id),
-            "geofence_id": str(uuid.uuid4()),
-        })
+        resp = await client.post(
+            "/api/v1/location/check-in",
+            json={
+                "member_id": str(d["child"].id),
+                "geofence_id": str(uuid.uuid4()),
+            },
+        )
         assert resp.status_code == 404
 
 
@@ -492,26 +558,35 @@ async def test_regrant_after_revoke(ci_engine, ci_session, ci_data):
 
     async with _make_client(ci_engine, ci_session, d["parent"].id, d["family_group"].id) as client:
         # Grant
-        grant_resp = await client.post("/api/v1/location/school-consent", json={
-            "member_id": str(d["child"].id),
-            "school_group_id": str(d["school_group"].id),
-        })
+        grant_resp = await client.post(
+            "/api/v1/location/school-consent",
+            json={
+                "member_id": str(d["child"].id),
+                "school_group_id": str(d["school_group"].id),
+            },
+        )
         consent_id = grant_resp.json()["id"]
 
         # Revoke
         await client.delete(f"/api/v1/location/school-consent/{consent_id}")
 
         # Re-grant
-        regrant_resp = await client.post("/api/v1/location/school-consent", json={
-            "member_id": str(d["child"].id),
-            "school_group_id": str(d["school_group"].id),
-        })
+        regrant_resp = await client.post(
+            "/api/v1/location/school-consent",
+            json={
+                "member_id": str(d["child"].id),
+                "school_group_id": str(d["school_group"].id),
+            },
+        )
         assert regrant_resp.status_code == 201
         assert regrant_resp.json()["revoked_at"] is None
 
         # Check-in should succeed again
-        ci_resp = await client.post("/api/v1/location/check-in", json={
-            "member_id": str(d["child"].id),
-            "geofence_id": str(d["geofence"].id),
-        })
+        ci_resp = await client.post(
+            "/api/v1/location/check-in",
+            json={
+                "member_id": str(d["child"].id),
+                "geofence_id": str(d["geofence"].id),
+            },
+        )
         assert ci_resp.status_code == 201

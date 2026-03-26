@@ -3,12 +3,12 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.database import Base
-from src.models import JSONType, TimestampMixin, UUIDMixin
+from src.models import TimestampMixin, UUIDMixin
 
 
 class LocationRecord(Base, UUIDMixin, TimestampMixin):

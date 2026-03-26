@@ -11,7 +11,6 @@ Covers:
 """
 
 import uuid
-from datetime import datetime, timezone
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -20,8 +19,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from src.alerts.models import Alert
 from src.alerts.escalation import EscalationPartner, EscalationRecord  # noqa: F401 — register models
+from src.alerts.models import Alert
 from src.auth.middleware import get_current_user
 from src.auth.models import User
 from src.database import Base, get_db
@@ -29,7 +28,6 @@ from src.dependencies import require_active_trial_or_subscription
 from src.groups.models import Group, GroupMember
 from src.main import create_app
 from src.schemas import GroupContext
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -417,7 +415,7 @@ async def test_cannot_patch_alert_from_other_group(sec_engine, sec_session, sec_
     async with _make_client(
         sec_engine, sec_session, sec_data["owner_a"].id, sec_data["group_a"].id,
     ) as client:
-        resp = await client.patch(
+        await client.patch(
             f"/api/v1/alerts/{sec_data['alert_b'].id}",
             json={"read": True},
         )

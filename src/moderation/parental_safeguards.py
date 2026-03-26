@@ -10,20 +10,18 @@ parental abuse or custody conflicts. Key design principles:
 """
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from enum import Enum
 
 import structlog
-from sqlalchemy import select, update
+from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text, select
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Mapped, mapped_column
 
 from src.database import Base
-from src.exceptions import ForbiddenError, NotFoundError, ValidationError
+from src.exceptions import NotFoundError, ValidationError
 from src.models import JSONType, TimestampMixin, UUIDMixin
-
-from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column
 
 logger = structlog.get_logger()
 
@@ -44,9 +42,9 @@ class GuardianRole(str, Enum):
 class PrivacyTier(str, Enum):
     """Privacy tier determining what data parents can see."""
 
-    YOUNG = "young"        # 5-9: everything visible to parent
-    PRETEEN = "preteen"    # 10-12: posts+contacts visible, NOT messages
-    TEEN = "teen"          # 13-15: summary+flagged content only
+    YOUNG = "young"  # 5-9: everything visible to parent
+    PRETEEN = "preteen"  # 10-12: posts+contacts visible, NOT messages
+    TEEN = "teen"  # 13-15: summary+flagged content only
 
 
 class TrustedAdultStatus(str, Enum):
@@ -89,24 +87,31 @@ class TrustedAdultRequest(Base, UUIDMixin, TimestampMixin):
         index=True,
     )
     trusted_adult_name: Mapped[str | None] = mapped_column(
-        String(255), nullable=True,
+        String(255),
+        nullable=True,
     )
     trusted_adult_contact: Mapped[str | None] = mapped_column(
-        String(255), nullable=True,
+        String(255),
+        nullable=True,
     )
     reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(
-        String(20), nullable=False, default=TrustedAdultStatus.PENDING.value,
+        String(20),
+        nullable=False,
+        default=TrustedAdultStatus.PENDING.value,
     )
     helplines_shown: Mapped[dict | None] = mapped_column(
-        JSONType, nullable=True,
+        JSONType,
+        nullable=True,
     )
     contacted_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True,
+        DateTime(timezone=True),
+        nullable=True,
     )
     # Audit: who processed this (platform staff, not parent)
     processed_by: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), nullable=True,
+        UUID(as_uuid=True),
+        nullable=True,
     )
 
 
@@ -131,19 +136,29 @@ class CustodyConfig(Base, UUIDMixin, TimestampMixin):
         index=True,
     )
     role: Mapped[str] = mapped_column(
-        String(20), nullable=False, default=GuardianRole.PRIMARY.value,
+        String(20),
+        nullable=False,
+        default=GuardianRole.PRIMARY.value,
     )
     can_view_activity: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=True,
+        Boolean,
+        nullable=False,
+        default=True,
     )
     can_manage_settings: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=True,
+        Boolean,
+        nullable=False,
+        default=True,
     )
     can_approve_contacts: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=True,
+        Boolean,
+        nullable=False,
+        default=True,
     )
     dispute_status: Mapped[str] = mapped_column(
-        String(20), nullable=False, default=CustodyDisputeStatus.NONE.value,
+        String(20),
+        nullable=False,
+        default=CustodyDisputeStatus.NONE.value,
     )
     dispute_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
@@ -164,22 +179,33 @@ class TeenPrivacyConfig(Base, UUIDMixin, TimestampMixin):
         index=True,
     )
     privacy_tier: Mapped[str] = mapped_column(
-        String(20), nullable=False,
+        String(20),
+        nullable=False,
     )
     posts_visible: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=True,
+        Boolean,
+        nullable=False,
+        default=True,
     )
     contacts_visible: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=True,
+        Boolean,
+        nullable=False,
+        default=True,
     )
     messages_visible: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=False,
+        Boolean,
+        nullable=False,
+        default=False,
     )
     activity_summary_only: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=False,
+        Boolean,
+        nullable=False,
+        default=False,
     )
     flagged_content_visible: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=True,
+        Boolean,
+        nullable=False,
+        default=True,
     )
 
 
@@ -303,8 +329,7 @@ async def get_guardian_access(
 ) -> CustodyConfig | None:
     """Get custody configuration for a guardian-child pair."""
     result = await db.execute(
-        select(CustodyConfig)
-        .where(
+        select(CustodyConfig).where(
             CustodyConfig.child_member_id == child_member_id,
             CustodyConfig.guardian_member_id == guardian_member_id,
         )
@@ -324,7 +349,9 @@ async def add_secondary_guardian(
     """Add a secondary guardian with limited permissions."""
     # Check if config already exists
     existing = await get_guardian_access(
-        db, child_member_id=child_member_id, guardian_member_id=guardian_member_id,
+        db,
+        child_member_id=child_member_id,
+        guardian_member_id=guardian_member_id,
     )
     if existing:
         raise ValidationError("Guardian configuration already exists for this child-guardian pair")
@@ -358,7 +385,9 @@ async def add_primary_guardian(
 ) -> CustodyConfig:
     """Add a primary guardian with full permissions."""
     existing = await get_guardian_access(
-        db, child_member_id=child_member_id, guardian_member_id=guardian_member_id,
+        db,
+        child_member_id=child_member_id,
+        guardian_member_id=guardian_member_id,
     )
     if existing:
         raise ValidationError("Guardian configuration already exists for this child-guardian pair")
@@ -397,7 +426,9 @@ async def set_custody_dispute(
     until the dispute is resolved.
     """
     config = await get_guardian_access(
-        db, child_member_id=child_member_id, guardian_member_id=guardian_member_id,
+        db,
+        child_member_id=child_member_id,
+        guardian_member_id=guardian_member_id,
     )
     if not config:
         raise NotFoundError("CustodyConfig")
@@ -428,7 +459,9 @@ async def resolve_custody_dispute(
 ) -> CustodyConfig:
     """Resolve a custody dispute."""
     config = await get_guardian_access(
-        db, child_member_id=child_member_id, guardian_member_id=guardian_member_id,
+        db,
+        child_member_id=child_member_id,
+        guardian_member_id=guardian_member_id,
     )
     if not config:
         raise NotFoundError("CustodyConfig")
@@ -454,10 +487,7 @@ async def set_teen_privacy(
     defaults = PRIVACY_TIER_DEFAULTS[privacy_tier]
 
     # Check for existing config
-    result = await db.execute(
-        select(TeenPrivacyConfig)
-        .where(TeenPrivacyConfig.child_member_id == child_member_id)
-    )
+    result = await db.execute(select(TeenPrivacyConfig).where(TeenPrivacyConfig.child_member_id == child_member_id))
     existing = result.scalar_one_or_none()
 
     if existing:
@@ -493,14 +523,13 @@ async def get_parent_visible_data(
     """
     # Get custody config
     custody = await get_guardian_access(
-        db, child_member_id=child_member_id, guardian_member_id=guardian_member_id,
+        db,
+        child_member_id=child_member_id,
+        guardian_member_id=guardian_member_id,
     )
 
     # Get privacy config
-    result = await db.execute(
-        select(TeenPrivacyConfig)
-        .where(TeenPrivacyConfig.child_member_id == child_member_id)
-    )
+    result = await db.execute(select(TeenPrivacyConfig).where(TeenPrivacyConfig.child_member_id == child_member_id))
     privacy = result.scalar_one_or_none()
 
     # Default: full access if no configs exist
@@ -559,8 +588,7 @@ async def check_trusted_adult_visibility(
     """
     # Check if requester is a guardian of this child
     result = await db.execute(
-        select(CustodyConfig)
-        .where(
+        select(CustodyConfig).where(
             CustodyConfig.child_member_id == child_member_id,
             CustodyConfig.guardian_member_id == requester_member_id,
         )

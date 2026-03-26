@@ -8,7 +8,6 @@ import uuid
 from datetime import date, datetime, timezone
 
 import pytest
-import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
@@ -25,7 +24,6 @@ from src.main import create_app
 from src.schemas import GroupContext
 from src.social.schemas import ProfileCreate
 from src.social.service import create_profile, get_profile
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

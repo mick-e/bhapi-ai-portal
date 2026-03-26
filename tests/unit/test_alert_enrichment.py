@@ -29,7 +29,6 @@ from src.alerts.service import create_alert
 from src.intelligence.correlation import create_enriched_alert, get_enriched_alert, get_enriched_alert_by_id
 from tests.conftest import make_test_group
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -263,6 +262,7 @@ async def test_alert_creation_without_enrichment_no_member(test_session):
     assert alert.enriched_alert_id is None
     # Verify alert persisted
     from sqlalchemy import select
+
     from src.alerts.models import Alert as AlertModel
     result = await test_session.execute(select(AlertModel).where(AlertModel.id == alert.id))
     stored = result.scalar_one_or_none()

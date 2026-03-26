@@ -16,7 +16,7 @@ from src.api_platform.oauth import (
 from src.api_platform.webhooks import WEBHOOK_EVENTS, deliver_webhook
 from src.auth.middleware import get_current_user
 from src.database import get_db
-from src.exceptions import ForbiddenError, NotFoundError
+from src.exceptions import ForbiddenError
 from src.schemas import GroupContext
 
 logger = structlog.get_logger()

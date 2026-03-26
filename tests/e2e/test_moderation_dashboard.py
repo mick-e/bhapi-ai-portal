@@ -20,7 +20,6 @@ from src.main import create_app
 from src.moderation.models import ModerationDecision, ModerationQueue
 from src.schemas import GroupContext
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------

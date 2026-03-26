@@ -15,11 +15,8 @@ from src.auth.models import User
 from src.database import Base, get_db
 from src.groups.models import Group, GroupMember
 from src.intelligence.models import AbuseSignal, SocialGraphEdge
-from src.intelligence.service import create_abuse_signal
-from src.intelligence.schemas import AbuseSignalCreate
 from src.main import create_app
 from src.schemas import GroupContext
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

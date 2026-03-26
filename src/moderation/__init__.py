@@ -4,6 +4,19 @@ Public interface for cross-module communication.
 Other modules should import only from this file.
 """
 
+from src.moderation.anti_abuse import (
+    INVITATION_LIMITS,
+    AbuseType,
+    check_content_manipulation,
+    check_invitation_rate,
+    detect_account_farming,
+    detect_age_misrepresentation,
+    detect_coordinated_harassment,
+    detect_report_abuse,
+    normalize_homoglyphs,
+    normalize_leetspeak,
+    record_abuse_signal,
+)
 from src.moderation.csam import CSAMCheckResult, CSAMDetector, NCMECReport, check_csam
 from src.moderation.esafety import (
     ESafetyCategory,
@@ -39,19 +52,6 @@ from src.moderation.social_risk import (
     SocialRiskCategory,
     SocialRiskResult,
     classify_social_risk,
-)
-from src.moderation.anti_abuse import (
-    AbuseType,
-    INVITATION_LIMITS,
-    check_content_manipulation,
-    check_invitation_rate,
-    detect_account_farming,
-    detect_age_misrepresentation,
-    detect_coordinated_harassment,
-    detect_report_abuse,
-    normalize_homoglyphs,
-    normalize_leetspeak,
-    record_abuse_signal,
 )
 from src.moderation.video_pipeline import (
     VideoModerationPipeline,

@@ -6,7 +6,6 @@ Severe content -> immediate takedown + account restriction.
 """
 
 import uuid
-from unittest.mock import AsyncMock, patch
 
 import pytest
 import pytest_asyncio
@@ -14,15 +13,13 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.models import User
-from src.moderation.models import ModerationDecision, ModerationQueue
+from src.moderation.models import ModerationDecision
 from src.moderation.service import (
     PostPublishResult,
     PostPublishSeverity,
-    get_queue_entry,
     run_post_publish_moderation,
     submit_for_moderation,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

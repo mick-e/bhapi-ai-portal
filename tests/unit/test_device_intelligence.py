@@ -9,7 +9,6 @@ import pytest
 from src.device_agent.schemas import AppUsageCreate, DeviceSessionCreate, DeviceSyncRequest
 from src.device_agent.service import AI_APP_BUNDLES, record_app_usage, sync_device_data
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

@@ -5,7 +5,7 @@ from datetime import date, datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
 import structlog
-from sqlalchemy import func, select, update
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api_platform.models import (
@@ -17,10 +17,10 @@ from src.api_platform.models import (
 )
 from src.api_platform.oauth import _hash_token
 from src.api_platform.schemas import (
+    VALID_SCOPES,
     OAuthClientCreate,
     UsageDayResponse,
     UsageResponse,
-    VALID_SCOPES,
 )
 from src.exceptions import ConflictError, ForbiddenError, NotFoundError, ValidationError
 
@@ -278,7 +278,7 @@ async def check_rate_limit(
         return True  # Unknown tier — allow
 
     now = datetime.now(timezone.utc)
-    one_hour_ago = now - timedelta(hours=1)
+    now - timedelta(hours=1)
 
     # Count requests in last hour using daily record (approximate)
     # For production, this would use Redis sliding window

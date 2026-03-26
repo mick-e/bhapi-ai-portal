@@ -12,29 +12,25 @@ Tests cover:
 - Empty data returns score 0 with low confidence
 """
 
-from datetime import date, datetime, timedelta, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from datetime import datetime, timedelta, timezone
+from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
 
 from src.age_tier.rules import AgeTier
 from src.intelligence.scoring import (
-    SOURCES,
     _WEIGHTS,
+    SOURCES,
     _compute_ai_monitoring_score,
     _compute_confidence,
     _compute_device_usage_score,
     _compute_location_score,
     _compute_social_behavior_score,
     _default_tier,
-    _get_member_tier,
     compute_unified_score,
-    get_score_breakdown,
-    get_score_history,
     get_score_trend,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -327,7 +323,6 @@ class TestScoreTrend:
     async def test_stable_when_both_windows_empty(self):
         session = _make_session(scalars_all=[])
 
-        call_count = 0
 
         async def side_effect(*args, **kwargs):
             res = MagicMock()

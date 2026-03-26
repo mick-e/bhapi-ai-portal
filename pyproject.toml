@@ -44,6 +44,9 @@ select = ["E", "F", "I", "W"]
 "src/legal/content.py" = ["E501"]
 "src/risk/safety_classifier.py" = ["E501"]
 "src/reporting/generators/base.py" = ["E501"]
+"src/compliance/uk_aadc.py" = ["E501"]
+"src/moderation/parental_safeguards.py" = ["E501"]
+"src/social/router.py" = ["E501"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

@@ -224,7 +224,7 @@ async def test_cross_family_parent_cannot_batch_approve(sec_engine, sec_session,
     """Parent B cannot batch-approve child A's contact requests."""
     child_a = sec_users["child_a"]
     parent_b = sec_users["parent_b"]
-    group_a = sec_users["group_a"]
+    sec_users["group_a"]
     group_b = sec_users["group_b"]
     target = sec_users["target"]
 

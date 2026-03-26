@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
 import structlog
-from sqlalchemy import select, func
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.compliance.australian_models import (
@@ -19,7 +19,7 @@ from src.compliance.australian_models import (
     CyberbullyingCase,
     ESafetyReport,
 )
-from src.encryption import encrypt_credential, decrypt_credential
+from src.encryption import encrypt_credential
 from src.exceptions import NotFoundError, ValidationError
 
 logger = structlog.get_logger()

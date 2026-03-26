@@ -1,7 +1,7 @@
 """End-to-end tests for the screen time module."""
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 import pytest
 import pytest_asyncio
@@ -13,11 +13,10 @@ from sqlalchemy.pool import StaticPool
 from src.auth.middleware import get_current_user
 from src.auth.models import User
 from src.database import Base, get_db
-from src.device_agent.models import AppUsageRecord, ScreenTimeRecord
+from src.device_agent.models import ScreenTimeRecord
 from src.groups.models import Group, GroupMember
 from src.main import create_app
 from src.schemas import GroupContext
-from src.screen_time.models import ExtensionRequest, ScreenTimeRule
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -393,7 +392,6 @@ async def test_weekly_report_endpoint_empty(e2e_client, e2e_data):
 @pytest.mark.asyncio
 async def test_weekly_report_with_device_data(e2e_client, e2e_data, e2e_session):
     """Weekly report aggregates ScreenTimeRecord data from device agent."""
-    from datetime import date
     today = datetime.now(timezone.utc).date()
 
     rec = ScreenTimeRecord(

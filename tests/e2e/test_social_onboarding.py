@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.age_tier import AgeTier, age_from_dob, get_tier_for_age
 from src.auth.models import User
 from src.exceptions import ConflictError, NotFoundError, ValidationError
-from src.groups.models import Group, GroupMember
+from src.groups.models import GroupMember
 from src.integrations.age_verification import (
     process_age_verification_result,
     start_age_verification,
@@ -26,7 +26,6 @@ from src.integrations.yoti import (
 from src.social.schemas import ProfileCreate
 from src.social.service import create_profile, get_profile
 from tests.conftest import make_test_group
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

@@ -94,9 +94,10 @@ async def get_my_tier(
     db: AsyncSession = Depends(get_db),
 ):
     """Get the current user's subscription tier with resolved features and upgrade options."""
-    from src.billing.tiers import TIER_HIERARCHY, TIERS, get_tier_features
-    from src.billing.models import Subscription
     from sqlalchemy import select
+
+    from src.billing.models import Subscription
+    from src.billing.tiers import TIER_HIERARCHY, TIERS, get_tier_features
 
     gid = _gid(None, auth)
 

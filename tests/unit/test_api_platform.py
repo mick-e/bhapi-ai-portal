@@ -1,23 +1,21 @@
 """Unit tests for the API platform module."""
 
 import uuid
-from datetime import datetime, timedelta, timezone
 
 import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.api_platform.models import APIKeyTier, APIUsageRecord, OAuthClient, OAuthToken
+from src.api_platform.models import APIKeyTier, OAuthClient
 from src.api_platform.oauth import (
     _hash_token,
     exchange_code_for_tokens,
     generate_authorization_code,
     refresh_access_token,
     revoke_token,
-    validate_access_token,
     validate_pkce,
 )
-from src.api_platform.schemas import OAuthClientCreate, VALID_SCOPES
+from src.api_platform.schemas import VALID_SCOPES, OAuthClientCreate
 from src.api_platform.service import (
     approve_client,
     get_client,
@@ -28,8 +26,7 @@ from src.api_platform.service import (
     register_client,
 )
 from src.auth.models import User
-from src.exceptions import ConflictError, ForbiddenError, NotFoundError, UnauthorizedError, ValidationError
-
+from src.exceptions import ConflictError, NotFoundError, UnauthorizedError, ValidationError
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -56,7 +53,6 @@ async def platform_user(test_session: AsyncSession):
 @pytest_asyncio.fixture
 async def approved_client(test_session: AsyncSession, platform_user):
     """Create an approved OAuth client with known credentials."""
-    import secrets as _secrets
     client_secret = "test-secret-supersecure-xyz-1234567890"
     secret_hash = _hash_token(client_secret)
     client = OAuthClient(
@@ -201,7 +197,8 @@ async def test_get_client_not_found(test_session: AsyncSession):
 
 def test_validate_pkce_success():
     """Valid code_verifier matches code_challenge."""
-    import base64, hashlib
+    import base64
+    import hashlib
     verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
     digest = hashlib.sha256(verifier.encode()).digest()
     challenge = base64.urlsafe_b64encode(digest).rstrip(b"=").decode()
@@ -211,7 +208,8 @@ def test_validate_pkce_success():
 
 def test_validate_pkce_wrong_verifier():
     """Wrong verifier returns False."""
-    import base64, hashlib
+    import base64
+    import hashlib
     verifier = "correct-verifier-xxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
     digest = hashlib.sha256(verifier.encode()).digest()
     challenge = base64.urlsafe_b64encode(digest).rstrip(b"=").decode()
@@ -235,7 +233,8 @@ async def test_generate_and_exchange_authorization_code(
     test_session: AsyncSession, approved_client
 ):
     """Full authorization code → token exchange flow."""
-    import base64, hashlib
+    import base64
+    import hashlib
     client, secret = approved_client
     user_id = uuid.uuid4()
 
@@ -282,7 +281,8 @@ async def test_generate_and_exchange_authorization_code(
 @pytest.mark.asyncio
 async def test_exchange_code_replay_attack(test_session: AsyncSession, approved_client):
     """Authorization code cannot be reused after exchange."""
-    import base64, hashlib
+    import base64
+    import hashlib
     client, secret = approved_client
     user_id = uuid.uuid4()
 
@@ -335,7 +335,8 @@ async def test_exchange_code_replay_attack(test_session: AsyncSession, approved_
 @pytest.mark.asyncio
 async def test_refresh_token_rotation(test_session: AsyncSession, approved_client):
     """Refresh token exchange issues a new pair and revokes the old token."""
-    import base64, hashlib
+    import base64
+    import hashlib
     client, secret = approved_client
     user_id = uuid.uuid4()
 
@@ -385,7 +386,8 @@ async def test_refresh_token_rotation(test_session: AsyncSession, approved_clien
 @pytest.mark.asyncio
 async def test_revoke_token(test_session: AsyncSession, approved_client):
     """Revoking a token marks it as revoked."""
-    import base64, hashlib
+    import base64
+    import hashlib
     client, secret = approved_client
     user_id = uuid.uuid4()
 

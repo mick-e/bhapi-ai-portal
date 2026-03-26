@@ -7,13 +7,13 @@ import structlog
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.exceptions import NotFoundError, ValidationError
 from src.device_agent.models import AppUsageRecord, DeviceSession, ScreenTimeRecord
 from src.device_agent.schemas import (
     AppUsageCreate,
     DeviceSessionCreate,
     DeviceSyncRequest,
 )
+from src.exceptions import NotFoundError, ValidationError
 
 logger = structlog.get_logger()
 

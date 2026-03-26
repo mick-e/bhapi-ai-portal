@@ -11,7 +11,6 @@ Detection functions for:
 
 import re
 import unicodedata
-from collections import Counter
 from datetime import datetime, timedelta, timezone
 from enum import StrEnum
 from typing import Any

@@ -24,7 +24,6 @@ from src.database import Base, get_db
 from src.main import create_app
 from src.schemas import GroupContext
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------

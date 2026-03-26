@@ -3,7 +3,6 @@
 import base64
 import hashlib
 import uuid
-from datetime import datetime, timezone
 
 import pytest
 import pytest_asyncio
@@ -19,7 +18,6 @@ from src.auth.models import User
 from src.database import Base, get_db
 from src.main import create_app
 from src.schemas import GroupContext
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -557,7 +555,7 @@ async def test_e2e_full_oauth_flow(e2e_client):
     })
     assert token_resp.status_code == 200
     token_body = token_resp.json()
-    access_token = token_body["access_token"]
+    token_body["access_token"]
     refresh_token = token_body["refresh_token"]
 
     # 3. Refresh

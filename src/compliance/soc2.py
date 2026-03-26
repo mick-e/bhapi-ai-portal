@@ -1,14 +1,13 @@
 """SOC 2 audit initiation — evidence collection, control mapping, policy management."""
 
 from datetime import datetime, timezone
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import structlog
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.compliance.models import AuditPolicy, ComplianceControl, EvidenceCollection
-from src.exceptions import NotFoundError
 
 logger = structlog.get_logger()
 

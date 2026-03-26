@@ -16,13 +16,9 @@ import structlog
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.exceptions import NotFoundError, ValidationError
+from src.exceptions import ValidationError
 from src.governance.models import GovernanceAudit, GovernanceImportLog, GovernancePolicy
 from src.governance.service import (
-    REQUIRED_POLICY_TYPES,
-    _policy_to_response,
-    _tool_to_response,
-    add_tool_to_inventory,
     run_risk_assessment,
 )
 

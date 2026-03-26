@@ -5,7 +5,6 @@ and bias testing per EU AI Act requirements.
 """
 
 import uuid
-from datetime import datetime, timezone
 
 import pytest
 import pytest_asyncio
@@ -13,7 +12,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.models import User
 from src.groups.models import Group
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -87,13 +85,14 @@ async def test_conformity_assessment_structure(test_session, school_group):
 @pytest.mark.asyncio
 async def test_conformity_assessment_creates_db_record(test_session, school_group):
     """Conformity assessment persists to database."""
+    from sqlalchemy import select
+
     from src.governance.eu_ai_act import (
         ConformityAssessment,
         create_conformity_assessment,
     )
-    from sqlalchemy import select
 
-    result = await create_conformity_assessment(
+    await create_conformity_assessment(
         db=test_session,
         group_id=school_group["group"].id,
         assessor="DB Tester",
@@ -212,8 +211,9 @@ async def test_technical_documentation_generation(test_session, school_group):
 @pytest.mark.asyncio
 async def test_tech_docs_creates_db_record(test_session, school_group):
     """Technical documentation persists to database."""
-    from src.governance.eu_ai_act import TechnicalDocumentation, generate_tech_documentation
     from sqlalchemy import select
+
+    from src.governance.eu_ai_act import TechnicalDocumentation, generate_tech_documentation
 
     await generate_tech_documentation(
         db=test_session,
@@ -316,8 +316,9 @@ async def test_risk_management_assessment(test_session, school_group):
 @pytest.mark.asyncio
 async def test_risk_management_creates_db_record(test_session, school_group):
     """Risk management record persists to database."""
-    from src.governance.eu_ai_act import RiskManagementRecord, run_risk_management_assessment
     from sqlalchemy import select
+
+    from src.governance.eu_ai_act import RiskManagementRecord, run_risk_management_assessment
 
     await run_risk_management_assessment(
         db=test_session,
@@ -396,8 +397,9 @@ async def test_risk_management_residual_risk_calculation(test_session, school_gr
 @pytest.mark.asyncio
 async def test_risk_management_multiple_records(test_session, school_group):
     """Multiple risk records can be created for same group."""
+    from sqlalchemy import func, select
+
     from src.governance.eu_ai_act import RiskManagementRecord, run_risk_management_assessment
-    from sqlalchemy import select, func
 
     await run_risk_management_assessment(
         db=test_session,
@@ -473,8 +475,9 @@ async def test_bias_testing_framework(test_session, school_group):
 @pytest.mark.asyncio
 async def test_bias_test_creates_db_record(test_session, school_group):
     """Bias test result persists to database."""
-    from src.governance.eu_ai_act import BiasTestResult, run_bias_test
     from sqlalchemy import select
+
+    from src.governance.eu_ai_act import BiasTestResult, run_bias_test
 
     await run_bias_test(
         db=test_session,
@@ -740,8 +743,9 @@ async def test_risk_type_validation(test_session, school_group):
 @pytest.mark.asyncio
 async def test_multiple_bias_tests_same_model(test_session, school_group):
     """Multiple bias tests can exist for the same model."""
+    from sqlalchemy import func, select
+
     from src.governance.eu_ai_act import BiasTestResult, run_bias_test
-    from sqlalchemy import select, func
 
     for _ in range(3):
         await run_bias_test(

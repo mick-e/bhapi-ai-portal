@@ -2,7 +2,6 @@
 
 import hashlib
 import hmac
-import json
 import uuid
 from datetime import date
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -22,11 +21,8 @@ from src.api_platform.oauth import _hash_token
 from src.api_platform.service import (
     check_rate_limit,
     delete_webhook,
-    get_tier,
     get_webhook,
     list_webhook_deliveries,
-    list_webhooks,
-    record_usage,
     register_webhook,
 )
 from src.api_platform.webhooks import (
@@ -39,7 +35,6 @@ from src.api_platform.webhooks import (
 )
 from src.auth.models import User
 from src.exceptions import ForbiddenError, NotFoundError
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

@@ -1,13 +1,13 @@
 """Unit tests for the state compliance framework."""
 
-from datetime import date, datetime, timezone
+from datetime import date
 
 import pytest
 
 from src.governance.state_framework import (
+    StateAlreadyRegisteredError,
     StateComplianceFramework,
     StateNotRegisteredError,
-    StateAlreadyRegisteredError,
 )
 
 

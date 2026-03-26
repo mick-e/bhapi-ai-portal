@@ -16,7 +16,6 @@ from src.groups.models import Group, GroupMember
 from src.main import create_app
 from src.schemas import GroupContext
 
-
 GROUP_A = uuid4()
 GROUP_B = uuid4()
 USER_A = uuid4()

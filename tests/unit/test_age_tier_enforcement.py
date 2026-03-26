@@ -13,10 +13,9 @@ from src.age_tier.middleware import (
     _match_endpoint,
     enforce_age_tier,
 )
-from src.age_tier.rules import AgeTier, TIER_PERMISSIONS
+from src.age_tier.rules import TIER_PERMISSIONS, AgeTier
 from src.exceptions import ForbiddenError
 from src.schemas import GroupContext
-
 
 # ---------------------------------------------------------------------------
 # _match_endpoint unit tests

@@ -8,7 +8,6 @@ import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.models import User
-from src.device_agent.models import AppUsageRecord, DeviceSession, ScreenTimeRecord
 from src.device_agent.schemas import (
     AppUsageCreate,
     DeviceSessionCreate,

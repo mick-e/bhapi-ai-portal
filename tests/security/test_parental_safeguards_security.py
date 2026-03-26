@@ -11,7 +11,7 @@ import uuid
 
 import pytest
 import pytest_asyncio
-from sqlalchemy import event, select
+from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.pool import StaticPool
 
@@ -20,20 +20,12 @@ from src.database import Base
 from src.exceptions import NotFoundError, ValidationError
 from src.groups.models import Group, GroupMember
 from src.moderation.parental_safeguards import (
-    CustodyConfig,
-    CustodyDisputeStatus,
-    GuardianRole,
     PrivacyTier,
-    TeenPrivacyConfig,
-    TrustedAdultRequest,
     add_primary_guardian,
     add_secondary_guardian,
     check_trusted_adult_visibility,
-    get_guardian_access,
     get_parent_visible_data,
-    get_trusted_adult_requests,
     request_trusted_adult,
-    resolve_custody_dispute,
     set_custody_dispute,
     set_teen_privacy,
 )

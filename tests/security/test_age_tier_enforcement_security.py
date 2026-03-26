@@ -23,7 +23,6 @@ from src.main import create_app
 from src.schemas import GroupContext
 from src.social.models import Profile
 
-
 # ---------------------------------------------------------------------------
 # Helper to create a full test client with isolated DB
 # ---------------------------------------------------------------------------
@@ -335,13 +334,6 @@ async def test_teen_can_upload_media(teen_client):
 async def test_teen_can_list_contacts(teen_client):
     """Teen tier can list contacts — not 403."""
     resp = await teen_client.get("/api/v1/contacts/")
-    assert resp.status_code != 403
-
-
-@pytest.mark.asyncio
-async def test_teen_can_list_conversations(teen_client):
-    """Teen tier can list conversations — not 403."""
-    resp = await teen_client.get("/api/v1/messages/conversations")
     assert resp.status_code != 403
 
 

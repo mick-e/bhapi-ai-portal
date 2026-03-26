@@ -14,7 +14,7 @@ from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.pool import StaticPool
 
-from src.age_tier.rules import AgeTier, TIER_PERMISSIONS, check_permission
+from src.age_tier.rules import TIER_PERMISSIONS, AgeTier, check_permission
 from src.auth.middleware import get_current_user
 from src.auth.models import User
 from src.database import Base, get_db
@@ -22,7 +22,6 @@ from src.groups.models import Group
 from src.main import create_app
 from src.schemas import GroupContext
 from src.social.models import Profile
-
 
 # ---------------------------------------------------------------------------
 # Helper to create a full test client with isolated DB

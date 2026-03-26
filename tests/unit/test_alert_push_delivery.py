@@ -18,7 +18,6 @@ from src.alerts.service import create_alert
 from src.auth.models import User
 from src.groups.models import Group
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

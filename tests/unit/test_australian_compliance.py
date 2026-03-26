@@ -32,12 +32,9 @@ from src.compliance.australian import (
     list_cyberbullying_cases,
 )
 from src.compliance.australian_models import (
-    AgeVerificationRecord,
-    CyberbullyingCase,
     ESafetyReport,
 )
 from src.database import Base
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -258,7 +255,7 @@ async def test_esafety_sla_no_reports(test_session):
 @pytest.mark.asyncio
 async def test_esafety_report_generation(test_session):
     """eSafety Commissioner report includes SLA data and recent reports."""
-    report = await create_esafety_report(test_session, uuid4(), "media")
+    await create_esafety_report(test_session, uuid4(), "media")
     await test_session.commit()
 
     result = await get_esafety_report(test_session)

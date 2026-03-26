@@ -9,20 +9,17 @@ Covers:
   - Rate limit on code generation
 """
 
-import hashlib
-import pytest
-from datetime import datetime, timezone, timedelta
-from uuid import uuid4
+from datetime import datetime, timedelta, timezone
 
+import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import event, update
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.pool import StaticPool
 
-from src.auth.models import ChildInviteCode, ParentApprovalRequest
+from src.auth.models import ChildInviteCode
 from src.database import Base, get_db
 from src.main import create_app
-
 
 # ---------------------------------------------------------------------------
 # Fixture
@@ -171,8 +168,9 @@ async def test_approval_token_single_use(sec_client):
     _, child_id, _ = await _register(sec_client, "single_use_child@example.com")
 
     # Create approval request and capture raw token via service internals
-    from src.auth.service import send_parent_approval
     from uuid import UUID as _UUID
+
+    from src.auth.service import send_parent_approval
     session: AsyncSession = sec_client._test_session  # type: ignore[attr-defined]
 
     approval = await send_parent_approval(session, _UUID(child_id), "single_use_parent@example.com")

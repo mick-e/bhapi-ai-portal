@@ -14,7 +14,7 @@ from datetime import date, datetime, timezone
 
 import structlog
 
-from src.exceptions import BhapiException, NotFoundError, ValidationError
+from src.exceptions import BhapiException, NotFoundError
 
 logger = structlog.get_logger()
 

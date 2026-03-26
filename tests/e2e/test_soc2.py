@@ -17,7 +17,6 @@ from sqlalchemy.pool import StaticPool
 from src.database import Base, get_db
 from src.main import create_app
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

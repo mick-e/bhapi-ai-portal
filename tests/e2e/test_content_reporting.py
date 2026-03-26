@@ -12,17 +12,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.models import User
 from src.exceptions import ConflictError, NotFoundError, ValidationError
-from src.groups.models import Group, GroupMember
 from src.moderation.service import (
     REPORT_REASON_LABELS,
     ReportReason,
-    ReportStatus,
     create_content_report,
     get_report,
     list_reports,
     update_report_status,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

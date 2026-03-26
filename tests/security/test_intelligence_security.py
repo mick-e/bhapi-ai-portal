@@ -27,7 +27,6 @@ from src.intelligence.models import AbuseSignal, BehavioralBaseline, SocialGraph
 from src.main import create_app
 from src.schemas import GroupContext
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -145,7 +144,7 @@ async def sec_data(sec_session):
     await sec_session.flush()
 
     # Graph edge for child1
-    edge1 = SocialGraphEdge(
+    SocialGraphEdge(
         id=uuid.uuid4(),
         source_id=child1.id,
         target_id=child1.id,  # self-ref for test data only

@@ -19,7 +19,6 @@ from src.intelligence.correlation import (
 )
 from tests.conftest import make_test_group
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -67,10 +66,13 @@ def _simple_condition(*, operator="gt", threshold=0.5, logic="AND", metric="risk
 @pytest.mark.asyncio
 class TestCreateRule:
     async def test_create_rule_defaults(self, test_session):
-        rule = await create_rule(test_session, {
-            "name": "Test Rule Defaults",
-            "condition": _simple_condition(),
-        })
+        rule = await create_rule(
+            test_session,
+            {
+                "name": "Test Rule Defaults",
+                "condition": _simple_condition(),
+            },
+        )
         assert rule.id is not None
         assert rule.name == "Test Rule Defaults"
         assert rule.action_severity == "medium"
@@ -79,15 +81,18 @@ class TestCreateRule:
         assert rule.age_tier_filter is None
 
     async def test_create_rule_all_fields(self, test_session):
-        rule = await create_rule(test_session, {
-            "name": "Critical Teen Rule",
-            "description": "High risk for teens",
-            "condition": _simple_condition(),
-            "action_severity": "critical",
-            "notification_type": "push",
-            "age_tier_filter": "teen",
-            "enabled": False,
-        })
+        rule = await create_rule(
+            test_session,
+            {
+                "name": "Critical Teen Rule",
+                "description": "High risk for teens",
+                "condition": _simple_condition(),
+                "action_severity": "critical",
+                "notification_type": "push",
+                "age_tier_filter": "teen",
+                "enabled": False,
+            },
+        )
         assert rule.action_severity == "critical"
         assert rule.notification_type == "push"
         assert rule.age_tier_filter == "teen"
@@ -96,32 +101,44 @@ class TestCreateRule:
 
     async def test_create_rule_invalid_logic_raises(self, test_session):
         with pytest.raises(ValidationError):
-            await create_rule(test_session, {
-                "name": "Bad Logic Rule",
-                "condition": {"logic": "INVALID"},
-            })
+            await create_rule(
+                test_session,
+                {
+                    "name": "Bad Logic Rule",
+                    "condition": {"logic": "INVALID"},
+                },
+            )
 
     async def test_create_rule_invalid_operator_raises(self, test_session):
         with pytest.raises(ValidationError):
-            await create_rule(test_session, {
-                "name": "Bad Operator Rule",
-                "condition": {
-                    "signals": [
-                        {"operator": "BETWEEN", "threshold_multiplier": 1.0},
-                    ]
+            await create_rule(
+                test_session,
+                {
+                    "name": "Bad Operator Rule",
+                    "condition": {
+                        "signals": [
+                            {"operator": "BETWEEN", "threshold_multiplier": 1.0},
+                        ]
+                    },
                 },
-            })
+            )
 
     async def test_create_rule_duplicate_name_raises_conflict(self, test_session):
-        await create_rule(test_session, {
-            "name": "DuplicateRuleName",
-            "condition": _simple_condition(),
-        })
-        with pytest.raises(ConflictError):
-            await create_rule(test_session, {
+        await create_rule(
+            test_session,
+            {
                 "name": "DuplicateRuleName",
                 "condition": _simple_condition(),
-            })
+            },
+        )
+        with pytest.raises(ConflictError):
+            await create_rule(
+                test_session,
+                {
+                    "name": "DuplicateRuleName",
+                    "condition": _simple_condition(),
+                },
+            )
 
 
 # ===========================================================================
@@ -148,8 +165,12 @@ class TestGetRules:
         assert "IncludeDisabled" in names
 
     async def test_get_rules_filter_by_age_tier_teen(self, test_session):
-        await create_rule(test_session, {"name": "TierTeen", "condition": _simple_condition(), "age_tier_filter": "teen"})
-        await create_rule(test_session, {"name": "TierYoung", "condition": _simple_condition(), "age_tier_filter": "young"})
+        await create_rule(
+            test_session, {"name": "TierTeen", "condition": _simple_condition(), "age_tier_filter": "teen"}
+        )
+        await create_rule(
+            test_session, {"name": "TierYoung", "condition": _simple_condition(), "age_tier_filter": "young"}
+        )
         await create_rule(test_session, {"name": "TierAll", "condition": _simple_condition(), "age_tier_filter": None})
 
         teen_rules = await get_rules(test_session, age_tier="teen")
@@ -159,7 +180,9 @@ class TestGetRules:
         assert "TierYoung" not in names
 
     async def test_get_rules_null_tier_matches_all_tiers(self, test_session):
-        await create_rule(test_session, {"name": "UniversalRuleXYZ", "condition": _simple_condition(), "age_tier_filter": None})
+        await create_rule(
+            test_session, {"name": "UniversalRuleXYZ", "condition": _simple_condition(), "age_tier_filter": None}
+        )
         for tier in ("young", "preteen", "teen"):
             rules = await get_rules(test_session, age_tier=tier)
             assert any(r.name == "UniversalRuleXYZ" for r in rules), f"Universal rule missing for tier={tier}"
@@ -216,66 +239,91 @@ class TestUpdateRule:
 @pytest.mark.asyncio
 class TestEvaluateEvent:
     async def test_event_matches_rule(self, test_session):
-        await create_rule(test_session, {
-            "name": "EvMatchHighRisk",
-            "condition": {
-                "logic": "AND",
-                "signals": [{"source": "ai", "metric": "risk_score", "operator": "gt", "threshold_multiplier": 0.7}],
+        await create_rule(
+            test_session,
+            {
+                "name": "EvMatchHighRisk",
+                "condition": {
+                    "logic": "AND",
+                    "signals": [
+                        {"source": "ai", "metric": "risk_score", "operator": "gt", "threshold_multiplier": 0.7}
+                    ],
+                },
             },
-        })
+        )
         event = {"source": "ai", "metrics": {"risk_score": 0.9}}
         matches = await evaluate_event(test_session, event)
         assert len(matches) == 1
         assert matches[0]["confidence"] == "high"
 
     async def test_event_no_match_below_threshold(self, test_session):
-        await create_rule(test_session, {
-            "name": "EvNoMatchHigh",
-            "condition": {
-                "logic": "AND",
-                "signals": [{"source": "ai", "metric": "risk_score", "operator": "gt", "threshold_multiplier": 0.9}],
+        await create_rule(
+            test_session,
+            {
+                "name": "EvNoMatchHigh",
+                "condition": {
+                    "logic": "AND",
+                    "signals": [
+                        {"source": "ai", "metric": "risk_score", "operator": "gt", "threshold_multiplier": 0.9}
+                    ],
+                },
             },
-        })
+        )
         event = {"source": "ai", "metrics": {"risk_score": 0.5}}
         matches = await evaluate_event(test_session, event)
         assert matches == []
 
     async def test_disabled_rule_skipped(self, test_session):
-        await create_rule(test_session, {
-            "name": "EvDisabledRule",
-            "condition": {
-                "logic": "AND",
-                "signals": [{"source": "ai", "metric": "risk_score", "operator": "gt", "threshold_multiplier": 0.1}],
+        await create_rule(
+            test_session,
+            {
+                "name": "EvDisabledRule",
+                "condition": {
+                    "logic": "AND",
+                    "signals": [
+                        {"source": "ai", "metric": "risk_score", "operator": "gt", "threshold_multiplier": 0.1}
+                    ],
+                },
+                "enabled": False,
             },
-            "enabled": False,
-        })
+        )
         event = {"source": "ai", "metrics": {"risk_score": 0.99}}
         matches = await evaluate_event(test_session, event)
         assert matches == []
 
     async def test_event_outside_time_window_skipped(self, test_session):
-        await create_rule(test_session, {
-            "name": "EvWindowOld",
-            "condition": {
-                "logic": "AND",
-                "time_window_hours": 1,
-                "signals": [{"source": "ai", "metric": "risk_score", "operator": "gt", "threshold_multiplier": 0.1}],
+        await create_rule(
+            test_session,
+            {
+                "name": "EvWindowOld",
+                "condition": {
+                    "logic": "AND",
+                    "time_window_hours": 1,
+                    "signals": [
+                        {"source": "ai", "metric": "risk_score", "operator": "gt", "threshold_multiplier": 0.1}
+                    ],
+                },
             },
-        })
+        )
         old_time = datetime.now(timezone.utc) - timedelta(hours=5)
         event = {"source": "ai", "metrics": {"risk_score": 0.9}, "timestamp": old_time.isoformat()}
         matches = await evaluate_event(test_session, event)
         assert matches == []
 
     async def test_event_inside_time_window_matches(self, test_session):
-        await create_rule(test_session, {
-            "name": "EvWindowRecent",
-            "condition": {
-                "logic": "AND",
-                "time_window_hours": 48,
-                "signals": [{"source": "ai", "metric": "risk_score", "operator": "gt", "threshold_multiplier": 0.1}],
+        await create_rule(
+            test_session,
+            {
+                "name": "EvWindowRecent",
+                "condition": {
+                    "logic": "AND",
+                    "time_window_hours": 48,
+                    "signals": [
+                        {"source": "ai", "metric": "risk_score", "operator": "gt", "threshold_multiplier": 0.1}
+                    ],
+                },
             },
-        })
+        )
         recent_time = datetime.now(timezone.utc) - timedelta(hours=1)
         event = {"source": "ai", "metrics": {"risk_score": 0.9}, "timestamp": recent_time.isoformat()}
         matches = await evaluate_event(test_session, event)
@@ -283,13 +331,18 @@ class TestEvaluateEvent:
 
     async def test_multiple_rules_can_match(self, test_session):
         for i in range(3):
-            await create_rule(test_session, {
-                "name": f"EvMultiRule{i}",
-                "condition": {
-                    "logic": "AND",
-                    "signals": [{"source": "ai", "metric": "risk_score", "operator": "gt", "threshold_multiplier": 0.1}],
+            await create_rule(
+                test_session,
+                {
+                    "name": f"EvMultiRule{i}",
+                    "condition": {
+                        "logic": "AND",
+                        "signals": [
+                            {"source": "ai", "metric": "risk_score", "operator": "gt", "threshold_multiplier": 0.1}
+                        ],
+                    },
                 },
-            })
+            )
         event = {"source": "ai", "metrics": {"risk_score": 0.99}}
         matches = await evaluate_event(test_session, event)
         assert len(matches) == 3
@@ -300,20 +353,22 @@ class TestEvaluateEvent:
         assert matches == []
 
     async def test_age_tier_filtering_in_evaluate(self, test_session):
-        await create_rule(test_session, {
-            "name": "EvTeenOnly",
-            "condition": {
-                "signals": [{"metric": "risk_score", "operator": "gt", "threshold_multiplier": 0.1}]
+        await create_rule(
+            test_session,
+            {
+                "name": "EvTeenOnly",
+                "condition": {"signals": [{"metric": "risk_score", "operator": "gt", "threshold_multiplier": 0.1}]},
+                "age_tier_filter": "teen",
             },
-            "age_tier_filter": "teen",
-        })
-        await create_rule(test_session, {
-            "name": "EvYoungOnly",
-            "condition": {
-                "signals": [{"metric": "risk_score", "operator": "gt", "threshold_multiplier": 0.1}]
+        )
+        await create_rule(
+            test_session,
+            {
+                "name": "EvYoungOnly",
+                "condition": {"signals": [{"metric": "risk_score", "operator": "gt", "threshold_multiplier": 0.1}]},
+                "age_tier_filter": "young",
             },
-            "age_tier_filter": "young",
-        })
+        )
         event = {"age_tier": "teen", "metrics": {"risk_score": 0.9}}
         matches = await evaluate_event(test_session, event)
         matched_names = [m["rule"].name for m in matches]
@@ -321,85 +376,104 @@ class TestEvaluateEvent:
         assert "EvYoungOnly" not in matched_names
 
     async def test_or_logic_partial_match_returns_low_confidence(self, test_session):
-        await create_rule(test_session, {
-            "name": "EvORPartial",
-            "condition": {
-                "logic": "OR",
-                "signals": [
-                    {"metric": "risk_score", "operator": "gt", "threshold_multiplier": 0.9},
-                    {"metric": "spend_usd", "operator": "gt", "threshold_multiplier": 100.0},
-                ],
+        await create_rule(
+            test_session,
+            {
+                "name": "EvORPartial",
+                "condition": {
+                    "logic": "OR",
+                    "signals": [
+                        {"metric": "risk_score", "operator": "gt", "threshold_multiplier": 0.9},
+                        {"metric": "spend_usd", "operator": "gt", "threshold_multiplier": 100.0},
+                    ],
+                },
             },
-        })
+        )
         event = {"metrics": {"risk_score": 0.95}}
         matches = await evaluate_event(test_session, event)
         assert len(matches) == 1
         assert matches[0]["confidence"] == "low"
 
     async def test_or_logic_no_match_returns_empty(self, test_session):
-        await create_rule(test_session, {
-            "name": "EvORNoMatch",
-            "condition": {
-                "logic": "OR",
-                "signals": [
-                    {"metric": "risk_score", "operator": "gt", "threshold_multiplier": 0.9},
-                    {"metric": "spend_usd", "operator": "gt", "threshold_multiplier": 100.0},
-                ],
+        await create_rule(
+            test_session,
+            {
+                "name": "EvORNoMatch",
+                "condition": {
+                    "logic": "OR",
+                    "signals": [
+                        {"metric": "risk_score", "operator": "gt", "threshold_multiplier": 0.9},
+                        {"metric": "spend_usd", "operator": "gt", "threshold_multiplier": 100.0},
+                    ],
+                },
             },
-        })
+        )
         event = {"metrics": {"risk_score": 0.1}}
         matches = await evaluate_event(test_session, event)
         assert matches == []
 
     async def test_null_age_tier_event_matches_all_tier_rules(self, test_session):
-        await create_rule(test_session, {
-            "name": "EvNullTierUniversal",
-            "condition": {
-                "signals": [{"metric": "risk_score", "operator": "gt", "threshold_multiplier": 0.1}]
+        await create_rule(
+            test_session,
+            {
+                "name": "EvNullTierUniversal",
+                "condition": {"signals": [{"metric": "risk_score", "operator": "gt", "threshold_multiplier": 0.1}]},
+                "age_tier_filter": None,
             },
-            "age_tier_filter": None,
-        })
+        )
         event = {"metrics": {"risk_score": 0.9}}  # no age_tier key
         matches = await evaluate_event(test_session, event)
         assert any(m["rule"].name == "EvNullTierUniversal" for m in matches)
 
     async def test_source_mismatch_does_not_match(self, test_session):
         """A rule with source=social_activity must not match an ai_session event."""
-        await create_rule(test_session, {
-            "name": "EvSourceMismatch",
-            "condition": {
-                "logic": "AND",
-                "signals": [
-                    {"source": "social_activity", "metric": "risk_score", "operator": "gt", "threshold_multiplier": 0.1},
-                ],
+        await create_rule(
+            test_session,
+            {
+                "name": "EvSourceMismatch",
+                "condition": {
+                    "logic": "AND",
+                    "signals": [
+                        {
+                            "source": "social_activity",
+                            "metric": "risk_score",
+                            "operator": "gt",
+                            "threshold_multiplier": 0.1,
+                        },
+                    ],
+                },
             },
-        })
+        )
         event = {"source": "ai_session", "metrics": {"risk_score": 0.99}}
         matches = await evaluate_event(test_session, event)
         assert matches == []
 
     async def test_source_match_does_match(self, test_session):
         """A rule with source=ai_session must match an ai_session event."""
-        await create_rule(test_session, {
-            "name": "EvSourceMatch",
-            "condition": {
-                "logic": "AND",
-                "signals": [
-                    {"source": "ai_session", "metric": "risk_score", "operator": "gt", "threshold_multiplier": 0.1},
-                ],
+        await create_rule(
+            test_session,
+            {
+                "name": "EvSourceMatch",
+                "condition": {
+                    "logic": "AND",
+                    "signals": [
+                        {"source": "ai_session", "metric": "risk_score", "operator": "gt", "threshold_multiplier": 0.1},
+                    ],
+                },
             },
-        })
+        )
         event = {"source": "ai_session", "metrics": {"risk_score": 0.99}}
         matches = await evaluate_event(test_session, event)
         assert len(matches) == 1
 
     async def test_match_result_contains_expected_keys(self, test_session):
-        await create_rule(test_session, {
-            "name": "EvResultKeys",
-            "condition": {
-                "signals": [{"metric": "risk_score", "operator": "gt", "threshold_multiplier": 0.5}]
+        await create_rule(
+            test_session,
+            {
+                "name": "EvResultKeys",
+                "condition": {"signals": [{"metric": "risk_score", "operator": "gt", "threshold_multiplier": 0.5}]},
             },
-        })
+        )
         event = {"metrics": {"risk_score": 0.9}}
         matches = await evaluate_event(test_session, event)
         assert len(matches) == 1
@@ -417,10 +491,12 @@ class TestEvaluateEvent:
 
 class TestValidateCondition:
     def test_valid_condition_passes(self):
-        _validate_condition({
-            "logic": "AND",
-            "signals": [{"operator": "gt", "threshold_multiplier": 1.0}],
-        })
+        _validate_condition(
+            {
+                "logic": "AND",
+                "signals": [{"operator": "gt", "threshold_multiplier": 1.0}],
+            }
+        )
 
     def test_valid_or_logic_passes(self):
         _validate_condition({"logic": "OR", "signals": []})

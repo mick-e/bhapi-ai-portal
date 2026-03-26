@@ -10,8 +10,8 @@ from src.auth.middleware import get_current_user
 from src.billing.feature_gate import check_feature_gate
 from src.database import get_db
 from src.dependencies import resolve_group_id
-from src.screen_time import schemas, service
 from src.schemas import GroupContext
+from src.screen_time import schemas, service
 
 logger = structlog.get_logger()
 

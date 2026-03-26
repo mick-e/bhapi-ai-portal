@@ -269,9 +269,9 @@ async def test_my_tier_enterprise_has_no_upgrades(bp_client):
 async def test_free_user_blocked_from_family_plus_feature(bp_client):
     """Direct service check: free user blocked from family_plus gate."""
     _, session = bp_client
-    from tests.conftest import make_test_group
     from src.billing.feature_gate import check_tier_access
     from src.exceptions import ForbiddenError
+    from tests.conftest import make_test_group
 
     group, _ = await make_test_group(session)
     gate = FeatureGate(id=uuid4(), feature_key="e2e_location", required_tier="family_plus")
@@ -286,8 +286,8 @@ async def test_free_user_blocked_from_family_plus_feature(bp_client):
 async def test_upgrade_enables_gated_feature(bp_client):
     """After upgrading to family_plus, gate access is granted."""
     _, session = bp_client
-    from tests.conftest import make_test_group
     from src.billing.feature_gate import check_tier_access
+    from tests.conftest import make_test_group
 
     group, _ = await make_test_group(session)
     gate = FeatureGate(id=uuid4(), feature_key="e2e_location2", required_tier="family_plus")
@@ -310,8 +310,8 @@ async def test_upgrade_enables_gated_feature(bp_client):
 async def test_school_user_can_access_family_feature(bp_client):
     """School tier (higher) can access family-gated features."""
     _, session = bp_client
-    from tests.conftest import make_test_group
     from src.billing.feature_gate import check_tier_access
+    from tests.conftest import make_test_group
 
     group, _ = await make_test_group(session)
     gate = FeatureGate(id=uuid4(), feature_key="e2e_reports", required_tier="family")
@@ -467,7 +467,7 @@ async def test_tiers_school_features_include_sis(bp_client):
     client, _ = bp_client
     tiers = (await client.get("/api/v1/billing/tiers")).json()["tiers"]
     school = next(t for t in tiers if t["tier_key"] == "school")
-    feature_names = " ".join(school["features"]).lower()
+    " ".join(school["features"]).lower()
     assert any("sis" in f or "integration" in f for f in school["features"]), (
         f"SIS/integration feature not found in school tier features: {school['features']}"
     )

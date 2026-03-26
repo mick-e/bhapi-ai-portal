@@ -17,7 +17,7 @@ from src.billing.feature_gate import check_feature_gate
 from src.creative.models import ArtGeneration
 from src.creative.service import generate_art
 from src.database import Base, get_db
-from src.exceptions import ForbiddenError, RateLimitError
+from src.exceptions import RateLimitError
 from src.groups.models import Group, GroupMember
 from src.main import create_app
 from src.schemas import GroupContext
@@ -188,7 +188,7 @@ async def test_stories_endpoint_requires_auth(sec_engine):
 async def test_feature_gate_blocks_free_tier_art(sec_engine, sec_session):
     """Free-tier users should be blocked by the creative_tools feature gate."""
     user = await _make_user(sec_session)
-    group = await _make_group(sec_session, user.id)
+    await _make_group(sec_session, user.id)
 
     # gated=True means the feature gate dependency is NOT overridden
     # so it checks the DB — no FeatureGate record means allowed (ungated)

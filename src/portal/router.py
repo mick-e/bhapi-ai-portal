@@ -11,8 +11,20 @@ from src.database import get_db
 from src.dependencies import resolve_group_id as _resolve_group_id
 from src.exceptions import BhapiException
 from src.groups.privacy import get_child_dashboard
-from src.portal.schemas import ChildProfileResponse, DashboardResponse, GroupSettingsResponse, SocialActivityResponse, UpdateGroupSettingsRequest
-from src.portal.service import get_child_profile, get_dashboard, get_group_settings, get_social_activity, update_group_settings
+from src.portal.schemas import (
+    ChildProfileResponse,
+    DashboardResponse,
+    GroupSettingsResponse,
+    SocialActivityResponse,
+    UpdateGroupSettingsRequest,
+)
+from src.portal.service import (
+    get_child_profile,
+    get_dashboard,
+    get_group_settings,
+    get_social_activity,
+    update_group_settings,
+)
 from src.schemas import GroupContext
 
 logger = structlog.get_logger()

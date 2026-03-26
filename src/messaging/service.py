@@ -490,6 +490,7 @@ async def _publish_to_realtime(conversation_id: str, message_data: dict) -> None
     """Publish message to realtime service via Redis (best-effort)."""
     try:
         import redis.asyncio as aioredis
+
         from src.config import get_settings
 
         settings = get_settings()
@@ -522,6 +523,7 @@ async def _publish_message_event(
     """
     try:
         import redis.asyncio as aioredis
+
         from src.config import get_settings
 
         settings = get_settings()

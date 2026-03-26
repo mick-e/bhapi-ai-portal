@@ -5,7 +5,7 @@ manipulation evasion attempts, signal integrity.
 Target: 10+ security tests.
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from uuid import uuid4
 
 import pytest
@@ -14,19 +14,14 @@ from sqlalchemy import select
 from src.age_tier.rules import AgeTier
 from src.auth.models import User
 from src.contacts.models import Contact
-from src.device_agent.models import DeviceSession
 from src.groups.models import GroupMember
 from src.intelligence.models import AbuseSignal
 from src.moderation.anti_abuse import (
-    AbuseType,
     check_content_manipulation,
     check_invitation_rate,
     detect_account_farming,
-    detect_age_misrepresentation,
     detect_coordinated_harassment,
     detect_report_abuse,
-    normalize_homoglyphs,
-    normalize_leetspeak,
     record_abuse_signal,
 )
 from src.moderation.models import ContentReport
@@ -158,7 +153,7 @@ class TestHarassmentDetectionSecurity:
         target_id = uuid4()
 
         # Create reports just inside the 24h window
-        now = datetime.now(timezone.utc)
+        datetime.now(timezone.utc)
         for i in range(3):
             _, user = await _make_member(test_session, group, f"BoundaryR{i}")
             test_session.add(ContentReport(

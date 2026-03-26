@@ -378,7 +378,8 @@ async def soc2_create_policy(
     if not data.get("category"):
         raise ValidationError("category is required")
 
-    from datetime import datetime, timezone as tz
+    from datetime import datetime
+    from datetime import timezone as tz
     effective_date = None
     if data.get("effective_date"):
         try:

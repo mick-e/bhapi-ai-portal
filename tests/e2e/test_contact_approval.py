@@ -23,7 +23,6 @@ from sqlalchemy.pool import StaticPool
 
 from src.auth.middleware import get_current_user
 from src.auth.models import User
-from src.contacts.models import Contact
 from src.database import Base, get_db
 from src.groups.models import Group, GroupMember
 from src.main import create_app

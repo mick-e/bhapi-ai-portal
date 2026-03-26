@@ -1,21 +1,20 @@
 """Unit tests for intelligence event bus."""
 
 import json
+from unittest.mock import AsyncMock, patch
 
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 
 from src.intelligence.event_bus import (
     ALL_CHANNELS,
+    EVENT_AI_SESSION,
+    EVENT_DEVICE,
+    EVENT_LOCATION,
+    EVENT_SOCIAL_ACTIVITY,
     EventBus,
     publish_event,
     subscribe,
-    EVENT_AI_SESSION,
-    EVENT_SOCIAL_ACTIVITY,
-    EVENT_DEVICE,
-    EVENT_LOCATION,
 )
-
 
 # ---------------------------------------------------------------------------
 # Channel constant tests

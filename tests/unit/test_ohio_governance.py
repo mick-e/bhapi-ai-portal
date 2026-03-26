@@ -364,8 +364,9 @@ class TestOhioComplianceStatus:
         school_id, actor_id = school_and_user
         # Create all required policies as active
         for pt in ["ai_usage", "risk_assessment", "governance"]:
-            from src.governance.models import GovernancePolicy
             from uuid import uuid4
+
+            from src.governance.models import GovernancePolicy
             policy = GovernancePolicy(
                 id=uuid4(), school_id=school_id, state_code="OH",
                 policy_type=pt, content={}, status="active", version=1,

@@ -14,12 +14,10 @@ import time
 import uuid
 
 import pytest
-import pytest_asyncio
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.models import User
-from src.moderation.keyword_filter import FilterAction
 from src.moderation.models import ModerationDecision, ModerationQueue
 from src.moderation.service import (
     get_queue_entry,
@@ -27,7 +25,6 @@ from src.moderation.service import (
     process_queue_entry,
     submit_for_moderation,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -288,7 +285,7 @@ class TestPipelineLatencyE2E:
     async def test_full_pipeline_message_with_risk_under_2s(self, test_session: AsyncSession):
         """Message with social risk processing completes under 2s."""
         start = time.monotonic()
-        entry = await _submit(
+        await _submit(
             test_session,
             "nobody likes you, you're a loser",
             age_tier="preteen",

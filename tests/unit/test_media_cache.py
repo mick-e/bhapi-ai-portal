@@ -2,7 +2,6 @@
 
 import time
 import uuid
-from unittest.mock import patch
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,18 +9,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.auth.models import User
 from src.exceptions import NotFoundError, ValidationError
 from src.media.service import (
-    MAX_BATCH_SIZE,
-    VARIANT_CACHE_TTL_SECONDS,
     _VariantCache,
     create_batch_upload_urls,
-    create_upload_url,
     get_cached_variants,
-    get_variants,
     handle_image_ready,
     variant_cache,
 )
 from src.moderation.models import MediaAsset
-
 
 # ---------------------------------------------------------------------------
 # Helpers

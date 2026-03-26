@@ -542,7 +542,7 @@ async def run_post_publish_moderation(
             id=uuid4(),
             queue_id=entry.id,
             action="reject",
-            reason=f"[POST_PUBLISH_TAKEDOWN] Critical severity: auto-takedown with account restriction"
+            reason="[POST_PUBLISH_TAKEDOWN] Critical severity: auto-takedown with account restriction"
             + (f" (keywords: {', '.join(matched_keywords)})" if matched_keywords else "")
             + (f" (risk: {risk_category})" if risk_category else ""),
         )
@@ -557,7 +557,7 @@ async def run_post_publish_moderation(
             id=uuid4(),
             queue_id=entry.id,
             action="reject",
-            reason=f"[POST_PUBLISH_TAKEDOWN] High severity: auto-takedown"
+            reason="[POST_PUBLISH_TAKEDOWN] High severity: auto-takedown"
             + (f" (keywords: {', '.join(matched_keywords)})" if matched_keywords else "")
             + (f" (risk: {risk_category})" if risk_category else ""),
         )
@@ -572,7 +572,7 @@ async def run_post_publish_moderation(
             id=uuid4(),
             queue_id=entry.id,
             action="escalate",
-            reason=f"[POST_PUBLISH_FLAG] Medium severity: flagged for human review"
+            reason="[POST_PUBLISH_FLAG] Medium severity: flagged for human review"
             + (f" (keywords: {', '.join(matched_keywords)})" if matched_keywords else ""),
         )
         db.add(decision)

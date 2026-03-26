@@ -1,12 +1,9 @@
 """Unit tests for the TypingManager — in-memory typing indicators."""
 
 import time
-from datetime import datetime, timezone
+from datetime import datetime
 
-import pytest
-
-from src.realtime.typing import TypingManager, TypingState
-
+from src.realtime.typing import TypingManager
 
 # ---------------------------------------------------------------------------
 # Construction

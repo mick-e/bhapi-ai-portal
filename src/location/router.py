@@ -11,7 +11,6 @@ from src.auth.middleware import get_current_user
 from src.billing.feature_gate import check_feature_gate
 from src.database import get_db
 from src.dependencies import resolve_group_id
-from src.exceptions import ForbiddenError
 from src.location import schemas, service
 from src.schemas import GroupContext
 

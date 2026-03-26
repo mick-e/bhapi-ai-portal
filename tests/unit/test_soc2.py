@@ -1,7 +1,6 @@
 """Unit tests for SOC 2 audit initiation service (P3-B4)."""
 
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
@@ -12,7 +11,6 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from src.database import Base
-
 
 # ---------------------------------------------------------------------------
 # Fixture — in-memory SQLite with FK OFF (no groups table dependency)

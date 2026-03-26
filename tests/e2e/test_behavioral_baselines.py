@@ -19,10 +19,9 @@ from src.intelligence.service import (
     run_baseline_batch,
 )
 from src.messaging.models import Conversation, Message
-from src.social.behavioral import compute_baseline, detect_deviation, update_baselines_batch
+from src.social.behavioral import compute_baseline, detect_deviation
 from src.social.models import SocialPost
 from tests.conftest import make_test_group
-
 
 # ---------------------------------------------------------------------------
 # Helpers

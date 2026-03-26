@@ -3,7 +3,6 @@
 from uuid import uuid4
 
 import pytest
-import pytest_asyncio
 
 from src.billing.feature_gate import (
     TIER_HIERARCHY,
@@ -11,7 +10,6 @@ from src.billing.feature_gate import (
 )
 from src.billing.models import FeatureGate, Subscription
 from src.billing.tiers import (
-    TIERS,
     annual_discount_pct,
     get_all_tiers,
     get_tier,
@@ -21,7 +19,6 @@ from src.billing.tiers import (
 )
 from src.exceptions import ForbiddenError
 from tests.conftest import make_test_group
-
 
 # ---------------------------------------------------------------------------
 # TIER_HIERARCHY tests

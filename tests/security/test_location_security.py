@@ -1,7 +1,6 @@
 """Security tests for the location module — privacy controls, audit, feature gating."""
 
 import uuid
-from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -542,7 +541,7 @@ async def test_purge_preserves_recent_records(sec_session, sec_data):
         )
     await sec_session.flush()
 
-    deleted = await purge_expired_locations(sec_session)
+    await purge_expired_locations(sec_session)
     await sec_session.flush()
 
     # Recent records should NOT be deleted (0 or only old records if any)

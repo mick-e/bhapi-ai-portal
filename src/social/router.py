@@ -94,7 +94,11 @@ async def search_users(
     Excludes blocked users, respects visibility settings, paginated.
     """
     return await service.search_profiles(
-        db, query=q, requester_id=auth.user_id, page=page, page_size=page_size,
+        db,
+        query=q,
+        requester_id=auth.user_id,
+        page=page,
+        page_size=page_size,
     )
 
 

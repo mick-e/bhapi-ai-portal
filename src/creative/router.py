@@ -205,6 +205,6 @@ async def post_to_feed(
     db: AsyncSession = Depends(get_db),
 ):
     """Mark a story or drawing as posted to the social feed."""
-    asset = await service.post_to_feed(db, asset_type=asset_type, asset_id=asset_id)
+    await service.post_to_feed(db, asset_type=asset_type, asset_id=asset_id)
     await db.commit()
     return {"posted_to_feed": True, "asset_type": asset_type, "asset_id": str(asset_id)}

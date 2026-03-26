@@ -1,7 +1,7 @@
 """End-to-end tests for the device agent module."""
 
 import uuid
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 
 import pytest
 import pytest_asyncio
@@ -13,9 +13,6 @@ from sqlalchemy.pool import StaticPool
 from src.auth.middleware import get_current_user
 from src.auth.models import User
 from src.database import Base, get_db
-from src.device_agent.models import ScreenTimeRecord
-from src.device_agent.service import record_app_usage, update_screen_time
-from src.device_agent.schemas import AppUsageCreate
 from src.groups.models import Group, GroupMember
 from src.main import create_app
 from src.schemas import GroupContext

@@ -16,13 +16,11 @@ from src.creative.models import (
 from src.creative.schemas import (
     ArtGenerationCreate,
     DrawingAssetCreate,
-    StickerCreate,
     StickerPackCreate,
     StoryCreationCreate,
     StoryTemplateCreate,
 )
 from tests.conftest import make_test_group
-
 
 # ---------------------------------------------------------------------------
 # Helpers

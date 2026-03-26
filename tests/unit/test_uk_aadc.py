@@ -24,7 +24,6 @@ from src.compliance.uk_aadc import (
 from src.exceptions import NotFoundError, ValidationError
 from tests.conftest import make_test_group
 
-
 # ---------------------------------------------------------------------------
 # Gap analysis tests
 # ---------------------------------------------------------------------------

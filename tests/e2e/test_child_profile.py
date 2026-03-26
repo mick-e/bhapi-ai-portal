@@ -25,14 +25,13 @@ from src.auth.models import User
 from src.capture.models import CaptureEvent
 from src.contacts.models import Contact
 from src.groups.models import Group, GroupMember
-from src.messaging.models import Conversation, ConversationMember, Message
+from src.messaging.models import Conversation, Message
 from src.moderation.models import ModerationQueue
 from src.portal.schemas import ChildProfileResponse
 from src.portal.service import get_child_profile
 from src.risk.models import RiskEvent
 from src.schemas import GroupContext
 from src.social.models import SocialPost
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -41,7 +40,7 @@ from src.social.models import SocialPost
 
 async def _setup_family(session):
     """Create parent user, child user, group, and members."""
-    now = datetime.now(timezone.utc)
+    datetime.now(timezone.utc)
 
     parent = User(
         id=uuid.uuid4(),
@@ -112,7 +111,7 @@ async def _add_capture_events(session, group_id, member_id, count=3, platform="c
 
 async def _add_social_posts(session, author_id, count=2, status="approved"):
     """Add social posts."""
-    now = datetime.now(timezone.utc)
+    datetime.now(timezone.utc)
     posts = []
     for i in range(count):
         post = SocialPost(
@@ -131,7 +130,7 @@ async def _add_social_posts(session, author_id, count=2, status="approved"):
 async def _add_risk_events(session, group_id, member_id, count=2, severity="medium"):
     """Add risk events."""
     events = []
-    now = datetime.now(timezone.utc)
+    datetime.now(timezone.utc)
     for i in range(count):
         ev = RiskEvent(
             id=uuid.uuid4(),

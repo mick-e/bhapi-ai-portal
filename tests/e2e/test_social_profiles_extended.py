@@ -4,14 +4,12 @@ import uuid
 from datetime import date
 
 import pytest
-import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.social.models import Follow, Profile, SocialPost
-from src.social.schemas import ProfileCreate, ProfileUpdate
 from src.social import service
+from src.social.models import Profile, SocialPost
+from src.social.schemas import ProfileCreate, ProfileUpdate
 from tests.conftest import make_test_group
-
 
 # ---------------------------------------------------------------------------
 # Helpers

@@ -52,8 +52,8 @@ def _sanitize_prompt(prompt: str) -> str:
         import re
         if re.search(r"\b" + re.escape(word) + r"\b", lower):
             raise ValidationError(
-                f"Prompt contains inappropriate content. "
-                f"Please use a different description."
+                "Prompt contains inappropriate content. "
+                "Please use a different description."
             )
     return prompt.strip()
 

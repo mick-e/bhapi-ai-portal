@@ -8,8 +8,9 @@ import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.models import User
+from src.exceptions import NotFoundError, ValidationError
 from src.groups.models import Group, GroupMember
-from src.intelligence.models import AbuseSignal, BehavioralBaseline, SocialGraphEdge
+from src.intelligence.models import SocialGraphEdge
 from src.intelligence.schemas import (
     AbuseSignalCreate,
     SocialGraphEdgeCreate,
@@ -27,9 +28,7 @@ from src.intelligence.service import (
     run_influence_mapping,
     run_isolation_check,
 )
-from src.exceptions import NotFoundError, ValidationError
 from src.social.graph_analysis import _age_to_tier, _calculate_age
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

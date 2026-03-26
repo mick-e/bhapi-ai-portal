@@ -14,7 +14,6 @@ from src.auth.models import User
 from src.database import Base, get_db
 from src.groups.models import Group, GroupMember
 from src.main import create_app
-from src.schemas import GroupContext
 
 # Import models to register them with Base.metadata before create_all
 from src.moderation.parental_safeguards import (  # noqa: F401
@@ -22,6 +21,7 @@ from src.moderation.parental_safeguards import (  # noqa: F401
     TeenPrivacyConfig,
     TrustedAdultRequest,
 )
+from src.schemas import GroupContext
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -427,11 +427,11 @@ async def test_custody_dispute_resolve_e2e(
 async def test_young_tier_full_visibility_e2e(e2e_session, child_member, parent_member):
     """Young tier gives parent full visibility."""
     from src.moderation.parental_safeguards import (
+        PrivacyTier,
         add_primary_guardian,
         get_parent_visible_data,
         set_teen_privacy,
     )
-    from src.moderation.parental_safeguards import PrivacyTier
 
     await add_primary_guardian(
         e2e_session,
@@ -457,11 +457,11 @@ async def test_young_tier_full_visibility_e2e(e2e_session, child_member, parent_
 async def test_preteen_tier_no_messages_e2e(e2e_session, child_member, parent_member):
     """Preteen tier hides messages from parent."""
     from src.moderation.parental_safeguards import (
+        PrivacyTier,
         add_primary_guardian,
         get_parent_visible_data,
         set_teen_privacy,
     )
-    from src.moderation.parental_safeguards import PrivacyTier
 
     await add_primary_guardian(
         e2e_session,
@@ -487,11 +487,11 @@ async def test_preteen_tier_no_messages_e2e(e2e_session, child_member, parent_me
 async def test_teen_tier_summary_only_e2e(e2e_session, child_member, parent_member):
     """Teen tier shows only summary and flagged content."""
     from src.moderation.parental_safeguards import (
+        PrivacyTier,
         add_primary_guardian,
         get_parent_visible_data,
         set_teen_privacy,
     )
-    from src.moderation.parental_safeguards import PrivacyTier
 
     await add_primary_guardian(
         e2e_session,
@@ -518,8 +518,7 @@ async def test_teen_tier_summary_only_e2e(e2e_session, child_member, parent_memb
 @pytest.mark.asyncio
 async def test_privacy_tier_upgrade_e2e(e2e_session, child_member):
     """Privacy tier can be upgraded from young to teen."""
-    from src.moderation.parental_safeguards import set_teen_privacy
-    from src.moderation.parental_safeguards import PrivacyTier
+    from src.moderation.parental_safeguards import PrivacyTier, set_teen_privacy
 
     config = await set_teen_privacy(
         e2e_session,
@@ -543,11 +542,11 @@ async def test_multiple_children_independent_privacy_e2e(
 ):
     """Each child can have independent privacy settings."""
     from src.moderation.parental_safeguards import (
+        PrivacyTier,
         add_primary_guardian,
         get_parent_visible_data,
         set_teen_privacy,
     )
-    from src.moderation.parental_safeguards import PrivacyTier
 
     child1 = GroupMember(
         id=uuid.uuid4(), group_id=family_group.id, user_id=None,
@@ -600,7 +599,7 @@ async def test_secondary_guardian_custom_permissions_e2e(
     e2e_session, child_member, family_group,
 ):
     """Secondary guardian can have custom view + approve permissions."""
-    from src.moderation.parental_safeguards import add_secondary_guardian, get_guardian_access
+    from src.moderation.parental_safeguards import add_secondary_guardian
 
     custom_user = User(
         id=uuid.uuid4(),
@@ -637,8 +636,8 @@ async def test_secondary_guardian_custom_permissions_e2e(
 @pytest.mark.asyncio
 async def test_duplicate_guardian_blocked_e2e(e2e_session, child_member, parent_member):
     """Cannot add the same guardian twice."""
-    from src.moderation.parental_safeguards import add_primary_guardian
     from src.exceptions import ValidationError
+    from src.moderation.parental_safeguards import add_primary_guardian
 
     await add_primary_guardian(
         e2e_session,

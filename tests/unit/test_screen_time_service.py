@@ -1,7 +1,7 @@
 """Unit tests for the screen time service."""
 
 import uuid
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 import pytest_asyncio
@@ -12,7 +12,7 @@ from src.auth.models import User
 from src.device_agent.models import AppUsageRecord, ScreenTimeRecord
 from src.exceptions import NotFoundError, RateLimitError, ValidationError
 from src.groups.models import Group, GroupMember
-from src.screen_time.models import ExtensionRequest, ScreenTimeRule, ScreenTimeSchedule
+from src.screen_time.models import ExtensionRequest
 from src.screen_time.service import (
     EXTENSION_DAILY_LIMITS,
     EXTENSION_EXPIRY_MINUTES,
@@ -21,7 +21,6 @@ from src.screen_time.service import (
     create_schedule,
     delete_rule,
     evaluate_usage,
-    get_extension_requests,
     get_rules,
     get_schedules,
     get_weekly_report,
@@ -531,7 +530,7 @@ async def test_evaluate_usage_empty(test_session: AsyncSession, st_data):
 @pytest.mark.asyncio
 async def test_evaluate_usage_allow_under_limit(test_session: AsyncSession, st_data):
     """evaluate_usage returns allow when usage is well under limit."""
-    rule = await create_rule(
+    await create_rule(
         test_session,
         group_id=st_data["group"].id,
         member_id=st_data["preteen"].id,

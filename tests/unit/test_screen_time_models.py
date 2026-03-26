@@ -4,7 +4,6 @@ import uuid
 from datetime import datetime, time, timezone
 
 import pytest
-import pytest_asyncio
 from pydantic import ValidationError as PydanticValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 

@@ -28,7 +28,6 @@ from src.groups.models import Group, GroupMember
 from src.main import create_app
 from src.schemas import GroupContext
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------

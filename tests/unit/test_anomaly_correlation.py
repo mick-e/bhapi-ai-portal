@@ -14,11 +14,13 @@ from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import text
 
 from src.device_agent.models import ScreenTimeRecord
 from src.groups.models import GroupMember
 from src.intelligence.anomaly import (
+    SIGNAL_AI_USAGE,
+    SIGNAL_SCREEN_TIME,
+    SIGNAL_SOCIAL_ACTIVITY,
     _deviation_factor,
     _safe_mean,
     _safe_std,
@@ -26,13 +28,9 @@ from src.intelligence.anomaly import (
     detect_cross_signal_anomalies,
     detect_evasion,
     run_anomaly_scan,
-    SIGNAL_AI_USAGE,
-    SIGNAL_SCREEN_TIME,
-    SIGNAL_SOCIAL_ACTIVITY,
 )
 from src.intelligence.models import BehavioralBaseline
 from tests.conftest import make_test_group
-
 
 # ---------------------------------------------------------------------------
 # Pure function tests

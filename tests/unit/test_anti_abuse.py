@@ -34,7 +34,6 @@ from src.moderation.anti_abuse import (
 from src.moderation.models import ContentReport
 from tests.conftest import make_test_group
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

@@ -5,9 +5,8 @@ from uuid import UUID, uuid4
 
 import structlog
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.exceptions import ConflictError, NotFoundError, ValidationError
 from src.intelligence.models import CorrelationRule, EnrichedAlert

@@ -9,7 +9,7 @@ from uuid import uuid4
 import pytest
 import pytest_asyncio
 
-from src.alerts.push import ExpoPushService, PushToken
+from src.alerts.push import ExpoPushService
 
 
 @pytest_asyncio.fixture

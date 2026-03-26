@@ -18,18 +18,16 @@ from src.alerts.models import Alert
 from src.auth.middleware import get_current_user
 from src.auth.models import User
 from src.database import Base, get_db
-from src.groups.models import Group, GroupMember
+from src.groups.models import Group
 from src.intelligence.correlation import (
     create_enriched_alert,
     create_rule,
     evaluate_event,
     get_enriched_alert,
-    get_rules,
     update_rule,
 )
 from src.main import create_app
 from src.schemas import GroupContext
-
 
 # ---------------------------------------------------------------------------
 # Engine / session fixtures
@@ -358,7 +356,7 @@ async def test_null_tier_rule_matches_all_tiers(e2e_session):
 async def test_list_rules_endpoint(e2e_client, e2e_session):
     """GET /intelligence/correlation-rules returns rules for admin user."""
     # Override GroupContext to include is_admin=True
-    rule = await _mk_rule(e2e_session, name="list-endpoint-rule")
+    await _mk_rule(e2e_session, name="list-endpoint-rule")
     await e2e_session.commit()
 
     resp = await e2e_client.get("/api/v1/intelligence/correlation-rules")

@@ -15,7 +15,6 @@ from sqlalchemy.pool import StaticPool
 from src.database import Base, get_db
 from src.main import create_app
 
-
 # ---------------------------------------------------------------------------
 # Shared fixture
 # ---------------------------------------------------------------------------
@@ -192,9 +191,6 @@ async def test_accept_invalid_code_returns_404(onboarding_client):
 @pytest.mark.asyncio
 async def test_accept_expired_invite_returns_422(onboarding_client):
     """POST /accept-invite with an expired code returns 422."""
-    from datetime import datetime, timezone, timedelta
-    from src.auth.models import ChildInviteCode
-    from uuid import uuid4
 
     parent_token, parent_id, group_id = await _register_and_login(
         onboarding_client,
@@ -217,8 +213,7 @@ async def test_accept_expired_invite_returns_422(onboarding_client):
     code = code_gen_resp.json()["code"]
 
     # Manually expire the code via service layer (update expires_at in the past)
-    from sqlalchemy import update
-    from src.auth.models import ChildInviteCode as CIC
+
     # We need access to the session — the onboarding_client fixture commits after each request
     # so we call a secondary request to force a flush, then verify expiry via a crafted request.
     # Instead: test with a fake code that doesn't exist (expired codes are also gone)

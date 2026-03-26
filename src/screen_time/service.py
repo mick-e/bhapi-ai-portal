@@ -1,6 +1,6 @@
 """Screen time business logic — rules, schedules, extension requests, usage evaluation."""
 
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
 import structlog

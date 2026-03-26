@@ -10,7 +10,6 @@ from sqlalchemy.orm import Mapped, mapped_column
 from src.database import Base
 from src.models import JSONType, TimestampMixin, UUIDMixin
 
-
 # ---------------------------------------------------------------------------
 # SOC 2 — Audit policies, evidence collection, compliance controls
 # ---------------------------------------------------------------------------

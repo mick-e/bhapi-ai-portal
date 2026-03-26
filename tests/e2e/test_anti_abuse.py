@@ -4,7 +4,7 @@ Tests the full flow: data setup -> detection -> signal recording.
 Target: 20+ E2E tests.
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from uuid import uuid4
 
 import pytest
@@ -28,7 +28,6 @@ from src.moderation.anti_abuse import (
 )
 from src.moderation.models import ContentReport
 from tests.conftest import make_test_group
-
 
 # ---------------------------------------------------------------------------
 # Helpers

@@ -13,17 +13,14 @@ from sqlalchemy.pool import StaticPool
 from src.api_platform.models import (
     APIKeyTier,
     OAuthClient,
-    PlatformWebhookDelivery,
     PlatformWebhookEndpoint,
 )
 from src.api_platform.oauth import _hash_token
-from src.api_platform.webhooks import WEBHOOK_EVENTS
 from src.auth.middleware import get_current_user
 from src.auth.models import User
 from src.database import Base, get_db
 from src.main import create_app
 from src.schemas import GroupContext
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

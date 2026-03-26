@@ -22,7 +22,6 @@ from src.social.behavioral import (
 from src.social.models import SocialPost
 from tests.conftest import make_test_group
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

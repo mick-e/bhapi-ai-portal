@@ -217,9 +217,11 @@ async def test_member_removal_cascades(flow_client):
     member's capture events manually before removing the member, mirroring what
     a production migration with ON DELETE CASCADE would do at the DB level.
     """
-    from src.capture.models import CaptureEvent
-    from sqlalchemy import delete as sa_delete
     from uuid import UUID
+
+    from sqlalchemy import delete as sa_delete
+
+    from src.capture.models import CaptureEvent
 
     client, session = flow_client
     headers, gid, mid, uid = await _setup_auth_with_member(

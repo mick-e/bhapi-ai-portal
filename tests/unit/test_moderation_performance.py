@@ -11,19 +11,15 @@ Validates:
 
 import time
 import uuid
-from unittest.mock import AsyncMock, patch
 
 import pytest
-import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.moderation.keyword_filter import (
     FilterAction,
-    FilterResult,
     KeywordFilter,
     _AhoCorasickAutomaton,
     classify_text,
-    get_filter,
 )
 from src.moderation.service import (
     _LATENCY_BUDGET_MS,
@@ -33,7 +29,6 @@ from src.moderation.service import (
     submit_for_moderation,
 )
 from src.moderation.social_risk import classify_social_risk
-
 
 # ---------------------------------------------------------------------------
 # Keyword Filter Performance Tests
@@ -362,7 +357,7 @@ class TestPrePublishLatency:
         content_id = uuid.uuid4()
         start = time.monotonic()
 
-        entry = await submit_for_moderation(
+        await submit_for_moderation(
             test_session,
             content_type="message",
             content_id=content_id,

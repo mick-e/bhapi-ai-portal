@@ -15,7 +15,6 @@ Covers:
 """
 
 import uuid
-from datetime import datetime, timezone
 
 import pytest
 import pytest_asyncio
@@ -31,10 +30,8 @@ from src.auth.models import User
 from src.database import Base, get_db
 from src.groups.models import Group, GroupMember
 from src.intelligence.correlation import create_enriched_alert
-from src.intelligence.models import EnrichedAlert
 from src.main import create_app
 from src.schemas import GroupContext
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

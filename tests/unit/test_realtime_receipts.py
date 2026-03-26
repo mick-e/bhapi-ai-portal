@@ -11,7 +11,6 @@ from src.auth.models import User
 from src.messaging.models import Conversation, ConversationMember, Message
 from src.realtime.receipts import ReadReceiptManager
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -75,7 +74,7 @@ async def conversation(test_session: AsyncSession, users):
 async def messages(test_session: AsyncSession, users, conversation):
     """Create some approved messages in the conversation."""
     msgs = []
-    base_time = datetime.now(timezone.utc) - timedelta(hours=1)
+    datetime.now(timezone.utc) - timedelta(hours=1)
     for i in range(5):
         msg = Message(
             id=uuid.uuid4(),

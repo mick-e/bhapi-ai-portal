@@ -30,7 +30,6 @@ from src.main import create_app
 from src.schemas import GroupContext
 from src.social.models import Follow, PostComment, PostLike, Profile, SocialPost
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -95,8 +94,8 @@ def _dob_for_age(age: int) -> str:
 
 async def _create_user_and_profile(session, age: int, suffix: str | None = None) -> tuple[uuid.UUID, str]:
     """Create a User row and a social Profile; return (user_id, age_tier)."""
+
     from src.age_tier import age_from_dob, get_tier_for_age
-    from datetime import date
 
     uid = uuid.uuid4()
     label = suffix or uid.hex[:8]

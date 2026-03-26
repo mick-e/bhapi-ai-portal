@@ -12,7 +12,7 @@ from src.billing.models import BudgetThreshold, LLMAccount, SpendRecord
 from src.capture.models import CaptureEvent
 from src.contacts.models import Contact
 from src.groups.models import Group, GroupMember
-from src.messaging.models import ConversationMember, Message
+from src.messaging.models import Message
 from src.moderation.models import ModerationQueue
 from src.portal.schemas import (
     ActivityFeedItem,
@@ -29,8 +29,8 @@ from src.portal.schemas import (
     RiskTrendPoint,
     SocialActivityResponse,
     SpendSummary,
-    TimeTrendPoint,
     TimelineItem,
+    TimeTrendPoint,
     TrendDataPoint,
     UpdateGroupSettingsRequest,
 )
@@ -799,7 +799,6 @@ async def get_child_profile(
     Each section is wrapped in try/except for partial-failure resilience.
     """
     from src.exceptions import ForbiddenError, NotFoundError, ValidationError
-    from src.moderation.models import ModerationDecision
 
     admin_roles = {"parent", "school_admin", "club_admin"}
     if auth.role not in admin_roles:
@@ -823,7 +822,7 @@ async def get_child_profile(
 
     child_user_id = member.user_id
     now = datetime.now(timezone.utc)
-    seven_days_ago = now - timedelta(days=7)
+    now - timedelta(days=7)
     thirty_days_ago = now - timedelta(days=30)
 
     # --- Avatar & age tier (from social profile if exists) ---

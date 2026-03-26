@@ -7,7 +7,6 @@ Requires an approved conformity assessment before registration can proceed.
 import uuid
 
 import pytest
-import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
@@ -18,20 +17,14 @@ from src.auth.models import User
 from src.database import Base, get_db
 from src.governance.eu_ai_act import (
     REGISTRATION_REQUIRED_FIELDS,
-    ConformityAssessment,
     RegistrationSubmission,
-    TechnicalDocumentation,
     create_conformity_assessment,
-    generate_registration_payload,
     generate_tech_documentation,
-    get_registration_status,
-    submit_registration,
     update_assessment_status,
 )
 from src.groups.models import Group
 from src.main import create_app
 from src.schemas import GroupContext
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

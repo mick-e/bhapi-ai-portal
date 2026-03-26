@@ -6,10 +6,8 @@ injection attempts via rule name/description, confidence boundary checks.
 """
 
 import uuid
-from datetime import datetime, timezone
 
 import pytest
-import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import event as sa_event
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
@@ -20,7 +18,7 @@ from src.auth.middleware import get_current_user
 from src.auth.models import User
 from src.database import Base, get_db
 from src.exceptions import ValidationError
-from src.groups.models import Group, GroupMember
+from src.groups.models import Group
 from src.intelligence.correlation import (
     _validate_condition,
     create_enriched_alert,
@@ -28,7 +26,6 @@ from src.intelligence.correlation import (
 )
 from src.main import create_app
 from src.schemas import GroupContext
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

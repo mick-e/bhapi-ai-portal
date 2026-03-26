@@ -15,7 +15,6 @@ from src.auth.middleware import get_current_user
 from src.auth.models import User
 from src.database import Base, get_db
 from src.governance.eu_ai_act import (
-    ConformityAssessment,
     create_conformity_assessment,
     generate_tech_documentation,
     get_compliance_status,
@@ -25,7 +24,6 @@ from src.governance.eu_ai_act import (
 from src.groups.models import Group
 from src.main import create_app
 from src.schemas import GroupContext
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

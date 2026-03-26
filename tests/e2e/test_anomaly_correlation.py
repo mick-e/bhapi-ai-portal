@@ -29,7 +29,6 @@ from src.intelligence.models import BehavioralBaseline
 from src.main import create_app
 from src.schemas import GroupContext
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -233,7 +232,7 @@ async def test_get_anomalies_with_spike_detected(authed_client, e2e_session, set
     """GET anomalies with AI usage spike returns flagged anomaly."""
     client, data = authed_client
     child = data["child"]
-    group = data["group"]
+    data["group"]
 
     # Seed baseline and spike
     for i in range(1, 6):
@@ -430,8 +429,9 @@ async def test_post_scan_unknown_child_returns_empty(authed_client):
 @pytest.mark.asyncio
 async def test_post_scan_evasion_creates_high_severity_alert(authed_client, e2e_session, setup):
     """Evasion detection scan creates a high-severity alert."""
-    from src.alerts.models import Alert
     from sqlalchemy import select
+
+    from src.alerts.models import Alert
 
     client, data = authed_client
     child = data["child"]

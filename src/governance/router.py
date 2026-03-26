@@ -7,11 +7,28 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.middleware import get_current_user
 from src.database import get_db
+from src.governance.eu_ai_act import (
+    create_conformity_assessment,
+    generate_registration_payload,
+    generate_tech_documentation,
+    get_registration_status,
+    run_bias_test,
+    run_risk_management_assessment,
+    submit_registration,
+)
+from src.governance.eu_ai_act import (
+    get_compliance_status as get_eu_ai_act_status,
+)
+from src.governance.ohio import (
+    customize_ohio_policy,
+    generate_board_report,
+    get_ohio_compliance_status,
+    import_tools_csv,
+)
 from src.governance.schemas import (
     ComplianceDashboardResponse,
     EuAiActAssessmentRequest,
     EuAiActAssessmentResponse,
-    EuAiActAssessmentStatusRequest,
     EuAiActBiasTestRequest,
     EuAiActBiasTestResponse,
     EuAiActComplianceStatusResponse,
@@ -41,23 +58,6 @@ from src.governance.schemas import (
     TemplateResponse,
     ToolCreate,
     ToolResponse,
-)
-from src.governance.eu_ai_act import (
-    create_conformity_assessment,
-    generate_registration_payload,
-    generate_tech_documentation,
-    get_compliance_status as get_eu_ai_act_status,
-    get_registration_status,
-    run_bias_test,
-    run_risk_management_assessment,
-    submit_registration,
-    update_assessment_status,
-)
-from src.governance.ohio import (
-    customize_ohio_policy,
-    generate_board_report,
-    get_ohio_compliance_status,
-    import_tools_csv,
 )
 from src.governance.service import (
     add_tool_to_inventory,

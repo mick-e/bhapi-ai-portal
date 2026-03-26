@@ -26,7 +26,6 @@ from src.main import create_app
 from src.messaging.models import Conversation, ConversationMember, Message
 from src.schemas import GroupContext
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------

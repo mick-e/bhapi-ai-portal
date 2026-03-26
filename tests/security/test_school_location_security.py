@@ -14,7 +14,7 @@ from src.auth.middleware import get_current_user
 from src.auth.models import User
 from src.database import Base, get_db
 from src.groups.models import Group, GroupMember
-from src.location.models import Geofence, LocationSharingConsent, SchoolCheckIn
+from src.location.models import Geofence
 from src.location.service import (
     create_school_consent,
     get_school_attendance,
@@ -103,9 +103,7 @@ async def sl_data(sl_session):
     sl_session.add_all([school_a, school_b, family_a])
     await sl_session.flush()
 
-    child_a = GroupMember(
-        id=uuid.uuid4(), group_id=family_a.id, user_id=None, role="child", display_name="Child A"
-    )
+    child_a = GroupMember(id=uuid.uuid4(), group_id=family_a.id, user_id=None, role="child", display_name="Child A")
     sl_session.add(child_a)
     await sl_session.flush()
 
@@ -176,7 +174,9 @@ async def test_attendance_never_includes_coordinates(sl_engine, sl_session, sl_d
     await record_check_in(sl_session, d["child_a"].id, d["geofence_a"].id)
     await sl_session.flush()
 
-    async with _make_client(sl_engine, sl_session, d["school_a_owner"].id, d["school_a"].id, role="school_admin") as client:
+    async with _make_client(
+        sl_engine, sl_session, d["school_a_owner"].id, d["school_a"].id, role="school_admin"
+    ) as client:
         today = datetime.now(timezone.utc).date().isoformat() + "T00:00:00Z"
         resp = await client.get(
             f"/api/v1/location/school/{d['school_a'].id}/attendance",
@@ -209,7 +209,9 @@ async def test_school_admin_cannot_call_current_location(sl_engine, sl_session, 
     await record_check_in(sl_session, d["child_a"].id, d["geofence_a"].id)
     await sl_session.flush()
 
-    async with _make_client(sl_engine, sl_session, d["school_a_owner"].id, d["school_a"].id, role="school_admin") as client:
+    async with _make_client(
+        sl_engine, sl_session, d["school_a_owner"].id, d["school_a"].id, role="school_admin"
+    ) as client:
         resp = await client.get(f"/api/v1/location/{d['child_a'].id}/current")
         # Either null (no GPS records) or 200 — but not a coordinate from check-in
         assert resp.status_code == 200
@@ -275,33 +277,45 @@ async def test_parent_can_revoke_at_any_time(sl_engine, sl_session, sl_data):
 
     async with _make_client(sl_engine, sl_session, d["parent_a"].id, d["family_a"].id) as client:
         # Grant
-        grant = await client.post("/api/v1/location/school-consent", json={
-            "member_id": str(d["child_a"].id),
-            "school_group_id": str(d["school_a"].id),
-        })
+        grant = await client.post(
+            "/api/v1/location/school-consent",
+            json={
+                "member_id": str(d["child_a"].id),
+                "school_group_id": str(d["school_a"].id),
+            },
+        )
         consent_id = grant.json()["id"]
 
         # Check-in to verify it works
-        ci = await client.post("/api/v1/location/check-in", json={
-            "member_id": str(d["child_a"].id),
-            "geofence_id": str(d["geofence_a"].id),
-        })
+        ci = await client.post(
+            "/api/v1/location/check-in",
+            json={
+                "member_id": str(d["child_a"].id),
+                "geofence_id": str(d["geofence_a"].id),
+            },
+        )
         assert ci.status_code == 201
         # Check-out to close
-        await client.post("/api/v1/location/check-out", json={
-            "member_id": str(d["child_a"].id),
-            "geofence_id": str(d["geofence_a"].id),
-        })
+        await client.post(
+            "/api/v1/location/check-out",
+            json={
+                "member_id": str(d["child_a"].id),
+                "geofence_id": str(d["geofence_a"].id),
+            },
+        )
 
         # Revoke — must work regardless of time
         rev = await client.delete(f"/api/v1/location/school-consent/{consent_id}")
         assert rev.status_code == 200
 
         # Next check-in must fail immediately
-        ci2 = await client.post("/api/v1/location/check-in", json={
-            "member_id": str(d["child_a"].id),
-            "geofence_id": str(d["geofence_a"].id),
-        })
+        ci2 = await client.post(
+            "/api/v1/location/check-in",
+            json={
+                "member_id": str(d["child_a"].id),
+                "geofence_id": str(d["geofence_a"].id),
+            },
+        )
         assert ci2.status_code == 403
 
 
@@ -321,7 +335,9 @@ async def test_cross_school_isolation(sl_engine, sl_session, sl_data):
     await record_check_in(sl_session, d["child_a"].id, d["geofence_a"].id)
     await sl_session.flush()
 
-    async with _make_client(sl_engine, sl_session, d["school_b_owner"].id, d["school_b"].id, role="school_admin") as client:
+    async with _make_client(
+        sl_engine, sl_session, d["school_b_owner"].id, d["school_b"].id, role="school_admin"
+    ) as client:
         today = datetime.now(timezone.utc).date().isoformat() + "T00:00:00Z"
         # School B queries its own group_id — should return no records
         resp = await client.get(
@@ -354,10 +370,13 @@ async def test_auth_required_for_school_consent(sl_engine, sl_session):
         transport=ASGITransport(app=app),
         base_url="http://test",
     ) as client:
-        resp = await client.post("/api/v1/location/school-consent", json={
-            "member_id": str(uuid.uuid4()),
-            "school_group_id": str(uuid.uuid4()),
-        })
+        resp = await client.post(
+            "/api/v1/location/school-consent",
+            json={
+                "member_id": str(uuid.uuid4()),
+                "school_group_id": str(uuid.uuid4()),
+            },
+        )
         assert resp.status_code in (401, 403)
 
 
@@ -380,10 +399,13 @@ async def test_auth_required_for_checkin(sl_engine, sl_session):
         transport=ASGITransport(app=app),
         base_url="http://test",
     ) as client:
-        resp = await client.post("/api/v1/location/check-in", json={
-            "member_id": str(uuid.uuid4()),
-            "geofence_id": str(uuid.uuid4()),
-        })
+        resp = await client.post(
+            "/api/v1/location/check-in",
+            json={
+                "member_id": str(uuid.uuid4()),
+                "geofence_id": str(uuid.uuid4()),
+            },
+        )
         assert resp.status_code in (401, 403)
 
 
@@ -449,10 +471,13 @@ async def test_revoked_consent_has_timestamp(sl_engine, sl_session, sl_data):
     d = sl_data
 
     async with _make_client(sl_engine, sl_session, d["parent_a"].id, d["family_a"].id) as client:
-        grant = await client.post("/api/v1/location/school-consent", json={
-            "member_id": str(d["child_a"].id),
-            "school_group_id": str(d["school_a"].id),
-        })
+        grant = await client.post(
+            "/api/v1/location/school-consent",
+            json={
+                "member_id": str(d["child_a"].id),
+                "school_group_id": str(d["school_a"].id),
+            },
+        )
         consent_id = grant.json()["id"]
 
         rev = await client.delete(f"/api/v1/location/school-consent/{consent_id}")

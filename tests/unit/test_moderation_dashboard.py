@@ -7,7 +7,6 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 import pytest
-import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.models import User
@@ -23,11 +22,7 @@ from src.moderation.dashboard_service import (
 from src.moderation.models import (
     ModerationDecision,
     ModerationQueue,
-    ModeratorAssignment,
-    PatternDetection,
-    SLAMetric,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers

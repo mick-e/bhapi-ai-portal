@@ -183,14 +183,16 @@ async def run_gap_analysis(db: AsyncSession, group_id: UUID, assessor: str = "sy
 
     for std in AADC_STANDARDS:
         status = _evaluate_standard(std["id"], settings, group)
-        standards.append({
-            "id": std["id"],
-            "name": std["name"],
-            "description": std["description"],
-            "ico_reference": std["ico_reference"],
-            "status": status,
-            "recommendations": _get_recommendations(std["id"], status),
-        })
+        standards.append(
+            {
+                "id": std["id"],
+                "name": std["name"],
+                "description": std["description"],
+                "ico_reference": std["ico_reference"],
+                "status": status,
+                "recommendations": _get_recommendations(std["id"], status),
+            }
+        )
 
     # Calculate overall score
     compliant_count = sum(1 for s in standards if s["status"] == "compliant")
@@ -210,10 +212,7 @@ async def run_gap_analysis(db: AsyncSession, group_id: UUID, assessor: str = "sy
         id=uuid4(),
         group_id=group_id,
         version=1,
-        standards=[
-            {"id": s["id"], "status": s["status"], "recommendations": s["recommendations"]}
-            for s in standards
-        ],
+        standards=[{"id": s["id"], "status": s["status"], "recommendations": s["recommendations"]} for s in standards],
         assessed_at=datetime.now(timezone.utc),
         assessor=assessor,
         score=score,
@@ -257,7 +256,9 @@ def _evaluate_standard(standard_id: str, settings: dict, group) -> str:
         "data_minimization": lambda: "compliant" if privacy.get("data_minimization") else "partial",
         "sharing_limits": lambda: "compliant" if not privacy.get("data_sharing_enabled", True) else "non_compliant",
         "geolocation": lambda: "compliant" if not privacy.get("geolocation_enabled", True) else "non_compliant",
-        "parental_controls": lambda: "compliant" if settings.get("parental_controls_enabled", True) else "non_compliant",
+        "parental_controls": lambda: "compliant"
+        if settings.get("parental_controls_enabled", True)
+        else "non_compliant",
         "privacy_settings": lambda: "compliant" if aadc.get("privacy_tools_accessible") else "partial",
         "enforcement": lambda: "compliant" if aadc.get("community_standards_enforced") else "partial",
         "connected_toys": lambda: "compliant",  # N/A for most services — default compliant
@@ -283,17 +284,30 @@ def _get_recommendations(standard_id: str, status: str) -> list[str]:
         "best_interests": ["Conduct and document a best interests assessment for your service"],
         "age_verification": ["Implement age verification at registration", "Use Yoti or similar age estimation"],
         "transparency": ["Create child-friendly privacy notices", "Use age-appropriate language and visuals"],
-        "data_minimization": ["Audit data collection points", "Remove unnecessary data fields", "Implement purpose limitation"],
+        "data_minimization": [
+            "Audit data collection points",
+            "Remove unnecessary data fields",
+            "Implement purpose limitation",
+        ],
         "sharing_limits": ["Disable data sharing by default", "Review all third-party data flows"],
         "geolocation": ["Disable geolocation by default for all child accounts"],
-        "parental_controls": ["Ensure parental monitoring is visible to children", "Provide clear monitoring indicators"],
-        "privacy_settings": ["Make privacy tools prominent and easy to find", "Add privacy shortcuts to main navigation"],
+        "parental_controls": [
+            "Ensure parental monitoring is visible to children",
+            "Provide clear monitoring indicators",
+        ],
+        "privacy_settings": [
+            "Make privacy tools prominent and easy to find",
+            "Add privacy shortcuts to main navigation",
+        ],
         "enforcement": ["Establish and publish community standards", "Implement automated and manual enforcement"],
         "connected_toys": ["Review IoT device data flows", "Implement device-specific privacy controls"],
         "online_tools": ["Add reporting tools for children", "Provide data access request forms"],
         "profiling": ["Disable profiling for children by default", "Document any profiling with justification"],
         "nudge_techniques": ["Audit UI for dark patterns", "Remove prompts that encourage data sharing"],
-        "default_settings": ["Set all privacy settings to maximum by default", "Require explicit opt-in for data sharing"],
+        "default_settings": [
+            "Set all privacy settings to maximum by default",
+            "Require explicit opt-in for data sharing",
+        ],
         "conformity_assessment": ["Complete a Data Protection Impact Assessment", "Document risks and mitigations"],
     }
 
@@ -389,9 +403,7 @@ async def get_privacy_defaults_for_user(db: AsyncSession, user_id: UUID) -> dict
 async def get_assessment_history(db: AsyncSession, group_id: UUID) -> list[dict]:
     """Return all AADC gap analysis assessments for a group, newest first."""
     result = await db.execute(
-        select(AadcAssessment)
-        .where(AadcAssessment.group_id == group_id)
-        .order_by(AadcAssessment.assessed_at.desc())
+        select(AadcAssessment).where(AadcAssessment.group_id == group_id).order_by(AadcAssessment.assessed_at.desc())
     )
     assessments = list(result.scalars().all())
 

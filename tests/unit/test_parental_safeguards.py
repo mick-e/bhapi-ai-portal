@@ -10,14 +10,9 @@ from src.auth.models import User
 from src.exceptions import NotFoundError, ValidationError
 from src.groups.models import Group, GroupMember
 from src.moderation.parental_safeguards import (
-    CustodyConfig,
     CustodyDisputeStatus,
     GuardianRole,
-    HELPLINES,
-    PRIVACY_TIER_DEFAULTS,
     PrivacyTier,
-    TeenPrivacyConfig,
-    TrustedAdultRequest,
     TrustedAdultStatus,
     add_primary_guardian,
     add_secondary_guardian,
@@ -30,7 +25,6 @@ from src.moderation.parental_safeguards import (
     set_custody_dispute,
     set_teen_privacy,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

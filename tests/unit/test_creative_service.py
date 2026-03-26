@@ -2,7 +2,6 @@
 
 import uuid
 from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, patch
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,10 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.auth.models import User
 from src.creative.models import (
     ArtGeneration,
-    DrawingAsset,
-    Sticker,
     StickerPack,
-    StoryCreation,
     StoryTemplate,
 )
 from src.creative.service import (
@@ -32,7 +28,6 @@ from src.creative.service import (
 )
 from src.exceptions import NotFoundError, RateLimitError, ValidationError
 from src.groups.models import Group, GroupMember
-
 
 # ---------------------------------------------------------------------------
 # Helpers

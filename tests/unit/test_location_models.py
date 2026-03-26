@@ -4,9 +4,7 @@ import uuid
 from datetime import datetime, timezone
 
 import pytest
-import pytest_asyncio
 from pydantic import ValidationError as PydanticValidationError
-from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -26,16 +24,9 @@ from src.location.schemas import (
     AuditLogResponse,
     GeofenceCreate,
     GeofenceEventResponse,
-    GeofenceListResponse,
-    GeofenceResponse,
     KillSwitchResponse,
-    LocationConsentCreate,
-    LocationConsentResponse,
-    LocationRecordResponse,
     LocationReportCreate,
-    SchoolCheckInResponse,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers

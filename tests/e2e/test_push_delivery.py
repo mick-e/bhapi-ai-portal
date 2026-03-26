@@ -4,8 +4,6 @@ Tests the full flow: token registration endpoint → send → unregister,
 using the test HTTP client with auth overrides.
 """
 
-from unittest.mock import AsyncMock, patch
-from uuid import UUID, uuid4
 
 import pytest
 import pytest_asyncio
@@ -14,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import sessionmaker
 
 from src.auth.middleware import get_current_user
-from src.database import Base, get_db
+from src.database import get_db
 from src.dependencies import require_active_trial_or_subscription
 from src.main import create_app
 from src.schemas import GroupContext

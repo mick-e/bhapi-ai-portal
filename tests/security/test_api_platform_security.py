@@ -19,7 +19,6 @@ from src.database import Base, get_db
 from src.main import create_app
 from src.schemas import GroupContext
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -278,6 +277,7 @@ async def test_sec_pkce_wrong_verifier_rejected(sec_engine, sec_data):
 async def test_sec_expired_token_rejected(sec_session, sec_data):
     """validate_access_token raises UnauthorizedError for expired token."""
     from datetime import datetime, timedelta, timezone
+
     from src.api_platform.oauth import validate_access_token
     from src.exceptions import UnauthorizedError
 
@@ -309,6 +309,7 @@ async def test_sec_expired_token_rejected(sec_session, sec_data):
 async def test_sec_revoked_token_rejected(sec_session, sec_data):
     """validate_access_token raises UnauthorizedError for revoked token."""
     from datetime import datetime, timedelta, timezone
+
     from src.api_platform.oauth import validate_access_token
     from src.exceptions import UnauthorizedError
 

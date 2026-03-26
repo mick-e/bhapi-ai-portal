@@ -1,6 +1,5 @@
 """Unit tests for the location service module."""
 
-import math
 import uuid
 from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, patch
@@ -14,9 +13,7 @@ from src.exceptions import NotFoundError, ValidationError
 from src.groups.models import Group, GroupMember
 from src.location.models import (
     Geofence,
-    GeofenceEvent,
     LocationAuditLog,
-    LocationKillSwitch,
     LocationRecord,
     SchoolCheckIn,
 )

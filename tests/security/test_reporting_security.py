@@ -23,11 +23,10 @@ from src.auth.middleware import get_current_user
 from src.auth.models import User
 from src.database import Base, get_db
 from src.dependencies import require_active_trial_or_subscription
-from src.groups.models import Group, GroupMember
+from src.groups.models import Group
 from src.main import create_app
 from src.reporting.models import ReportExport, ScheduledReport
 from src.schemas import GroupContext
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
