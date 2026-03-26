@@ -144,14 +144,15 @@ vi.mock("@/hooks/use-unified-dashboard", () => ({
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-import UnifiedDashboardPage, {
+import UnifiedDashboardPage from "../page";
+import {
   RiskScoreSection,
   AIActivitySection,
   SocialActivitySection,
   ScreenTimeSection,
   LocationSection,
   ActionCenterSection,
-} from "../page";
+} from "../components";
 
 function renderWithProviders(ui: React.ReactElement) {
   const queryClient = new QueryClient({
