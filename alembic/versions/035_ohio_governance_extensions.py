@@ -1,7 +1,7 @@
 """Ohio governance extensions — district customization, import log.
 
 Revision ID: 035
-Revises: 032
+Revises: 033
 Create Date: 2026-03-20
 """
 from alembic import op
@@ -9,7 +9,7 @@ import sqlalchemy as sa
 from migration_helpers import table_exists
 
 revision = "035"
-down_revision = "032"
+down_revision = "033"
 branch_labels = None
 depends_on = None
 

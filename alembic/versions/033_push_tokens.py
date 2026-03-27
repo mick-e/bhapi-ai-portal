@@ -1,7 +1,7 @@
 """Push tokens table for Expo mobile push notifications.
 
 Revision ID: 033
-Revises: 038
+Revises: 032
 Create Date: 2026-03-21
 """
 from alembic import op
@@ -9,7 +9,7 @@ import sqlalchemy as sa
 from migration_helpers import table_exists
 
 revision = "033"
-down_revision = "038"
+down_revision = "032"
 branch_labels = None
 depends_on = None
 
