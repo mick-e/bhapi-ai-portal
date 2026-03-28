@@ -6,6 +6,7 @@ Create Date: 2026-03-24
 """
 from alembic import op
 import sqlalchemy as sa
+from migration_helpers import column_exists, index_exists
 
 revision = "051"
 down_revision = "050"
@@ -14,20 +15,22 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column(
-        "alerts",
-        sa.Column(
-            "enriched_alert_id",
-            sa.Uuid(),
-            sa.ForeignKey("enriched_alerts.id"),
-            nullable=True,
-        ),
-    )
-    op.create_index(
-        "ix_alerts_enriched_alert_id",
-        "alerts",
-        ["enriched_alert_id"],
-    )
+    if not column_exists("alerts", "enriched_alert_id"):
+        op.add_column(
+            "alerts",
+            sa.Column(
+                "enriched_alert_id",
+                sa.Uuid(),
+                sa.ForeignKey("enriched_alerts.id"),
+                nullable=True,
+            ),
+        )
+    if not index_exists("alerts", "ix_alerts_enriched_alert_id"):
+        op.create_index(
+            "ix_alerts_enriched_alert_id",
+            "alerts",
+            ["enriched_alert_id"],
+        )
 
 
 def downgrade() -> None:
