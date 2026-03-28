@@ -400,7 +400,7 @@ async def update_seat_count(db: AsyncSession, group_id: UUID) -> bool:
                 new_count=member_count,
             )
             return True
-    except Exception as exc:
+    except (stripe.StripeError, KeyError) as exc:
         logger.error("seat_count_update_failed", group_id=str(group_id), error=str(exc))
 
     return False

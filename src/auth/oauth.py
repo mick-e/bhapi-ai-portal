@@ -224,7 +224,7 @@ async def _fetch_apple_jwks() -> list[dict]:
             _apple_jwks_cache["fetched_at"] = now
             logger.info("apple_jwks_fetched", key_count=len(_apple_jwks_cache["keys"]))
             return _apple_jwks_cache["keys"]
-    except Exception as exc:
+    except httpx.HTTPError as exc:
         logger.error("apple_jwks_fetch_failed", error=str(exc))
         # Return stale cache if available, otherwise raise
         if _apple_jwks_cache["keys"]:

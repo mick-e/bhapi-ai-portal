@@ -1,6 +1,7 @@
 """Provider-specific spend synchronization."""
 
 import structlog
+from cryptography.fernet import InvalidToken
 from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = structlog.get_logger()
@@ -22,8 +23,8 @@ async def sync_provider_spend(db: AsyncSession, account) -> dict:
     # Decrypt credentials
     try:
         _api_key = decrypt_credential(account.credentials_encrypted)
-    except Exception as exc:
-        raise ValueError(f"Failed to decrypt credentials: {exc}")
+    except (ValueError, InvalidToken) as exc:
+        raise ValueError(f"Failed to decrypt credentials: {exc}") from exc
 
     logger.info("spend_sync_started", provider=provider, account_id=str(account.id))
 

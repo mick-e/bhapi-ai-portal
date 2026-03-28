@@ -79,7 +79,7 @@ class GoogleProvider(BaseProvider):
 
         except (AuthenticationError, RateLimitError):
             raise
-        except Exception as exc:
+        except httpx.HTTPError as exc:
             logger.error("google_fetch_error", error=str(exc))
 
         logger.info(
@@ -100,7 +100,7 @@ class GoogleProvider(BaseProvider):
                     headers={"Authorization": f"Bearer {self.api_key}"},
                 )
                 return response.status_code == 200
-        except Exception:
+        except httpx.HTTPError:
             return False
 
     def _parse_response(

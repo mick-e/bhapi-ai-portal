@@ -4,6 +4,7 @@ import secrets
 import time
 from uuid import UUID
 
+import structlog
 from fastapi import APIRouter, Depends, Query, Request, Response
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -65,6 +66,7 @@ from src.middleware.rate_limit import endpoint_rate_limit
 from src.schemas import GroupContext
 
 settings = get_settings()
+logger = structlog.get_logger()
 router = APIRouter()
 
 # ---------------------------------------------------------------------------
@@ -153,7 +155,10 @@ async def _create_auth_response(
 
 
 @router.post("/register", response_model=AuthResponse, status_code=201)
-async def register(data: RegisterRequest, request: Request, response: Response, db: AsyncSession = Depends(get_db), _rl=Depends(endpoint_rate_limit(5, 3600))):
+async def register(
+    data: RegisterRequest, request: Request, response: Response,
+    db: AsyncSession = Depends(get_db), _rl=Depends(endpoint_rate_limit(5, 3600)),
+):
     """Register a new user account, auto-create group, and return token."""
     if not data.privacy_notice_accepted:
         raise ValidationError(
@@ -173,7 +178,7 @@ async def register(data: RegisterRequest, request: Request, response: Response, 
     try:
         await send_verification_email(user)
     except Exception:
-        pass  # Logged in send_verification_email
+        logger.debug("verification_email_skipped")  # Details logged in send_verification_email
 
     # Log privacy notice acceptance for COPPA compliance (non-blocking)
     try:
@@ -197,7 +202,10 @@ async def register(data: RegisterRequest, request: Request, response: Response, 
 
 
 @router.post("/login", response_model=AuthResponse)
-async def login(data: LoginRequest, response: Response, db: AsyncSession = Depends(get_db), _rl=Depends(endpoint_rate_limit(10, 3600))):
+async def login(
+    data: LoginRequest, response: Response,
+    db: AsyncSession = Depends(get_db), _rl=Depends(endpoint_rate_limit(10, 3600)),
+):
     """Login with email and password."""
     user = await authenticate_user(db, data.email, data.password)
 
@@ -270,7 +278,10 @@ async def update_me(
 
 
 @router.post("/password/reset", status_code=202)
-async def request_reset(data: PasswordResetRequest, db: AsyncSession = Depends(get_db), _rl=Depends(endpoint_rate_limit(5, 3600))):
+async def request_reset(
+    data: PasswordResetRequest, db: AsyncSession = Depends(get_db),
+    _rl=Depends(endpoint_rate_limit(5, 3600)),
+):
     """Request a password reset email."""
     await request_password_reset(db, data.email)
     # Always return 202 to prevent email enumeration

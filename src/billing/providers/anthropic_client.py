@@ -88,7 +88,7 @@ class AnthropicProvider(BaseProvider):
 
         except (AuthenticationError, RateLimitError):
             raise
-        except Exception as exc:
+        except httpx.HTTPError as exc:
             logger.error("anthropic_fetch_error", error=str(exc))
 
         logger.info(
@@ -112,7 +112,7 @@ class AnthropicProvider(BaseProvider):
                     },
                 )
                 return response.status_code == 200
-        except Exception:
+        except httpx.HTTPError:
             return False
 
     async def revoke_key(self) -> bool:
@@ -158,7 +158,7 @@ class AnthropicProvider(BaseProvider):
 
                 logger.warning("anthropic_revoke_failed", status=del_response.status_code)
                 return False
-        except Exception as exc:
+        except httpx.HTTPError as exc:
             logger.error("anthropic_revoke_error", error=str(exc))
             return False
 

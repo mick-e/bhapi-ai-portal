@@ -5,6 +5,7 @@ from collections import defaultdict
 from collections.abc import Callable
 from threading import Lock
 
+import redis.asyncio as redis
 import structlog
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -142,7 +143,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
             return True, remaining, reset_time
 
-        except Exception as e:
+        except (redis.RedisError, ConnectionError, OSError) as e:
             logger.error("rate_limit_redis_failed", error=str(e), decision="fallback_memory")
             return _in_memory_limiter.check(
                 key_id, settings.rate_limit_requests, settings.rate_limit_window_seconds

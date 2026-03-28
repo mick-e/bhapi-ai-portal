@@ -37,7 +37,8 @@ target-version = "py311"
 line-length = 120
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "W"]
+select = ["E", "F", "I", "W", "S"]
+ignore = ["S101", "S105", "S106", "S110", "S311"]
 
 [tool.ruff.lint.per-file-ignores]
 "src/email/templates.py" = ["E501"]
@@ -47,7 +48,10 @@ select = ["E", "F", "I", "W"]
 "src/compliance/uk_aadc.py" = ["E501"]
 "src/moderation/parental_safeguards.py" = ["E501"]
 "src/social/router.py" = ["E501"]
+"src/compliance/retention.py" = ["S608"]  # table_name from internal config, not user input
+"src/main.py" = ["S608"]  # health check uses internal table/column names
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+addopts = "--cov=src --cov-report=term-missing --cov-fail-under=50"

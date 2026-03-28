@@ -73,7 +73,7 @@ class XAIProvider(BaseProvider):
 
         except (AuthenticationError, RateLimitError):
             raise
-        except Exception as exc:
+        except httpx.HTTPError as exc:
             logger.error("xai_fetch_error", error=str(exc))
 
         logger.info("xai_usage_fetched", entries=len(entries))
@@ -90,5 +90,5 @@ class XAIProvider(BaseProvider):
                     headers={"Authorization": f"Bearer {self.api_key}"},
                 )
                 return response.status_code == 200
-        except Exception:
+        except httpx.HTTPError:
             return False

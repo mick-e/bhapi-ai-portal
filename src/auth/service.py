@@ -656,7 +656,7 @@ async def redeem_invite_code(
             from src.age_tier.service import assign_age_tier
             await assign_age_tier(db, child_user_id, invite.group_id)
         except Exception:
-            pass  # Non-blocking — age tier assignment is best-effort
+            logger.debug("age_tier_assignment_skipped", child_user_id=str(child_user_id))
 
     logger.info(
         "invite_code_redeemed",
