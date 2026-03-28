@@ -28,6 +28,17 @@ class StripeError(Exception):
     """Stripe operation error."""
 
 
+def _sanitize_stripe_error(exc: Exception) -> str:
+    """Strip sensitive details (API keys, internal IDs) from Stripe errors."""
+    msg = str(exc)
+    # Stripe errors often contain the API key — never expose it
+    if "Invalid API Key" in msg or "sk_live" in msg or "sk_test" in msg:
+        return "Payment service configuration error. Please contact support."
+    if "No such" in msg:
+        return "Payment resource not found. Please try again or contact support."
+    return "Payment service error. Please try again later."
+
+
 def _get_stripe():
     """Lazy-import and configure the Stripe module."""
     settings = get_settings()
@@ -61,7 +72,7 @@ async def create_customer(
         return customer.id
     except stripe.StripeError as exc:
         logger.error("stripe_customer_create_error", error=str(exc))
-        raise StripeError(f"Failed to create customer: {exc}") from exc
+        raise StripeError(_sanitize_stripe_error(exc)) from exc
 
 
 async def get_or_create_customer(
@@ -78,7 +89,7 @@ async def get_or_create_customer(
             return customers.data[0].id
         return await create_customer(email, name, metadata={"group_id": group_id})
     except stripe.StripeError as exc:
-        raise StripeError(f"Failed to get/create customer: {exc}") from exc
+        raise StripeError(_sanitize_stripe_error(exc)) from exc
 
 
 # ---------------------------------------------------------------------------
@@ -158,7 +169,7 @@ async def create_checkout_session(
         return {"session_id": session.id, "url": session.url}
 
     except stripe.StripeError as exc:
-        raise StripeError(f"Failed to create checkout: {exc}") from exc
+        raise StripeError(_sanitize_stripe_error(exc)) from exc
 
 
 # ---------------------------------------------------------------------------
@@ -179,7 +190,7 @@ async def create_portal_session(
         )
         return session.url
     except stripe.StripeError as exc:
-        raise StripeError(f"Failed to create portal session: {exc}") from exc
+        raise StripeError(_sanitize_stripe_error(exc)) from exc
 
 
 # ---------------------------------------------------------------------------
@@ -203,9 +214,9 @@ def verify_webhook_signature(payload: bytes, signature: str) -> dict:
         )
         return event
     except stripe.SignatureVerificationError as exc:
-        raise StripeError(f"Invalid webhook signature: {exc}") from exc
+        raise StripeError("Invalid webhook signature") from exc
     except ValueError as exc:
-        raise StripeError(f"Invalid webhook payload: {exc}") from exc
+        raise StripeError("Invalid webhook payload") from exc
 
 
 async def handle_webhook_event(event: dict, db: AsyncSession) -> dict:
