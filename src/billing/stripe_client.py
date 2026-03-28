@@ -29,14 +29,12 @@ class StripeError(Exception):
 
 
 def _sanitize_stripe_error(exc: Exception) -> str:
-    """Strip sensitive details (API keys, internal IDs) from Stripe errors."""
+    """Strip API keys from Stripe errors but preserve the useful message."""
+    import re
     msg = str(exc)
-    # Stripe errors often contain the API key — never expose it
-    if "Invalid API Key" in msg or "sk_live" in msg or "sk_test" in msg:
-        return "Payment service configuration error. Please contact support."
-    if "No such" in msg:
-        return "Payment resource not found. Please try again or contact support."
-    return "Payment service error. Please try again later."
+    # Redact any API key that appears in the error message
+    msg = re.sub(r'sk_(live|test)_[A-Za-z0-9]+', 'sk_***_REDACTED', msg)
+    return msg
 
 
 def _get_stripe():
