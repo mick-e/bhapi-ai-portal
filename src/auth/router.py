@@ -191,18 +191,33 @@ async def get_me(
     return user_to_profile(user, group_id=auth.group_id, role=auth.role)
 
 
+_PATCH_ME_ALLOWED_FIELDS = {"display_name", "email", "locale", "timezone"}
+
+
 @router.patch("/me", response_model=UserProfile)
 async def update_me(
     data: UpdateProfileRequest,
     db: AsyncSession = Depends(get_db),
     auth: "GroupContext" = Depends(get_current_user),
 ):
-    """Update current user profile."""
+    """Update current user profile.
+
+    Only whitelisted fields are applied. Sensitive fields like email_verified,
+    mfa_enabled, role, is_admin, and password_hash are explicitly rejected to
+    prevent mass-assignment attacks (Finding #5).
+    """
     user = await get_user_by_id(db, auth.user_id)
-    if data.display_name:
-        user.display_name = data.display_name
-    if data.email:
-        user.email = data.email
+
+    # Explicit whitelist — only safe fields may be updated
+    updates = data.model_dump(exclude_unset=True)
+    for field in list(updates.keys()):
+        if field not in _PATCH_ME_ALLOWED_FIELDS:
+            updates.pop(field)
+
+    for field, value in updates.items():
+        if value is not None:
+            setattr(user, field, value)
+
     await db.flush()
     await db.refresh(user)
     return user_to_profile(user, group_id=auth.group_id, role=auth.role)

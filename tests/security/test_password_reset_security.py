@@ -93,11 +93,7 @@ async def test_password_reset_token_reuse(sec_client):
         "new_password": "AnotherPass2",
     })
 
-    if resp2.status_code == 200:
-        pytest.xfail(
-            "VULNERABILITY: Password reset token reusable after use (Finding #3). "
-            "Token valid for full 1-hour window."
-        )
+    # Finding #3 fixed: token is tracked in _used_reset_tokens after first use
     assert resp2.status_code == 401
 
 
@@ -123,11 +119,6 @@ async def test_password_reset_invalidates_sessions(sec_client):
     })
     assert resp.status_code == 200
 
-    # Old token should ideally be invalid now
+    # Finding #3 fixed: all sessions invalidated after password reset
     me_after = await sec_client.get("/api/v1/auth/me", headers=headers)
-    if me_after.status_code == 200:
-        pytest.xfail(
-            "Old session token still valid after password reset. "
-            "Sessions should be invalidated on password change."
-        )
     assert me_after.status_code == 401

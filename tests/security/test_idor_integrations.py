@@ -1,7 +1,7 @@
 """IDOR tests for integrations module.
 
-Finding #4: All integrations endpoints accept arbitrary group_id without
-verifying that the authenticated user owns or belongs to that group.
+Finding #4: Verify that all integrations endpoints enforce group_id ownership
+so that users cannot access or modify other groups' SIS/SSO integrations.
 """
 
 import pytest
@@ -72,10 +72,7 @@ async def _setup_user(client, email):
 
 @pytest.mark.asyncio
 async def test_connect_sis_to_other_group(sec_client):
-    """User B should NOT be able to connect SIS to User A's group.
-
-    Finding #4: integrations router has no group_id ownership check.
-    """
+    """User B should NOT be able to connect SIS to User A's group."""
     client, session = sec_client
 
     headers_a, gid_a, _ = await _setup_user(client, "sis-owner@example.com")
@@ -88,18 +85,12 @@ async def test_connect_sis_to_other_group(sec_client):
         "access_token": "fake-clever-token",
     }, headers=headers_b)
 
-    # Should be 403 if ownership check exists; currently 201 (vulnerability)
-    if resp.status_code == 201:
-        pytest.xfail("VULNERABILITY: User can connect SIS to another user's group (Finding #4)")
-    assert resp.status_code in (403, 404)
+    assert resp.status_code == 403
 
 
 @pytest.mark.asyncio
 async def test_list_sis_of_other_group(sec_client):
-    """User B should NOT see User A's SIS connections.
-
-    Leaks SIS connection details (provider, status, etc.).
-    """
+    """User B should NOT see User A's SIS connections."""
     client, session = sec_client
 
     headers_a, gid_a, _ = await _setup_user(client, "sis-list-owner@example.com")
@@ -118,9 +109,7 @@ async def test_list_sis_of_other_group(sec_client):
         headers=headers_b,
     )
 
-    if resp.status_code == 200 and len(resp.json()) > 0:
-        pytest.xfail("VULNERABILITY: User can list another group's SIS connections (Finding #4)")
-    assert resp.status_code in (200, 403, 404)
+    assert resp.status_code == 403
 
 
 @pytest.mark.asyncio
@@ -138,39 +127,16 @@ async def test_sync_other_groups_sis(sec_client):
         "access_token": "real-token",
     }, headers=headers_a)
 
-    if conn_resp.status_code != 201:
-        pytest.skip("Could not create SIS connection")
-
+    assert conn_resp.status_code == 201, "Could not create SIS connection"
     conn_id = conn_resp.json()["id"]
 
     # User B tries to sync User A's connection
-    # The Clever API call will fail with ValueError since the token is fake,
-    # which results in a 500. The key question is whether auth check happens first.
-    try:
-        resp = await client.post(
-            f"/api/v1/integrations/sync/{conn_id}",
-            headers=headers_b,
-        )
-    except Exception:
-        # If the endpoint raises an unhandled error, that still means no auth check
-        pytest.xfail(
-            "VULNERABILITY: User B reached sync handler for User A's SIS "
-            "(unhandled error, no auth check, Finding #4)"
-        )
-        return
+    resp = await client.post(
+        f"/api/v1/integrations/sync/{conn_id}",
+        headers=headers_b,
+    )
 
-    # Should be 403 if ownership check exists
-    if resp.status_code == 500:
-        # 500 means the handler ran (no auth check) but Clever API failed
-        pytest.xfail(
-            "VULNERABILITY: User can reach sync handler for another group's SIS "
-            "(status=500, no ownership check, Finding #4)"
-        )
-    elif resp.status_code not in (401, 403, 404):
-        pytest.xfail(
-            f"VULNERABILITY: User can trigger sync on another group's SIS "
-            f"(status={resp.status_code}, Finding #4)"
-        )
+    assert resp.status_code == 403
 
 
 @pytest.mark.asyncio
@@ -182,26 +148,14 @@ async def test_create_sso_config_for_other_group(sec_client):
     headers_b, gid_b, _ = await _setup_user(client, "sso-attacker@example.com")
 
     # User B tries to create SSO config for User A's group
-    try:
-        resp = await client.post("/api/v1/integrations/sso", json={
-            "group_id": gid_a,
-            "provider": "google_workspace",
-            "tenant_id": "attacker-tenant",
-            "auto_provision_members": True,
-        }, headers=headers_b)
-    except Exception:
-        # Server-side response validation errors propagate as exceptions
-        # in ASGI test client. If the handler ran at all (even with a
-        # serialization bug), there was no ownership check.
-        pytest.xfail(
-            "VULNERABILITY: SSO config handler ran for another group "
-            "(server error, no ownership check, Finding #4)"
-        )
-        return
+    resp = await client.post("/api/v1/integrations/sso", json={
+        "group_id": gid_a,
+        "provider": "google_workspace",
+        "tenant_id": "attacker-tenant",
+        "auto_provision_members": True,
+    }, headers=headers_b)
 
-    if resp.status_code in (201, 500):
-        pytest.xfail("VULNERABILITY: User can create SSO config for another group (Finding #4)")
-    assert resp.status_code in (403, 404, 409)
+    assert resp.status_code == 403
 
 
 @pytest.mark.asyncio
@@ -219,9 +173,7 @@ async def test_disconnect_other_groups_sis(sec_client):
         "access_token": "real-token",
     }, headers=headers_a)
 
-    if conn_resp.status_code != 201:
-        pytest.skip("Could not create SIS connection")
-
+    assert conn_resp.status_code == 201, "Could not create SIS connection"
     conn_id = conn_resp.json()["id"]
 
     # User B tries to disconnect
@@ -230,6 +182,86 @@ async def test_disconnect_other_groups_sis(sec_client):
         headers=headers_b,
     )
 
-    if resp.status_code == 200:
-        pytest.xfail("VULNERABILITY: User can disconnect another group's SIS (Finding #4)")
-    assert resp.status_code in (403, 404)
+    assert resp.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_list_sso_configs_of_other_group(sec_client):
+    """User B should NOT list User A's SSO configurations."""
+    client, session = sec_client
+
+    headers_a, gid_a, _ = await _setup_user(client, "sso-list-owner@example.com")
+    headers_b, gid_b, _ = await _setup_user(client, "sso-list-attacker@example.com")
+
+    # User A creates SSO config
+    await client.post("/api/v1/integrations/sso", json={
+        "group_id": gid_a,
+        "provider": "google_workspace",
+        "tenant_id": "owner-tenant",
+        "auto_provision_members": False,
+    }, headers=headers_a)
+
+    # User B tries to list User A's SSO configs
+    resp = await client.get(
+        f"/api/v1/integrations/sso?group_id={gid_a}",
+        headers=headers_b,
+    )
+
+    assert resp.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_update_sso_config_of_other_group(sec_client):
+    """User B should NOT update User A's SSO configuration."""
+    client, session = sec_client
+
+    headers_a, gid_a, _ = await _setup_user(client, "sso-upd-owner@example.com")
+    headers_b, gid_b, _ = await _setup_user(client, "sso-upd-attacker@example.com")
+
+    # User A creates SSO config
+    create_resp = await client.post("/api/v1/integrations/sso", json={
+        "group_id": gid_a,
+        "provider": "google_workspace",
+        "tenant_id": "owner-tenant",
+        "auto_provision_members": False,
+    }, headers=headers_a)
+
+    assert create_resp.status_code == 201, "Could not create SSO config"
+    config_id = create_resp.json()["id"]
+
+    # User B tries to update User A's SSO config
+    resp = await client.patch(
+        f"/api/v1/integrations/sso/{config_id}",
+        json={"tenant_id": "attacker-tenant"},
+        headers=headers_b,
+    )
+
+    assert resp.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_delete_sso_config_of_other_group(sec_client):
+    """User B should NOT delete User A's SSO configuration."""
+    client, session = sec_client
+
+    headers_a, gid_a, _ = await _setup_user(client, "sso-del-owner@example.com")
+    headers_b, gid_b, _ = await _setup_user(client, "sso-del-attacker@example.com")
+
+    # User A creates SSO config
+    create_resp = await client.post("/api/v1/integrations/sso", json={
+        "group_id": gid_a,
+        "provider": "google_workspace",
+        "tenant_id": "owner-tenant",
+        "auto_provision_members": False,
+    }, headers=headers_a)
+
+    assert create_resp.status_code == 201, "Could not create SSO config"
+    config_id = create_resp.json()["id"]
+
+    # User B tries to delete User A's SSO config
+    resp = await client.delete(
+        f"/api/v1/integrations/sso/{config_id}",
+        headers=headers_b,
+    )
+
+    assert resp.status_code == 403

@@ -88,15 +88,17 @@ async def test_api_key_cannot_access_other_group(sec_client):
         f"/api/v1/billing/spend?group_id={gid_b}",
         headers=headers_a,
     )
-    # If the response returns Group B's data, that's a cross-group access issue
-    if resp.status_code == 200:
-        data = resp.json()
-        # The group_id in response should NOT match group B
-        if data.get("group_id") == gid_b:
-            pytest.xfail(
-                "API key holder can access another group's spend data. "
-                "Need group_id ownership check on billing endpoints."
-            )
+    assert resp.status_code == 403, (
+        f"Expected 403 Forbidden for cross-group spend access, got {resp.status_code}"
+    )
+
+    # Also verify cross-group access is blocked on other billing endpoints
+    for path in ["/api/v1/billing/spend/records", "/api/v1/billing/llm-accounts",
+                 "/api/v1/billing/thresholds", "/api/v1/billing/sync-status"]:
+        r = await client.get(f"{path}?group_id={gid_b}", headers=headers_a)
+        assert r.status_code == 403, (
+            f"Expected 403 for cross-group access on {path}, got {r.status_code}"
+        )
 
 
 @pytest.mark.asyncio

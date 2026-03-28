@@ -78,14 +78,10 @@ async def test_patch_me_cannot_set_email_verified(sec_client):
         "email_verified": True,
     }, headers=headers)
 
-    # Check the actual value — should still be False
+    # Finding #5 fixed: UpdateProfileRequest only allows display_name/email;
+    # handler explicitly whitelists fields — email_verified is rejected
     me = await sec_client.get("/api/v1/auth/me", headers=headers)
     assert me.status_code == 200
-    if me.json()["email_verified"] is True:
-        pytest.xfail(
-            "VULNERABILITY: PATCH /me allows setting email_verified (mass assignment). "
-            "Use explicit field whitelist in update_me handler."
-        )
     assert me.json()["email_verified"] is False
 
 
@@ -136,10 +132,7 @@ async def test_patch_me_cannot_set_mfa(sec_client):
         "mfa_enabled": True,
     }, headers=headers)
 
+    # Finding #5 fixed: mfa_enabled rejected by field whitelist
     me = await sec_client.get("/api/v1/auth/me", headers=headers)
     assert me.status_code == 200
-    if me.json()["mfa_enabled"] is True:
-        pytest.xfail(
-            "VULNERABILITY: PATCH /me allows setting mfa_enabled without MFA setup flow."
-        )
     assert me.json()["mfa_enabled"] is False

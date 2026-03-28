@@ -392,7 +392,7 @@ async def list_accounts(
     db: AsyncSession = Depends(get_db),
 ):
     """List connected LLM accounts for a group."""
-    accounts = await list_llm_accounts(db, _gid(group_id, auth))
+    accounts = await list_llm_accounts(db, await _gid_verified(group_id, auth, db))
     return accounts
 
 
@@ -448,7 +448,7 @@ async def get_sync_status_endpoint(
 ):
     """Get LLM account sync health status."""
     from src.billing.service import get_sync_status
-    gid = _gid(group_id, auth)
+    gid = await _gid_verified(group_id, auth, db)
     return await get_sync_status(db, gid)
 
 
@@ -697,5 +697,5 @@ async def list_thresholds_endpoint(
     db: AsyncSession = Depends(get_db),
 ):
     """List budget thresholds for a group."""
-    thresholds = await list_thresholds(db, _gid(group_id, auth))
+    thresholds = await list_thresholds(db, await _gid_verified(group_id, auth, db))
     return thresholds

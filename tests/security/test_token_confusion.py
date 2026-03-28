@@ -1,7 +1,7 @@
 """Token confusion security tests.
 
 Validates that tokens of one type cannot be used for another purpose.
-Finding #1: Bearer path in get_current_user doesn't check token type.
+Middleware checks type == "session" on Bearer tokens and rejects all others.
 """
 
 import pytest
@@ -76,8 +76,7 @@ async def _register_and_login(client, email="token-test@example.com"):
 async def test_password_reset_token_as_bearer(sec_client):
     """Password reset token must NOT work as Bearer auth on /me.
 
-    Finding #1: Bearer path doesn't check type field, so any valid JWT works.
-    This test documents the vulnerability — if it passes (401), the bug is fixed.
+    Fixed: Middleware checks type == "session" and rejects password_reset tokens.
     """
     from uuid import UUID
 
@@ -90,17 +89,15 @@ async def test_password_reset_token_as_bearer(sec_client):
         "/api/v1/auth/me",
         headers={"Authorization": f"Bearer {reset_token}"},
     )
-    # Should be 401 (token type mismatch), but may be 200 if bug exists
-    assert resp.status_code in (200, 401), f"Unexpected status: {resp.status_code}"
-    if resp.status_code == 200:
-        pytest.xfail("VULNERABILITY: password_reset token accepted as Bearer auth (Finding #1)")
+    # Must be 401 — middleware rejects tokens with type != "session"
+    assert resp.status_code == 401
 
 
 @pytest.mark.asyncio
 async def test_email_verification_token_as_bearer(sec_client):
     """Email verification token must NOT work as Bearer auth on /me.
 
-    Same vulnerability as Finding #1 — any JWT type grants access via Bearer.
+    Fixed: Middleware checks type == "session" and rejects email_verification tokens.
     """
     from uuid import UUID
 
@@ -113,9 +110,8 @@ async def test_email_verification_token_as_bearer(sec_client):
         "/api/v1/auth/me",
         headers={"Authorization": f"Bearer {verify_token}"},
     )
-    assert resp.status_code in (200, 401), f"Unexpected status: {resp.status_code}"
-    if resp.status_code == 200:
-        pytest.xfail("VULNERABILITY: email_verification token accepted as Bearer auth (Finding #1)")
+    # Must be 401 — middleware rejects tokens with type != "session"
+    assert resp.status_code == 401
 
 
 @pytest.mark.asyncio

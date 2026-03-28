@@ -1,6 +1,7 @@
 """Session management security tests.
 
-Finding #2: Logout only deletes cookie — DB session + JWT remain valid.
+Validates that logout and password change properly invalidate sessions.
+Middleware validates tokens against the sessions table, rejecting invalidated tokens.
 """
 
 from datetime import datetime, timedelta, timezone
@@ -71,10 +72,10 @@ async def _register_and_login(client, email="session-test@example.com"):
 
 @pytest.mark.asyncio
 async def test_logout_session_still_valid(sec_client):
-    """After logout, the original Bearer token should ideally be rejected.
+    """After logout, the original Bearer token must be rejected.
 
-    Finding #2: Logout only deletes the cookie but the JWT access token
-    remains valid because it's stateless. This test documents the behavior.
+    Fixed: Logout deletes the Session row from the DB, and middleware validates
+    tokens against the sessions table, so the token is rejected with 401.
     """
     token, user_id = await _register_and_login(sec_client, "logout-reuse@example.com")
     headers = {"Authorization": f"Bearer {token}"}
@@ -87,24 +88,17 @@ async def test_logout_session_still_valid(sec_client):
     logout = await sec_client.post("/api/v1/auth/logout", headers=headers)
     assert logout.status_code == 204
 
-    # Try reusing the Bearer token after logout
+    # Bearer token must be rejected after logout
     me_after = await sec_client.get("/api/v1/auth/me", headers=headers)
-    # Currently the JWT is stateless so it still works — this documents the gap
-    if me_after.status_code == 200:
-        pytest.xfail(
-            "VULNERABILITY: Bearer token still valid after logout (Finding #2). "
-            "Consider token blocklist or short-lived tokens."
-        )
-    else:
-        assert me_after.status_code == 401
+    assert me_after.status_code == 401
 
 
 @pytest.mark.asyncio
 async def test_old_session_rejected_after_password_change(sec_client):
-    """Old session token should be rejected after password change.
+    """Old session token must be rejected after password change.
 
-    If password changes don't invalidate existing tokens, a compromised
-    session survives password rotation.
+    Fixed: reset_password() calls invalidate_all_sessions() which deletes all
+    Session rows for the user. Middleware validates against the sessions table.
     """
     token, user_id = await _register_and_login(sec_client, "pw-change@example.com")
     headers = {"Authorization": f"Bearer {token}"}
@@ -121,15 +115,9 @@ async def test_old_session_rejected_after_password_change(sec_client):
     })
     assert resp.status_code == 200
 
-    # Try old token — ideally should be rejected
+    # Old token must be rejected after password reset
     me = await sec_client.get("/api/v1/auth/me", headers=headers)
-    if me.status_code == 200:
-        pytest.xfail(
-            "Old session token still valid after password reset. "
-            "Consider invalidating all sessions on password change."
-        )
-    else:
-        assert me.status_code == 401
+    assert me.status_code == 401
 
 
 @pytest.mark.asyncio
