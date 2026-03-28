@@ -2,14 +2,16 @@
 
 import time
 from collections import defaultdict
+from collections.abc import Callable
 from threading import Lock
 
 import structlog
+from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 from src.config import get_settings
+from src.exceptions import RateLimitError
 from src.redis_client import get_redis, is_redis_available, is_redis_disabled
 
 logger = structlog.get_logger()
@@ -145,3 +147,50 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             return _in_memory_limiter.check(
                 key_id, settings.rate_limit_requests, settings.rate_limit_window_seconds
             )
+
+
+# ---------------------------------------------------------------------------
+# Per-endpoint rate limiting dependency
+# ---------------------------------------------------------------------------
+
+# Separate in-memory limiter for endpoint-specific limits so that the global
+# middleware limiter and per-endpoint limiters don't share buckets.
+_endpoint_limiter = _InMemoryRateLimiter()
+
+
+def endpoint_rate_limit(max_requests: int, window_seconds: int) -> Callable:
+    """Return a FastAPI ``Depends()`` callable that enforces a per-IP rate
+    limit on a single endpoint.
+
+    Usage::
+
+        @router.post("/register")
+        async def register(
+            ...,
+            _rl=Depends(endpoint_rate_limit(5, 3600)),
+        ):
+            ...
+    """
+
+    async def _check(request: Request) -> None:
+        client_ip = request.client.host if request.client else "unknown"
+        # Build a key that is unique per endpoint + IP
+        path = request.url.path
+        key = f"ep:{path}:{client_ip}"
+
+        allowed, _remaining, retry_after = _endpoint_limiter.check(
+            key, max_requests, window_seconds,
+        )
+        if not allowed:
+            logger.warning(
+                "endpoint_rate_limit_exceeded",
+                client=client_ip,
+                path=path,
+                max_requests=max_requests,
+                window_seconds=window_seconds,
+            )
+            raise RateLimitError(
+                f"Too many requests. Try again in {retry_after} seconds."
+            )
+
+    return _check

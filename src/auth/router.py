@@ -1,5 +1,7 @@
 """Auth API endpoints."""
 
+import secrets
+import time
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, Request, Response
@@ -58,11 +60,55 @@ from src.auth.service import (
 from src.config import get_settings
 from src.constants import SESSION_COOKIE_NAME
 from src.database import get_db
-from src.exceptions import ValidationError
+from src.exceptions import ForbiddenError, ValidationError
+from src.middleware.rate_limit import endpoint_rate_limit
 from src.schemas import GroupContext
 
 settings = get_settings()
 router = APIRouter()
+
+# ---------------------------------------------------------------------------
+# OAuth CSRF state store (state -> expiry timestamp)
+# ---------------------------------------------------------------------------
+_OAUTH_STATE_TTL = 600  # 10 minutes
+_OAUTH_STATE_MAX_ENTRIES = 10_000
+
+_oauth_states: dict[str, float] = {}
+
+
+def _evict_expired_oauth_states() -> None:
+    """Remove expired entries from the OAuth state store."""
+    now = time.time()
+    expired = [s for s, exp in _oauth_states.items() if exp <= now]
+    for s in expired:
+        _oauth_states.pop(s, None)
+
+
+def _generate_oauth_state() -> str:
+    """Generate a cryptographic random state, store it, and return it."""
+    _evict_expired_oauth_states()
+    # Cap store size to prevent memory exhaustion
+    if len(_oauth_states) >= _OAUTH_STATE_MAX_ENTRIES:
+        sorted_states = sorted(_oauth_states.items(), key=lambda x: x[1])
+        for s, _ in sorted_states[: len(sorted_states) // 2]:
+            _oauth_states.pop(s, None)
+    state = secrets.token_urlsafe(32)
+    _oauth_states[state] = time.time() + _OAUTH_STATE_TTL
+    return state
+
+
+def _validate_oauth_state(state: str) -> None:
+    """Validate and consume an OAuth state token (one-time use).
+
+    Raises ForbiddenError if state is missing, unknown, or expired.
+    """
+    if not state:
+        raise ForbiddenError("OAuth state parameter is missing")
+    expiry = _oauth_states.pop(state, None)
+    if expiry is None:
+        raise ForbiddenError("Invalid or already-used OAuth state parameter")
+    if time.time() > expiry:
+        raise ForbiddenError("OAuth state parameter has expired")
 
 
 def _set_session_cookie(response: Response, session_token: str) -> None:
@@ -107,7 +153,7 @@ async def _create_auth_response(
 
 
 @router.post("/register", response_model=AuthResponse, status_code=201)
-async def register(data: RegisterRequest, request: Request, response: Response, db: AsyncSession = Depends(get_db)):
+async def register(data: RegisterRequest, request: Request, response: Response, db: AsyncSession = Depends(get_db), _rl=Depends(endpoint_rate_limit(5, 3600))):
     """Register a new user account, auto-create group, and return token."""
     if not data.privacy_notice_accepted:
         raise ValidationError(
@@ -151,7 +197,7 @@ async def register(data: RegisterRequest, request: Request, response: Response, 
 
 
 @router.post("/login", response_model=AuthResponse)
-async def login(data: LoginRequest, response: Response, db: AsyncSession = Depends(get_db)):
+async def login(data: LoginRequest, response: Response, db: AsyncSession = Depends(get_db), _rl=Depends(endpoint_rate_limit(10, 3600))):
     """Login with email and password."""
     user = await authenticate_user(db, data.email, data.password)
 
@@ -224,7 +270,7 @@ async def update_me(
 
 
 @router.post("/password/reset", status_code=202)
-async def request_reset(data: PasswordResetRequest, db: AsyncSession = Depends(get_db)):
+async def request_reset(data: PasswordResetRequest, db: AsyncSession = Depends(get_db), _rl=Depends(endpoint_rate_limit(5, 3600))):
     """Request a password reset email."""
     await request_password_reset(db, data.email)
     # Always return 202 to prevent email enumeration
@@ -351,7 +397,14 @@ async def oauth_authorize(provider: str):
     if provider not in SUPPORTED_PROVIDERS:
         raise ValidationError(f"Unsupported provider: {provider}. Supported: {', '.join(sorted(SUPPORTED_PROVIDERS))}")
 
-    authorization_url, state = get_authorization_url(provider)
+    authorization_url, _provider_state = get_authorization_url(provider)
+
+    # Generate and store a CSRF-safe state token (server-side validation)
+    state = _generate_oauth_state()
+
+    # Replace the provider-generated state in the URL with our validated one
+    authorization_url = authorization_url.replace(f"state={_provider_state}", f"state={state}")
+
     return OAuthAuthorizeResponse(authorization_url=authorization_url, state=state)
 
 
@@ -366,6 +419,9 @@ async def oauth_callback(
     """Handle OAuth callback — exchange code for tokens and create session."""
     if provider not in SUPPORTED_PROVIDERS:
         raise ValidationError(f"Unsupported provider: {provider}")
+
+    # Validate CSRF state parameter (one-time use)
+    _validate_oauth_state(state)
 
     # Exchange authorization code for tokens
     token_data = await exchange_code_for_tokens(provider, code)

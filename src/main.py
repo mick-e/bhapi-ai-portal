@@ -1,5 +1,6 @@
 """FastAPI application factory."""
 
+import re
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -23,6 +24,22 @@ from src.redis_client import close_redis, init_redis
 
 logger = structlog.get_logger()
 settings = get_settings()
+
+# Identifier validation for safe SQL construction in diagnostics.
+_SAFE_IDENTIFIER_RE = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
+
+# Allowlist of table.column pairs checked by /health/schema.
+_SCHEMA_CHECK_PAIRS: list[tuple[str, str]] = [
+    ("capture_events", "content_encrypted"),
+    ("risk_events", "classifier_source"),
+    ("block_rules", "auto_rule_id"),
+]
+_ALLOWED_SCHEMA_CHECKS: set[tuple[str, str]] = set(_SCHEMA_CHECK_PAIRS)
+
+
+def _is_safe_identifier(name: str) -> bool:
+    """Return True if *name* is a safe SQL identifier (alphanumeric + underscore)."""
+    return bool(_SAFE_IDENTIFIER_RE.match(name))
 
 
 @asynccontextmanager
@@ -71,8 +88,8 @@ def create_app() -> FastAPI:
         CORSMiddleware,
         allow_origins=cors_origins,
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type", "X-Request-ID", "Accept-Language", "X-Correlation-ID"],
     )
 
     # GZip
@@ -160,7 +177,11 @@ def _register_routers(app: FastAPI) -> None:
             "redis": redis_status,
         }
         if db_error:
-            result["database_error"] = db_error
+            # Only expose detailed DB errors in non-production environments
+            if settings.is_production:
+                result["database"] = "error"
+            else:
+                result["database_error"] = db_error
 
         _health_cache["last_check_time"] = now
         _health_cache["last_result"] = result
@@ -182,12 +203,14 @@ def _register_routers(app: FastAPI) -> None:
                 row = ver.first()
                 results["alembic_version"] = row[0] if row else "none"
 
-                # Check if migration 017 columns exist
-                for table, col in [
-                    ("capture_events", "content_encrypted"),
-                    ("risk_events", "classifier_source"),
-                    ("block_rules", "auto_rule_id"),
-                ]:
+                # Check if migration 017 columns exist (allowlisted pairs only)
+                for table, col in _SCHEMA_CHECK_PAIRS:
+                    if (table, col) not in _ALLOWED_SCHEMA_CHECKS:
+                        results[f"{table}.{col}"] = "REJECTED: not in allowlist"
+                        continue
+                    if not _is_safe_identifier(table) or not _is_safe_identifier(col):
+                        results[f"{table}.{col}"] = "REJECTED: invalid identifier"
+                        continue
                     try:
                         await conn.execute(select_text(
                             f"SELECT {col} FROM {table} LIMIT 0"

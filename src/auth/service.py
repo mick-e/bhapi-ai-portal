@@ -20,9 +20,13 @@ logger = structlog.get_logger()
 settings = get_settings()
 
 # Rate limit tracking for password reset: {email: [timestamps]}
+# LIMITATION: In-memory only — state is lost on process restart and is not shared
+# across multiple workers/replicas. Acceptable for now; a Redis-backed solution
+# would be needed for strict enforcement in a multi-process deployment.
 _reset_rate_tracker: dict[str, list[float]] = {}
 _RESET_RATE_LIMIT = 5
 _RESET_RATE_WINDOW = 3600  # 1 hour
+_RESET_RATE_MAX_KEYS = 10_000  # Eviction cap to prevent unbounded memory growth
 
 
 def hash_password(password: str) -> str:
@@ -251,14 +255,35 @@ async def send_verification_email(user: User) -> bool:
 # ---------------------------------------------------------------------------
 
 def _check_reset_rate_limit(email: str) -> bool:
-    """Check if email has exceeded reset rate limit (5/hour). Returns True if OK."""
+    """Check if email has exceeded reset rate limit (5/hour). Returns True if OK.
+
+    Uses an in-memory dict (lost on restart). Evicts stale entries and caps total
+    keys at _RESET_RATE_MAX_KEYS to prevent unbounded memory growth.
+    """
     import time
     now = time.time()
+
+    # Evict entries older than the window to prevent memory growth
+    if len(_reset_rate_tracker) > _RESET_RATE_MAX_KEYS:
+        stale_keys = [
+            k for k, timestamps in _reset_rate_tracker.items()
+            if not timestamps or now - max(timestamps) >= _RESET_RATE_WINDOW
+        ]
+        for k in stale_keys:
+            del _reset_rate_tracker[k]
+        # If still over cap after stale eviction, drop oldest entries
+        if len(_reset_rate_tracker) > _RESET_RATE_MAX_KEYS:
+            sorted_keys = sorted(
+                _reset_rate_tracker,
+                key=lambda k: max(_reset_rate_tracker[k]) if _reset_rate_tracker[k] else 0,
+            )
+            for k in sorted_keys[: len(_reset_rate_tracker) - _RESET_RATE_MAX_KEYS]:
+                del _reset_rate_tracker[k]
 
     if email not in _reset_rate_tracker:
         _reset_rate_tracker[email] = []
 
-    # Prune old entries
+    # Prune old entries for this email
     _reset_rate_tracker[email] = [
         t for t in _reset_rate_tracker[email] if now - t < _RESET_RATE_WINDOW
     ]
