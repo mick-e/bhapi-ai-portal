@@ -164,7 +164,7 @@ function SocialProofBar() {
           <div className="hidden h-8 w-px bg-gray-200 sm:block" />
           <div>
             <p className="text-2xl font-bold text-gray-900">COPPA 2026</p>
-            <p className="text-sm text-gray-500">Certified compliant</p>
+            <p className="text-sm text-gray-500">Compliant</p>
           </div>
         </div>
       </div>
@@ -266,7 +266,7 @@ export default function LandingPage() {
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary-200 bg-primary-50 px-4 py-1.5">
               <Shield className="h-4 w-4 text-primary-600" />
               <span className="text-sm font-medium text-primary-700">
-                COPPA 2026 Certified
+                COPPA 2026 Compliant
               </span>
             </div>
             <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">
@@ -280,13 +280,23 @@ export default function LandingPage() {
               social network built for children under 16.
             </p>
             <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-              <Link
-                href="/register"
-                className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-6 py-3 text-base font-semibold text-white shadow-sm hover:bg-primary-700 transition-colors"
-              >
-                Start Free
-                <ArrowRight className="h-4 w-4" />
-              </Link>
+              {activeTab === "families" ? (
+                <Link
+                  href="/register"
+                  className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-6 py-3 text-base font-semibold text-white shadow-sm hover:bg-primary-700 transition-colors"
+                >
+                  Start Free
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              ) : (
+                <Link
+                  href="/contact"
+                  className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-6 py-3 text-base font-semibold text-white shadow-sm hover:bg-primary-700 transition-colors"
+                >
+                  Request a Demo
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              )}
             </div>
             {/* App Store Badges — hidden until mobile apps are published */}
           </div>
