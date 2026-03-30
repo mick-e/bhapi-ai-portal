@@ -82,20 +82,21 @@ describe("LandingPage", () => {
     expect(startLinks[0]).toHaveAttribute("href", "/register");
   });
 
-  it("renders Book a Demo CTA linking to /contact", () => {
+  it("hero shows only Start Free CTA (no Book a Demo)", () => {
     render(<LandingPage />, { wrapper: createWrapper() });
-    const demoLink = screen.getByRole("link", { name: /Book a Demo/i });
-    expect(demoLink).toHaveAttribute("href", "/contact");
+    expect(
+      screen.queryByRole("link", { name: /Book a Demo/i })
+    ).not.toBeInTheDocument();
   });
 
-  it("renders app store badges", () => {
+  it("does not render app store badges (hidden until apps published)", () => {
     render(<LandingPage />, { wrapper: createWrapper() });
     expect(
-      screen.getByAltText(/Download on the App Store/i)
-    ).toBeInTheDocument();
+      screen.queryByAltText(/Download on the App Store/i)
+    ).not.toBeInTheDocument();
     expect(
-      screen.getByAltText(/Get it on Google Play/i)
-    ).toBeInTheDocument();
+      screen.queryByAltText(/Get it on Google Play/i)
+    ).not.toBeInTheDocument();
   });
 
   it("renders audience tabs: Families, Schools, Partners", () => {

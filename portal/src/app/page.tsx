@@ -287,42 +287,8 @@ export default function LandingPage() {
                 Start Free
                 <ArrowRight className="h-4 w-4" />
               </Link>
-              <Link
-                href="/contact"
-                className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-6 py-3 text-base font-semibold text-gray-700 shadow-sm hover:bg-gray-50 transition-colors"
-              >
-                Book a Demo
-              </Link>
             </div>
-            {/* App Store Badges */}
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-              <a
-                href="#"
-                aria-label="Download on the App Store"
-                className="transition-opacity hover:opacity-80"
-              >
-                <img
-                  src="/app-store-badge.png"
-                  alt="Download on the App Store"
-                  width={140}
-                  height={47}
-                  style={{ height: "2.9rem", width: "auto" }}
-                />
-              </a>
-              <a
-                href="#"
-                aria-label="Get it on Google Play"
-                className="transition-opacity hover:opacity-80"
-              >
-                <img
-                  src="/google-play-badge.png"
-                  alt="Get it on Google Play"
-                  width={158}
-                  height={47}
-                  style={{ height: "2.9rem", width: "auto" }}
-                />
-              </a>
-            </div>
+            {/* App Store Badges — hidden until mobile apps are published */}
           </div>
         </div>
       </section>
