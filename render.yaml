@@ -9,6 +9,17 @@
 # for chat messaging, presence, and live feed updates. See ADR-008.
 # DB connection pooling: monolith=20, jobs=5, websocket=10 (total 35, fits Standard plan).
 # Media storage: Cloudflare R2/Images/Stream (external, not Render-hosted). See ADR-007.
+#
+# ENV VAR MANAGEMENT:
+# - Non-secret vars use `value:` so they survive blueprint re-syncs
+# - Secrets use `sync: false` — set these ONLY via Render Dashboard
+# - NEVER use Render API PUT /env-vars (it REPLACES all vars, wiping secrets)
+# - All secrets are also backed up in .env.local (gitignored)
+# Required secrets (set in Dashboard): SECRET_KEY, DATABASE_URL, STRIPE_SECRET_KEY,
+#   STRIPE_WEBHOOK_SECRET, STRIPE_PUBLISHABLE_KEY, SENDGRID_API_KEY,
+#   OAUTH_GOOGLE_CLIENT_ID, OAUTH_GOOGLE_CLIENT_SECRET, OAUTH_MICROSOFT_CLIENT_ID,
+#   OAUTH_MICROSOFT_CLIENT_SECRET, OAUTH_APPLE_CLIENT_ID, OAUTH_APPLE_CLIENT_SECRET,
+#   OAUTH_APPLE_TEAM_ID, OAUTH_APPLE_KEY_ID, GCP_PROJECT_ID
 
 services:
   # Core API (FastAPI backend + Next.js frontend)
@@ -26,11 +37,12 @@ services:
         fromDatabase:
           name: bhapi-db
           property: connectionString
-      - key: REDIS_URL
-        fromService:
-          name: bhapi-redis
-          type: redis
-          property: connectionString
+      # Redis not provisioned yet — app uses in-memory rate limiter fallback
+      # - key: REDIS_URL
+      #   fromService:
+      #     name: bhapi-redis
+      #     type: redis
+      #     property: connectionString
       - key: SECRET_KEY
         generateValue: true
       - key: CORS_ORIGINS
@@ -86,11 +98,12 @@ services:
         fromDatabase:
           name: bhapi-db
           property: connectionString
-      - key: REDIS_URL
-        fromService:
-          name: bhapi-redis
-          type: redis
-          property: connectionString
+      # Redis not provisioned yet — jobs use DB only
+      # - key: REDIS_URL
+      #   fromService:
+      #     name: bhapi-redis
+      #     type: redis
+      #     property: connectionString
       - key: SECRET_KEY
         generateValue: true
       - key: SENDGRID_API_KEY
