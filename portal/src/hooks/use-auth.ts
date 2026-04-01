@@ -129,6 +129,17 @@ export function useAuth(): UseAuthReturn {
     []
   );
 
+  // Reset loading state when user navigates back from OAuth provider
+  useEffect(() => {
+    const handlePageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) {
+        setIsLoading(false);
+      }
+    };
+    window.addEventListener("pageshow", handlePageShow);
+    return () => window.removeEventListener("pageshow", handlePageShow);
+  }, []);
+
   const register = useCallback(
     async (data: RegisterData) => {
       setIsLoading(true);
