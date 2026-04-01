@@ -22,5 +22,4 @@ export function getLocale(): Locale {
 
 export function setLocale(locale: Locale) {
   localStorage.setItem('bhapi_locale', locale);
-  window.location.reload();
 }

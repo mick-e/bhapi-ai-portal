@@ -370,6 +370,27 @@ async def generate_school_board_report(
     return buffer.getvalue()
 
 
+async def delete_schedule(
+    db: AsyncSession, group_id: UUID, report_type: str
+) -> None:
+    """Delete a report schedule for a group and report type."""
+    result = await db.execute(
+        select(ScheduledReport).where(
+            ScheduledReport.group_id == group_id,
+            ScheduledReport.report_type == report_type,
+        )
+    )
+    schedule = result.scalar_one_or_none()
+    if schedule:
+        await db.delete(schedule)
+        await db.flush()
+        logger.info(
+            "report_schedule_deleted",
+            group_id=str(group_id),
+            report_type=report_type,
+        )
+
+
 async def list_schedules(
     db: AsyncSession, group_id: UUID
 ) -> list[ScheduledReport]:

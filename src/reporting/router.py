@@ -70,19 +70,35 @@ async def create_report(
     db: AsyncSession = Depends(get_db),
 ):
     """Create a report (frontend calls POST /api/v1/reports)."""
+    import structlog
+    from src.exceptions import ValidationError as BhapiValidationError
+
+    log = structlog.get_logger()
     gid = _gid(None, auth)
     # Map frontend "safety" back to backend "risk"
     type_map = {"safety": "risk", "activity": "activity", "spend": "spend", "compliance": "compliance"}
     report_type = type_map.get(body.type, body.type)
 
-    data = ReportRequest(
-        group_id=gid,
-        report_type=report_type,
-        format=body.format,
-        period_start=body.period_start,
-        period_end=body.period_end,
-    )
-    export = await generate_report(db, data)
+    try:
+        data = ReportRequest(
+            group_id=gid,
+            report_type=report_type,
+            format=body.format,
+            period_start=body.period_start,
+            period_end=body.period_end,
+        )
+    except Exception as exc:
+        log.warning("report_request_validation_failed", error=str(exc), type=body.type)
+        raise BhapiValidationError(f"Invalid report parameters: {exc}") from exc
+
+    try:
+        export = await generate_report(db, data)
+    except Exception as exc:
+        log.error("report_generation_failed", error=str(exc), report_type=report_type, format=body.format)
+        raise BhapiValidationError(
+            f"Failed to generate {body.type} report. Please try again or choose a different format."
+        ) from exc
+
     return _report_to_frontend(export)
 
 
@@ -168,6 +184,12 @@ async def update_schedule_endpoint(
     gid = _gid(None, auth)
     type_map = {"safety": "risk", "activity": "activity", "spend": "spend", "compliance": "compliance"}
     report_type = type_map.get(body.type, body.type)
+
+    # "none" means disable — delete existing schedule and return default
+    if body.schedule == "none":
+        from src.reporting.service import delete_schedule
+        await delete_schedule(db, gid, report_type)
+        return {"type": body.type, "schedule": "none", "format": "pdf", "recipients": []}
 
     data = ScheduleConfig(
         group_id=gid,

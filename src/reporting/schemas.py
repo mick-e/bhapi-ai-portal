@@ -44,7 +44,7 @@ class ScheduleConfig(BaseSchema):
 class CreateReportRequest(BaseSchema):
     """Create report request from frontend."""
 
-    type: str = "activity"
+    type: str = Field(default="activity", pattern="^(safety|spend|activity|compliance)$")
     format: str = Field(default="pdf", pattern="^(pdf|csv|json)$")
     period_start: str | None = None
     period_end: str | None = None
@@ -53,8 +53,8 @@ class CreateReportRequest(BaseSchema):
 class UpdateScheduleRequest(BaseSchema):
     """Update/create report schedule from frontend."""
 
-    type: str = "activity"
-    schedule: str = Field(default="weekly", pattern="^(daily|weekly|monthly)$")
+    type: str = Field(default="activity", pattern="^(safety|spend|activity|compliance)$")
+    schedule: str = Field(default="weekly", pattern="^(none|daily|weekly|monthly)$")
     recipients: list[str] = Field(default_factory=list)
 
 

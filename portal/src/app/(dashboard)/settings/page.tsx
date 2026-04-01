@@ -26,7 +26,8 @@ import {
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { locales, localeLabels, getLocale, setLocale } from "@/i18n";
+import { locales, localeLabels } from "@/i18n";
+import { useLocale } from "@/contexts/LocaleContext";
 import { useAuth } from "@/hooks/use-auth";
 import {
   useGroupSettings,
@@ -215,6 +216,7 @@ function ProfileTab({
   const [emailVal, setEmailVal] = useState(email);
   const updateProfile = useUpdateProfile();
   const { addToast } = useToast();
+  const { locale, setLocale } = useLocale();
 
   useEffect(() => {
     setName(displayName);
@@ -267,18 +269,18 @@ function ProfileTab({
           </label>
           <select
             id="locale-select"
-            value={getLocale()}
+            value={locale}
             onChange={(e) => setLocale(e.target.value as typeof locales[number])}
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           >
-            {locales.map((locale) => (
-              <option key={locale} value={locale}>
-                {localeLabels[locale]}
+            {locales.map((l) => (
+              <option key={l} value={l}>
+                {localeLabels[l]}
               </option>
             ))}
           </select>
           <p className="mt-1.5 text-sm text-gray-500">
-            Changing the language will reload the page.
+            Language changes apply immediately across the app.
           </p>
         </div>
         <div className="pt-2">

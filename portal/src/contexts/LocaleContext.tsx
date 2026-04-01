@@ -86,6 +86,7 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
   }, [locale]);
 
   const setLocale = useCallback((newLocale: Locale) => {
+    setLocaleState(newLocale);
     persistLocale(newLocale);
   }, []);
 
