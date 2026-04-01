@@ -105,8 +105,16 @@ export async function apiFetch<T>(
   if (!response.ok) {
     let detail = "An unexpected error occurred";
     try {
-      const errorBody: ApiError = await response.json();
-      detail = errorBody.detail || detail;
+      const errorBody = await response.json();
+      const raw = errorBody.detail ?? errorBody.message;
+      if (typeof raw === "string") {
+        detail = raw;
+      } else if (Array.isArray(raw)) {
+        // FastAPI validation errors: [{loc: [...], msg: "...", type: "..."}]
+        detail = raw.map((e: { msg?: string }) => e.msg || String(e)).join("; ");
+      } else if (raw) {
+        detail = String(raw);
+      }
     } catch {
       detail = response.statusText || detail;
     }
