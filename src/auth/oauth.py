@@ -74,21 +74,62 @@ class OAuthUserInfo:
     refresh_token: str | None = None
 
 
-def _get_client_credentials(provider: str) -> tuple[str, str]:
-    """Get client ID and secret for a provider. Raises if not configured."""
+def _generate_apple_client_secret() -> str:
+    """Generate Apple client secret JWT.
+
+    Apple requires a JWT signed with your private key as the client_secret
+    for the token exchange. The JWT is valid for up to 6 months.
+    See: https://developer.apple.com/documentation/sign_in_with_apple/generate_and_validate_tokens
+    """
+    now = int(time.time())
+    claims = {
+        "iss": settings.oauth_apple_team_id,
+        "iat": now,
+        "exp": now + (86400 * 180),  # 6 months
+        "aud": "https://appleid.apple.com",
+        "sub": settings.oauth_apple_client_id,
+    }
+    headers = {
+        "kid": settings.oauth_apple_key_id,
+        "alg": "ES256",
+    }
+    return jose_jwt.encode(claims, settings.oauth_apple_client_secret, algorithm="ES256", headers=headers)
+
+
+def _get_client_id(provider: str) -> str:
+    """Get client ID for a provider. Raises if not configured."""
     if provider == "google":
         client_id = settings.oauth_google_client_id
-        client_secret = settings.oauth_google_client_secret
     elif provider == "microsoft":
         client_id = settings.oauth_microsoft_client_id
-        client_secret = settings.oauth_microsoft_client_secret
     elif provider == "apple":
         client_id = settings.oauth_apple_client_id
-        client_secret = settings.oauth_apple_client_secret
     else:
         raise ValidationError(f"Unsupported OAuth provider: {provider}")
 
-    if not client_id or not client_secret:
+    if not client_id:
+        raise ValidationError(f"OAuth provider '{provider}' is not configured")
+
+    return client_id
+
+
+def _get_client_credentials(provider: str) -> tuple[str, str]:
+    """Get client ID and secret for a provider. Raises if not configured."""
+    client_id = _get_client_id(provider)
+
+    if provider == "apple":
+        if not all([settings.oauth_apple_team_id, settings.oauth_apple_key_id, settings.oauth_apple_client_secret]):
+            raise ValidationError("Apple OAuth requires TEAM_ID, KEY_ID, and private key (CLIENT_SECRET)")
+        return client_id, _generate_apple_client_secret()
+
+    if provider == "google":
+        client_secret = settings.oauth_google_client_secret
+    elif provider == "microsoft":
+        client_secret = settings.oauth_microsoft_client_secret
+    else:
+        raise ValidationError(f"Unsupported OAuth provider: {provider}")
+
+    if not client_secret:
         raise ValidationError(f"OAuth provider '{provider}' is not configured")
 
     return client_id, client_secret
@@ -103,7 +144,7 @@ def get_authorization_url(provider: str) -> tuple[str, str]:
         raise ValidationError(f"Unsupported OAuth provider: {provider}")
 
     config = PROVIDER_CONFIGS[provider]
-    client_id, _ = _get_client_credentials(provider)
+    client_id = _get_client_id(provider)
     state = secrets.token_urlsafe(32)
 
     redirect_uri = f"{settings.oauth_redirect_base_url}/api/v1/auth/oauth/{provider}/callback"
