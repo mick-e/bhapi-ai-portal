@@ -12,6 +12,7 @@ from sqlalchemy import event, select
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.pool import StaticPool
 
+from src.auth.router import _oauth_states
 from src.database import Base, get_db
 from src.main import create_app
 
@@ -216,6 +217,10 @@ async def test_google_callback_creates_new_user(mock_settings, oauth_client):
     mock_userinfo_resp.status_code = 200
     mock_userinfo_resp.json.return_value = _mock_google_userinfo_response()
 
+    # Pre-populate CSRF state store so callback validation passes
+    import time as _time
+    _oauth_states["test-state"] = _time.time() + 600
+
     with patch("src.auth.oauth.httpx.AsyncClient") as MockClient:
         mock_instance = AsyncMock()
         mock_instance.post.return_value = mock_token_resp
@@ -274,6 +279,10 @@ async def test_callback_links_to_existing_user(mock_settings, oauth_client):
     mock_userinfo_resp.status_code = 200
     mock_userinfo_resp.json.return_value = _mock_google_userinfo_response()
 
+    # Pre-populate CSRF state store so callback validation passes
+    import time as _time
+    _oauth_states["test-state"] = _time.time() + 600
+
     with patch("src.auth.oauth.httpx.AsyncClient") as MockClient:
         mock_instance = AsyncMock()
         mock_instance.post.return_value = mock_token_resp
@@ -316,6 +325,10 @@ async def test_callback_token_encryption(mock_settings, oauth_client):
     mock_userinfo_resp = MagicMock()
     mock_userinfo_resp.status_code = 200
     mock_userinfo_resp.json.return_value = _mock_google_userinfo_response()
+
+    # Pre-populate CSRF state store so callback validation passes
+    import time as _time
+    _oauth_states["test-state"] = _time.time() + 600
 
     with patch("src.auth.oauth.httpx.AsyncClient") as MockClient:
         mock_instance = AsyncMock()

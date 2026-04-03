@@ -33,6 +33,7 @@ import src.location.models  # noqa: F401
 import src.screen_time.models  # noqa: F401
 from src.database import Base, get_db
 from src.main import create_app
+from src.middleware.rate_limit import _endpoint_limiter
 
 
 async def make_test_group(session, name="Test", group_type="family", **kwargs):
@@ -71,6 +72,19 @@ async def make_test_group(session, name="Test", group_type="family", **kwargs):
     return group, owner_id
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
+
+
+@pytest.fixture(autouse=True)
+def _clear_endpoint_rate_limiter():
+    """Reset per-endpoint rate limiter between tests.
+
+    Without this, the in-memory rate limiter accumulates hits across test
+    functions (all from 127.0.0.1), causing registration to return 429
+    after ~5 tests and cascading KeyError: 'access_token' failures.
+    """
+    _endpoint_limiter._buckets.clear()
+    yield
+    _endpoint_limiter._buckets.clear()
 
 
 @pytest.fixture(scope="session")
