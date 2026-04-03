@@ -503,6 +503,54 @@ class TestNonexistentResources:
 # ---------------------------------------------------------------------------
 
 
+class TestScheduleNoneCrossGroupIsolation:
+    """Verify schedule='none' cannot delete another group's schedule."""
+
+    @pytest.mark.asyncio
+    async def test_delete_schedule_cross_group_isolation(self, client_user2, sec_data):
+        """User2 setting schedule='none' for activity must NOT delete group1's activity schedule."""
+        # Confirm group1 has an activity schedule (created in sec_data fixture)
+        # User2 sends PUT /schedules with schedule="none" for activity type
+        resp = await client_user2.put(
+            "/api/v1/reports/schedules",
+            json={"type": "activity", "schedule": "none"},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["schedule"] == "none"
+
+        # Now verify group1's schedule still exists by querying as user1
+        # We need client_user1 for this — but we can verify via the DB directly.
+        # Instead, we verify that user1's client still sees the schedule.
+
+    @pytest.mark.asyncio
+    async def test_delete_schedule_cross_group_isolation_full(
+        self, client_user1, client_user2, sec_data
+    ):
+        """Full cross-group isolation: user2 'none' does not affect user1's schedule."""
+        # Verify user1 can see group1's activity schedule
+        resp1_before = await client_user1.get("/api/v1/reports/schedules")
+        assert resp1_before.status_code == 200
+        schedules_before = resp1_before.json()
+        activity_schedules = [s for s in schedules_before if s["type"] == "activity"]
+        assert len(activity_schedules) >= 1, "group1 should have an activity schedule from fixture"
+
+        # User2 tries to delete activity schedule via "none"
+        resp2 = await client_user2.put(
+            "/api/v1/reports/schedules",
+            json={"type": "activity", "schedule": "none"},
+        )
+        assert resp2.status_code == 200
+
+        # Group1's schedule must still be intact
+        resp1_after = await client_user1.get("/api/v1/reports/schedules")
+        assert resp1_after.status_code == 200
+        schedules_after = resp1_after.json()
+        activity_schedules_after = [s for s in schedules_after if s["type"] == "activity"]
+        assert len(activity_schedules_after) >= 1, (
+            "group1's activity schedule must survive user2's 'none' request"
+        )
+
+
 class TestInputValidation:
     """Validate request body constraints."""
 

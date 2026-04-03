@@ -349,6 +349,85 @@ async def test_list_schedules_empty(report_client):
 
 
 @pytest.mark.asyncio
+async def test_update_schedule_to_none_deletes(report_client):
+    """PUT /reports/schedules with schedule='none' deletes existing schedule."""
+    token = await _register_and_login(report_client, "delsched1@test.com")
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # Create a weekly schedule via PUT (uses auth group_id)
+    create_resp = await report_client.put(
+        "/api/v1/reports/schedules",
+        json={
+            "type": "activity",
+            "schedule": "weekly",
+            "recipients": ["parent@example.com"],
+        },
+        headers=headers,
+    )
+    assert create_resp.status_code == 200
+
+    # Verify the schedule exists
+    list_resp = await report_client.get(
+        "/api/v1/reports/schedules", headers=headers
+    )
+    assert list_resp.status_code == 200
+    assert len(list_resp.json()) == 1
+    assert list_resp.json()[0]["schedule"] == "weekly"
+
+    # Update to "none" — should delete the schedule
+    update_resp = await report_client.put(
+        "/api/v1/reports/schedules",
+        json={"type": "activity", "schedule": "none"},
+        headers=headers,
+    )
+    assert update_resp.status_code == 200
+    data = update_resp.json()
+    assert data["schedule"] == "none"
+    assert data["type"] == "activity"
+    assert data["recipients"] == []
+
+    # Verify the schedule is gone
+    list_resp2 = await report_client.get(
+        "/api/v1/reports/schedules", headers=headers
+    )
+    assert list_resp2.status_code == 200
+    assert len(list_resp2.json()) == 0
+
+
+@pytest.mark.asyncio
+async def test_update_schedule_none_when_no_schedule(report_client):
+    """PUT /reports/schedules with schedule='none' succeeds even with no existing schedule."""
+    token = await _register_and_login(report_client, "delsched2@test.com")
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # Confirm no schedules exist (uses auth group)
+    list_resp = await report_client.get(
+        "/api/v1/reports/schedules", headers=headers
+    )
+    assert list_resp.status_code == 200
+    assert list_resp.json() == []
+
+    # Update to "none" — should be a no-op, still 200
+    update_resp = await report_client.put(
+        "/api/v1/reports/schedules",
+        json={"type": "spend", "schedule": "none"},
+        headers=headers,
+    )
+    assert update_resp.status_code == 200
+    data = update_resp.json()
+    assert data["schedule"] == "none"
+    assert data["type"] == "spend"
+    assert data["recipients"] == []
+
+    # Still no schedules
+    list_resp2 = await report_client.get(
+        "/api/v1/reports/schedules", headers=headers
+    )
+    assert list_resp2.status_code == 200
+    assert list_resp2.json() == []
+
+
+@pytest.mark.asyncio
 async def test_reporting_requires_auth(report_client):
     """Reporting endpoints require auth."""
     resp = await report_client.get(
