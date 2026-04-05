@@ -4,17 +4,19 @@ import { useState } from "react";
 import {
   Bell,
   AlertTriangle,
-  AlertCircle,
-  Info,
   CheckCircle2,
-  Filter,
   Loader2,
   RefreshCw,
-  ChevronLeft,
-  ChevronRight,
+  ShieldAlert,
+  MessageCircle,
+  ChevronDown,
+  ChevronUp,
+  User,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { DateRangeFilter } from "@/components/DateRangeFilter";
+import { Tabs } from "@/components/ui/Tabs";
+import { Badge } from "@/components/ui/Badge";
+import { EmptyState } from "@/components/ui/EmptyState";
 import {
   useAlerts,
   useMarkAlertActioned,
@@ -25,53 +27,43 @@ import { usePanicReports, useRespondToPanic, useQuickResponses } from "@/hooks/u
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/contexts/ToastContext";
 import type { Alert, AlertSeverity, PanicReport } from "@/types";
-import { ShieldAlert, MessageCircle } from "lucide-react";
 
-const severityIcons: Record<AlertSeverity, typeof Info> = {
-  info: Info,
-  warning: AlertTriangle,
-  error: AlertCircle,
-  critical: AlertTriangle,
+// ─── Calm language maps ────────────────────────────────────────────────────
+
+const CALM_MESSAGES: Record<string, (memberName: string) => string> = {
+  risk: (name) => `Something needs your attention regarding ${name}`,
+  spend: (name) => `${name}'s AI usage changed significantly this week`,
+  member: (name) => `${name} may need your attention`,
+  system: (name) => `Something needs your attention regarding ${name}`,
 };
 
-const severityStyles: Record<
-  AlertSeverity,
-  { border: string; bg: string; iconColor: string; badge: string }
-> = {
-  info: {
-    border: "border-l-blue-500",
-    bg: "bg-blue-50",
-    iconColor: "text-blue-500",
-    badge: "bg-blue-100 text-blue-700",
-  },
-  warning: {
-    border: "border-l-amber-500",
-    bg: "bg-amber-50",
-    iconColor: "text-amber-500",
-    badge: "bg-amber-100 text-amber-700",
-  },
-  error: {
-    border: "border-l-orange-500",
-    bg: "bg-orange-50",
-    iconColor: "text-orange-500",
-    badge: "bg-orange-100 text-orange-700",
-  },
-  critical: {
-    border: "border-l-red-700",
-    bg: "bg-red-100",
-    iconColor: "text-red-700",
-    badge: "bg-red-200 text-red-800",
-  },
+const SUGGESTED_ACTIONS: Record<string, string> = {
+  risk: "Review the details and talk with your child",
+  spend: "Check in about their AI usage habits",
+  member: "Have a calm conversation about what happened",
+  system: "Review the details and take action if needed",
 };
+
+const SEVERITY_BADGE_VARIANT: Record<AlertSeverity, "error" | "warning" | "info" | "neutral"> = {
+  critical: "error",
+  error: "error",
+  warning: "warning",
+  info: "info",
+};
+
+const SEVERITY_LABEL: Record<AlertSeverity, string> = {
+  critical: "Urgent",
+  error: "Important",
+  warning: "Heads up",
+  info: "Note",
+};
+
+// ─── Page ──────────────────────────────────────────────────────────────────
 
 export default function AlertsPage() {
   const { user } = useAuth();
   const groupId = user?.group_id || null;
-  const [filterSeverity, setFilterSeverity] = useState<string>("all");
-  const [filterType, setFilterType] = useState<string>("all");
-  const [page, setPage] = useState(1);
-  const [dateRange, setDateRange] = useState<{ start?: string; end?: string } | null>(null);
-  const pageSize = 20;
+  const [activeTab, setActiveTab] = useState<"active" | "handled">("active");
 
   const {
     data: alertsData,
@@ -79,24 +71,25 @@ export default function AlertsPage() {
     isError,
     error,
     refetch,
-  } = useAlerts({
-    page,
-    page_size: pageSize,
-    severity: filterSeverity !== "all" ? filterSeverity : undefined,
-    type: filterType !== "all" ? filterType : undefined,
-    start_date: dateRange?.start,
-    end_date: dateRange?.end,
-  });
+  } = useAlerts({ page_size: 100 });
 
   const { addToast } = useToast();
   const markActionedMutation = useMarkAlertActioned();
   const markAllReadMutation = useMarkAllAlertsRead();
   const snoozeMutation = useSnoozeAlert();
 
-  const alerts = alertsData?.items ?? [];
-  const totalPages = alertsData?.total_pages ?? 1;
-  const totalAlerts = alertsData?.total ?? 0;
-  const unreadCount = alerts.filter((a) => !a.read).length;
+  const allAlerts = alertsData?.items ?? [];
+  const activeAlerts = allAlerts.filter((a) => !a.actioned);
+  const handledAlerts = allAlerts.filter((a) => a.actioned);
+  const displayedAlerts = activeTab === "active" ? activeAlerts : handledAlerts;
+
+  // Group by member_name
+  const grouped = displayedAlerts.reduce<Record<string, Alert[]>>((acc, alert) => {
+    const key = alert.member_name || "General";
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(alert);
+    return acc;
+  }, {});
 
   function handleMarkAllRead() {
     markAllReadMutation.mutate(undefined, {
@@ -107,16 +100,16 @@ export default function AlertsPage() {
 
   function handleAcknowledge(alertId: string) {
     markActionedMutation.mutate(alertId, {
-      onSuccess: () => addToast("Alert acknowledged", "success"),
-      onError: (err) => addToast((err as Error).message || "Failed to acknowledge alert", "error"),
+      onSuccess: () => addToast("Marked as handled", "success"),
+      onError: (err) => addToast((err as Error).message || "Failed to handle alert", "error"),
     });
   }
 
-  function handleSnooze(alertId: string, hours: number) {
+  function handleSnooze(alertId: string) {
     snoozeMutation.mutate(
-      { alertId, hours },
+      { alertId, hours: 24 },
       {
-        onSuccess: () => addToast(`Alert snoozed for ${hours} hour${hours > 1 ? "s" : ""}`, "success"),
+        onSuccess: () => addToast("Alert snoozed for 24 hours", "success"),
         onError: (err) => addToast((err as Error).message || "Failed to snooze alert", "error"),
       }
     );
@@ -135,18 +128,11 @@ export default function AlertsPage() {
     return (
       <div className="flex h-64 flex-col items-center justify-center text-center">
         <AlertTriangle className="h-10 w-10 text-amber-500" />
-        <p className="mt-3 text-sm font-medium text-gray-900">
-          Failed to load alerts
-        </p>
+        <p className="mt-3 text-sm font-medium text-gray-900">Failed to load alerts</p>
         <p className="mt-1 text-sm text-gray-500">
           {(error as Error)?.message || "Something went wrong"}
         </p>
-        <Button
-          variant="secondary"
-          size="sm"
-          className="mt-4"
-          onClick={() => refetch()}
-        >
+        <Button variant="secondary" size="sm" className="mt-4" onClick={() => refetch()}>
           <RefreshCw className="h-4 w-4" />
           Try again
         </Button>
@@ -156,21 +142,13 @@ export default function AlertsPage() {
 
   return (
     <div>
-      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      {/* Header */}
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Alerts</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            {unreadCount > 0
-              ? `${unreadCount} unread alert${unreadCount > 1 ? "s" : ""}`
-              : "All caught up"}
-            {totalAlerts > 0 && (
-              <span className="ml-1 text-gray-400">
-                ({totalAlerts} total)
-              </span>
-            )}
-          </p>
+          <p className="mt-1 text-sm text-gray-500">Things that may need your attention</p>
         </div>
-        {unreadCount > 0 && (
+        {activeAlerts.filter((a) => !a.read).length > 0 && (
           <Button
             variant="secondary"
             size="sm"
@@ -183,103 +161,210 @@ export default function AlertsPage() {
         )}
       </div>
 
-      {/* Date Range */}
-      <div className="mb-4">
-        <DateRangeFilter onChange={(range) => { setDateRange(range); setPage(1); }} />
-      </div>
+      {/* Tabs */}
+      <Tabs
+        tabs={[
+          { key: "active", label: "Active", count: activeAlerts.length },
+          { key: "handled", label: "Handled", count: handledAlerts.length },
+        ]}
+        active={activeTab}
+        onChange={(key) => setActiveTab(key as "active" | "handled")}
+        className="mb-6"
+      />
 
-      {/* Filters */}
-      <div className="mb-6 flex flex-wrap items-center gap-3">
-        <Filter className="h-4 w-4 text-gray-400" />
-        <select
-          value={filterSeverity}
-          onChange={(e) => {
-            setFilterSeverity(e.target.value);
-            setPage(1);
-          }}
-          className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-        >
-          <option value="all">All severities</option>
-          <option value="critical">Critical</option>
-          <option value="error">Error</option>
-          <option value="warning">Warning</option>
-          <option value="info">Info</option>
-        </select>
-        <select
-          value={filterType}
-          onChange={(e) => {
-            setFilterType(e.target.value);
-            setPage(1);
-          }}
-          className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-        >
-          <option value="all">All types</option>
-          <option value="risk">Risk</option>
-          <option value="spend">Spend</option>
-          <option value="member">Member</option>
-          <option value="system">System</option>
-        </select>
-      </div>
-
-      {/* Alert List */}
-      <div className="space-y-3">
-        {alerts.map((alert) => (
-          <AlertCard
-            key={alert.id}
-            alert={alert}
-            onAcknowledge={handleAcknowledge}
-            onSnooze={handleSnooze}
-            isAcknowledging={
-              markActionedMutation.isPending &&
-              markActionedMutation.variables === alert.id
-            }
+      {/* Content */}
+      {displayedAlerts.length === 0 ? (
+        activeTab === "active" ? (
+          <EmptyState
+            icon={<Bell className="h-12 w-12" />}
+            title="All clear"
+            message="No active alerts right now. We'll let you know if anything needs attention."
           />
-        ))}
-
-        {alerts.length === 0 && (
-          <div className="py-12 text-center">
-            <Bell className="mx-auto h-12 w-12 text-gray-300" />
-            <p className="mt-4 text-sm text-gray-500">
-              No alerts match your filters
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="mt-6 flex items-center justify-between">
-          <p className="text-sm text-gray-500">
-            Showing {alerts.length} of {totalAlerts} alerts
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-            >
-              <ChevronLeft className="h-4 w-4" />
-              Previous
-            </Button>
-            <span className="text-sm text-gray-600">
-              Page {page} of {totalPages}
-            </span>
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={page >= totalPages}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              Next
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
+        ) : (
+          <EmptyState
+            icon={<CheckCircle2 className="h-12 w-12" />}
+            title="No handled alerts yet"
+            message="Alerts you've marked as handled will appear here."
+          />
+        )
+      ) : (
+        <div className="space-y-6">
+          {Object.entries(grouped).map(([memberName, memberAlerts]) => (
+            <ChildAlertGroup
+              key={memberName}
+              memberName={memberName}
+              alerts={memberAlerts}
+              onAcknowledge={handleAcknowledge}
+              onSnooze={handleSnooze}
+              isHandled={activeTab === "handled"}
+              markActionedVariables={markActionedMutation.variables}
+              isMarkingActioned={markActionedMutation.isPending}
+              isSnoozePending={snoozeMutation.isPending}
+              snoozeVariables={snoozeMutation.variables}
+            />
+          ))}
         </div>
       )}
 
       {/* Panic Reports Section */}
       <PanicReportsSection groupId={groupId} />
+    </div>
+  );
+}
+
+// ─── Child Alert Group ────────────────────────────────────────────────────
+
+function ChildAlertGroup({
+  memberName,
+  alerts,
+  onAcknowledge,
+  onSnooze,
+  isHandled,
+  markActionedVariables,
+  isMarkingActioned,
+  isSnoozePending,
+  snoozeVariables,
+}: {
+  memberName: string;
+  alerts: Alert[];
+  onAcknowledge: (id: string) => void;
+  onSnooze: (id: string) => void;
+  isHandled: boolean;
+  markActionedVariables?: string;
+  isMarkingActioned: boolean;
+  isSnoozePending: boolean;
+  snoozeVariables?: { alertId: string; hours: number };
+}) {
+  const [expanded, setExpanded] = useState(true);
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
+      {/* Group header */}
+      <button
+        className="flex w-full items-center justify-between px-4 py-3 text-left"
+        onClick={() => setExpanded((v) => !v)}
+        aria-expanded={expanded}
+      >
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+            <User className="h-4 w-4 text-primary" />
+          </div>
+          <span className="text-sm font-semibold text-gray-900">{memberName}</span>
+          <Badge variant={isHandled ? "success" : "warning"}>
+            {alerts.length} {alerts.length === 1 ? "alert" : "alerts"}
+          </Badge>
+        </div>
+        {expanded ? (
+          <ChevronUp className="h-4 w-4 text-gray-400" />
+        ) : (
+          <ChevronDown className="h-4 w-4 text-gray-400" />
+        )}
+      </button>
+
+      {/* Alert list */}
+      {expanded && (
+        <div className="divide-y divide-gray-100 border-t border-gray-100">
+          {alerts.map((alert) => (
+            <CalmAlertRow
+              key={alert.id}
+              alert={alert}
+              memberName={memberName}
+              onAcknowledge={onAcknowledge}
+              onSnooze={onSnooze}
+              isHandled={isHandled}
+              isAcknowledging={isMarkingActioned && markActionedVariables === alert.id}
+              isSnoozingThis={isSnoozePending && snoozeVariables?.alertId === alert.id}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Calm Alert Row ────────────────────────────────────────────────────────
+
+function CalmAlertRow({
+  alert,
+  memberName,
+  onAcknowledge,
+  onSnooze,
+  isHandled,
+  isAcknowledging,
+  isSnoozingThis,
+}: {
+  alert: Alert;
+  memberName: string;
+  onAcknowledge: (id: string) => void;
+  onSnooze: (id: string) => void;
+  isHandled: boolean;
+  isAcknowledging: boolean;
+  isSnoozingThis: boolean;
+}) {
+  const calmMessage =
+    (CALM_MESSAGES[alert.type] ?? CALM_MESSAGES.system)(memberName);
+  const suggestion =
+    SUGGESTED_ACTIONS[alert.type] ?? SUGGESTED_ACTIONS.system;
+  const badgeVariant = SEVERITY_BADGE_VARIANT[alert.severity] ?? "neutral";
+  const severityLabel = SEVERITY_LABEL[alert.severity] ?? alert.severity;
+  const timeLabel = formatRelativeTime(alert.created_at);
+  const isSnoozed = alert.snoozed_until && new Date(alert.snoozed_until) > new Date();
+
+  return (
+    <div className={`px-4 py-4 ${isSnoozed ? "opacity-60" : ""}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant={badgeVariant}>{severityLabel}</Badge>
+            {isSnoozed && <Badge variant="neutral">Snoozed</Badge>}
+            {!alert.read && (
+              <span className="inline-block h-2 w-2 rounded-full bg-primary" aria-label="Unread" />
+            )}
+          </div>
+          <p className="mt-1.5 text-sm font-medium text-gray-900">{calmMessage}</p>
+          <p className="mt-0.5 text-xs text-gray-500">{suggestion}</p>
+        </div>
+        <span className="flex-shrink-0 text-xs text-gray-400">{timeLabel}</span>
+      </div>
+
+      {/* Action buttons */}
+      {!isHandled && (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => onAcknowledge(alert.id)}
+            isLoading={isAcknowledging}
+          >
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            Mark as handled
+          </Button>
+          {!isSnoozed && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => onSnooze(alert.id)}
+              isLoading={isSnoozingThis}
+            >
+              Snooze 24h
+            </Button>
+          )}
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => {/* View details — future nav */}}
+          >
+            View details
+          </Button>
+        </div>
+      )}
+
+      {isHandled && (
+        <div className="mt-2 flex items-center gap-1 text-xs text-green-600">
+          <CheckCircle2 className="h-3.5 w-3.5" />
+          Handled
+        </div>
+      )}
     </div>
   );
 }
@@ -337,7 +422,9 @@ function PanicReportsSection({ groupId }: { groupId: string | null }) {
                     }`}
                   />
                   <span className="text-sm font-semibold text-gray-900">
-                    {report.category.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())}
+                    {report.category
+                      .replace(/_/g, " ")
+                      .replace(/\b\w/g, (c: string) => c.toUpperCase())}
                   </span>
                   {report.platform && (
                     <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
@@ -356,9 +443,7 @@ function PanicReportsSection({ groupId }: { groupId: string | null }) {
                 {report.parent_response && (
                   <div className="mt-2 flex items-start gap-1.5">
                     <MessageCircle className="mt-0.5 h-3.5 w-3.5 text-teal-500" />
-                    <p className="text-xs text-teal-700">
-                      Parent: {report.parent_response}
-                    </p>
+                    <p className="text-xs text-teal-700">Parent: {report.parent_response}</p>
                   </div>
                 )}
               </div>
@@ -367,7 +452,6 @@ function PanicReportsSection({ groupId }: { groupId: string | null }) {
               </span>
             </div>
 
-            {/* Quick-response buttons for unresolved reports */}
             {!report.resolved && (
               <div className="mt-3 flex flex-wrap gap-2">
                 {quickResponses.map((response: string) => (
@@ -393,116 +477,6 @@ function PanicReportsSection({ groupId }: { groupId: string | null }) {
   );
 }
 
-// ─── Sub-components ─────────────────────────────────────────────────────────
-
-function AlertCard({
-  alert,
-  onAcknowledge,
-  onSnooze,
-  isAcknowledging,
-}: {
-  alert: Alert;
-  onAcknowledge: (id: string) => void;
-  onSnooze: (id: string, hours: number) => void;
-  isAcknowledging: boolean;
-}) {
-  const style = severityStyles[alert.severity] || severityStyles.info;
-  const SeverityIcon = severityIcons[alert.severity] || Info;
-  const timeLabel = formatRelativeTime(alert.created_at);
-  const isSnoozed = alert.snoozed_until && new Date(alert.snoozed_until) > new Date();
-
-  return (
-    <div
-      className={`rounded-r-xl border-l-4 ${style.border} ${
-        alert.read ? "bg-white" : style.bg
-      } ${isSnoozed ? "opacity-60" : ""} p-4 shadow-sm ring-1 ring-gray-200`}
-    >
-      <div className="flex items-start gap-3">
-        <SeverityIcon
-          className={`mt-0.5 h-5 w-5 flex-shrink-0 ${style.iconColor}`}
-        />
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <div className="flex items-center gap-2">
-                <h3
-                  className={`text-sm font-semibold ${
-                    alert.read ? "text-gray-700" : "text-gray-900"
-                  }`}
-                >
-                  {alert.title}
-                </h3>
-                {!alert.read && (
-                  <span className="inline-block h-2 w-2 rounded-full bg-primary" />
-                )}
-                <span
-                  className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${style.badge}`}
-                >
-                  {alert.severity}
-                </span>
-                {isSnoozed && (
-                  <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-500">
-                    Snoozed
-                  </span>
-                )}
-              </div>
-              <div className="mt-0.5 flex items-center gap-2">
-                {alert.member_name && (
-                  <span className="text-xs text-gray-400">
-                    Member: {alert.member_name}
-                  </span>
-                )}
-                <span className="text-xs capitalize text-gray-400">
-                  {alert.type}
-                </span>
-              </div>
-            </div>
-            <span className="flex-shrink-0 text-xs text-gray-400">
-              {timeLabel}
-            </span>
-          </div>
-          <p className="mt-1 text-sm text-gray-600">{alert.message}</p>
-          {!alert.actioned && (
-            <div className="mt-3 flex items-center gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => onAcknowledge(alert.id)}
-                isLoading={isAcknowledging}
-              >
-                Acknowledge
-              </Button>
-              {!isSnoozed && (
-                <select
-                  onChange={(e) => {
-                    const hours = parseInt(e.target.value);
-                    if (hours) onSnooze(alert.id, hours);
-                    e.target.value = "";
-                  }}
-                  defaultValue=""
-                  className="rounded-lg border border-gray-300 px-2 py-1.5 text-xs text-gray-600 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  aria-label="Snooze alert"
-                >
-                  <option value="" disabled>Snooze...</option>
-                  <option value="1">1 hour</option>
-                  <option value="4">4 hours</option>
-                  <option value="24">24 hours</option>
-                </select>
-              )}
-            </div>
-          )}
-          {alert.actioned && (
-            <div className="mt-2 flex items-center gap-1 text-xs text-green-600">
-              <CheckCircle2 className="h-3.5 w-3.5" />
-              Acknowledged
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 function formatRelativeTime(timestamp: string): string {
@@ -516,10 +490,8 @@ function formatRelativeTime(timestamp: string): string {
 
     if (diffMins < 1) return "just now";
     if (diffMins < 60) return `${diffMins} min ago`;
-    if (diffHours < 24)
-      return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
-    if (diffDays < 7)
-      return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
     return date.toLocaleDateString();
   } catch {
     return timestamp;
