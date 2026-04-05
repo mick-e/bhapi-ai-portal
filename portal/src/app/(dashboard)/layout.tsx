@@ -17,7 +17,6 @@ import {
   Menu,
   X,
   ChevronDown,
-  Ban,
   BarChart3,
   Plug,
 } from "lucide-react";
@@ -26,19 +25,29 @@ import { useAuth } from "@/hooks/use-auth";
 import { useAlerts } from "@/hooks/use-alerts";
 import { useTrialStatus } from "@/hooks/use-billing";
 
-const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/members", label: "Members", icon: Users },
-  { href: "/activity", label: "Activity", icon: Activity },
-  { href: "/risks", label: "Risks", icon: ShieldAlert },
-  { href: "/alerts", label: "Alerts", icon: Bell },
-  { href: "/spend", label: "Spend", icon: CreditCard },
-  { href: "/consent", label: "Consent", icon: ShieldCheck },
-  { href: "/blocking", label: "Blocking", icon: Ban },
-  { href: "/analytics", label: "Analytics", icon: BarChart3 },
-  { href: "/integrations", label: "Integrations", icon: Plug },
-  { href: "/reports", label: "Reports", icon: FileBarChart },
-  { href: "/settings", label: "Settings", icon: Settings },
+type AccountType = "family" | "school" | "club";
+
+interface NavItem {
+  href: string;
+  label: string;
+  icon: any; // Lucide icon component
+  roles: AccountType[];
+}
+
+const navItems: NavItem[] = [
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["family", "school", "club"] },
+  { href: "/members", label: "Children", icon: Users, roles: ["family"] },
+  { href: "/members", label: "Students", icon: Users, roles: ["school"] },
+  { href: "/members", label: "Members", icon: Users, roles: ["club"] },
+  { href: "/activity", label: "Activity", icon: Activity, roles: ["family", "school", "club"] },
+  { href: "/alerts", label: "Alerts", icon: Bell, roles: ["family", "school", "club"] },
+  { href: "/classes", label: "Classes", icon: ShieldCheck, roles: ["school"] },
+  { href: "/compliance", label: "Compliance", icon: ShieldAlert, roles: ["school"] },
+  { href: "/spend", label: "Spend", icon: CreditCard, roles: ["family", "school"] },
+  { href: "/analytics", label: "Analytics", icon: BarChart3, roles: ["family", "school", "club"] },
+  { href: "/reports", label: "Reports", icon: FileBarChart, roles: ["family", "school", "club"] },
+  { href: "/integrations", label: "Integrations", icon: Plug, roles: ["school"] },
+  { href: "/settings", label: "Settings", icon: Settings, roles: ["family", "school", "club"] },
 ];
 
 export default function DashboardLayout({
@@ -49,6 +58,8 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuth();
+  const accountType = (user?.account_type || "family") as AccountType;
+  const visibleItems = navItems.filter((item) => item.roles.includes(accountType));
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);
@@ -108,13 +119,13 @@ export default function DashboardLayout({
         {/* Navigation */}
         <nav aria-label="Sidebar navigation" className="flex-1 overflow-y-auto px-3 py-4">
           <ul className="space-y-1">
-            {navItems.map((item) => {
+            {visibleItems.map((item) => {
               const isActive =
                 pathname === item.href ||
                 (item.href !== "/dashboard" && pathname.startsWith(item.href));
               const Icon = item.icon;
               return (
-                <li key={item.href}>
+                <li key={`${item.href}-${item.label}`}>
                   <Link
                     href={item.href}
                     onClick={() => setSidebarOpen(false)}
