@@ -6,13 +6,13 @@ AI safety governance platform at **bhapi.ai** for parents, school admins, and cl
 
 **Optimizes for:** Child safety, regulatory compliance (COPPA/GDPR/LGPD), real-time alerting, data privacy.
 **Stack:** FastAPI (Python 3.11) + Next.js 15 (TypeScript) + PostgreSQL 16
-**Version:** 3.0.0 (Phase 1 — Moat Defense + Safety Foundation complete)
+**Version:** 4.0.0 (Phase 1 complete + Launch Excellence — production-ready UX, calm design, mobile wired to real APIs)
 
 ## 2. Tech Stack
 
 **Backend:** Python 3.11, FastAPI, SQLAlchemy 2.x async (asyncpg/aiosqlite), Alembic, Pydantic v2, structlog, httpx
 **Frontend:** Next.js 15 App Router (static export), TypeScript, Tailwind CSS, React Query, Lucide icons
-**Infra:** PostgreSQL 16, Redis (optional — disabled in tests, in-memory rate limiter fallback), Stripe, SendGrid, Twilio
+**Infra:** PostgreSQL 16, Redis 7 (provisioned on Render — no longer optional; in-memory fallback only in tests), Stripe, SendGrid, Twilio
 **Extension:** Manifest V3 (Chrome + Firefox + Safari) — monitors 10 AI platforms
 
 ### Do Not Introduce
@@ -28,9 +28,10 @@ AI safety governance platform at **bhapi.ai** for parents, school admins, and cl
 ## 3. Architecture
 
 ### 3-Service Model
-- **core-api:** All 26 modules served from single FastAPI app (`src/main.py`, ~250+ routes)
-- **realtime:** Separate WebSocket FastAPI app (`src/realtime/main.py`) — JWT auth, connections, Redis pub/sub, presence
-- **jobs:** Background cron runner for risk processing, email delivery, spend sync
+- **core-api:** All 26 modules served from single FastAPI app (`src/main.py`, ~250+ routes). DB connection pool: 20 connections (configurable via `DB_POOL_SIZE`)
+- **realtime:** Separate WebSocket FastAPI app (`src/realtime/main.py`) — JWT auth, connections, Redis pub/sub, presence. Deployed as separate Render web service (`Dockerfile.realtime`). DB pool: 10 connections
+- **jobs:** Background cron runner for risk processing, email delivery, spend sync. DB pool: 5 connections
+- **Total DB connections:** 35 (20 monolith + 10 WebSocket + 5 jobs), configurable via `DB_POOL_SIZE` env var
 
 ### Modules
 | Module | Prefix | Description |
@@ -39,7 +40,7 @@ AI safety governance platform at **bhapi.ai** for parents, school admins, and cl
 | `groups/` | `/api/v1/groups` | Groups, members, invitations, consent (COPPA/GDPR/LGPD), member cap enforcement |
 | `capture/` | `/api/v1/capture` | Event ingestion from extension/DNS/API, enriched listing, consent enforcement |
 | `risk/` | `/api/v1/risk` | PII detection, safety classification, rules engine, content excerpt encryption + TTL, safety scores, deepfake detection |
-| `alerts/` | `/api/v1/alerts` | Notifications, email delivery, digest batching, re-notification (persistent) |
+| `alerts/` | `/api/v1/alerts` | Notifications, email delivery, digest batching, re-notification (persistent). Calm parent-friendly templates in `src/alerts/calm_templates.py` — maps risk events to suggested-action messages |
 | `billing/` | `/api/v1/billing` | Stripe subscriptions/checkout/portal, per-seat pricing, LLM spend (OpenAI/Anthropic/Google/Microsoft/xAI), API key revocation, tiered plans, vendor risk |
 | `reporting/` | `/api/v1/reports` | Reports, PDF/CSV export, scheduling |
 | `portal/` | `/api/v1/portal` | BFF dashboard aggregation, group settings |
@@ -57,7 +58,7 @@ AI safety governance platform at **bhapi.ai** for parents, school admins, and cl
 | `age_tier/` | `/api/v1/age-tier` | Permission engine (3-tier: young 5-9, preteen 10-12, teen 13-15), tier assignment, feature overrides |
 | `social/` | `/api/v1/social` | Feed, posts, comments, likes, profiles, follow/unfollow, hashtags |
 | `contacts/` | `/api/v1/contacts` | Contact requests with parent approval gate, blocking |
-| `moderation/` | `/api/v1/moderation` | Pre-publish pipeline, keyword filter, image/video classification, CSAM detection, social risk, takedown, eSafety |
+| `moderation/` | `/api/v1/moderation` | Pre-publish pipeline, keyword filter, image/video classification, CSAM detection, social risk, takedown, eSafety. `/moderation` dashboard page shows live SLA metrics (p50/p95 latency, queue depth, breach count) |
 | `governance/` | `/api/v1/governance` | AI policy templates (Ohio mandate), tool inventory, risk assessment, compliance dashboard |
 | `media/` | `/api/v1/media` | Cloudflare R2 upload, Images resize, Stream transcode |
 | `messaging/` | `/api/v1/messages` | Conversation + message CRUD (skeleton — full real-time in Phase 2) |
@@ -122,10 +123,35 @@ All custom exceptions inherit from `src.exceptions.BhapiException`:
 
 - **Brand:** Orange `#FF6B35` primary, Teal `#0D9488` accent, Inter font
 - **WCAG AA contrast:** Buttons use `bg-primary-600` (not `bg-primary`), text links use `text-primary-700`
-- **UI components:** `portal/src/components/ui/` — Card, Button (variants/sizes/isLoading), Input
+- **UI components:** `portal/src/components/ui/` — Card, Button (variants/sizes/isLoading), Input, Select, Modal, Tabs, EmptyState, Badge
 - **Logo:** PNG only. `BhapiLogo` component (`portal/src/components/BhapiLogo.tsx`) renders `/logo.png` via plain `<img>`. NEVER create SVG logos/favicons
 - **Static assets:** `portal/public/logo.png` (wordmark+smile), `icon.png` (circular app icon), `favicon.ico` (generated from `icon.png` via Pillow), `hero-bg.svg` (yellow/beige pattern background for landing page hero section, opacity 0.35)
 - **Source files:** `bhapi logo@2x.png` (wordmark+smile), `bhapi app icon circle.png` (circular icon), `Zoom Bhapi Yellow1.svg` (hero background source)
+
+### Dashboard Design ("Calm Safety" philosophy)
+- **"Calm Dashboard"** — 3-zone layout: (1) Family Safety Score, (2) Actions Needed (progressive disclosure — shows critical first, expand for more), (3) Weekly Summary
+- **Philosophy:** Lead with safety status, not raw data. Parents see "Everything looks good" or a clear action to take — never a wall of numbers
+- COPPA/GDPR compliance badges on landing page; Transparency card on dashboard; Data deletion counter on privacy settings page
+
+### Alerts UX
+- Alerts grouped by child name (not severity)
+- Calm, parent-friendly language with suggested actions per alert
+- **Active / Handled tabs** — replaces severity-based filtering
+
+### Role-Based Navigation
+- Sidebar filtered by `account_type`:
+  - **family** — Children, Activity, Alerts, Safety
+  - **school** — Students, Classes, Compliance
+  - **club** — Members, Activity
+
+### Settings Split
+- `/settings` — Profile + Notifications only
+- `/safety` — Safety rules + Emergency contacts (new page, previously in /settings)
+- `/billing` — Billing & subscription
+- `/developers` — API keys
+
+### Onboarding
+- Non-blocking contextual cards (no modal wizard). Dashboard is visible immediately after registration; onboarding tips appear inline as contextual cards on relevant sections
 
 ## 6. Content and Copy Guidance
 
@@ -258,6 +284,10 @@ The Bhapi platform is being unified per the design spec at `docs/superpowers/spe
 - **Tests:** 213 passing across 7 packages (`cd mobile && npx turbo run test`)
 - **Safety app:** Auth screens, dashboard, alerts, groups, settings (12 screens)
 - **Social app:** Feed, chat, profile, settings screen shells (6 screens)
+- **API integration:** All mobile screens wired to real API endpoints (no more stubs or mock data)
+- **Empty states:** Friendly messages on all key screens (no blank/loading-only states)
+- **Accessibility:** `MotionProvider` (reduce motion), `ContrastProvider` (high contrast), `FontProvider` (OpenDyslexic toggle) in shared-ui
+- **Dark mode:** Dark color scheme available across both apps
 
 ### Phase 1 Backend Modules (IMPLEMENTED)
 | Module | Prefix | Purpose | Status |
@@ -305,7 +335,7 @@ bhapi-inc/bhapi-api, bhapi-inc/bhapi-mobile, bhapi-inc/back-office — all archi
 | Variable | Description | Required |
 |----------|-------------|----------|
 | `DATABASE_URL` | PostgreSQL connection string | Yes |
-| `REDIS_URL` | Redis connection (empty = disabled, in-memory fallback) | No |
+| `REDIS_URL` | Redis 7 connection (required in production; empty = in-memory fallback for tests only) | Production |
 | `SECRET_KEY` | JWT signing + Fernet encryption key (min 32 chars in prod) | Yes |
 | `ENVIRONMENT` | development/staging/production/test | Yes |
 | `CORS_ORIGINS` | Comma-separated allowed origins | No |
