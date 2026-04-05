@@ -25,6 +25,13 @@ import {
 } from 'react-native';
 import { colors, spacing, typography } from '@bhapi/config';
 import { Card, Badge, RiskScoreCard } from '@bhapi/ui';
+import { ApiClient } from '@bhapi/api';
+import { tokenManager } from '@bhapi/auth';
+
+const apiClient = new ApiClient({
+  baseUrl: '',
+  getToken: () => tokenManager.getToken(),
+});
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -140,23 +147,34 @@ export default function UnifiedDashboardScreen() {
     try {
       setState('loading');
       // Parallel fetches — each is optional (null on failure)
-      // In production replace with real apiClient calls:
-      // const [riskScore, activityResp, social, screenTime, location, alerts] =
-      //   await Promise.allSettled([
-      //     apiClient.get('/api/v1/risk/score?member_id=' + memberId),
-      //     apiClient.get('/api/v1/capture/events?member_id=' + memberId + '&page_size=5'),
-      //     apiClient.get('/api/v1/social/summary?member_id=' + memberId),
-      //     apiClient.get('/api/v1/screen-time/summary?member_id=' + memberId),
-      //     apiClient.get('/api/v1/location/last?member_id=' + memberId),
-      //     apiClient.get('/api/v1/alerts?read=false&page_size=1'),
-      //   ]);
+      const [riskScore, activityResp, social, screenTime, location, alerts] =
+        await Promise.allSettled([
+          apiClient.get<RiskScoreData>('/api/v1/portal/dashboard'),
+          apiClient.get<{ items: Array<{ platform: string }> }>('/api/v1/capture/events?page_size=5'),
+          apiClient.get<SocialData>('/api/v1/social/summary'),
+          apiClient.get<ScreenTimeData>('/api/v1/screen-time/summary'),
+          apiClient.get<LocationData>('/api/v1/location/last'),
+          apiClient.get<{ total: number }>('/api/v1/alerts?read=false&page_size=1'),
+        ]);
+
+      const resolvedRisk = riskScore.status === 'fulfilled' ? riskScore.value : null;
+      const resolvedActivity = activityResp.status === 'fulfilled'
+        ? { events_today: activityResp.value.items?.length ?? 0, top_platforms: [...new Set(activityResp.value.items?.map((e) => e.platform) ?? [])] as string[] }
+        : null;
+      const resolvedSocial = social.status === 'fulfilled' ? social.value : null;
+      const resolvedScreenTime = screenTime.status === 'fulfilled' ? screenTime.value : null;
+      const resolvedLocation = location.status === 'fulfilled' ? location.value : null;
+      const resolvedAlerts = alerts.status === 'fulfilled' ? alerts.value : null;
+
       setData({
-        riskScore: null,
-        aiActivity: null,
-        social: null,
-        screenTime: null,
-        location: null,
-        actionCenter: null,
+        riskScore: resolvedRisk,
+        aiActivity: resolvedActivity,
+        social: resolvedSocial,
+        screenTime: resolvedScreenTime,
+        location: resolvedLocation,
+        actionCenter: resolvedAlerts
+          ? { pending_approvals: 0, unread_alerts: resolvedAlerts.total, pending_extension_requests: 0 }
+          : null,
       });
       setState('loaded');
     } catch (e: unknown) {

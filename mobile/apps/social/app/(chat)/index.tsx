@@ -21,6 +21,13 @@ import {
 import { colors, spacing, typography } from '@bhapi/config';
 import type { AgeTier } from '@bhapi/config';
 import { Avatar, AgeTierGate } from '@bhapi/ui';
+import { ApiClient } from '@bhapi/api';
+import { tokenManager } from '@bhapi/auth';
+
+const apiClient = new ApiClient({
+  baseUrl: '',
+  getToken: () => tokenManager.getToken(),
+});
 
 interface Conversation {
   id: string;
@@ -72,16 +79,20 @@ export default function ChatListScreen() {
 
   function loadConversations() {
     setState('loading');
-    // API call: GET /api/v1/messages/conversations?page=1&page_size=20
-    // In production, use apiClient from shared-api package
-    // apiClient.get('/api/v1/messages/conversations', {
-    //   params: { page: 1, page_size: PAGE_SIZE },
-    // }).then(response => {
-    //   setConversations(response.items);
-    //   setHasMore(response.items.length === PAGE_SIZE);
-    // }).catch(e => { setState('error'); setError(e?.message ?? '...'); });
-    setPage(1);
-    setState('loaded');
+    apiClient
+      .get<{ items: Conversation[]; total: number }>(
+        `/api/v1/messages/conversations?page=1&page_size=${PAGE_SIZE}`
+      )
+      .then((response) => {
+        setConversations(response.items);
+        setHasMore(response.items.length === PAGE_SIZE);
+        setPage(1);
+        setState('loaded');
+      })
+      .catch((e: any) => {
+        setState('error');
+        setError(e?.message ?? 'Could not load conversations.');
+      });
   }
 
   useEffect(() => {
@@ -96,13 +107,16 @@ export default function ChatListScreen() {
   async function loadMore() {
     if (!hasMore || state === 'loading') return;
     const nextPage = page + 1;
-    // API call: GET /api/v1/messages/conversations?page={nextPage}&page_size=20
-    // const response = await apiClient.get('/api/v1/messages/conversations', {
-    //   params: { page: nextPage, page_size: PAGE_SIZE },
-    // });
-    // setConversations(prev => [...prev, ...response.items]);
-    // setHasMore(response.items.length === PAGE_SIZE);
-    setPage(nextPage);
+    try {
+      const response = await apiClient.get<{ items: Conversation[]; total: number }>(
+        `/api/v1/messages/conversations?page=${nextPage}&page_size=${PAGE_SIZE}`
+      );
+      setConversations((prev) => [...prev, ...response.items]);
+      setHasMore(response.items.length === PAGE_SIZE);
+      setPage(nextPage);
+    } catch {
+      // Silently fail on load-more — user can scroll back
+    }
   }
 
   function renderConversation({ item }: { item: Conversation }) {

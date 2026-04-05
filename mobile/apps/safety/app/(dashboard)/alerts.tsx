@@ -18,6 +18,20 @@ import {
 import { colors, spacing, typography } from '@bhapi/config';
 import { Badge, Card } from '@bhapi/ui';
 import type { Alert, AlertSeverity, AlertSource, AlertStatus } from '@bhapi/types';
+import { ApiClient } from '@bhapi/api';
+import { tokenManager } from '@bhapi/auth';
+
+interface PagedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+const apiClient = new ApiClient({
+  baseUrl: '',
+  getToken: () => tokenManager.getToken(),
+});
 
 type FilterSource = AlertSource | 'all';
 type FilterSeverity = AlertSeverity | 'all';
@@ -66,12 +80,11 @@ export default function AlertsScreen() {
     try {
       setLoading(true);
       setError('');
-      // API call: GET /api/v1/alerts/unified?source=<filter>&severity=<filter>
-      // const params = new URLSearchParams();
-      // if (sourceFilter !== 'all') params.append('source', sourceFilter);
-      // if (severityFilter !== 'all') params.append('severity', severityFilter);
-      // const response = await apiClient.get<PagedResponse<Alert>>(`/api/v1/alerts/unified?${params}`);
-      // setAlerts(response.items);
+      const params = new URLSearchParams();
+      if (sourceFilter !== 'all') params.append('source', sourceFilter);
+      if (severityFilter !== 'all') params.append('severity', severityFilter);
+      const response = await apiClient.get<PagedResponse<Alert>>(`/api/v1/alerts?${params}`);
+      setAlerts(response.items);
       setLoading(false);
     } catch (e: any) {
       setError(e?.message ?? 'Failed to load alerts.');

@@ -26,6 +26,13 @@ import type {
   Alert,
   AlertSeverity,
 } from '@bhapi/types';
+import { ApiClient } from '@bhapi/api';
+import { tokenManager } from '@bhapi/auth';
+
+const apiClient = new ApiClient({
+  baseUrl: '',
+  getToken: () => tokenManager.getToken(),
+});
 
 type DashboardState = 'loading' | 'loaded' | 'error';
 
@@ -49,9 +56,8 @@ export default function DashboardScreen() {
   async function loadDashboard() {
     try {
       setState('loading');
-      // API call: GET /api/v1/portal/dashboard
-      // const response = await apiClient.get<DashboardData>('/api/v1/portal/dashboard');
-      // setData(response);
+      const response = await apiClient.get<DashboardData>('/api/v1/portal/dashboard');
+      setData(response);
       setState('loaded');
     } catch (e: any) {
       setState('error');

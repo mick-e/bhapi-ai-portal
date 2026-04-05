@@ -28,6 +28,13 @@ import {
 import { colors, spacing, typography } from '@bhapi/config';
 import type { AgeTier } from '@bhapi/config';
 import { Avatar, AgeTierGate } from '@bhapi/ui';
+import { ApiClient } from '@bhapi/api';
+import { tokenManager } from '@bhapi/auth';
+
+const apiClient = new ApiClient({
+  baseUrl: '',
+  getToken: () => tokenManager.getToken(),
+});
 
 // ---------------------------------------------------------------------------
 // Types
@@ -117,13 +124,11 @@ export default function ConversationScreen() {
   async function loadMessages() {
     try {
       setState('loading');
-      // GET /api/v1/messages/conversations/{id}/messages?page=1&page_size=30
-      // const response = await apiClient.get(
-      //   `/api/v1/messages/conversations/${conversationId}/messages`,
-      //   { params: { page: 1, page_size: PAGE_SIZE } },
-      // );
-      // setMessages(response.items.reverse());
-      // setHasMore(response.items.length === PAGE_SIZE);
+      const response = await apiClient.get<{ items: ChatMessage[]; total: number }>(
+        `/api/v1/messages/conversations/${conversationId}/messages?page=1&page_size=${PAGE_SIZE}`
+      );
+      setMessages([...response.items].reverse());
+      setHasMore(response.items.length === PAGE_SIZE);
       setPage(1);
       setState('loaded');
     } catch (e: any) {
@@ -135,13 +140,16 @@ export default function ConversationScreen() {
   async function loadOlderMessages() {
     if (!hasMore || state === 'loading') return;
     const nextPage = page + 1;
-    // const response = await apiClient.get(
-    //   `/api/v1/messages/conversations/${conversationId}/messages`,
-    //   { params: { page: nextPage, page_size: PAGE_SIZE } },
-    // );
-    // setMessages(prev => [...response.items.reverse(), ...prev]);
-    // setHasMore(response.items.length === PAGE_SIZE);
-    setPage(nextPage);
+    try {
+      const response = await apiClient.get<{ items: ChatMessage[]; total: number }>(
+        `/api/v1/messages/conversations/${conversationId}/messages?page=${nextPage}&page_size=${PAGE_SIZE}`
+      );
+      setMessages((prev) => [...[...response.items].reverse(), ...prev]);
+      setHasMore(response.items.length === PAGE_SIZE);
+      setPage(nextPage);
+    } catch {
+      // Silently fail on load-older
+    }
   }
 
   async function markAsRead() {
@@ -162,12 +170,6 @@ export default function ConversationScreen() {
       setInputText('');
       stopTypingIndicator();
 
-      // POST /api/v1/messages/conversations/{id}/messages
-      // const message = await apiClient.post(
-      //   `/api/v1/messages/conversations/${conversationId}/messages`,
-      //   { content: trimmed },
-      // );
-
       // Optimistic add
       const optimisticMessage: ChatMessage = {
         id: `temp-${Date.now()}`,
@@ -178,7 +180,13 @@ export default function ConversationScreen() {
         moderation_status: 'pending',
         created_at: new Date().toISOString(),
       };
-      setMessages(prev => [...prev, optimisticMessage]);
+      setMessages((prev) => [...prev, optimisticMessage]);
+
+      // POST /api/v1/messages/conversations/{id}/messages
+      await apiClient.post(
+        `/api/v1/messages/conversations/${conversationId}/messages`,
+        { content: trimmed }
+      );
 
       setState('loaded');
     } catch (e: any) {

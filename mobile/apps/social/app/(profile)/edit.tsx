@@ -18,6 +18,13 @@ import {
 import { colors, spacing, typography } from '@bhapi/config';
 import { Avatar, Button, Input } from '@bhapi/ui';
 import type { Profile, ProfileVisibility } from '@bhapi/types';
+import { ApiClient } from '@bhapi/api';
+import { tokenManager } from '@bhapi/auth';
+
+const apiClient = new ApiClient({
+  baseUrl: '',
+  getToken: () => tokenManager.getToken(),
+});
 
 type EditState = 'idle' | 'loading' | 'saving' | 'saved' | 'error';
 
@@ -69,12 +76,11 @@ export default function EditProfileScreen() {
   async function loadProfile() {
     try {
       setState('loading');
-      // API call: GET /api/v1/social/profiles/me
-      // const profile = await apiClient.get<Profile>('/api/v1/social/profiles/me');
-      // setDisplayName(profile.display_name);
-      // setBio(profile.bio ?? '');
-      // setAvatarUrl(profile.avatar_url);
-      // setVisibility(profile.visibility ?? 'friends_only');
+      const profile = await apiClient.get<Profile>('/api/v1/social/profiles/me');
+      setDisplayName(profile.display_name);
+      setBio(profile.bio ?? '');
+      setAvatarUrl(profile.avatar_url ?? null);
+      setVisibility((profile as any).visibility ?? 'friends_only');
       setState('idle');
     } catch (e: any) {
       setState('error');
@@ -115,13 +121,12 @@ export default function EditProfileScreen() {
     try {
       setState('saving');
       setFormError(null);
-      // API call: PUT /api/v1/social/profiles/me
-      // await apiClient.put('/api/v1/social/profiles/me', {
-      //   display_name: displayName.trim(),
-      //   bio: bio.trim() || null,
-      //   avatar_url: avatarUrl,
-      //   visibility,
-      // });
+      await apiClient.put('/api/v1/social/profiles/me', {
+        display_name: displayName.trim(),
+        bio: bio.trim() || null,
+        avatar_url: avatarUrl,
+        visibility,
+      });
       setState('saved');
     } catch (e: any) {
       setState('error');

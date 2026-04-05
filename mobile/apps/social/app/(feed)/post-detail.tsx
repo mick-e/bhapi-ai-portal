@@ -25,6 +25,13 @@ import {
 import { colors, spacing, typography } from '@bhapi/config';
 import { PostCard, CommentThread } from '@bhapi/ui';
 import type { CommentItem } from '@bhapi/ui';
+import { ApiClient } from '@bhapi/api';
+import { tokenManager } from '@bhapi/auth';
+
+const apiClient = new ApiClient({
+  baseUrl: '',
+  getToken: () => tokenManager.getToken(),
+});
 
 // ---------------------------------------------------------------------------
 // Types
@@ -85,14 +92,14 @@ export default function PostDetailScreen() {
   async function loadPost() {
     try {
       setState('loading');
-      // const postData = await apiClient.get<PostDetailData>(
-      //   `/api/v1/social/posts/${postId}`
-      // );
-      // setPost(postData);
-      // const commentData = await apiClient.get<{ items: CommentData[] }>(
-      //   `/api/v1/social/posts/${postId}/comments`
-      // );
-      // setComments(commentData.items);
+      const postData = await apiClient.get<PostDetailData>(
+        `/api/v1/social/posts/${postId}`
+      );
+      setPost(postData);
+      const commentData = await apiClient.get<{ items: CommentData[] }>(
+        `/api/v1/social/posts/${postId}/comments`
+      );
+      setComments(commentData.items);
       setState('loaded');
     } catch (e: any) {
       setState('error');
@@ -111,9 +118,13 @@ export default function PostDetailScreen() {
       likes_count: wasLiked ? post.likes_count - 1 : post.likes_count + 1,
     });
 
-    // API call:
-    // if (wasLiked) await apiClient.delete(`/api/v1/social/posts/${post.id}/like`);
-    // else await apiClient.post(`/api/v1/social/posts/${post.id}/like`);
+    try {
+      if (wasLiked) await apiClient.delete(`/api/v1/social/posts/${post.id}/like`);
+      else await apiClient.post(`/api/v1/social/posts/${post.id}/like`, {});
+    } catch {
+      // Revert optimistic update on failure
+      setPost({ ...post, is_liked: wasLiked, likes_count: post.likes_count });
+    }
   }
 
   async function handleSubmitComment() {
@@ -121,11 +132,11 @@ export default function PostDetailScreen() {
     setSubmittingComment(true);
 
     try {
-      // const newComment = await apiClient.post<CommentData>(
-      //   `/api/v1/social/posts/${post.id}/comments`,
-      //   { content: commentText.trim() }
-      // );
-      // setComments((prev) => [...prev, newComment]);
+      const newComment = await apiClient.post<CommentData>(
+        `/api/v1/social/posts/${post.id}/comments`,
+        { content: commentText.trim() }
+      );
+      setComments((prev) => [...prev, newComment]);
       setCommentText('');
       setPost({
         ...post,

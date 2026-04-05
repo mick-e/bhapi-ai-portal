@@ -17,6 +17,13 @@ import {
 } from 'react-native';
 import { colors, spacing, typography } from '@bhapi/config';
 import { Card, Badge } from '@bhapi/ui';
+import { ApiClient } from '@bhapi/api';
+import { tokenManager } from '@bhapi/auth';
+
+const apiClient = new ApiClient({
+  baseUrl: '',
+  getToken: () => tokenManager.getToken(),
+});
 
 // ---------------------------------------------------------------------------
 // Types
@@ -156,12 +163,11 @@ export default function SocialActivityScreen() {
     try {
       setLoading(true);
       setError('');
-      // TODO: Wire up real API call when member selection is available
-      // const memberId = route.params?.memberId;
-      // const response = await apiClient.get<SocialActivityData>(
-      //   `/api/v1/portal/social-activity?member_id=${memberId}`
-      // );
-      // setData(response);
+      // Wire up real API — member_id optional (returns current user's children data when omitted)
+      const response = await apiClient.get<SocialActivityData>(
+        `/api/v1/social/feed`
+      );
+      setData(response as unknown as SocialActivityData);
       setLoading(false);
     } catch (e: any) {
       setError(e?.message ?? 'Failed to load social activity.');

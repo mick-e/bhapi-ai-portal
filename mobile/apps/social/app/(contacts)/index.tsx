@@ -26,6 +26,13 @@ import {
 } from 'react-native';
 import { colors, spacing, typography } from '@bhapi/config';
 import { ContactRequest, SearchResultCard } from '@bhapi/ui';
+import { ApiClient } from '@bhapi/api';
+import { tokenManager } from '@bhapi/auth';
+
+const apiClient = new ApiClient({
+  baseUrl: '',
+  getToken: () => tokenManager.getToken(),
+});
 
 type Tab = 'contacts' | 'pending' | 'search';
 
@@ -75,10 +82,8 @@ export default function ContactsScreen() {
   async function loadContacts() {
     setState('loading');
     try {
-      // API: GET /api/v1/contacts/?status=accepted
-      // const resp = await apiClient.get('/api/v1/contacts/', { params: { status: 'accepted' } });
-      // setContacts(resp.items);
-      setContacts([]);
+      const resp = await apiClient.get<{ items: ContactItem[] }>('/api/v1/contacts/?status=accepted');
+      setContacts(resp.items);
       setState('loaded');
     } catch (e: any) {
       setState('error');
@@ -89,10 +94,8 @@ export default function ContactsScreen() {
   async function loadPending() {
     setState('loading');
     try {
-      // API: GET /api/v1/contacts/?status=pending
-      // const resp = await apiClient.get('/api/v1/contacts/', { params: { status: 'pending' } });
-      // setPending(resp.items);
-      setPending([]);
+      const resp = await apiClient.get<{ items: ContactItem[] }>('/api/v1/contacts/?status=pending');
+      setPending(resp.items);
       setState('loaded');
     } catch (e: any) {
       setState('error');
@@ -112,10 +115,10 @@ export default function ContactsScreen() {
     searchTimeoutRef.current = setTimeout(async () => {
       setState('loading');
       try {
-        // API: GET /api/v1/social/search?q=<query>
-        // const resp = await apiClient.get('/api/v1/social/search', { params: { q: query } });
-        // setSearchResults(resp.items);
-        setSearchResults([]);
+        const resp = await apiClient.get<{ items: SearchResult[] }>(
+          `/api/v1/social/search?q=${encodeURIComponent(query)}`
+        );
+        setSearchResults(resp.items);
         setState('loaded');
       } catch (e: any) {
         setState('error');
@@ -127,8 +130,7 @@ export default function ContactsScreen() {
   async function handleSendRequest(userId: string) {
     setProcessingIds((prev) => new Set(prev).add(userId));
     try {
-      // API: POST /api/v1/contacts/request/{userId}
-      // await apiClient.post(`/api/v1/contacts/request/${userId}`);
+      await apiClient.post(`/api/v1/contacts/request/${userId}`, {});
       setSearchResults((prev) => prev.filter((r) => r.user_id !== userId));
     } finally {
       setProcessingIds((prev) => {
@@ -142,7 +144,7 @@ export default function ContactsScreen() {
   async function handleAccept(contactId: string) {
     setProcessingIds((prev) => new Set(prev).add(contactId));
     try {
-      // API: PATCH /api/v1/contacts/{contactId}/respond { action: 'accept' }
+      await apiClient.put(`/api/v1/contacts/${contactId}/respond`, { action: 'accept' });
       setPending((prev) => prev.filter((c) => c.id !== contactId));
     } finally {
       setProcessingIds((prev) => {
@@ -156,7 +158,7 @@ export default function ContactsScreen() {
   async function handleReject(contactId: string) {
     setProcessingIds((prev) => new Set(prev).add(contactId));
     try {
-      // API: PATCH /api/v1/contacts/{contactId}/respond { action: 'reject' }
+      await apiClient.put(`/api/v1/contacts/${contactId}/respond`, { action: 'reject' });
       setPending((prev) => prev.filter((c) => c.id !== contactId));
     } finally {
       setProcessingIds((prev) => {
@@ -170,7 +172,7 @@ export default function ContactsScreen() {
   async function handleBlock(userId: string) {
     setProcessingIds((prev) => new Set(prev).add(userId));
     try {
-      // API: POST /api/v1/contacts/{userId}/block
+      await apiClient.post(`/api/v1/contacts/${userId}/block`, {});
       setContacts((prev) =>
         prev.filter(
           (c) => c.requester_id !== userId && c.target_id !== userId

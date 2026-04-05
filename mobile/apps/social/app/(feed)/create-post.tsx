@@ -23,6 +23,18 @@ import { colors, spacing, typography } from '@bhapi/config';
 import type { AgeTier } from '@bhapi/config';
 import { ModerationNotice } from '@bhapi/ui';
 import type { ModerationState } from '@bhapi/ui';
+import { ApiClient } from '@bhapi/api';
+import { tokenManager } from '@bhapi/auth';
+
+interface CreatePostResponse {
+  id: string;
+  moderation_status: 'pending' | 'approved' | 'rejected' | 'flagged';
+}
+
+const apiClient = new ApiClient({
+  baseUrl: '',
+  getToken: () => tokenManager.getToken(),
+});
 
 // ---------------------------------------------------------------------------
 // Age-tier post length limits (mirrors backend TIER_PERMISSIONS)
@@ -81,20 +93,17 @@ export default function CreatePostScreen() {
     setErrorMessage('');
 
     try {
-      // API: POST /api/v1/social/posts
-      // const response = await apiClient.post<CreatePostResponse>(
-      //   '/api/v1/social/posts',
-      //   { content, media_ids: mediaIds.length > 0 ? mediaIds : undefined }
-      // );
-      // setModerationMessage(
-      //   response.moderation_status === 'approved'
-      //     ? 'Your post is live!'
-      //     : 'Your post is being reviewed by our safety team.'
-      // );
-
-      // Placeholder — in production, parse response.moderation_status
-      setModerationState('pending');
-      setModerationMessage('Your post is being reviewed by our safety team.');
+      const response = await apiClient.post<CreatePostResponse>(
+        '/api/v1/social/posts',
+        { content, media_ids: mediaIds.length > 0 ? mediaIds : undefined }
+      );
+      const approved = response.moderation_status === 'approved';
+      setModerationState(approved ? 'approved' : 'pending');
+      setModerationMessage(
+        approved
+          ? 'Your post is live!'
+          : 'Your post is being reviewed by our safety team.'
+      );
       setSubmitState('success');
     } catch (e: any) {
       setErrorMessage(e?.message ?? 'Could not create post. Please try again.');

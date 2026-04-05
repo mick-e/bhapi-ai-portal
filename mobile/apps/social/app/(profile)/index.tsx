@@ -21,6 +21,13 @@ import { colors, spacing, typography } from '@bhapi/config';
 import type { AgeTier } from '@bhapi/config';
 import { Avatar, Badge, AgeTierGate } from '@bhapi/ui';
 import type { Profile, SocialPost, ProfileVisibility } from '@bhapi/types';
+import { ApiClient } from '@bhapi/api';
+import { tokenManager } from '@bhapi/auth';
+
+const apiClient = new ApiClient({
+  baseUrl: '',
+  getToken: () => tokenManager.getToken(),
+});
 
 type ProfileState = 'loading' | 'loaded' | 'error';
 type PostViewMode = 'grid' | 'list';
@@ -53,13 +60,14 @@ export default function ProfileScreen() {
   async function loadProfile() {
     try {
       setState('loading');
-      // API call: GET /api/v1/social/profiles/me
-      // const data = await apiClient.get<Profile>('/api/v1/social/profiles/me');
-      // setProfile(data);
-      // const postsData = await apiClient.get('/api/v1/social/posts?author_id=' + data.user_id);
-      // setPosts(postsData.items);
-      // setFollowerCount(data.follower_count);
-      // setFollowingCount(data.following_count);
+      const data = await apiClient.get<Profile>('/api/v1/social/profiles/me');
+      setProfile(data);
+      const postsData = await apiClient.get<{ items: SocialPost[] }>(
+        `/api/v1/social/posts?author_id=${(data as any).user_id}`
+      );
+      setPosts(postsData.items);
+      setFollowerCount((data as any).follower_count ?? 0);
+      setFollowingCount((data as any).following_count ?? 0);
       setState('loaded');
     } catch (e: any) {
       setState('error');

@@ -20,6 +20,13 @@ import {
 import { colors, spacing, typography } from '@bhapi/config';
 import { Button, Badge, Card } from '@bhapi/ui';
 import type { Alert, AlertSeverity } from '@bhapi/types';
+import { ApiClient } from '@bhapi/api';
+import { tokenManager } from '@bhapi/auth';
+
+const apiClient = new ApiClient({
+  baseUrl: '',
+  getToken: () => tokenManager.getToken(),
+});
 
 type DetailState = 'loading' | 'loaded' | 'error';
 type ActionState = 'idle' | 'processing' | 'done';
@@ -47,6 +54,7 @@ export default function AlertDetailScreen() {
 
   // In Expo Router, alert ID comes from route params:
   // const { id } = useLocalSearchParams<{ id: string }>();
+  const id: string | null = null;
 
   useEffect(() => {
     loadAlert();
@@ -55,9 +63,10 @@ export default function AlertDetailScreen() {
   async function loadAlert() {
     try {
       setState('loading');
-      // API call: GET /api/v1/alerts/:id
-      // const data = await apiClient.get<Alert>(`/api/v1/alerts/${id}`);
-      // setAlert(data);
+      if (id) {
+        const data = await apiClient.get<Alert>(`/api/v1/alerts/${id}`);
+        setAlert(data);
+      }
       setState('loaded');
     } catch (e: any) {
       setState('error');
@@ -68,8 +77,7 @@ export default function AlertDetailScreen() {
   async function handleSnooze(hours: number) {
     try {
       setActionState('processing');
-      // API call: POST /api/v1/alerts/:id/snooze
-      // await apiClient.post(`/api/v1/alerts/${alert?.id}/snooze`, { duration_hours: hours });
+      await apiClient.post(`/api/v1/alerts/${alert?.id}/snooze`, { duration_hours: hours });
       setShowSnoozeOptions(false);
       setActionState('done');
       // router.back();
@@ -82,8 +90,7 @@ export default function AlertDetailScreen() {
   async function handleEscalate() {
     try {
       setActionState('processing');
-      // API call: POST /api/v1/alerts/:id/escalate
-      // await apiClient.post(`/api/v1/alerts/${alert?.id}/escalate`, {});
+      await apiClient.post(`/api/v1/alerts/${alert?.id}/escalate`, {});
       setActionState('done');
     } catch (e: any) {
       setActionState('idle');
@@ -94,8 +101,7 @@ export default function AlertDetailScreen() {
   async function handleDismiss() {
     try {
       setActionState('processing');
-      // API call: PATCH /api/v1/alerts/:id
-      // await apiClient.put(`/api/v1/alerts/${alert?.id}`, { status: 'dismissed' });
+      await apiClient.put(`/api/v1/alerts/${alert?.id}`, { status: 'dismissed' });
       setActionState('done');
       // router.back();
     } catch (e: any) {

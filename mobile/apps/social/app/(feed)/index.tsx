@@ -21,6 +21,13 @@ import { colors, spacing, typography } from '@bhapi/config';
 import type { AgeTier } from '@bhapi/config';
 import type { FeedItem, PagedResponse } from '@bhapi/types';
 import { AgeTierGate, PostCard } from '@bhapi/ui';
+import { ApiClient } from '@bhapi/api';
+import { tokenManager } from '@bhapi/auth';
+
+const apiClient = new ApiClient({
+  baseUrl: '',
+  getToken: () => tokenManager.getToken(),
+});
 
 type FeedState = 'loading' | 'loaded' | 'error';
 
@@ -49,16 +56,11 @@ export default function FeedScreen() {
     try {
       if (reset) setState('loading');
 
-      // API call: GET /api/v1/social/feed?page=N&page_size=PAGE_SIZE
-      // const response = await apiClient.get<PaginatedResponse<FeedItem>>(
-      //   `/api/v1/social/feed?page=${pageNum}&page_size=${PAGE_SIZE}`
-      // );
-      // const newItems = response.items;
-      // const totalPages = Math.ceil(response.total / PAGE_SIZE);
-
-      // Placeholder until API connected:
-      const newItems: FeedItem[] = [];
-      const totalPages = 0;
+      const response = await apiClient.get<PagedResponse<FeedItem>>(
+        `/api/v1/social/feed?page=${pageNum}&page_size=${PAGE_SIZE}`
+      );
+      const newItems = response.items;
+      const totalPages = Math.ceil(response.total / PAGE_SIZE);
 
       if (reset) {
         setItems(newItems);
