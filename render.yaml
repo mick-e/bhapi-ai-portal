@@ -37,12 +37,11 @@ services:
         fromDatabase:
           name: bhapi-db
           property: connectionString
-      # Redis not provisioned yet — app uses in-memory rate limiter fallback
-      # - key: REDIS_URL
-      #   fromService:
-      #     name: bhapi-redis
-      #     type: redis
-      #     property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: bhapi-redis
+          type: redis
+          property: connectionString
       - key: SECRET_KEY
         generateValue: true
       - key: CORS_ORIGINS
@@ -98,12 +97,11 @@ services:
         fromDatabase:
           name: bhapi-db
           property: connectionString
-      # Redis not provisioned yet — jobs use DB only
-      # - key: REDIS_URL
-      #   fromService:
-      #     name: bhapi-redis
-      #     type: redis
-      #     property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: bhapi-redis
+          type: redis
+          property: connectionString
       - key: SECRET_KEY
         generateValue: true
       - key: SENDGRID_API_KEY
@@ -119,11 +117,10 @@ databases:
     databaseName: bhapi
     user: bhapi
 
-  # Note: Render Redis requires paid plan.
-  # For MVP, set REDIS_URL="" to use graceful degradation (in-memory rate limiter).
-  # Uncomment below when ready:
-  # - name: bhapi-redis
-  #   type: redis
-  #   plan: starter
-  #   region: frankfurt
-  #   maxmemoryPolicy: allkeys-lru
+  # Redis 7 — required for WebSocket pub/sub, rate limiting, presence
+  - name: bhapi-redis
+    type: redis
+    plan: starter
+    region: frankfurt
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: [] # Only allow connections from Render services
