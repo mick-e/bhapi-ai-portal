@@ -20,7 +20,7 @@ import {
 } from 'react-native';
 import { colors, spacing, typography } from '@bhapi/config';
 import type { AgeTier } from '@bhapi/config';
-import { Avatar, AgeTierGate } from '@bhapi/ui';
+import { Avatar, AgeTierGate, MobileEmptyState } from '@bhapi/ui';
 import { ApiClient } from '@bhapi/api';
 import { tokenManager } from '@bhapi/auth';
 
@@ -232,20 +232,10 @@ export default function ChatListScreen() {
         }),
         onEndReached: loadMore,
         onEndReachedThreshold: 0.5,
-        ListEmptyComponent: React.createElement(
-          View,
-          { style: styles.emptyContainer },
-          React.createElement(
-            Text,
-            { style: styles.emptyTitle },
-            'No messages yet'
-          ),
-          React.createElement(
-            Text,
-            { style: styles.emptyText },
-            'Add friends to start chatting!'
-          )
-        ),
+        ListEmptyComponent: React.createElement(MobileEmptyState, {
+          title: 'No messages yet',
+          message: 'Start a conversation with a friend.',
+        }),
       })
     )
   );

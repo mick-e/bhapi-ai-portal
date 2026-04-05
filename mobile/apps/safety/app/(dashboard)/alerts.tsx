@@ -16,7 +16,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { colors, spacing, typography } from '@bhapi/config';
-import { Badge, Card } from '@bhapi/ui';
+import { Badge, Card, MobileEmptyState } from '@bhapi/ui';
 import type { Alert, AlertSeverity, AlertSource, AlertStatus } from '@bhapi/types';
 import { ApiClient } from '@bhapi/api';
 import { tokenManager } from '@bhapi/auth';
@@ -286,17 +286,10 @@ export default function AlertsScreen() {
       refreshing,
       onRefresh: handleRefresh,
       contentContainerStyle: styles.listContent,
-      ListEmptyComponent: React.createElement(
-        View,
-        { style: styles.emptyContainer },
-        React.createElement(
-          Text,
-          { style: styles.emptyText },
-          sourceFilter === 'all' && severityFilter === 'all'
-            ? 'No alerts yet. Everything looks safe!'
-            : `No ${sourceFilter !== 'all' ? sourceFilter + ' ' : ''}${severityFilter !== 'all' ? severityFilter + ' ' : ''}alerts.`
-        )
-      ),
+      ListEmptyComponent: React.createElement(MobileEmptyState, {
+        title: 'No alerts',
+        message: "We'll notify you if something needs your attention.",
+      }),
     })
   );
 }

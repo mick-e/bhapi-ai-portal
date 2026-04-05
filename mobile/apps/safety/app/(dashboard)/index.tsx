@@ -18,7 +18,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { colors, spacing, typography } from '@bhapi/config';
-import { Card, Badge } from '@bhapi/ui';
+import { Card, Badge, MobileEmptyState } from '@bhapi/ui';
 import type {
   DashboardData,
   ActivitySummary,
@@ -249,15 +249,10 @@ export default function DashboardScreen() {
       )
     ),
     (data?.recent_alerts ?? []).length === 0
-      ? React.createElement(
-          Card,
-          { style: styles.card, accessibilityLabel: 'No recent alerts' },
-          React.createElement(
-            Text,
-            { style: styles.emptyText },
-            'No recent alerts. Your family\'s AI usage looks safe!'
-          )
-        )
+      ? React.createElement(MobileEmptyState, {
+          title: 'All clear',
+          message: "Your family is safe — no alerts this week.",
+        })
       : null
   );
 }

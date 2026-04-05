@@ -51,6 +51,12 @@ export const spacing = {
   '2xl': 48,
 } as const;
 
+export const darkColors = {
+  background: { primary: '#111827', secondary: '#1F2937', tertiary: '#374151' },
+  text: { primary: '#F9FAFB', secondary: '#D1D5DB', tertiary: '#9CA3AF' },
+  border: '#4B5563',
+} as const;
+
 export const highContrastColors = {
   primary: { 600: '#CC4400', 700: '#993300' },
   accent: { 500: '#0A7A70', 600: '#065F58' },

@@ -56,4 +56,6 @@ export { MotionProvider, useReducedMotion } from './MotionProvider';
 export { ContrastProvider, useHighContrast } from './ContrastProvider';
 export { FontProvider, useDyslexiaFont } from './FontProvider';
 
+export { MobileEmptyState } from './MobileEmptyState';
+
 export const UI_VERSION = '0.5.0';

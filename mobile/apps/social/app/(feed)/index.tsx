@@ -20,7 +20,7 @@ import {
 import { colors, spacing, typography } from '@bhapi/config';
 import type { AgeTier } from '@bhapi/config';
 import type { FeedItem, PagedResponse } from '@bhapi/types';
-import { AgeTierGate, PostCard } from '@bhapi/ui';
+import { AgeTierGate, PostCard, MobileEmptyState } from '@bhapi/ui';
 import { ApiClient } from '@bhapi/api';
 import { tokenManager } from '@bhapi/auth';
 
@@ -247,20 +247,12 @@ export default function FeedScreen() {
       onEndReachedThreshold: 0.5,
       ListFooterComponent: renderFooter,
       contentContainerStyle: styles.listContent,
-      ListEmptyComponent: React.createElement(
-        View,
-        { style: styles.emptyContainer },
-        React.createElement(
-          Text,
-          { style: styles.emptyTitle },
-          'Nothing here yet!'
-        ),
-        React.createElement(
-          Text,
-          { style: styles.emptyText },
-          'Follow some friends to see their posts.'
-        )
-      ),
+      ListEmptyComponent: React.createElement(MobileEmptyState, {
+        title: 'Your feed is empty',
+        message: 'Follow someone to see their posts here!',
+        actionLabel: 'Find friends',
+        onAction: () => {},
+      }),
     })
   );
 }
