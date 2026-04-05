@@ -37,6 +37,8 @@ services:
         fromDatabase:
           name: bhapi-db
           property: connectionString
+      - key: DB_POOL_SIZE
+        value: "20"
       - key: REDIS_URL
         fromService:
           name: bhapi-redis
@@ -97,6 +99,8 @@ services:
         fromDatabase:
           name: bhapi-db
           property: connectionString
+      - key: DB_POOL_SIZE
+        value: "5"
       - key: REDIS_URL
         fromService:
           name: bhapi-redis

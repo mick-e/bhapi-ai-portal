@@ -1,6 +1,7 @@
 """Database connection and session management."""
 
 import asyncio
+import os
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
@@ -26,9 +27,10 @@ if "sqlite" in settings.database_url:
     _engine_kwargs["poolclass"] = StaticPool
     _engine_kwargs["connect_args"] = {"check_same_thread": False}
 else:
-    # PostgreSQL: connection pool settings
-    _engine_kwargs["pool_size"] = 5
-    _engine_kwargs["max_overflow"] = 5
+    # PostgreSQL: connection pool settings (configurable per service)
+    pool_size = int(os.getenv("DB_POOL_SIZE", "20"))
+    _engine_kwargs["pool_size"] = pool_size
+    _engine_kwargs["max_overflow"] = pool_size // 2  # 50% of pool_size
     _engine_kwargs["pool_pre_ping"] = True
     _engine_kwargs["pool_recycle"] = 3600
 
