@@ -45,6 +45,7 @@ from src.moderation.service import (
     takedown_content,
     update_report_status,
 )
+from src.moderation.sla_schemas import SLAMetrics
 from src.schemas import GroupContext
 
 router = APIRouter()
@@ -259,6 +260,22 @@ async def sla_metrics_endpoint(
 
     metrics = await get_sla_metrics(db, pipeline=pipeline, hours=hours)
     return metrics
+
+
+@router.get("/sla/live", response_model=SLAMetrics)
+async def sla_live_endpoint(
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> SLAMetrics:
+    """Get live SLA metrics for the moderation pipeline dashboard.
+
+    Returns flat p50/p95 latency for pre-publish and post-publish pipelines,
+    current queue depth, oldest pending item age, breach count and total
+    reviewed in the last 24 hours.
+    """
+    from src.moderation.sla_service import get_sla_metrics as get_live_sla_metrics
+
+    return await get_live_sla_metrics(db)
 
 
 @router.get("/patterns", response_model=PatternsResponse)
