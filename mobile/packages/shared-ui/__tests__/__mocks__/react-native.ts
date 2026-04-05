@@ -15,6 +15,11 @@ export const Animated = {
   Value: jest.fn().mockImplementation((val: number) => ({ _value: val })),
 };
 
+export const AccessibilityInfo = {
+  isReduceMotionEnabled: jest.fn().mockResolvedValue(false),
+  addEventListener: jest.fn().mockReturnValue({ remove: jest.fn() }),
+};
+
 export type ViewStyle = Record<string, any>;
 export type TextStyle = Record<string, any>;
 export type ImageSourcePropType = any;

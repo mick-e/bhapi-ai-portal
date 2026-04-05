@@ -9,9 +9,19 @@ const createElement = jest.fn(
 const useEffect = jest.fn((fn: Function) => fn());
 const useState = jest.fn((initial: any) => [initial, jest.fn()]);
 
+const createContext = jest.fn((defaultValue: any) => ({
+  Provider: 'ContextProvider',
+  Consumer: 'ContextConsumer',
+  _currentValue: defaultValue,
+}));
+
+const useContext = jest.fn((context: any) => context._currentValue);
+
 module.exports = {
-  default: { createElement, useEffect, useState },
+  default: { createElement, useEffect, useState, createContext, useContext },
   createElement,
   useEffect,
   useState,
+  createContext,
+  useContext,
 };

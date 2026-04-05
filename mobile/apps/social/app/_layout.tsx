@@ -12,7 +12,7 @@ import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { colors, spacing, typography } from '@bhapi/config';
 import { AGE_TIERS } from '@bhapi/config';
 import { tokenManager } from '@bhapi/auth';
-import { BhapiLogo } from '@bhapi/ui';
+import { BhapiLogo, MotionProvider } from '@bhapi/ui';
 import type { AgeTier } from '@bhapi/types';
 
 type AppState = 'loading' | 'authenticated' | 'unauthenticated' | 'no_age_tier';
@@ -46,43 +46,55 @@ export default function SocialRootLayout() {
 
   if (appState === 'loading') {
     return React.createElement(
-      View,
-      { style: styles.loadingContainer, accessibilityLabel: 'Loading' },
-      React.createElement(BhapiLogo, { size: 'lg' }),
-      React.createElement(ActivityIndicator, {
-        size: 'large',
-        color: colors.primary[600],
-        style: { marginTop: spacing.lg },
-      })
+      MotionProvider,
+      null,
+      React.createElement(
+        View,
+        { style: styles.loadingContainer, accessibilityLabel: 'Loading' },
+        React.createElement(BhapiLogo, { size: 'lg' }),
+        React.createElement(ActivityIndicator, {
+          size: 'large',
+          color: colors.primary[600],
+          style: { marginTop: spacing.lg },
+        })
+      )
     );
   }
 
   if (appState === 'no_age_tier') {
     return React.createElement(
-      View,
-      { style: styles.errorContainer, accessibilityLabel: 'Age verification required' },
-      React.createElement(BhapiLogo, { size: 'md' }),
+      MotionProvider,
+      null,
       React.createElement(
-        Text,
-        { style: styles.errorTitle },
-        'Age Verification Needed'
-      ),
-      React.createElement(
-        Text,
-        { style: styles.errorText },
-        'Ask your parent to verify your age before using the app.'
+        View,
+        { style: styles.errorContainer, accessibilityLabel: 'Age verification required' },
+        React.createElement(BhapiLogo, { size: 'md' }),
+        React.createElement(
+          Text,
+          { style: styles.errorTitle },
+          'Age Verification Needed'
+        ),
+        React.createElement(
+          Text,
+          { style: styles.errorText },
+          'Ask your parent to verify your age before using the app.'
+        )
       )
     );
   }
 
   // In Expo Router, this would render <Slot /> for active route group.
   return React.createElement(
-    View,
-    { style: styles.container, accessibilityLabel: 'Social app' },
+    MotionProvider,
+    null,
     React.createElement(
-      Text,
-      { style: styles.debugText },
-      `State: ${appState}, Tier: ${ageTier ?? 'unknown'}`
+      View,
+      { style: styles.container, accessibilityLabel: 'Social app' },
+      React.createElement(
+        Text,
+        { style: styles.debugText },
+        `State: ${appState}, Tier: ${ageTier ?? 'unknown'}`
+      )
     )
   );
 }

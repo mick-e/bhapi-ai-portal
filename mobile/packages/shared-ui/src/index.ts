@@ -52,4 +52,6 @@ export type { CreativeToolbarProps, BrushSize } from './CreativeToolbar';
 export { StickerGrid, STICKER_CATEGORIES, stickerGridStyles } from './StickerGrid';
 export type { StickerGridProps, Sticker, StickerCategory } from './StickerGrid';
 
+export { MotionProvider, useReducedMotion } from './MotionProvider';
+
 export const UI_VERSION = '0.5.0';

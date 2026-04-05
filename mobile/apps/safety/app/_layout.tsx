@@ -10,7 +10,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { colors, spacing, typography } from '@bhapi/config';
 import { tokenManager } from '@bhapi/auth';
-import { BhapiLogo } from '@bhapi/ui';
+import { BhapiLogo, MotionProvider } from '@bhapi/ui';
 
 type AuthState = 'loading' | 'authenticated' | 'unauthenticated';
 
@@ -32,18 +32,22 @@ export default function RootLayout() {
 
   if (authState === 'loading') {
     return React.createElement(
-      View,
-      { style: styles.loadingContainer, accessibilityLabel: 'Loading app' },
-      React.createElement(BhapiLogo, { size: 'lg' }),
-      React.createElement(ActivityIndicator, {
-        size: 'large',
-        color: colors.primary[600],
-        style: { marginTop: spacing.lg },
-      }),
+      MotionProvider,
+      null,
       React.createElement(
-        Text,
-        { style: styles.loadingText },
-        'Loading...'
+        View,
+        { style: styles.loadingContainer, accessibilityLabel: 'Loading app' },
+        React.createElement(BhapiLogo, { size: 'lg' }),
+        React.createElement(ActivityIndicator, {
+          size: 'large',
+          color: colors.primary[600],
+          style: { marginTop: spacing.lg },
+        }),
+        React.createElement(
+          Text,
+          { style: styles.loadingText },
+          'Loading...'
+        )
       )
     );
   }
@@ -52,12 +56,16 @@ export default function RootLayout() {
   // to render either (auth) or (dashboard) group based on authState.
   // For now, we export the component with the auth state for navigation logic.
   return React.createElement(
-    View,
-    { style: styles.container, accessibilityLabel: 'Safety app root' },
+    MotionProvider,
+    null,
     React.createElement(
-      Text,
-      { style: styles.debugText },
-      `Auth state: ${authState}`
+      View,
+      { style: styles.container, accessibilityLabel: 'Safety app root' },
+      React.createElement(
+        Text,
+        { style: styles.debugText },
+        `Auth state: ${authState}`
+      )
     )
   );
 }
