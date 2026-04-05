@@ -17,7 +17,14 @@ export const Animated = {
 
 export const AccessibilityInfo = {
   isReduceMotionEnabled: jest.fn().mockResolvedValue(false),
+  isBoldTextEnabled: jest.fn().mockResolvedValue(false),
+  isAccessibilityServiceEnabled: jest.fn().mockResolvedValue(false),
   addEventListener: jest.fn().mockReturnValue({ remove: jest.fn() }),
+};
+
+export const Platform = {
+  OS: 'ios' as 'ios' | 'android',
+  select: jest.fn((obj: Record<string, any>) => obj.ios ?? obj.default),
 };
 
 export type ViewStyle = Record<string, any>;

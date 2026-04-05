@@ -17,11 +17,14 @@ const createContext = jest.fn((defaultValue: any) => ({
 
 const useContext = jest.fn((context: any) => context._currentValue);
 
+const useCallback = jest.fn((fn: Function) => fn);
+
 module.exports = {
-  default: { createElement, useEffect, useState, createContext, useContext },
+  default: { createElement, useEffect, useState, createContext, useContext, useCallback },
   createElement,
   useEffect,
   useState,
   createContext,
   useContext,
+  useCallback,
 };

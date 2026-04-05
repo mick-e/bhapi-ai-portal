@@ -10,7 +10,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { colors, spacing, typography } from '@bhapi/config';
 import { tokenManager } from '@bhapi/auth';
-import { BhapiLogo, MotionProvider } from '@bhapi/ui';
+import { BhapiLogo, MotionProvider, ContrastProvider, FontProvider } from '@bhapi/ui';
 
 type AuthState = 'loading' | 'authenticated' | 'unauthenticated';
 
@@ -35,18 +35,26 @@ export default function RootLayout() {
       MotionProvider,
       null,
       React.createElement(
-        View,
-        { style: styles.loadingContainer, accessibilityLabel: 'Loading app' },
-        React.createElement(BhapiLogo, { size: 'lg' }),
-        React.createElement(ActivityIndicator, {
-          size: 'large',
-          color: colors.primary[600],
-          style: { marginTop: spacing.lg },
-        }),
+        ContrastProvider,
+        null,
         React.createElement(
-          Text,
-          { style: styles.loadingText },
-          'Loading...'
+          FontProvider,
+          null,
+          React.createElement(
+            View,
+            { style: styles.loadingContainer, accessibilityLabel: 'Loading app' },
+            React.createElement(BhapiLogo, { size: 'lg' }),
+            React.createElement(ActivityIndicator, {
+              size: 'large',
+              color: colors.primary[600],
+              style: { marginTop: spacing.lg },
+            }),
+            React.createElement(
+              Text,
+              { style: styles.loadingText },
+              'Loading...'
+            )
+          )
         )
       )
     );
@@ -59,12 +67,20 @@ export default function RootLayout() {
     MotionProvider,
     null,
     React.createElement(
-      View,
-      { style: styles.container, accessibilityLabel: 'Safety app root' },
+      ContrastProvider,
+      null,
       React.createElement(
-        Text,
-        { style: styles.debugText },
-        `Auth state: ${authState}`
+        FontProvider,
+        null,
+        React.createElement(
+          View,
+          { style: styles.container, accessibilityLabel: 'Safety app root' },
+          React.createElement(
+            Text,
+            { style: styles.debugText },
+            `Auth state: ${authState}`
+          )
+        )
       )
     )
   );

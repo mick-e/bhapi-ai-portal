@@ -50,3 +50,11 @@ export const spacing = {
   xl: 32,
   '2xl': 48,
 } as const;
+
+export const highContrastColors = {
+  primary: { 600: '#CC4400', 700: '#993300' },
+  accent: { 500: '#0A7A70', 600: '#065F58' },
+  text: { primary: '#000000', secondary: '#1A1A1A' },
+  background: { primary: '#FFFFFF', secondary: '#F5F5F5' },
+  border: '#000000',
+} as const;

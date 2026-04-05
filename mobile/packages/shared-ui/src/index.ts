@@ -53,5 +53,7 @@ export { StickerGrid, STICKER_CATEGORIES, stickerGridStyles } from './StickerGri
 export type { StickerGridProps, Sticker, StickerCategory } from './StickerGrid';
 
 export { MotionProvider, useReducedMotion } from './MotionProvider';
+export { ContrastProvider, useHighContrast } from './ContrastProvider';
+export { FontProvider, useDyslexiaFont } from './FontProvider';
 
 export const UI_VERSION = '0.5.0';

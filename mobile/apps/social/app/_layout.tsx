@@ -12,7 +12,7 @@ import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { colors, spacing, typography } from '@bhapi/config';
 import { AGE_TIERS } from '@bhapi/config';
 import { tokenManager } from '@bhapi/auth';
-import { BhapiLogo, MotionProvider } from '@bhapi/ui';
+import { BhapiLogo, MotionProvider, ContrastProvider, FontProvider } from '@bhapi/ui';
 import type { AgeTier } from '@bhapi/types';
 
 type AppState = 'loading' | 'authenticated' | 'unauthenticated' | 'no_age_tier';
@@ -49,14 +49,22 @@ export default function SocialRootLayout() {
       MotionProvider,
       null,
       React.createElement(
-        View,
-        { style: styles.loadingContainer, accessibilityLabel: 'Loading' },
-        React.createElement(BhapiLogo, { size: 'lg' }),
-        React.createElement(ActivityIndicator, {
-          size: 'large',
-          color: colors.primary[600],
-          style: { marginTop: spacing.lg },
-        })
+        ContrastProvider,
+        null,
+        React.createElement(
+          FontProvider,
+          null,
+          React.createElement(
+            View,
+            { style: styles.loadingContainer, accessibilityLabel: 'Loading' },
+            React.createElement(BhapiLogo, { size: 'lg' }),
+            React.createElement(ActivityIndicator, {
+              size: 'large',
+              color: colors.primary[600],
+              style: { marginTop: spacing.lg },
+            })
+          )
+        )
       )
     );
   }
@@ -66,18 +74,26 @@ export default function SocialRootLayout() {
       MotionProvider,
       null,
       React.createElement(
-        View,
-        { style: styles.errorContainer, accessibilityLabel: 'Age verification required' },
-        React.createElement(BhapiLogo, { size: 'md' }),
+        ContrastProvider,
+        null,
         React.createElement(
-          Text,
-          { style: styles.errorTitle },
-          'Age Verification Needed'
-        ),
-        React.createElement(
-          Text,
-          { style: styles.errorText },
-          'Ask your parent to verify your age before using the app.'
+          FontProvider,
+          null,
+          React.createElement(
+            View,
+            { style: styles.errorContainer, accessibilityLabel: 'Age verification required' },
+            React.createElement(BhapiLogo, { size: 'md' }),
+            React.createElement(
+              Text,
+              { style: styles.errorTitle },
+              'Age Verification Needed'
+            ),
+            React.createElement(
+              Text,
+              { style: styles.errorText },
+              'Ask your parent to verify your age before using the app.'
+            )
+          )
         )
       )
     );
@@ -88,12 +104,20 @@ export default function SocialRootLayout() {
     MotionProvider,
     null,
     React.createElement(
-      View,
-      { style: styles.container, accessibilityLabel: 'Social app' },
+      ContrastProvider,
+      null,
       React.createElement(
-        Text,
-        { style: styles.debugText },
-        `State: ${appState}, Tier: ${ageTier ?? 'unknown'}`
+        FontProvider,
+        null,
+        React.createElement(
+          View,
+          { style: styles.container, accessibilityLabel: 'Social app' },
+          React.createElement(
+            Text,
+            { style: styles.debugText },
+            `State: ${appState}, Tier: ${ageTier ?? 'unknown'}`
+          )
+        )
       )
     )
   );
