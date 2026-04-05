@@ -291,6 +291,13 @@ function RetentionSection({ groupId }: { groupId: string }) {
           </p>
         </div>
 
+        <div className="rounded-lg bg-green-50 p-4 ring-1 ring-green-100">
+          <p className="text-sm font-medium text-green-800">Data auto-cleanup active</p>
+          <p className="text-xs text-green-600">
+            Your data retention policies are enforced automatically. Expired records are cleaned up daily.
+          </p>
+        </div>
+
         <div className="divide-y divide-gray-100">
           {items.map((policy: RetentionPolicy) => (
             <RetentionPolicyRow

@@ -306,6 +306,16 @@ export default function LandingPage() {
       {/* Social Proof Bar */}
       <SocialProofBar />
 
+      {/* Trust Signals Bar */}
+      <div className="border-y bg-gray-50 py-4">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-8 px-4">
+          <span className="text-sm font-medium text-gray-600">COPPA 2026 Compliant</span>
+          <span className="text-sm font-medium text-gray-600">GDPR &amp; EU AI Act Ready</span>
+          <span className="text-sm font-medium text-gray-600">Content reviewed in &lt;2 seconds</span>
+          <span className="text-sm font-medium text-gray-600">End-to-end encrypted</span>
+        </div>
+      </div>
+
       {/* Audience Tabs */}
       <section className="py-20">
         <div className="container-narrow">

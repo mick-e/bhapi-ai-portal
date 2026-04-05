@@ -37,6 +37,14 @@ export default function DashboardPage() {
       <SafetyScoreCard data={score} />
       <ActionsNeeded />
       <WeeklySummary />
+      {/* Trust: What we collect */}
+      <div className="rounded-lg bg-blue-50 px-4 py-3 ring-1 ring-blue-100">
+        <p className="text-sm font-medium text-blue-800">What we monitor</p>
+        <p className="mt-1 text-xs text-blue-600">
+          AI conversation metadata (platforms, duration, risk signals). We never read message content unless flagged for safety.{" "}
+          <a href="/settings/privacy" className="underline">Manage privacy settings</a>
+        </p>
+      </div>
     </div>
   );
 }
