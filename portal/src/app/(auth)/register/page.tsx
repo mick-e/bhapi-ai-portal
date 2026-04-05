@@ -64,7 +64,7 @@ export default function RegisterPage() {
   const [inquirySubmitted, setInquirySubmitted] = useState(false);
 
   // Privacy notice
-  const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [privacyAccepted, setPrivacyAccepted] = useState(true);
 
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -389,6 +389,10 @@ export default function RegisterPage() {
                   {" "}and understand how my family&apos;s data will be collected and used.
                 </span>
               </label>
+              <details className="mt-1 text-xs text-gray-500">
+                <summary className="cursor-pointer text-primary-600 hover:text-primary-700">What this means</summary>
+                <p className="mt-1">We collect data to monitor AI safety for your family. You can review and delete data at any time in Settings &gt; Privacy. Full details in our <Link href="/legal/privacy" className="underline">privacy policy</Link>.</p>
+              </details>
             </div>
 
             <Button
