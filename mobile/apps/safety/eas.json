@@ -15,9 +15,9 @@
   "submit": {
     "production": {
       "ios": {
-        "appleId": "safety@bhapi.ai",
+        "appleId": "mick@bhapi.io",
         "ascAppId": "SAFETY_ASC_APP_ID",
-        "appleTeamId": "BHAPI_TEAM_ID"
+        "appleTeamId": "FYC9MQKT9T"
       },
       "android": {
         "serviceAccountKeyPath": "./google-services.json",
