@@ -1,8 +1,27 @@
 {
-  "extends": "../../tsconfig.base.json",
+  "extends": "expo/tsconfig.base",
   "compilerOptions": {
+    "strict": true,
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
     "outDir": "dist",
-    "rootDir": "."
+    "rootDir": ".",
+    "paths": {
+      "@bhapi/ui": ["../../packages/shared-ui/src"],
+      "@bhapi/api": ["../../packages/shared-api/src"],
+      "@bhapi/auth": ["../../packages/shared-auth/src"],
+      "@bhapi/config": ["../../packages/shared-config/src"],
+      "@bhapi/types": ["../../packages/shared-types/src"],
+      "@bhapi/i18n": ["../../packages/shared-i18n/src"]
+    }
   },
-  "include": ["app/**/*", "__tests__/**/*"]
+  "include": ["app/**/*", "__tests__/**/*", ".expo/types/**/*.ts", "expo-env.d.ts"]
 }
