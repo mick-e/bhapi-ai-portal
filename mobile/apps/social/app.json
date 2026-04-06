@@ -85,13 +85,17 @@
       "package": "com.bhapi.social",
       "versionCode": 4,
       "permissions": [
-        "CAMERA",
-        "READ_MEDIA_IMAGES",
-        "READ_MEDIA_VIDEO",
-        "POST_NOTIFICATIONS",
-        "INTERNET",
-        "ACCESS_NETWORK_STATE",
-        "VIBRATE"
+        "android.permission.CAMERA",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.VIBRATE",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
       ],
       "contentRating": "EVERYONE_10_PLUS",
       "googleServicesFile": "./google-services.json"
@@ -130,9 +134,6 @@
       ]
     ],
     "extra": {
-      "eas": {
-        "projectId": "REPLACE_WITH_EAS_PROJECT_ID"
-      },
       "apiUrl": "https://bhapi.ai/api/v1",
       "wsUrl": "wss://bhapi.ai/ws",
       "coppa": {
@@ -144,6 +145,12 @@
         "declaration": "Bhapi Social is directed to children and has a mixed audience (children and parents). Verifiable parental consent is required before children can use the app. Content is moderated and age-appropriate.",
         "complianceDate": "2026-04-22",
         "contentRating": "Everyone 10+"
+      },
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "0581ba12-c132-4ddb-ab95-83d1326b9116"
       }
     },
     "owner": "bhapi",
@@ -151,7 +158,7 @@
       "policy": "appVersion"
     },
     "updates": {
-      "url": "https://u.expo.dev/REPLACE_WITH_EAS_PROJECT_ID"
+      "url": "https://u.expo.dev/0581ba12-c132-4ddb-ab95-83d1326b9116"
     }
   }
 }
