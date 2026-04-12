@@ -123,7 +123,7 @@ class Settings(BaseSettings):
 
     # App
     app_name: str = "Bhapi AI Portal"
-    app_version: str = "2.1.0"
+    app_version: str = "4.0.0"
 
     @field_validator("secret_key", mode="after")
     @classmethod
