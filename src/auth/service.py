@@ -359,7 +359,40 @@ async def send_reset_email(user: User) -> bool:
     )
 
 
-_used_reset_tokens: set[str] = set()
+# ---------------------------------------------------------------------------
+# Token replay tracking (Redis-backed with in-memory fallback)
+# ---------------------------------------------------------------------------
+
+_fallback_used_tokens: set[str] = set()
+
+
+async def _mark_token_used(category: str, token_id: str, ttl_seconds: int = 3600) -> None:
+    """Mark a token as used in Redis (or in-memory fallback)."""
+    from src.redis_client import get_redis
+
+    r = get_redis()
+    key = f"bhapi:used_token:{category}:{token_id}"
+    if r:
+        try:
+            await r.set(key, "1", ex=ttl_seconds)
+            return
+        except Exception:
+            logger.warning("redis_token_mark_failed", category=category)
+    _fallback_used_tokens.add(key)
+
+
+async def _is_token_used(category: str, token_id: str) -> bool:
+    """Check if a token has already been used."""
+    from src.redis_client import get_redis
+
+    r = get_redis()
+    key = f"bhapi:used_token:{category}:{token_id}"
+    if r:
+        try:
+            return bool(await r.exists(key))
+        except Exception:
+            logger.warning("redis_token_check_failed", category=category)
+    return key in _fallback_used_tokens
 
 
 async def try_sso_auto_provision(db: AsyncSession, user: User) -> None:
@@ -415,7 +448,7 @@ async def reset_password(db: AsyncSession, token: str, new_password: str) -> Use
     # Check if this token has already been used
     payload = decode_token(token)
     jti = payload.get("jti")
-    if jti and jti in _used_reset_tokens:
+    if jti and await _is_token_used("reset", jti):
         raise UnauthorizedError("Reset token already used")
 
     user_id = verify_reset_token(token)
@@ -425,7 +458,7 @@ async def reset_password(db: AsyncSession, token: str, new_password: str) -> Use
 
     # Mark token as used
     if jti:
-        _used_reset_tokens.add(jti)
+        await _mark_token_used("reset", jti)
 
     # Invalidate all existing sessions for this user
     await invalidate_all_sessions(db, user_id)
@@ -522,8 +555,6 @@ _invite_rate_tracker: dict[str, list[float]] = {}
 _INVITE_RATE_LIMIT = 10  # per hour
 _INVITE_RATE_WINDOW = 3600
 
-# Single-use approval token tracking (mirrors _used_reset_tokens pattern)
-_used_approval_tokens: set[str] = set()
 
 
 def _check_invite_rate_limit(user_id: UUID) -> bool:
@@ -744,7 +775,7 @@ async def approve_child_account(
     Raises ValidationError if token invalid, expired, or already used.
     """
     # Check single-use
-    if token in _used_approval_tokens:
+    if await _is_token_used("approval", token):
         raise ValidationError("Approval token has already been used")
 
     token_hash = hashlib.sha256(token.encode()).hexdigest()
@@ -768,8 +799,8 @@ async def approve_child_account(
     if approval_expires < datetime.now(timezone.utc):
         raise ValidationError("Approval token has expired")
 
-    # Mark token as used (in-memory guard against replay in same process)
-    _used_approval_tokens.add(token)
+    # Mark token as used (Redis-backed, survives restarts)
+    await _mark_token_used("approval", token)
 
     # Update approval status
     approval.status = "approved"
