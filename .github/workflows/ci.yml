@@ -41,7 +41,7 @@ jobs:
           pip install -r requirements-dev.txt
 
       - name: Dependency audit
-        run: pip-audit --desc || echo "WARNING: pip-audit found vulnerabilities"
+        run: pip-audit --desc
 
       - name: Lint with ruff
         run: ruff check src/ tests/
