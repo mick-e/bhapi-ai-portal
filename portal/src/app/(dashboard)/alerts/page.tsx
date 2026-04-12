@@ -352,7 +352,13 @@ function CalmAlertRow({
           <Button
             variant="secondary"
             size="sm"
-            onClick={() => {/* View details — future nav */}}
+            onClick={() => {
+              const params = new URLSearchParams({
+                id: alert.id,
+                child: alert.member_name || '',
+              });
+              window.location.href = `/activity?${params.toString()}`;
+            }}
           >
             View details
           </Button>
