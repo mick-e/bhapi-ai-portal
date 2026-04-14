@@ -22,6 +22,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useToast } from "@/contexts/ToastContext";
+import { useTranslations } from "@/contexts/LocaleContext";
 import { useAuth } from "@/hooks/use-auth";
 import {
   useSchoolDevices,
@@ -75,6 +76,7 @@ const policyTypeLabels: Record<string, string> = {
 export default function SchoolAdminPage() {
   const { user } = useAuth();
   const { addToast } = useToast();
+  const t = useTranslations("schoolAdmin");
   const schoolId = user?.group_id ?? null;
 
   const [activeTab, setActiveTab] = useState<Tab>("devices");
@@ -128,14 +130,14 @@ export default function SchoolAdminPage() {
       },
       {
         onSuccess: () => {
-          addToast("Device added successfully", "success");
+          addToast(t("toastDeviceAdded"), "success");
           setShowAddDeviceModal(false);
           setNewDeviceName("");
           setNewDeviceOs("chromeos");
           setNewDeviceAssignee("");
         },
         onError: (err) => {
-          addToast(err.message || "Failed to add device", "error");
+          addToast(err.message || t("toastAddDeviceFailed"), "error");
         },
       }
     );
@@ -152,7 +154,7 @@ export default function SchoolAdminPage() {
       },
       {
         onSuccess: () => {
-          addToast("Policy created successfully", "success");
+          addToast(t("toastPolicyCreated"), "success");
           setShowCreatePolicyModal(false);
           setPolicyName("");
           setPolicyDescription("");
@@ -160,7 +162,7 @@ export default function SchoolAdminPage() {
           setPolicyEnforcement("warn");
         },
         onError: (err) => {
-          addToast(err.message || "Failed to create policy", "error");
+          addToast(err.message || t("toastCreatePolicyFailed"), "error");
         },
       }
     );
@@ -169,17 +171,17 @@ export default function SchoolAdminPage() {
   function handleExportCsv() {
     const items = filteredDevices;
     if (items.length === 0) {
-      addToast("No devices to export", "error");
+      addToast(t("toastNoDevicesExport"), "error");
       return;
     }
-    const headers = ["Device ID", "Name", "OS", "Status", "Last Sync", "Assigned To"];
+    const headers = [t("csvDeviceId"), t("csvName"), t("csvOs"), t("csvStatus"), t("csvLastSync"), t("csvAssignedTo")];
     const rows = items.map((d) => [
       d.device_id,
       d.device_name,
       d.os,
       d.status,
-      d.last_sync || "Never",
-      d.assigned_to || "Unassigned",
+      d.last_sync || t("never"),
+      d.assigned_to || t("unassigned"),
     ]);
     const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -189,25 +191,25 @@ export default function SchoolAdminPage() {
     a.download = "devices.csv";
     a.click();
     URL.revokeObjectURL(url);
-    addToast("CSV exported", "success");
+    addToast(t("toastCsvExported"), "success");
   }
 
   if (!schoolId) {
     return (
       <div className="flex h-64 flex-col items-center justify-center text-center">
         <AlertTriangle className="h-10 w-10 text-amber-500" />
-        <p className="mt-3 text-sm font-medium text-gray-900">No school group found</p>
+        <p className="mt-3 text-sm font-medium text-gray-900">{t("noSchoolGroup")}</p>
         <p className="mt-1 text-sm text-gray-500">
-          Please create or join a school group to access the IT admin dashboard.
+          {t("noSchoolGroupDesc")}
         </p>
       </div>
     );
   }
 
   const tabs: { key: Tab; label: string; icon: typeof Monitor }[] = [
-    { key: "devices", label: "Devices", icon: Monitor },
-    { key: "deployment", label: "Deployment", icon: Rocket },
-    { key: "policies", label: "Policies", icon: Shield },
+    { key: "devices", label: t("tabDevices"), icon: Monitor },
+    { key: "deployment", label: t("tabDeployment"), icon: Rocket },
+    { key: "policies", label: t("tabPolicies"), icon: Shield },
   ];
 
   return (
@@ -215,9 +217,9 @@ export default function SchoolAdminPage() {
       {/* Header */}
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">School IT Admin</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t("title")}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Manage devices, monitor deployment, and configure policies
+            {t("subtitle")}
           </p>
         </div>
       </div>
@@ -253,34 +255,34 @@ export default function SchoolAdminPage() {
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Search devices..."
+                  placeholder={t("searchDevices")}
                   value={deviceSearch}
                   onChange={(e) => setDeviceSearch(e.target.value)}
-                  aria-label="Search devices"
+                  aria-label={t("searchDevicesAria")}
                   className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                aria-label="Filter by status"
+                aria-label={t("filterByStatus")}
                 className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               >
-                <option value="">All statuses</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-                <option value="pending">Pending</option>
-                <option value="error">Error</option>
+                <option value="">{t("allStatuses")}</option>
+                <option value="active">{t("statusActive")}</option>
+                <option value="inactive">{t("statusInactive")}</option>
+                <option value="pending">{t("statusPending")}</option>
+                <option value="error">{t("statusError")}</option>
               </select>
             </div>
             <div className="flex gap-2">
               <Button variant="secondary" size="sm" onClick={handleExportCsv}>
                 <Download className="h-4 w-4" />
-                Export CSV
+                {t("exportCsv")}
               </Button>
               <Button size="sm" onClick={() => setShowAddDeviceModal(true)}>
                 <Plus className="h-4 w-4" />
-                Add Device
+                {t("addDevice")}
               </Button>
             </div>
           </div>
@@ -289,12 +291,12 @@ export default function SchoolAdminPage() {
           {devicesQuery.isLoading ? (
             <div className="flex h-64 items-center justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <span className="ml-3 text-sm text-gray-500">Loading devices...</span>
+              <span className="ml-3 text-sm text-gray-500">{t("loadingDevices")}</span>
             </div>
           ) : devicesQuery.isError ? (
             <div className="flex h-64 flex-col items-center justify-center text-center">
               <AlertTriangle className="h-10 w-10 text-amber-500" />
-              <p className="mt-3 text-sm font-medium text-gray-900">Failed to load devices</p>
+              <p className="mt-3 text-sm font-medium text-gray-900">{t("failedLoadDevices")}</p>
               <Button
                 variant="secondary"
                 size="sm"
@@ -302,7 +304,7 @@ export default function SchoolAdminPage() {
                 onClick={() => devicesQuery.refetch()}
               >
                 <RefreshCw className="h-4 w-4" />
-                Try again
+                {t("tryAgain")}
               </Button>
             </div>
           ) : filteredDevices.length === 0 ? (
@@ -311,8 +313,8 @@ export default function SchoolAdminPage() {
                 <Monitor className="mx-auto h-10 w-10 text-gray-300" />
                 <p className="mt-3 text-sm text-gray-500">
                   {deviceSearch || statusFilter
-                    ? "No devices match your filters"
-                    : "No devices registered yet. Add your first device to get started."}
+                    ? t("noDevicesMatch")
+                    : t("noDevicesYet")}
                 </p>
               </div>
             </Card>
@@ -323,19 +325,19 @@ export default function SchoolAdminPage() {
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                        Device
+                        {t("colDevice")}
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                        OS
+                        {t("colOs")}
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                        Status
+                        {t("colStatus")}
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                        Last Sync
+                        {t("colLastSync")}
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                        Assigned To
+                        {t("colAssignedTo")}
                       </th>
                     </tr>
                   </thead>
@@ -368,10 +370,10 @@ export default function SchoolAdminPage() {
                           <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-600">
                             {device.last_sync
                               ? new Date(device.last_sync).toLocaleDateString()
-                              : "Never"}
+                              : t("never")}
                           </td>
                           <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-600">
-                            {device.assigned_to || "Unassigned"}
+                            {device.assigned_to || t("unassigned")}
                           </td>
                         </tr>
                       );
@@ -390,12 +392,12 @@ export default function SchoolAdminPage() {
           {deploymentQuery.isLoading ? (
             <div className="flex h-64 items-center justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <span className="ml-3 text-sm text-gray-500">Loading deployment status...</span>
+              <span className="ml-3 text-sm text-gray-500">{t("loadingDeployment")}</span>
             </div>
           ) : deploymentQuery.isError ? (
             <div className="flex h-64 flex-col items-center justify-center text-center">
               <AlertTriangle className="h-10 w-10 text-amber-500" />
-              <p className="mt-3 text-sm font-medium text-gray-900">Failed to load deployment status</p>
+              <p className="mt-3 text-sm font-medium text-gray-900">{t("failedLoadDeployment")}</p>
               <Button
                 variant="secondary"
                 size="sm"
@@ -403,7 +405,7 @@ export default function SchoolAdminPage() {
                 onClick={() => deploymentQuery.refetch()}
               >
                 <RefreshCw className="h-4 w-4" />
-                Try again
+                {t("tryAgain")}
               </Button>
             </div>
           ) : deploymentQuery.data ? (
@@ -411,25 +413,25 @@ export default function SchoolAdminPage() {
               {/* Stats Cards */}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
                 <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
-                  <p className="text-sm text-gray-500">Total Devices</p>
+                  <p className="text-sm text-gray-500">{t("totalDevices")}</p>
                   <p className="mt-1 text-2xl font-bold text-gray-900">
                     {deploymentQuery.data.total_devices}
                   </p>
                 </div>
                 <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
-                  <p className="text-sm text-gray-500">Active</p>
+                  <p className="text-sm text-gray-500">{t("active")}</p>
                   <p className="mt-1 text-2xl font-bold text-green-600">
                     {deploymentQuery.data.active_devices}
                   </p>
                 </div>
                 <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
-                  <p className="text-sm text-gray-500">Pending</p>
+                  <p className="text-sm text-gray-500">{t("pending")}</p>
                   <p className="mt-1 text-2xl font-bold text-amber-600">
                     {deploymentQuery.data.pending_devices}
                   </p>
                 </div>
                 <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
-                  <p className="text-sm text-gray-500">Errors</p>
+                  <p className="text-sm text-gray-500">{t("errors")}</p>
                   <p className="mt-1 text-2xl font-bold text-red-600">
                     {deploymentQuery.data.error_devices}
                   </p>
@@ -437,10 +439,10 @@ export default function SchoolAdminPage() {
               </div>
 
               {/* Extension Coverage */}
-              <Card title="Extension Coverage">
+              <Card title={t("extensionCoverage")}>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Extension installed</span>
+                    <span className="text-sm text-gray-600">{t("extensionInstalled")}</span>
                     <span className="text-sm font-semibold text-gray-900">
                       {deploymentQuery.data.extension_coverage_percent}%
                     </span>
@@ -455,25 +457,24 @@ export default function SchoolAdminPage() {
                       aria-valuenow={deploymentQuery.data.extension_coverage_percent}
                       aria-valuemin={0}
                       aria-valuemax={100}
-                      aria-label="Extension coverage progress"
+                      aria-label={t("extensionCoverageAria")}
                     />
                   </div>
                   <p className="text-xs text-gray-500">
-                    {deploymentQuery.data.active_devices} of{" "}
-                    {deploymentQuery.data.total_devices} devices have the extension
-                    installed and active
+                    {deploymentQuery.data.active_devices} {t("ofDevices")}{" "}
+                    {deploymentQuery.data.total_devices} {t("devicesInstalledActive")}
                   </p>
                 </div>
               </Card>
 
               {/* Deployment Breakdown */}
-              <Card title="Deployment Breakdown">
+              <Card title={t("deploymentBreakdown")}>
                 <div className="space-y-3">
                   {[
-                    { label: "Active", count: deploymentQuery.data.active_devices, color: "bg-green-500" },
-                    { label: "Pending", count: deploymentQuery.data.pending_devices, color: "bg-amber-500" },
-                    { label: "Inactive", count: deploymentQuery.data.inactive_devices, color: "bg-gray-400" },
-                    { label: "Error", count: deploymentQuery.data.error_devices, color: "bg-red-500" },
+                    { label: t("active"), count: deploymentQuery.data.active_devices, color: "bg-green-500" },
+                    { label: t("pending"), count: deploymentQuery.data.pending_devices, color: "bg-amber-500" },
+                    { label: t("inactive"), count: deploymentQuery.data.inactive_devices, color: "bg-gray-400" },
+                    { label: t("error"), count: deploymentQuery.data.error_devices, color: "bg-red-500" },
                   ].map(({ label, count, color }) => (
                     <div key={label} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -487,7 +488,7 @@ export default function SchoolAdminPage() {
               </Card>
 
               <p className="text-xs text-gray-400">
-                Last updated:{" "}
+                {t("lastUpdated")}:{" "}
                 {new Date(deploymentQuery.data.last_updated).toLocaleString()}
               </p>
             </div>
@@ -500,23 +501,23 @@ export default function SchoolAdminPage() {
         <div id="panel-policies" role="tabpanel">
           <div className="mb-4 flex items-center justify-between">
             <p className="text-sm text-gray-500">
-              Manage AI usage policies for your school
+              {t("managePoliciesDesc")}
             </p>
             <Button size="sm" onClick={() => setShowCreatePolicyModal(true)}>
               <Plus className="h-4 w-4" />
-              Create Policy
+              {t("createPolicy")}
             </Button>
           </div>
 
           {policiesQuery.isLoading ? (
             <div className="flex h-64 items-center justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <span className="ml-3 text-sm text-gray-500">Loading policies...</span>
+              <span className="ml-3 text-sm text-gray-500">{t("loadingPolicies")}</span>
             </div>
           ) : policiesQuery.isError ? (
             <div className="flex h-64 flex-col items-center justify-center text-center">
               <AlertTriangle className="h-10 w-10 text-amber-500" />
-              <p className="mt-3 text-sm font-medium text-gray-900">Failed to load policies</p>
+              <p className="mt-3 text-sm font-medium text-gray-900">{t("failedLoadPolicies")}</p>
               <Button
                 variant="secondary"
                 size="sm"
@@ -524,7 +525,7 @@ export default function SchoolAdminPage() {
                 onClick={() => policiesQuery.refetch()}
               >
                 <RefreshCw className="h-4 w-4" />
-                Try again
+                {t("tryAgain")}
               </Button>
             </div>
           ) : (policiesQuery.data ?? []).length === 0 ? (
@@ -532,7 +533,7 @@ export default function SchoolAdminPage() {
               <div className="py-8 text-center">
                 <Shield className="mx-auto h-10 w-10 text-gray-300" />
                 <p className="mt-3 text-sm text-gray-500">
-                  No policies created yet. Create your first AI usage policy to get started.
+                  {t("noPoliciesYet")}
                 </p>
               </div>
             </Card>
@@ -560,7 +561,7 @@ export default function SchoolAdminPage() {
                             : "bg-gray-100 text-gray-700"
                         }`}
                       >
-                        {policy.active ? "Active" : "Inactive"}
+                        {policy.active ? t("active") : t("inactive")}
                       </span>
                     </div>
                   </div>
@@ -586,15 +587,15 @@ export default function SchoolAdminPage() {
               className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl"
             >
               <h2 id="add-device-title" className="text-lg font-bold text-gray-900">
-                Add Device
+                {t("addDevice")}
               </h2>
               <p className="mt-1 text-sm text-gray-500">
-                Register a new device for your school
+                {t("registerDeviceDesc")}
               </p>
               <div className="mt-4 space-y-4">
                 <Input
-                  label="Device name"
-                  placeholder="e.g. Lab Computer 01"
+                  label={t("deviceNameLabel")}
+                  placeholder={t("deviceNamePlaceholder")}
                   value={newDeviceName}
                   onChange={(e) => setNewDeviceName(e.target.value)}
                 />
@@ -603,7 +604,7 @@ export default function SchoolAdminPage() {
                     htmlFor="device-os"
                     className="mb-1.5 block text-sm font-medium text-gray-700"
                   >
-                    Operating system
+                    {t("operatingSystem")}
                   </label>
                   <select
                     id="device-os"
@@ -621,8 +622,8 @@ export default function SchoolAdminPage() {
                   </select>
                 </div>
                 <Input
-                  label="Assigned to (optional)"
-                  placeholder="e.g. Student name or room number"
+                  label={t("assignedToLabel")}
+                  placeholder={t("assignedToPlaceholder")}
                   value={newDeviceAssignee}
                   onChange={(e) => setNewDeviceAssignee(e.target.value)}
                 />
@@ -637,14 +638,14 @@ export default function SchoolAdminPage() {
                     setNewDeviceAssignee("");
                   }}
                 >
-                  Cancel
+                  {t("cancel")}
                 </Button>
                 <Button
                   onClick={handleAddDevice}
                   isLoading={addDeviceMutation.isPending}
                   disabled={!newDeviceName}
                 >
-                  Add Device
+                  {t("addDevice")}
                 </Button>
               </div>
             </div>
@@ -667,21 +668,21 @@ export default function SchoolAdminPage() {
               className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl"
             >
               <h2 id="create-policy-title" className="text-lg font-bold text-gray-900">
-                Create Policy
+                {t("createPolicy")}
               </h2>
               <p className="mt-1 text-sm text-gray-500">
-                Define a new AI usage policy for your school
+                {t("definePolicyDesc")}
               </p>
               <div className="mt-4 space-y-4">
                 <Input
-                  label="Policy name"
-                  placeholder="e.g. No AI during exams"
+                  label={t("policyNameLabel")}
+                  placeholder={t("policyNamePlaceholder")}
                   value={policyName}
                   onChange={(e) => setPolicyName(e.target.value)}
                 />
                 <Input
-                  label="Description"
-                  placeholder="Describe the purpose of this policy"
+                  label={t("descriptionLabel")}
+                  placeholder={t("descriptionPlaceholder")}
                   value={policyDescription}
                   onChange={(e) => setPolicyDescription(e.target.value)}
                 />
@@ -690,7 +691,7 @@ export default function SchoolAdminPage() {
                     htmlFor="policy-type"
                     className="mb-1.5 block text-sm font-medium text-gray-700"
                   >
-                    Policy type
+                    {t("policyTypeLabel")}
                   </label>
                   <select
                     id="policy-type"
@@ -698,10 +699,10 @@ export default function SchoolAdminPage() {
                     onChange={(e) => setPolicyType(e.target.value)}
                     className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                   >
-                    <option value="acceptable_use">Acceptable Use</option>
-                    <option value="data_handling">Data Handling</option>
-                    <option value="model_access">Model Access</option>
-                    <option value="cost_control">Cost Control</option>
+                    <option value="acceptable_use">{t("policyAcceptableUse")}</option>
+                    <option value="data_handling">{t("policyDataHandling")}</option>
+                    <option value="model_access">{t("policyModelAccess")}</option>
+                    <option value="cost_control">{t("policyCostControl")}</option>
                   </select>
                 </div>
                 <div className="w-full">
@@ -709,7 +710,7 @@ export default function SchoolAdminPage() {
                     htmlFor="policy-enforcement"
                     className="mb-1.5 block text-sm font-medium text-gray-700"
                   >
-                    Enforcement level
+                    {t("enforcementLevel")}
                   </label>
                   <select
                     id="policy-enforcement"
@@ -717,9 +718,9 @@ export default function SchoolAdminPage() {
                     onChange={(e) => setPolicyEnforcement(e.target.value)}
                     className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                   >
-                    <option value="warn">Warn</option>
-                    <option value="block">Block</option>
-                    <option value="audit">Audit</option>
+                    <option value="warn">{t("enforceWarn")}</option>
+                    <option value="block">{t("enforceBlock")}</option>
+                    <option value="audit">{t("enforceAudit")}</option>
                   </select>
                 </div>
               </div>
@@ -734,14 +735,14 @@ export default function SchoolAdminPage() {
                     setPolicyEnforcement("warn");
                   }}
                 >
-                  Cancel
+                  {t("cancel")}
                 </Button>
                 <Button
                   onClick={handleCreatePolicy}
                   isLoading={pushPolicyMutation.isPending}
                   disabled={!policyName}
                 >
-                  Create Policy
+                  {t("createPolicy")}
                 </Button>
               </div>
             </div>

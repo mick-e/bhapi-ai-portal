@@ -16,6 +16,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useToast } from "@/contexts/ToastContext";
+import { useTranslations } from "@/contexts/LocaleContext";
 import { api } from "@/lib/api-client";
 
 interface ClassGroup {
@@ -46,6 +47,7 @@ export default function SchoolPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { addToast } = useToast();
+  const t = useTranslations("school");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [className, setClassName] = useState("");
   const [gradeLevel, setGradeLevel] = useState("");
@@ -76,10 +78,10 @@ export default function SchoolPage() {
       setClassName("");
       setGradeLevel("");
       setAcademicYear("");
-      addToast("Class created successfully", "success");
+      addToast(t("toastClassCreated"), "success");
     },
     onError: (err) => {
-      addToast((err as Error).message || "Failed to create class", "error");
+      addToast((err as Error).message || t("toastCreateFailed"), "error");
     },
   });
 
@@ -89,7 +91,7 @@ export default function SchoolPage() {
     return (
       <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-3 text-sm text-gray-500">Loading school dashboard...</span>
+        <span className="ml-3 text-sm text-gray-500">{t("loading")}</span>
       </div>
     );
   }
@@ -98,13 +100,13 @@ export default function SchoolPage() {
     return (
       <div className="flex h-64 flex-col items-center justify-center text-center">
         <AlertTriangle className="h-10 w-10 text-amber-500" />
-        <p className="mt-3 text-sm font-medium text-gray-900">Failed to load school data</p>
+        <p className="mt-3 text-sm font-medium text-gray-900">{t("loadError")}</p>
         <p className="mt-1 text-sm text-gray-500">
-          {(error as Error)?.message || "Something went wrong"}
+          {(error as Error)?.message || t("somethingWentWrong")}
         </p>
         <Button variant="secondary" size="sm" className="mt-4" onClick={() => refetch()}>
           <RefreshCw className="h-4 w-4" />
-          Try again
+          {t("tryAgain")}
         </Button>
       </div>
     );
@@ -121,14 +123,14 @@ export default function SchoolPage() {
     <div>
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">School Dashboard</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t("title")}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Manage classes, monitor student safety, and view safeguarding reports
+            {t("subtitle")}
           </p>
         </div>
         <Button onClick={() => setShowCreateModal(true)}>
           <Plus className="h-4 w-4" />
-          Create Class
+          {t("createClass")}
         </Button>
       </div>
 
@@ -141,7 +143,7 @@ export default function SchoolPage() {
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900">{(classes ?? []).length}</p>
-              <p className="text-sm text-gray-500">Classes</p>
+              <p className="text-sm text-gray-500">{t("classes")}</p>
             </div>
           </div>
         </div>
@@ -152,7 +154,7 @@ export default function SchoolPage() {
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900">{totalStudents}</p>
-              <p className="text-sm text-gray-500">Total students</p>
+              <p className="text-sm text-gray-500">{t("totalStudents")}</p>
             </div>
           </div>
         </div>
@@ -163,7 +165,7 @@ export default function SchoolPage() {
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900">{report?.total_risks ?? 0}</p>
-              <p className="text-sm text-gray-500">Risks (30 days)</p>
+              <p className="text-sm text-gray-500">{t("risks30Days")}</p>
             </div>
           </div>
         </div>
@@ -171,10 +173,10 @@ export default function SchoolPage() {
 
       {/* Risk Heat Map */}
       {report && report.total_risks > 0 && (
-        <Card title="Risk Heat Map (Last 30 Days)">
+        <Card title={t("riskHeatMap")}>
           <div className="mb-4">
             <h4 className="mb-2 text-xs font-medium uppercase tracking-wider text-gray-500">
-              By Severity
+              {t("bySeverity")}
             </h4>
             <div className="flex flex-wrap gap-2">
               {Object.entries(report.by_severity).map(([severity, count]) => (
@@ -189,7 +191,7 @@ export default function SchoolPage() {
           </div>
           <div className="mb-4">
             <h4 className="mb-2 text-xs font-medium uppercase tracking-wider text-gray-500">
-              By Category
+              {t("byCategory")}
             </h4>
             <div className="flex flex-wrap gap-2">
               {Object.entries(report.by_category).map(([category, count]) => (
@@ -205,7 +207,7 @@ export default function SchoolPage() {
           {report.flagged_students.length > 0 && (
             <div>
               <h4 className="mb-2 text-xs font-medium uppercase tracking-wider text-gray-500">
-                Flagged Students
+                {t("flaggedStudents")}
               </h4>
               <div className="space-y-2">
                 {report.flagged_students.map((student) => (
@@ -220,7 +222,7 @@ export default function SchoolPage() {
                       </span>
                     </div>
                     <span className="text-xs font-medium text-red-600">
-                      {student.risk_count} risk{student.risk_count !== 1 ? "s" : ""}
+                      {student.risk_count} {student.risk_count !== 1 ? t("risksLabel") : t("riskLabel")}
                     </span>
                   </div>
                 ))}
@@ -232,12 +234,12 @@ export default function SchoolPage() {
 
       {/* Class List */}
       <div className="mt-6">
-        <Card title="Classes">
+        <Card title={t("classes")}>
           {(classes ?? []).length === 0 ? (
             <div className="py-8 text-center">
               <GraduationCap className="mx-auto h-10 w-10 text-gray-300" />
               <p className="mt-3 text-sm text-gray-500">
-                No classes yet. Create your first class to get started.
+                {t("noClassesYet")}
               </p>
             </div>
           ) : (
@@ -246,16 +248,16 @@ export default function SchoolPage() {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                      Class
+                      {t("colClass")}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                      Grade
+                      {t("colGrade")}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                      Year
+                      {t("colYear")}
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
-                      Students
+                      {t("colStudents")}
                     </th>
                   </tr>
                 </thead>
@@ -307,27 +309,27 @@ export default function SchoolPage() {
               className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl"
             >
               <h2 id="create-class-title" className="text-lg font-bold text-gray-900">
-                Create Class
+                {t("createClass")}
               </h2>
               <p className="mt-1 text-sm text-gray-500">
-                Add a new class to your school
+                {t("modalSubtitle")}
               </p>
               <div className="mt-4 space-y-4">
                 <Input
-                  label="Class name"
-                  placeholder="e.g. Year 8 Science"
+                  label={t("classNameLabel")}
+                  placeholder={t("classNamePlaceholder")}
                   value={className}
                   onChange={(e) => setClassName(e.target.value)}
                 />
                 <Input
-                  label="Grade level"
-                  placeholder="e.g. Year 8"
+                  label={t("gradeLevelLabel")}
+                  placeholder={t("gradeLevelPlaceholder")}
                   value={gradeLevel}
                   onChange={(e) => setGradeLevel(e.target.value)}
                 />
                 <Input
-                  label="Academic year"
-                  placeholder="e.g. 2025-2026"
+                  label={t("academicYearLabel")}
+                  placeholder={t("academicYearPlaceholder")}
                   value={academicYear}
                   onChange={(e) => setAcademicYear(e.target.value)}
                 />
@@ -342,7 +344,7 @@ export default function SchoolPage() {
                     setAcademicYear("");
                   }}
                 >
-                  Cancel
+                  {t("cancel")}
                 </Button>
                 <Button
                   onClick={() =>
@@ -355,7 +357,7 @@ export default function SchoolPage() {
                   isLoading={createMutation.isPending}
                   disabled={!className}
                 >
-                  Create Class
+                  {t("createClass")}
                 </Button>
               </div>
             </div>

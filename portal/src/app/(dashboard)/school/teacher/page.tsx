@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/Card";
 import { GraduationCap, Users, AlertTriangle, Loader2 } from "lucide-react";
+import { useTranslations } from "@/contexts/LocaleContext";
 import { api } from "@/lib/api-client";
 
 interface ClassData {
@@ -21,6 +22,7 @@ interface TeacherDashboard {
 }
 
 export default function TeacherDashboardPage() {
+  const t = useTranslations("schoolTeacher");
   const [data, setData] = useState<TeacherDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -28,9 +30,9 @@ export default function TeacherDashboardPage() {
   useEffect(() => {
     api.get<TeacherDashboard>("/api/v1/school/teacher-dashboard")
       .then(setData)
-      .catch((err) => setError(err instanceof Error ? err.message : "Failed to load"))
+      .catch((err) => setError(err instanceof Error ? err.message : t("failedToLoad")))
       .finally(() => setLoading(false));
-  }, []);
+  }, [t]);
 
   if (loading) {
     return <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
@@ -43,31 +45,31 @@ export default function TeacherDashboardPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Teacher Dashboard</h1>
-        <p className="mt-1 text-sm text-gray-500">Manage your classes and monitor student AI usage</p>
+        <h1 className="text-2xl font-bold text-gray-900">{t("title")}</h1>
+        <p className="mt-1 text-sm text-gray-500">{t("subtitle")}</p>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-8">
         <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
           <GraduationCap className="h-5 w-5 text-primary" />
           <p className="mt-2 text-3xl font-bold text-gray-900">{data?.total_classes ?? 0}</p>
-          <p className="text-sm text-gray-500">Classes</p>
+          <p className="text-sm text-gray-500">{t("classes")}</p>
         </div>
         <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
           <Users className="h-5 w-5 text-green-600" />
           <p className="mt-2 text-3xl font-bold text-gray-900">{data?.classes.reduce((s, c) => s + c.member_count, 0) ?? 0}</p>
-          <p className="text-sm text-gray-500">Total students</p>
+          <p className="text-sm text-gray-500">{t("totalStudents")}</p>
         </div>
         <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
           <AlertTriangle className="h-5 w-5 text-amber-500" />
           <p className="mt-2 text-3xl font-bold text-gray-900">{data?.unread_alerts ?? 0}</p>
-          <p className="text-sm text-gray-500">Unread alerts</p>
+          <p className="text-sm text-gray-500">{t("unreadAlerts")}</p>
         </div>
       </div>
 
-      <Card title="Your Classes">
+      <Card title={t("yourClasses")}>
         {data?.classes.length === 0 ? (
-          <p className="py-6 text-center text-sm text-gray-500">No classes assigned yet</p>
+          <p className="py-6 text-center text-sm text-gray-500">{t("noClassesAssigned")}</p>
         ) : (
           <div className="space-y-3">
             {data?.classes.map((cls) => (
@@ -76,7 +78,7 @@ export default function TeacherDashboardPage() {
                   <p className="font-medium text-gray-900">{cls.name}</p>
                   {cls.grade_level && <p className="text-xs text-gray-500">{cls.grade_level}</p>}
                 </div>
-                <span className="text-sm text-gray-500">{cls.member_count} students</span>
+                <span className="text-sm text-gray-500">{cls.member_count} {t("studentsLabel")}</span>
               </div>
             ))}
           </div>

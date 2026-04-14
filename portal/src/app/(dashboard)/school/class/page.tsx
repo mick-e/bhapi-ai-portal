@@ -18,6 +18,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/contexts/ToastContext";
+import { useTranslations } from "@/contexts/LocaleContext";
 import { api } from "@/lib/api-client";
 import type { Group } from "@/types";
 
@@ -55,16 +56,19 @@ interface GroupMember {
   role: string;
 }
 
+function ClassLoadingFallback() {
+  const t = useTranslations("schoolClass");
+  return (
+    <div className="flex h-64 items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <span className="ml-3 text-sm text-gray-500">{t("loadingClass")}</span>
+    </div>
+  );
+}
+
 export default function ClassDetailPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex h-64 items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <span className="ml-3 text-sm text-gray-500">Loading class...</span>
-        </div>
-      }
-    >
+    <Suspense fallback={<ClassLoadingFallback />}>
       <ClassDetailContent />
     </Suspense>
   );
@@ -75,6 +79,7 @@ function ClassDetailContent() {
   const classId = searchParams.get("id") || "";
   const queryClient = useQueryClient();
   const { addToast } = useToast();
+  const t = useTranslations("schoolClass");
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedMemberId, setSelectedMemberId] = useState("");
 
@@ -119,10 +124,10 @@ function ClassDetailContent() {
       queryClient.invalidateQueries({ queryKey: ["class-risks", classId] });
       setShowAddModal(false);
       setSelectedMemberId("");
-      addToast("Student added to class", "success");
+      addToast(t("toastStudentAdded"), "success");
     },
     onError: (err) => {
-      addToast((err as Error).message || "Failed to add student", "error");
+      addToast((err as Error).message || t("toastAddFailed"), "error");
     },
   });
 
@@ -132,10 +137,10 @@ function ClassDetailContent() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["school-classes"] });
       queryClient.invalidateQueries({ queryKey: ["class-risks", classId] });
-      addToast("Student removed from class", "success");
+      addToast(t("toastStudentRemoved"), "success");
     },
     onError: (err) => {
-      addToast((err as Error).message || "Failed to remove student", "error");
+      addToast((err as Error).message || t("toastRemoveFailed"), "error");
     },
   });
 
@@ -143,9 +148,9 @@ function ClassDetailContent() {
     return (
       <div className="flex h-64 flex-col items-center justify-center text-center">
         <AlertTriangle className="h-10 w-10 text-amber-500" />
-        <p className="mt-3 text-sm font-medium text-gray-900">No class selected</p>
+        <p className="mt-3 text-sm font-medium text-gray-900">{t("noClassSelected")}</p>
         <Link href="/school" className="mt-2 text-sm text-primary-700 hover:underline">
-          Back to School Dashboard
+          {t("backToDashboard")}
         </Link>
       </div>
     );
@@ -155,7 +160,7 @@ function ClassDetailContent() {
     return (
       <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-3 text-sm text-gray-500">Loading class...</span>
+        <span className="ml-3 text-sm text-gray-500">{t("loadingClass")}</span>
       </div>
     );
   }
@@ -164,9 +169,9 @@ function ClassDetailContent() {
     return (
       <div className="flex h-64 flex-col items-center justify-center text-center">
         <AlertTriangle className="h-10 w-10 text-amber-500" />
-        <p className="mt-3 text-sm font-medium text-gray-900">Class not found</p>
+        <p className="mt-3 text-sm font-medium text-gray-900">{t("classNotFound")}</p>
         <Link href="/school" className="mt-2 text-sm text-primary-700 hover:underline">
-          Back to School Dashboard
+          {t("backToDashboard")}
         </Link>
       </div>
     );
@@ -202,7 +207,7 @@ function ClassDetailContent() {
         className="mb-6 inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-700"
       >
         <ArrowLeft className="h-4 w-4" />
-        Back to School Dashboard
+        {t("backToDashboard")}
       </Link>
 
       {/* Class header */}
@@ -221,7 +226,7 @@ function ClassDetailContent() {
         </div>
         <Button onClick={() => setShowAddModal(true)}>
           <Plus className="h-4 w-4" />
-          Add Student
+          {t("addStudent")}
         </Button>
       </div>
 
@@ -234,7 +239,7 @@ function ClassDetailContent() {
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900">{classInfo.member_count}</p>
-              <p className="text-sm text-gray-500">Students</p>
+              <p className="text-sm text-gray-500">{t("students")}</p>
             </div>
           </div>
         </div>
@@ -245,7 +250,7 @@ function ClassDetailContent() {
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900">{(risks ?? []).length}</p>
-              <p className="text-sm text-gray-500">Risk events</p>
+              <p className="text-sm text-gray-500">{t("riskEvents")}</p>
             </div>
           </div>
         </div>
@@ -258,7 +263,7 @@ function ClassDetailContent() {
               <p className="text-2xl font-bold text-gray-900">
                 {Object.values(memberRiskMap).filter((v) => v.maxSeverity === "high" || v.maxSeverity === "critical").length}
               </p>
-              <p className="text-sm text-gray-500">High-risk students</p>
+              <p className="text-sm text-gray-500">{t("highRiskStudents")}</p>
             </div>
           </div>
         </div>
@@ -267,7 +272,7 @@ function ClassDetailContent() {
       {/* Student Safety Indicators - derived from risk data */}
       {Object.keys(memberRiskMap).length > 0 && (
         <div className="mb-6">
-          <Card title="Student Safety Indicators">
+          <Card title={t("studentSafetyIndicators")}>
             <div className="space-y-2">
               {Object.entries(memberRiskMap).map(([memberId, info]) => (
                 <div
@@ -275,11 +280,11 @@ function ClassDetailContent() {
                   className="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-gray-50"
                 >
                   <span className="text-sm text-gray-700">
-                    Student {memberId.slice(0, 8)}...
+                    {t("studentLabel")} {memberId.slice(0, 8)}...
                   </span>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-gray-500">
-                      {info.count} risk{info.count !== 1 ? "s" : ""}
+                      {info.count} {info.count !== 1 ? t("risksLabel") : t("riskLabel")}
                     </span>
                     <span
                       className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${severityColors[info.maxSeverity]}`}
@@ -295,14 +300,14 @@ function ClassDetailContent() {
       )}
 
       {/* Recent Risks */}
-      <Card title="Recent Risks">
+      <Card title={t("recentRisks")}>
         {risksLoading ? (
           <div className="flex justify-center py-8">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
         ) : (risks ?? []).length === 0 ? (
           <p className="py-8 text-center text-sm text-gray-500">
-            No risk events for this class
+            {t("noRiskEvents")}
           </p>
         ) : (
           <div className="-mx-6 -my-4 overflow-x-auto">
@@ -310,16 +315,16 @@ function ClassDetailContent() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Category
+                    {t("colCategory")}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Severity
+                    {t("colSeverity")}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Confidence
+                    {t("colConfidence")}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Time
+                    {t("colTime")}
                   </th>
                 </tr>
               </thead>
@@ -365,14 +370,14 @@ function ClassDetailContent() {
               className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl"
             >
               <h2 id="add-student-title" className="text-lg font-bold text-gray-900">
-                Add Student to Class
+                {t("addStudentToClass")}
               </h2>
               <p className="mt-1 text-sm text-gray-500">
-                Select a group member to add to this class
+                {t("selectMemberDesc")}
               </p>
               <div className="mt-4">
                 <label htmlFor="member-select" className="mb-1.5 block text-sm font-medium text-gray-700">
-                  Student
+                  {t("studentLabel")}
                 </label>
                 <select
                   id="member-select"
@@ -380,7 +385,7 @@ function ClassDetailContent() {
                   onChange={(e) => setSelectedMemberId(e.target.value)}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                 >
-                  <option value="">Select a student...</option>
+                  <option value="">{t("selectStudent")}</option>
                   {(groupMembers ?? [])
                     .filter((m) => m.role === "member")
                     .map((m) => (
@@ -398,14 +403,14 @@ function ClassDetailContent() {
                     setSelectedMemberId("");
                   }}
                 >
-                  Cancel
+                  {t("cancel")}
                 </Button>
                 <Button
                   onClick={() => addMemberMutation.mutate(selectedMemberId)}
                   isLoading={addMemberMutation.isPending}
                   disabled={!selectedMemberId}
                 >
-                  Add Student
+                  {t("addStudent")}
                 </Button>
               </div>
             </div>
