@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { useTranslations } from "@/contexts/LocaleContext";
 import {
   usePlatformSafetyRatings,
   usePlatformSafetyRecommendations,
@@ -47,6 +48,7 @@ function RecommendationLabel({
 }: {
   recommendation?: string;
 }) {
+  const t = useTranslations("safetyRatings");
   if (!recommendation) return null;
 
   switch (recommendation) {
@@ -54,21 +56,21 @@ function RecommendationLabel({
       return (
         <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
           <ShieldCheck className="h-3 w-3" />
-          Recommended
+          {t("recommended")}
         </span>
       );
     case "use_with_caution":
       return (
         <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
           <ShieldAlert className="h-3 w-3" />
-          Use with caution
+          {t("useWithCaution")}
         </span>
       );
     case "not_recommended":
       return (
         <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">
           <ShieldX className="h-3 w-3" />
-          Not Recommended
+          {t("notRecommended")}
         </span>
       );
     default:
@@ -81,6 +83,7 @@ function PlatformCard({
 }: {
   platform: PlatformSafetyRating & { recommendation?: string };
 }) {
+  const t = useTranslations("safetyRatings");
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -93,7 +96,7 @@ function PlatformCard({
               {platform.name}
             </h3>
             <p className="text-xs text-gray-500">
-              Ages {platform.min_age_recommended}+
+              {t("agesPlus").replace("{age}", String(platform.min_age_recommended))}
             </p>
           </div>
         </div>
@@ -110,7 +113,7 @@ function PlatformCard({
           ) : (
             <XCircle className="h-3.5 w-3.5 text-red-400" />
           )}
-          <span className="text-gray-600">Content filters</span>
+          <span className="text-gray-600">{t("contentFilters")}</span>
         </div>
         <div className="flex items-center gap-1 text-xs">
           {platform.has_parental_controls ? (
@@ -118,7 +121,7 @@ function PlatformCard({
           ) : (
             <XCircle className="h-3.5 w-3.5 text-red-400" />
           )}
-          <span className="text-gray-600">Parental controls</span>
+          <span className="text-gray-600">{t("parentalControls")}</span>
         </div>
         <div className="flex items-center gap-1 text-xs">
           {platform.coppa_compliant ? (
@@ -126,7 +129,7 @@ function PlatformCard({
           ) : (
             <XCircle className="h-3.5 w-3.5 text-red-400" />
           )}
-          <span className="text-gray-600">COPPA</span>
+          <span className="text-gray-600">{t("coppa")}</span>
         </div>
       </div>
 
@@ -135,7 +138,7 @@ function PlatformCard({
         onClick={() => setExpanded(!expanded)}
         className="mt-3 flex items-center gap-1 text-xs font-medium text-primary-700 hover:text-primary-800"
       >
-        {expanded ? "Show less" : "Show details"}
+        {expanded ? t("showLess") : t("showDetails")}
         {expanded ? (
           <ChevronUp className="h-3 w-3" />
         ) : (
@@ -146,7 +149,7 @@ function PlatformCard({
       {expanded && (
         <div className="mt-3 space-y-3 border-t border-gray-100 pt-3">
           <div>
-            <p className="text-xs font-medium text-gray-700">Strengths</p>
+            <p className="text-xs font-medium text-gray-700">{t("strengths")}</p>
             <ul className="mt-1 space-y-1">
               {platform.strengths.map((s, i) => (
                 <li key={i} className="flex items-start gap-1.5 text-xs text-gray-600">
@@ -157,7 +160,7 @@ function PlatformCard({
             </ul>
           </div>
           <div>
-            <p className="text-xs font-medium text-gray-700">Concerns</p>
+            <p className="text-xs font-medium text-gray-700">{t("concerns")}</p>
             <ul className="mt-1 space-y-1">
               {platform.concerns.map((c, i) => (
                 <li key={i} className="flex items-start gap-1.5 text-xs text-gray-600">
@@ -168,11 +171,11 @@ function PlatformCard({
             </ul>
           </div>
           <div className="flex gap-4 text-xs text-gray-500">
-            <span>Data retention: {platform.data_retention_days} days</span>
-            <span>Known incidents: {platform.known_incidents}</span>
+            <span>{t("dataRetention")}: {t("daysValue").replace("{days}", String(platform.data_retention_days))}</span>
+            <span>{t("knownIncidents")}: {platform.known_incidents}</span>
           </div>
           <p className="text-xs text-gray-400">
-            Last updated: {platform.last_updated}
+            {t("lastUpdated")}: {platform.last_updated}
           </p>
         </div>
       )}
@@ -181,6 +184,7 @@ function PlatformCard({
 }
 
 export default function SafetyRatingsPage() {
+  const t = useTranslations("safetyRatings");
   const [ageFilter, setAgeFilter] = useState<number | null>(null);
   const [ageInput, setAgeInput] = useState("");
 
@@ -219,7 +223,7 @@ export default function SafetyRatingsPage() {
       <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <span className="ml-3 text-sm text-gray-500">
-          Loading safety ratings...
+          {t("loading")}
         </span>
       </div>
     );
@@ -230,10 +234,10 @@ export default function SafetyRatingsPage() {
       <div className="flex h-64 flex-col items-center justify-center text-center">
         <AlertTriangle className="h-10 w-10 text-amber-500" />
         <p className="mt-3 text-sm font-medium text-gray-900">
-          Failed to load ratings
+          {t("errorTitle")}
         </p>
         <p className="mt-1 text-sm text-gray-500">
-          {(errorObj as Error)?.message || "Something went wrong"}
+          {(errorObj as Error)?.message || t("errorFallback")}
         </p>
         <Button
           variant="secondary"
@@ -242,7 +246,7 @@ export default function SafetyRatingsPage() {
           onClick={() => refetch()}
         >
           <RefreshCw className="h-4 w-4" />
-          Try again
+          {t("tryAgain")}
         </Button>
       </div>
     );
@@ -252,10 +256,10 @@ export default function SafetyRatingsPage() {
     <div>
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">
-          AI Platform Safety Ratings
+          {t("title")}
         </h1>
         <p className="mt-1 text-sm text-gray-500">
-          Independent safety assessments of popular AI platforms for children
+          {t("subtitle")}
         </p>
       </div>
 
@@ -268,7 +272,7 @@ export default function SafetyRatingsPage() {
               htmlFor="age-filter"
               className="text-sm font-medium text-gray-700"
             >
-              Filter by age:
+              {t("filterByAge")}
             </label>
           </div>
           <div className="flex items-center gap-2">
@@ -280,22 +284,22 @@ export default function SafetyRatingsPage() {
               value={ageInput}
               onChange={(e) => setAgeInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAgeFilter()}
-              placeholder="Enter age"
+              placeholder={t("enterAge")}
               className="w-24 rounded-lg border border-gray-300 px-3 py-1.5 text-sm shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
             />
             <Button size="sm" onClick={handleAgeFilter} disabled={!ageInput}>
               <Shield className="h-4 w-4" />
-              Filter
+              {t("filter")}
             </Button>
             {ageFilter !== null && (
               <Button size="sm" variant="secondary" onClick={clearFilter}>
-                Clear
+                {t("clear")}
               </Button>
             )}
           </div>
           {ageFilter !== null && (
             <p className="text-sm text-gray-500">
-              Showing recommendations for age {ageFilter}
+              {t("showingForAge").replace("{age}", String(ageFilter))}
             </p>
           )}
         </div>
@@ -310,7 +314,7 @@ export default function SafetyRatingsPage() {
 
       {platforms.length === 0 && (
         <div className="flex h-32 items-center justify-center">
-          <p className="text-sm text-gray-500">No platforms found.</p>
+          <p className="text-sm text-gray-500">{t("noPlatforms")}</p>
         </div>
       )}
     </div>

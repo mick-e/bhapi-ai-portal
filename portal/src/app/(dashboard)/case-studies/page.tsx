@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/Card";
 import { BookOpen, Quote, ArrowRight, Loader2 } from "lucide-react";
 import { api } from "@/lib/api-client";
+import { useTranslations } from "@/contexts/LocaleContext";
 
 interface CaseStudyResult {
   metric: string;
@@ -25,6 +26,7 @@ interface CaseStudy {
 }
 
 export default function CaseStudiesPage() {
+  const t = useTranslations("caseStudies");
   const [studies, setStudies] = useState<CaseStudy[]>([]);
   const [selected, setSelected] = useState<CaseStudy | null>(null);
   const [loading, setLoading] = useState(true);
@@ -50,7 +52,7 @@ export default function CaseStudiesPage() {
     return (
       <div>
         <button onClick={() => setSelected(null)} className="mb-4 text-sm text-primary-700 hover:text-primary-800">
-          &larr; Back to case studies
+          &larr; {t("backToCaseStudies")}
         </button>
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-900">{selected.title}</h1>
@@ -62,22 +64,22 @@ export default function CaseStudiesPage() {
         </div>
 
         <div className="space-y-6">
-          <Card title="Challenge">
+          <Card title={t("challenge")}>
             <p className="text-sm text-gray-600">{selected.challenge}</p>
           </Card>
 
-          <Card title="Solution">
+          <Card title={t("solution")}>
             <p className="text-sm text-gray-600">{selected.solution}</p>
           </Card>
 
-          <Card title="Results">
+          <Card title={t("results")}>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-200">
-                    <th className="py-2 text-left font-medium text-gray-700">Metric</th>
-                    <th className="py-2 text-left font-medium text-red-600">Before</th>
-                    <th className="py-2 text-left font-medium text-green-600">After</th>
+                    <th className="py-2 text-left font-medium text-gray-700">{t("metric")}</th>
+                    <th className="py-2 text-left font-medium text-red-600">{t("before")}</th>
+                    <th className="py-2 text-left font-medium text-green-600">{t("after")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -106,9 +108,9 @@ export default function CaseStudiesPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Case Studies</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t("title")}</h1>
         <p className="mt-1 text-sm text-gray-500">
-          See how schools, families, and organisations use Bhapi to keep AI safe
+          {t("subtitle")}
         </p>
       </div>
 
@@ -126,7 +128,7 @@ export default function CaseStudiesPage() {
             <h3 className="text-lg font-bold text-gray-900">{study.title}</h3>
             <p className="mt-1 text-sm text-gray-500">{study.subtitle}</p>
             <div className="mt-4 flex items-center gap-1 text-sm font-medium text-primary-700">
-              Read more <ArrowRight className="h-4 w-4" />
+              {t("readMore")} <ArrowRight className="h-4 w-4" />
             </div>
           </button>
         ))}

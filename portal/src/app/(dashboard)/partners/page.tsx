@@ -17,6 +17,7 @@ import {
   BadgeCheck,
 } from "lucide-react";
 import { BhapiLogo } from "@/components/BhapiLogo";
+import { useTranslations } from "@/contexts/LocaleContext";
 
 const tiers = [
   {
@@ -154,6 +155,7 @@ const steps = [
 ];
 
 export default function PartnersPage() {
+  const t = useTranslations("partners");
   return (
     <div className="min-h-screen bg-white">
       {/* Navigation */}
@@ -167,14 +169,14 @@ export default function PartnersPage() {
               href="/login"
               className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
             >
-              Log in
+              {t("logIn")}
             </Link>
             <Link
               href="#apply"
               className="inline-flex items-center rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors"
               style={{ backgroundColor: "#FF6B35" }}
             >
-              Apply to Partner
+              {t("applyToPartner")}
             </Link>
           </div>
         </div>
@@ -188,14 +190,14 @@ export default function PartnersPage() {
             style={{ backgroundColor: "#fff3ee", color: "#FF6B35" }}
           >
             <Handshake className="h-4 w-4" />
-            Channel Partnership Program
+            {t("programBadge")}
           </div>
           <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
-            Partner with{" "}
+            {t("heroTitlePrefix")}{" "}
             <span style={{ color: "#FF6B35" }}>Bhapi</span>
           </h1>
           <p className="mt-6 text-xl text-gray-600 max-w-2xl mx-auto">
-            Bring AI safety to your schools and communities — and earn recurring revenue for every family or school you onboard.
+            {t("heroSubtitle")}
           </p>
           <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
             <Link
@@ -203,14 +205,14 @@ export default function PartnersPage() {
               className="inline-flex items-center justify-center gap-2 rounded-lg px-6 py-3 text-base font-semibold text-white transition-colors"
               style={{ backgroundColor: "#FF6B35" }}
             >
-              Apply to Partner
+              {t("applyToPartner")}
               <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
               href="/roi-calculator"
               className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-6 py-3 text-base font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
             >
-              ROI Calculator
+              {t("roiCalculator")}
             </Link>
           </div>
           <div className="mt-12 flex flex-wrap items-center justify-center gap-6 text-sm text-gray-500">
@@ -234,8 +236,8 @@ export default function PartnersPage() {
       <section className="py-16 bg-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900">How it works</h2>
-            <p className="mt-3 text-lg text-gray-600">From application to first commission in under 2 weeks.</p>
+            <h2 className="text-3xl font-bold text-gray-900">{t("howItWorks")}</h2>
+            <p className="mt-3 text-lg text-gray-600">{t("howItWorksSubtitle")}</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {steps.map((s) => (
@@ -258,8 +260,8 @@ export default function PartnersPage() {
       <section className="py-20 bg-gray-50" id="tiers">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900">Partnership Tiers</h2>
-            <p className="mt-3 text-lg text-gray-600">Choose the level that fits your business model.</p>
+            <h2 className="text-3xl font-bold text-gray-900">{t("partnershipTiers")}</h2>
+            <p className="mt-3 text-lg text-gray-600">{t("partnershipTiersSubtitle")}</p>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {tiers.map((tier) => (
@@ -336,9 +338,9 @@ export default function PartnersPage() {
       <section className="py-20 bg-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900">Everything you need to sell Bhapi</h2>
+            <h2 className="text-3xl font-bold text-gray-900">{t("everythingYouNeed")}</h2>
             <p className="mt-3 text-lg text-gray-600">
-              We equip our partners with the tools, collateral, and support to close deals confidently.
+              {t("everythingYouNeedSubtitle")}
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -372,7 +374,7 @@ export default function PartnersPage() {
               >
                 <DollarSign className="h-5 w-5" style={{ color: "#0D9488" }} />
               </div>
-              <h2 className="text-2xl font-bold text-gray-900">Commission Structure</h2>
+              <h2 className="text-2xl font-bold text-gray-900">{t("commissionStructure")}</h2>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
               <div className="rounded-xl bg-gray-50 p-5 text-center">
@@ -421,9 +423,9 @@ export default function PartnersPage() {
       <section className="py-16 bg-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10">
-            <h2 className="text-2xl font-bold text-gray-900">Built for regulated environments</h2>
+            <h2 className="text-2xl font-bold text-gray-900">{t("builtForRegulated")}</h2>
             <p className="mt-2 text-gray-600">
-              Bhapi is purpose-built for schools and families — compliance is a feature, not an afterthought.
+              {t("builtForRegulatedSubtitle")}
             </p>
           </div>
           <div className="flex flex-wrap justify-center gap-4">
@@ -450,7 +452,7 @@ export default function PartnersPage() {
       <section className="py-16 bg-gray-50">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10">
-            <h2 className="text-2xl font-bold text-gray-900">Who do our partners sell to?</h2>
+            <h2 className="text-2xl font-bold text-gray-900">{t("whoDoPartnersSellTo")}</h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             <div className="rounded-xl bg-white border border-gray-200 p-6">
@@ -482,9 +484,9 @@ export default function PartnersPage() {
       <section className="py-20" id="apply" style={{ background: "linear-gradient(135deg, #FF6B35 0%, #e85d2a 100%)" }}>
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 text-center text-white">
           <Handshake className="h-12 w-12 mx-auto mb-6 opacity-90" />
-          <h2 className="text-3xl font-bold">Ready to partner with Bhapi?</h2>
+          <h2 className="text-3xl font-bold">{t("readyToPartner")}</h2>
           <p className="mt-4 text-lg opacity-90">
-            Join our partner program and start earning recurring revenue while helping schools and families stay safe in the age of AI.
+            {t("readyToPartnerSubtitle")}
           </p>
           <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
             <a
@@ -492,14 +494,14 @@ export default function PartnersPage() {
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-6 py-3 text-base font-semibold transition-colors hover:bg-gray-50"
               style={{ color: "#FF6B35" }}
             >
-              Apply to Partner
+              {t("applyToPartner")}
               <ArrowRight className="h-4 w-4" />
             </a>
             <Link
               href="/roi-calculator"
               className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/40 bg-white/10 px-6 py-3 text-base font-semibold text-white hover:bg-white/20 transition-colors"
             >
-              View ROI Calculator
+              {t("viewRoiCalculator")}
             </Link>
           </div>
           <p className="mt-6 text-sm opacity-75">
@@ -517,10 +519,10 @@ export default function PartnersPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <BhapiLogo className="h-6 w-auto" />
           <div className="flex gap-6 text-sm text-gray-500">
-            <Link href="/legal/privacy" className="hover:text-gray-900">Privacy</Link>
-            <Link href="/legal/terms" className="hover:text-gray-900">Terms</Link>
-            <Link href="/roi-calculator" className="hover:text-gray-900">ROI Calculator</Link>
-            <a href="mailto:partners@bhapi.ai" className="hover:text-gray-900">Contact</a>
+            <Link href="/legal/privacy" className="hover:text-gray-900">{t("privacy")}</Link>
+            <Link href="/legal/terms" className="hover:text-gray-900">{t("terms")}</Link>
+            <Link href="/roi-calculator" className="hover:text-gray-900">{t("roiCalculator")}</Link>
+            <a href="mailto:partners@bhapi.ai" className="hover:text-gray-900">{t("contact")}</a>
           </div>
         </div>
       </footer>

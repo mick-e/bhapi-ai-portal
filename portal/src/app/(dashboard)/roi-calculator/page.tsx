@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/Card";
 import { Calculator, TrendingUp, DollarSign, Clock } from "lucide-react";
 import { api } from "@/lib/api-client";
+import { useTranslations } from "@/contexts/LocaleContext";
 
 interface ROIResult {
   num_students: number;
@@ -19,6 +20,7 @@ interface ROIResult {
 }
 
 export default function ROICalculatorPage() {
+  const t = useTranslations("roiCalculator");
   const [numStudents, setNumStudents] = useState(200);
   const [avgIncidents, setAvgIncidents] = useState(5);
   const [costPerIncident, setCostPerIncident] = useState(500);
@@ -43,17 +45,17 @@ export default function ROICalculatorPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">ROI Calculator</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t("title")}</h1>
         <p className="mt-1 text-sm text-gray-500">
-          Estimate the return on investment from deploying Bhapi AI Portal
+          {t("subtitle")}
         </p>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card title="Your Organisation" description="Adjust the inputs to match your situation">
+        <Card title={t("yourOrganisation")} description={t("adjustInputs")}>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700">Number of students</label>
+              <label className="block text-sm font-medium text-gray-700">{t("numberOfStudents")}</label>
               <input
                 type="range" min={10} max={5000} value={numStudents}
                 onChange={(e) => setNumStudents(Number(e.target.value))}
@@ -62,7 +64,7 @@ export default function ROICalculatorPage() {
               <p className="text-right text-sm font-semibold text-primary-700">{numStudents}</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">AI incidents per month</label>
+              <label className="block text-sm font-medium text-gray-700">{t("incidentsPerMonth")}</label>
               <input
                 type="range" min={0} max={50} value={avgIncidents}
                 onChange={(e) => setAvgIncidents(Number(e.target.value))}
@@ -71,7 +73,7 @@ export default function ROICalculatorPage() {
               <p className="text-right text-sm font-semibold text-primary-700">{avgIncidents}</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Cost per incident ($)</label>
+              <label className="block text-sm font-medium text-gray-700">{t("costPerIncident")}</label>
               <input
                 type="number" min={0} value={costPerIncident}
                 onChange={(e) => setCostPerIncident(Number(e.target.value))}
@@ -79,7 +81,7 @@ export default function ROICalculatorPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Hours spent on manual review (weekly)</label>
+              <label className="block text-sm font-medium text-gray-700">{t("hoursManualReview")}</label>
               <input
                 type="number" min={0} value={hoursReview}
                 onChange={(e) => setHoursReview(Number(e.target.value))}
@@ -87,7 +89,7 @@ export default function ROICalculatorPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Hourly rate ($)</label>
+              <label className="block text-sm font-medium text-gray-700">{t("hourlyRate")}</label>
               <input
                 type="number" min={0} value={hourlyRate}
                 onChange={(e) => setHourlyRate(Number(e.target.value))}
@@ -103,7 +105,7 @@ export default function ROICalculatorPage() {
               <div className="rounded-xl bg-green-50 p-6 ring-1 ring-green-200">
                 <div className="flex items-center gap-2">
                   <DollarSign className="h-5 w-5 text-green-600" />
-                  <span className="text-sm font-medium text-green-800">Annual Savings</span>
+                  <span className="text-sm font-medium text-green-800">{t("annualSavings")}</span>
                 </div>
                 <p className="mt-2 text-3xl font-bold text-green-700">
                   ${result.annual_savings.toLocaleString()}
@@ -112,7 +114,7 @@ export default function ROICalculatorPage() {
               <div className="rounded-xl bg-primary-50 p-6 ring-1 ring-primary-200">
                 <div className="flex items-center gap-2">
                   <TrendingUp className="h-5 w-5 text-primary-600" />
-                  <span className="text-sm font-medium text-primary-800">ROI</span>
+                  <span className="text-sm font-medium text-primary-800">{t("roi")}</span>
                 </div>
                 <p className="mt-2 text-3xl font-bold text-primary-700">
                   {result.roi_percentage}%
@@ -120,41 +122,41 @@ export default function ROICalculatorPage() {
               </div>
             </div>
 
-            <Card title="Cost Comparison">
+            <Card title={t("costComparison")}>
               <div className="space-y-3">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Current monthly cost</span>
+                  <span className="text-gray-600">{t("currentMonthlyCost")}</span>
                   <span className="font-semibold text-gray-900">${result.current_monthly_cost.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Bhapi monthly cost</span>
+                  <span className="text-gray-600">{t("bhapiMonthlyCost")}</span>
                   <span className="font-semibold text-primary-700">${result.bhapi_monthly_cost.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">New monthly cost (with Bhapi)</span>
+                  <span className="text-gray-600">{t("newMonthlyCost")}</span>
                   <span className="font-semibold text-green-700">${result.new_monthly_cost.toLocaleString()}</span>
                 </div>
                 <hr className="border-gray-200" />
                 <div className="flex justify-between text-sm font-bold">
-                  <span className="text-gray-900">Monthly savings</span>
+                  <span className="text-gray-900">{t("monthlySavings")}</span>
                   <span className="text-green-700">${result.monthly_savings.toLocaleString()}</span>
                 </div>
               </div>
             </Card>
 
-            <Card title="Impact Summary">
+            <Card title={t("impactSummary")}>
               <div className="space-y-2 text-sm">
                 <div className="flex items-center gap-2">
                   <Clock className="h-4 w-4 text-gray-400" />
-                  <span className="text-gray-600">Payback period: <strong>{result.payback_months} months</strong></span>
+                  <span className="text-gray-600">{t("paybackPeriod")}: <strong>{t("monthsValue").replace("{months}", String(result.payback_months))}</strong></span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Calculator className="h-4 w-4 text-gray-400" />
-                  <span className="text-gray-600">Incident reduction: <strong>{result.incident_reduction_pct}%</strong></span>
+                  <span className="text-gray-600">{t("incidentReduction")}: <strong>{result.incident_reduction_pct}%</strong></span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Calculator className="h-4 w-4 text-gray-400" />
-                  <span className="text-gray-600">Manual review reduction: <strong>{result.manual_review_reduction_pct}%</strong></span>
+                  <span className="text-gray-600">{t("manualReviewReduction")}: <strong>{result.manual_review_reduction_pct}%</strong></span>
                 </div>
               </div>
             </Card>

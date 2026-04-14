@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { useTranslations } from "@/contexts/LocaleContext";
 import { useSummaries } from "@/hooks/use-summaries";
 import { useAuth } from "@/hooks/use-auth";
 import { apiFetch } from "@/lib/api-client";
@@ -35,6 +36,7 @@ const PLATFORM_LABELS: Record<string, string> = {
 
 function SummaryCard({ summary }: { summary: ConversationSummary }) {
   const [expanded, setExpanded] = useState(false);
+  const t = useTranslations("activitySummaries");
 
   return (
     <div
@@ -62,7 +64,7 @@ function SummaryCard({ summary }: { summary: ConversationSummary }) {
               {summary.action_needed && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
                   <AlertTriangle className="h-3 w-3" />
-                  Action needed
+                  {t("actionNeeded")}
                 </span>
               )}
             </div>
@@ -119,12 +121,14 @@ function SummaryCard({ summary }: { summary: ConversationSummary }) {
             {expanded ? (
               <>
                 <ChevronUp className="h-3.5 w-3.5" />
-                Hide quotes
+                {t("hideQuotes")}
               </>
             ) : (
               <>
                 <ChevronDown className="h-3.5 w-3.5" />
-                Show {summary.key_quotes.length} quote{summary.key_quotes.length !== 1 ? "s" : ""}
+                {summary.key_quotes.length === 1
+                  ? t("showQuoteOne")
+                  : t("showQuotesMany").replace("{count}", String(summary.key_quotes.length))}
               </>
             )}
           </button>
@@ -147,6 +151,7 @@ function SummaryCard({ summary }: { summary: ConversationSummary }) {
 }
 
 export default function SummariesPage() {
+  const t = useTranslations("activitySummaries");
   const { user } = useAuth();
   const groupId = user?.group_id || "";
 
@@ -184,10 +189,10 @@ export default function SummariesPage() {
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">
-          Conversation Summaries
+          {t("title")}
         </h1>
         <p className="mt-1 text-sm text-gray-500">
-          AI-generated summaries of your children&apos;s conversations
+          {t("subtitle")}
         </p>
       </div>
 
@@ -198,7 +203,7 @@ export default function SummariesPage() {
             htmlFor="date-filter"
             className="block text-xs font-medium text-gray-500"
           >
-            Date
+            {t("dateLabel")}
           </label>
           <input
             id="date-filter"
@@ -217,7 +222,7 @@ export default function SummariesPage() {
             htmlFor="member-filter"
             className="block text-xs font-medium text-gray-500"
           >
-            Member
+            {t("memberLabel")}
           </label>
           <select
             id="member-filter"
@@ -228,7 +233,7 @@ export default function SummariesPage() {
             }}
             className="mt-1 rounded-lg border border-gray-300 px-3 py-1.5 text-sm shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
           >
-            <option value="">All members</option>
+            <option value="">{t("allMembers")}</option>
             {members.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.display_name}
@@ -240,7 +245,7 @@ export default function SummariesPage() {
         <div className="flex items-end">
           <Button variant="secondary" size="sm" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4" />
-            Refresh
+            {t("refresh")}
           </Button>
         </div>
       </div>
@@ -250,7 +255,7 @@ export default function SummariesPage() {
         <div className="flex h-48 items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <span className="ml-3 text-sm text-gray-500">
-            Loading summaries...
+            {t("loading")}
           </span>
         </div>
       )}
@@ -260,10 +265,10 @@ export default function SummariesPage() {
         <div className="flex h-48 flex-col items-center justify-center text-center">
           <AlertTriangle className="h-10 w-10 text-amber-500" />
           <p className="mt-3 text-sm font-medium text-gray-900">
-            Failed to load summaries
+            {t("errorTitle")}
           </p>
           <p className="mt-1 text-sm text-gray-500">
-            {(error as Error)?.message || "Something went wrong"}
+            {(error as Error)?.message || t("errorFallback")}
           </p>
           <Button
             variant="secondary"
@@ -272,7 +277,7 @@ export default function SummariesPage() {
             onClick={() => refetch()}
           >
             <RefreshCw className="h-4 w-4" />
-            Try again
+            {t("tryAgain")}
           </Button>
         </div>
       )}
@@ -282,16 +287,16 @@ export default function SummariesPage() {
         <div className="flex h-48 flex-col items-center justify-center text-center">
           <MessageSquare className="h-10 w-10 text-gray-300" />
           <p className="mt-3 text-sm font-medium text-gray-900">
-            No conversation summaries yet
+            {t("emptyTitle")}
           </p>
           <p className="mt-1 text-sm text-gray-500">
-            Enable enhanced monitoring to get started.
+            {t("emptyDescription")}
           </p>
           <Link
             href="/settings"
             className="mt-3 text-sm font-medium text-primary-700 hover:text-primary-800"
           >
-            Go to Settings
+            {t("goToSettings")}
           </Link>
         </div>
       )}
@@ -314,10 +319,10 @@ export default function SummariesPage() {
                 disabled={page <= 1}
                 onClick={() => setPage(page - 1)}
               >
-                Previous
+                {t("previous")}
               </Button>
               <span className="text-sm text-gray-500">
-                Page {page} of {totalPages}
+                {t("pageOf").replace("{page}", String(page)).replace("{total}", String(totalPages))}
               </span>
               <Button
                 variant="secondary"
@@ -325,7 +330,7 @@ export default function SummariesPage() {
                 disabled={page >= totalPages}
                 onClick={() => setPage(page + 1)}
               >
-                Next
+                {t("next")}
               </Button>
             </div>
           )}

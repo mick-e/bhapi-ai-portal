@@ -16,24 +16,31 @@ import {
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { useTranslations } from "@/contexts/LocaleContext";
 import { useChildDashboard } from "@/hooks/use-privacy";
 
 export default function MyDashboardPage() {
   return (
     <Suspense
-      fallback={
-        <div className="flex h-64 items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <span className="ml-3 text-sm text-gray-500">Loading your dashboard...</span>
-        </div>
-      }
+      fallback={<MyDashboardLoading />}
     >
       <MyDashboardContent />
     </Suspense>
   );
 }
 
+function MyDashboardLoading() {
+  const t = useTranslations("myDashboard");
+  return (
+    <div className="flex h-64 items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <span className="ml-3 text-sm text-gray-500">{t("loading")}</span>
+    </div>
+  );
+}
+
 function MyDashboardContent() {
+  const t = useTranslations("myDashboard");
   const searchParams = useSearchParams();
   const memberId = searchParams.get("id") || "";
 
@@ -49,9 +56,9 @@ function MyDashboardContent() {
     return (
       <div className="flex h-64 flex-col items-center justify-center text-center">
         <AlertTriangle className="h-10 w-10 text-amber-500" />
-        <p className="mt-3 text-sm font-medium text-gray-900">No member ID provided</p>
+        <p className="mt-3 text-sm font-medium text-gray-900">{t("noMemberIdTitle")}</p>
         <p className="mt-1 text-sm text-gray-500">
-          Ask your parent to set up your dashboard.
+          {t("noMemberIdDescription")}
         </p>
       </div>
     );
@@ -61,7 +68,7 @@ function MyDashboardContent() {
     return (
       <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-3 text-sm text-gray-500">Loading your dashboard...</span>
+        <span className="ml-3 text-sm text-gray-500">{t("loading")}</span>
       </div>
     );
   }
@@ -71,10 +78,10 @@ function MyDashboardContent() {
       <div className="flex h-64 flex-col items-center justify-center text-center">
         <AlertTriangle className="h-10 w-10 text-amber-500" />
         <p className="mt-3 text-sm font-medium text-gray-900">
-          Could not load your dashboard
+          {t("errorTitle")}
         </p>
         <p className="mt-1 text-sm text-gray-500">
-          {(error as Error)?.message || "Something went wrong"}
+          {(error as Error)?.message || t("errorFallback")}
         </p>
         <Button
           variant="secondary"
@@ -83,7 +90,7 @@ function MyDashboardContent() {
           onClick={() => refetch()}
         >
           <RefreshCw className="h-4 w-4" />
-          Try again
+          {t("tryAgain")}
         </Button>
       </div>
     );
@@ -96,9 +103,9 @@ function MyDashboardContent() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">My Dashboard</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t("title")}</h1>
         <p className="mt-1 text-sm text-gray-500">
-          Your personal AI safety overview
+          {t("subtitle")}
         </p>
       </div>
 
@@ -111,7 +118,7 @@ function MyDashboardContent() {
                 <Shield className="h-5 w-5 text-green-600" />
               </div>
               <div>
-                <p className="text-xs text-gray-500">Safety Score</p>
+                <p className="text-xs text-gray-500">{t("safetyScore")}</p>
                 <p className="text-lg font-bold text-gray-900">{dashboard.safety_score}</p>
               </div>
             </div>
@@ -137,7 +144,7 @@ function MyDashboardContent() {
                 <Clock className="h-5 w-5 text-blue-600" />
               </div>
               <div>
-                <p className="text-xs text-gray-500">Sessions Today</p>
+                <p className="text-xs text-gray-500">{t("sessionsToday")}</p>
                 <p className="text-lg font-bold text-gray-900">
                   {dashboard.sessions_today}
                 </p>
@@ -153,7 +160,7 @@ function MyDashboardContent() {
                 <Trophy className="h-5 w-5 text-amber-600" />
               </div>
               <div>
-                <p className="text-xs text-gray-500">Rewards Earned</p>
+                <p className="text-xs text-gray-500">{t("rewardsEarned")}</p>
                 <p className="text-lg font-bold text-gray-900">
                   {dashboard.rewards.items.length}
                 </p>
@@ -169,9 +176,9 @@ function MyDashboardContent() {
                 <Clock className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="text-xs text-gray-500">Extra Time Earned</p>
+                <p className="text-xs text-gray-500">{t("extraTimeEarned")}</p>
                 <p className="text-lg font-bold text-gray-900">
-                  {dashboard.rewards.extra_time_minutes} min
+                  {t("minutes").replace("{min}", String(dashboard.rewards.extra_time_minutes))}
                 </p>
               </div>
             </div>
@@ -182,22 +189,22 @@ function MyDashboardContent() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Literacy Progress */}
         {sections.includes("literacy") && dashboard.literacy && (
-          <Card title="AI Literacy Progress">
+          <Card title={t("literacyTitle")}>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <BookOpen className="h-5 w-5 text-primary" />
                   <span className="text-sm font-medium text-gray-700">
-                    Level: {dashboard.literacy.current_level}
+                    {t("level")}: {dashboard.literacy.current_level}
                   </span>
                 </div>
                 <span className="rounded-full bg-primary-50 px-3 py-1 text-xs font-semibold text-primary">
-                  {dashboard.literacy.modules_completed} modules completed
+                  {t("modulesCompleted").replace("{count}", String(dashboard.literacy.modules_completed))}
                 </span>
               </div>
               <div>
                 <div className="flex justify-between text-xs text-gray-500">
-                  <span>Score</span>
+                  <span>{t("score")}</span>
                   <span>{dashboard.literacy.total_score.toFixed(0)}%</span>
                 </div>
                 <div className="mt-1 h-2.5 w-full overflow-hidden rounded-full bg-gray-100">
@@ -210,7 +217,7 @@ function MyDashboardContent() {
                 </div>
               </div>
               <p className="text-sm text-gray-500">
-                Keep learning about AI safety to unlock more rewards!
+                {t("literacyHint")}
               </p>
             </div>
           </Card>
@@ -218,12 +225,12 @@ function MyDashboardContent() {
 
         {/* My Rewards */}
         {sections.includes("rewards") && dashboard.rewards && (
-          <Card title="My Rewards">
+          <Card title={t("myRewards")}>
             {dashboard.rewards.items.length === 0 ? (
               <div className="py-6 text-center">
                 <Trophy className="mx-auto h-10 w-10 text-gray-300" />
                 <p className="mt-2 text-sm text-gray-500">
-                  No rewards yet. Keep up the good work!
+                  {t("noRewards")}
                 </p>
               </div>
             ) : (
@@ -253,13 +260,13 @@ function MyDashboardContent() {
                         </p>
                         <p className="text-xs text-gray-500">
                           {reward.reward_type === "extra_time"
-                            ? `+${reward.value} minutes`
-                            : "Badge earned"}
+                            ? t("plusMinutes").replace("{value}", String(reward.value))
+                            : t("badgeEarned")}
                         </p>
                       </div>
                     </div>
                     {reward.redeemed && (
-                      <span className="text-xs text-gray-400">Used</span>
+                      <span className="text-xs text-gray-400">{t("used")}</span>
                     )}
                   </div>
                 ))}
@@ -274,15 +281,13 @@ function MyDashboardContent() {
         <button
           onClick={() => {
             if (typeof window !== "undefined") {
-              window.alert(
-                "If you feel unsafe, please talk to a trusted adult right away."
-              );
+              window.alert(t("needHelpAlert"));
             }
           }}
           className="flex items-center gap-2 rounded-xl border-2 border-red-200 bg-red-50 px-6 py-3 text-sm font-semibold text-red-700 transition-colors hover:bg-red-100"
         >
           <AlertCircle className="h-5 w-5" />
-          I Need Help
+          {t("needHelp")}
         </button>
       </div>
     </div>

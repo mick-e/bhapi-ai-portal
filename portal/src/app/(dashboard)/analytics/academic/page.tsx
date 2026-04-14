@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { useTranslations } from "@/contexts/LocaleContext";
 import { useAuth } from "@/hooks/use-auth";
 import { useAcademicReport } from "@/hooks/use-academic";
 import { useMemberBaselines } from "@/hooks/use-analytics";
@@ -64,11 +65,7 @@ function DonutChart({
 }) {
   const total = learning + doing + unclassified;
   if (total === 0) {
-    return (
-      <div className="flex h-40 w-40 items-center justify-center rounded-full border-8 border-gray-200">
-        <span className="text-sm text-gray-400">No data</span>
-      </div>
-    );
+    return <DonutChartEmpty />;
   }
 
   const learningPct = (learning / total) * 100;
@@ -89,15 +86,30 @@ function DonutChart({
       />
       <div className="absolute flex h-24 w-24 flex-col items-center justify-center rounded-full bg-white">
         <span className="text-xl font-bold text-gray-900">{total}</span>
-        <span className="text-xs text-gray-500">sessions</span>
+        <DonutSessionsLabel />
       </div>
     </div>
   );
 }
 
+function DonutChartEmpty() {
+  const t = useTranslations("analyticsAcademic");
+  return (
+    <div className="flex h-40 w-40 items-center justify-center rounded-full border-8 border-gray-200">
+      <span className="text-sm text-gray-400">{t("noData")}</span>
+    </div>
+  );
+}
+
+function DonutSessionsLabel() {
+  const t = useTranslations("analyticsAcademic");
+  return <span className="text-xs text-gray-500">{t("sessions")}</span>;
+}
+
 function StackedBar({ items }: { items: DailyBreakdownItem[] }) {
+  const t = useTranslations("analyticsAcademic");
   if (items.length === 0) {
-    return <p className="text-sm text-gray-400">No daily data available</p>;
+    return <p className="text-sm text-gray-400">{t("noDailyData")}</p>;
   }
 
   const maxTotal = Math.max(
@@ -151,6 +163,7 @@ function StackedBar({ items }: { items: DailyBreakdownItem[] }) {
 }
 
 function AcademicDashboardContent() {
+  const t = useTranslations("analyticsAcademic");
   const { user } = useAuth();
   const groupId = user?.group_id || null;
   const [period, setPeriod] = useState<Period>("this_week");
@@ -178,7 +191,7 @@ function AcademicDashboardContent() {
       <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <span className="ml-3 text-sm text-gray-500">
-          Loading academic report...
+          {t("loading")}
         </span>
       </div>
     );
@@ -189,10 +202,10 @@ function AcademicDashboardContent() {
       <div className="flex h-64 flex-col items-center justify-center text-center">
         <AlertTriangle className="h-10 w-10 text-amber-500" />
         <p className="mt-3 text-sm font-medium text-gray-900">
-          Failed to load academic report
+          {t("errorTitle")}
         </p>
         <p className="mt-1 text-sm text-gray-500">
-          {(error as Error)?.message || "Something went wrong"}
+          {(error as Error)?.message || t("errorFallback")}
         </p>
         <Button
           variant="secondary"
@@ -201,7 +214,7 @@ function AcademicDashboardContent() {
           onClick={() => refetch()}
         >
           <RefreshCw className="h-4 w-4" />
-          Try again
+          {t("tryAgain")}
         </Button>
       </div>
     );
@@ -212,10 +225,10 @@ function AcademicDashboardContent() {
       <div className="mb-8 flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
-            Academic Integrity
+            {t("title")}
           </h1>
           <p className="mt-1 text-sm text-gray-500">
-            Understand how your child uses AI for learning vs. task completion
+            {t("subtitle")}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -223,7 +236,7 @@ function AcademicDashboardContent() {
             <select
               value={memberId || ""}
               onChange={(e) => setSelectedMember(e.target.value)}
-              aria-label="Select member"
+              aria-label={t("selectMember")}
               className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
             >
               {members.map((m) => (
@@ -236,12 +249,12 @@ function AcademicDashboardContent() {
           <select
             value={period}
             onChange={(e) => setPeriod(e.target.value as Period)}
-            aria-label="Time period"
+            aria-label={t("timePeriod")}
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           >
-            <option value="this_week">This week</option>
-            <option value="last_week">Last week</option>
-            <option value="this_month">This month</option>
+            <option value="this_week">{t("thisWeek")}</option>
+            <option value="last_week">{t("lastWeek")}</option>
+            <option value="this_month">{t("thisMonth")}</option>
           </select>
         </div>
       </div>
@@ -250,7 +263,7 @@ function AcademicDashboardContent() {
         <div className="py-12 text-center">
           <BookOpen className="mx-auto h-12 w-12 text-gray-300" />
           <p className="mt-4 text-sm text-gray-500">
-            No AI sessions found for this period
+            {t("noSessions")}
           </p>
         </div>
       ) : (
@@ -264,7 +277,7 @@ function AcademicDashboardContent() {
                 </div>
                 <div>
                   <p className="text-xs font-medium text-gray-500 uppercase">
-                    Total Sessions
+                    {t("totalSessions")}
                   </p>
                   <p className="text-lg font-bold text-gray-900">
                     {report.total_ai_sessions}
@@ -279,7 +292,7 @@ function AcademicDashboardContent() {
                 </div>
                 <div>
                   <p className="text-xs font-medium text-gray-500 uppercase">
-                    Learning
+                    {t("learning")}
                   </p>
                   <p className="text-lg font-bold text-green-700">
                     {report.learning_count}
@@ -294,7 +307,7 @@ function AcademicDashboardContent() {
                 </div>
                 <div>
                   <p className="text-xs font-medium text-gray-500 uppercase">
-                    Task Completion
+                    {t("taskCompletion")}
                   </p>
                   <p className="text-lg font-bold text-amber-700">
                     {report.doing_count}
@@ -309,7 +322,7 @@ function AcademicDashboardContent() {
                 </div>
                 <div>
                   <p className="text-xs font-medium text-gray-500 uppercase">
-                    Study Hours
+                    {t("studyHours")}
                   </p>
                   <p className="text-lg font-bold text-teal-700">
                     {report.study_hour_sessions}
@@ -323,8 +336,8 @@ function AcademicDashboardContent() {
           <div className="mb-6 grid gap-6 lg:grid-cols-2">
             {/* Donut Chart */}
             <Card
-              title="Learning vs. Doing"
-              description="How your child uses AI tools"
+              title={t("learningVsDoing")}
+              description={t("learningVsDoingDescription")}
             >
               <div className="flex flex-col items-center gap-6 sm:flex-row">
                 <DonutChart
@@ -336,23 +349,23 @@ function AcademicDashboardContent() {
                   <div className="flex items-center gap-2">
                     <div className="h-3 w-3 rounded-full bg-green-500" />
                     <span className="text-sm text-gray-700">
-                      Learning ({report.learning_count})
+                      {t("learning")} ({report.learning_count})
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="h-3 w-3 rounded-full bg-amber-500" />
                     <span className="text-sm text-gray-700">
-                      Task Completion ({report.doing_count})
+                      {t("taskCompletion")} ({report.doing_count})
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="h-3 w-3 rounded-full bg-gray-300" />
                     <span className="text-sm text-gray-700">
-                      Unclassified ({report.unclassified_count})
+                      {t("unclassified")} ({report.unclassified_count})
                     </span>
                   </div>
                   <p className="mt-2 text-sm font-medium text-gray-900">
-                    Learning Ratio:{" "}
+                    {t("learningRatio")}{" "}
                     <span className="text-green-700">
                       {(report.learning_ratio * 100).toFixed(0)}%
                     </span>
@@ -363,8 +376,8 @@ function AcademicDashboardContent() {
 
             {/* Daily Breakdown */}
             <Card
-              title="Daily Breakdown"
-              description="Stacked view of daily AI usage"
+              title={t("dailyBreakdown")}
+              description={t("dailyBreakdownDescription")}
             >
               <StackedBar items={report.daily_breakdown} />
             </Card>
@@ -377,7 +390,7 @@ function AcademicDashboardContent() {
                 <Lightbulb className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary-600" />
                 <div>
                   <p className="text-sm font-semibold text-gray-900">
-                    Recommendation
+                    {t("recommendation")}
                   </p>
                   <p className="mt-1 text-sm text-gray-600">
                     {report.recommendation}

@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Puzzle, Star, Download, Loader2 } from "lucide-react";
 import { api } from "@/lib/api-client";
+import { useTranslations } from "@/contexts/LocaleContext";
 
 interface Module {
   id: string;
@@ -17,6 +18,7 @@ interface Module {
 }
 
 export default function MarketplacePage() {
+  const t = useTranslations("marketplace");
   const [modules, setModules] = useState<Module[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -34,16 +36,16 @@ export default function MarketplacePage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Safety Marketplace</h1>
-        <p className="mt-1 text-sm text-gray-500">Extend Bhapi with third-party safety modules</p>
+        <h1 className="text-2xl font-bold text-gray-900">{t("title")}</h1>
+        <p className="mt-1 text-sm text-gray-500">{t("subtitle")}</p>
       </div>
 
       {modules.length === 0 ? (
         <Card>
           <div className="py-16 text-center">
             <Puzzle className="mx-auto h-12 w-12 text-gray-300" />
-            <h2 className="mt-4 text-lg font-semibold text-gray-900">Marketplace coming soon</h2>
-            <p className="mt-2 text-sm text-gray-500">Third-party safety modules will be available here. Check back soon!</p>
+            <h2 className="mt-4 text-lg font-semibold text-gray-900">{t("comingSoon")}</h2>
+            <p className="mt-2 text-sm text-gray-500">{t("comingSoonDescription")}</p>
           </div>
         </Card>
       ) : (
@@ -66,7 +68,7 @@ export default function MarketplacePage() {
                   <span className="flex items-center gap-1"><Download className="h-3 w-3" />{mod.install_count}</span>
                   {mod.rating && <span className="flex items-center gap-1"><Star className="h-3 w-3 text-amber-400" />{mod.rating.toFixed(1)}</span>}
                 </div>
-                <Button size="sm">Install</Button>
+                <Button size="sm">{t("install")}</Button>
               </div>
             </Card>
           ))}

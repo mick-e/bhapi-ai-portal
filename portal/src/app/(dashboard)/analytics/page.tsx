@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { useTranslations } from "@/contexts/LocaleContext";
 import { useAuth } from "@/hooks/use-auth";
 import {
   useAnomalies,
@@ -43,20 +44,25 @@ function usageLevelColor(level: string): string {
   }
 }
 
-function usageLevelLabel(level: string): string {
-  switch (level) {
-    case "very_high":
-      return "Very High";
-    case "high":
-      return "High";
-    case "moderate":
-      return "Moderate";
-    default:
-      return "Low";
-  }
+function useUsageLevelLabel() {
+  const t = useTranslations("analytics");
+  return (level: string): string => {
+    switch (level) {
+      case "very_high":
+        return t("levelVeryHigh");
+      case "high":
+        return t("levelHigh");
+      case "moderate":
+        return t("levelModerate");
+      default:
+        return t("levelLow");
+    }
+  };
 }
 
 export default function AnalyticsPage() {
+  const t = useTranslations("analytics");
+  const usageLevelLabel = useUsageLevelLabel();
   const { user } = useAuth();
   const groupId = user?.group_id || null;
   const [days, setDays] = useState(7);
@@ -97,10 +103,10 @@ export default function AnalyticsPage() {
       <div className="flex h-64 flex-col items-center justify-center text-center">
         <BarChart3 className="h-10 w-10 text-gray-300" />
         <p className="mt-3 text-sm font-medium text-gray-900">
-          No group selected
+          {t("noGroupTitle")}
         </p>
         <p className="mt-1 text-sm text-gray-500">
-          Create or join a group to see analytics
+          {t("noGroupDescription")}
         </p>
       </div>
     );
@@ -110,7 +116,7 @@ export default function AnalyticsPage() {
     return (
       <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-3 text-sm text-gray-500">Loading analytics...</span>
+        <span className="ml-3 text-sm text-gray-500">{t("loading")}</span>
       </div>
     );
   }
@@ -120,10 +126,10 @@ export default function AnalyticsPage() {
       <div className="flex h-64 flex-col items-center justify-center text-center">
         <AlertTriangle className="h-10 w-10 text-amber-500" />
         <p className="mt-3 text-sm font-medium text-gray-900">
-          Failed to load analytics
+          {t("errorTitle")}
         </p>
         <p className="mt-1 text-sm text-gray-500">
-          {(trendsErr as Error)?.message || "Something went wrong"}
+          {(trendsErr as Error)?.message || t("errorFallback")}
         </p>
         <Button
           variant="secondary"
@@ -132,7 +138,7 @@ export default function AnalyticsPage() {
           onClick={() => refetchTrends()}
         >
           <RefreshCw className="h-4 w-4" />
-          Try again
+          {t("tryAgain")}
         </Button>
       </div>
     );
@@ -144,9 +150,9 @@ export default function AnalyticsPage() {
     <div>
       <div className="mb-8 flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t("title")}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Activity trends, usage patterns, and member baselines
+            {t("subtitle")}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -159,7 +165,7 @@ export default function AnalyticsPage() {
                   : "text-gray-600 hover:bg-gray-50"
               }`}
             >
-              Overview
+              {t("overview")}
             </button>
             <button
               onClick={() => setTab("peer")}
@@ -169,18 +175,18 @@ export default function AnalyticsPage() {
                   : "text-gray-600 hover:bg-gray-50"
               }`}
             >
-              Peer Comparison
+              {t("peerComparison")}
             </button>
           </div>
           <select
             value={days}
             onChange={(e) => setDays(Number(e.target.value))}
-            aria-label="Time period"
+            aria-label={t("timePeriod")}
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           >
-            <option value={7}>Last 7 days</option>
-            <option value={14}>Last 14 days</option>
-            <option value={30}>Last 30 days</option>
+            <option value={7}>{t("last7Days")}</option>
+            <option value={14}>{t("last14Days")}</option>
+            <option value={30}>{t("last30Days")}</option>
           </select>
         </div>
       </div>
@@ -212,7 +218,7 @@ export default function AnalyticsPage() {
                       : "text-amber-900"
                   }`}
                 >
-                  Unusual activity detected for {anomaly.member_name}
+                  {t("anomalyDetected").replace("{name}", anomaly.member_name)}
                 </p>
                 <p
                   className={`mt-1 text-sm ${
@@ -262,12 +268,12 @@ export default function AnalyticsPage() {
                     </div>
                     <div>
                       <p className="text-xs font-medium text-gray-500 uppercase">
-                        Activity Trend
+                        {t("activityTrend")}
                       </p>
                       <p className="text-lg font-bold text-gray-900">
                         {activityAvg.toFixed(1)}
                         <span className="ml-1 text-sm font-normal text-gray-400">
-                          avg/day
+                          {t("avgPerDay")}
                         </span>
                       </p>
                     </div>
@@ -280,7 +286,9 @@ export default function AnalyticsPage() {
                   </div>
                 </div>
                 <p className="mt-2 text-xs text-gray-400">
-                  {activityPoints.length} days of data, {activityTotal} total events
+                  {t("daysOfDataTotal")
+                    .replace("{days}", String(activityPoints.length))
+                    .replace("{total}", String(activityTotal))}
                 </p>
               </Card>
 
@@ -292,12 +300,12 @@ export default function AnalyticsPage() {
                     </div>
                     <div>
                       <p className="text-xs font-medium text-gray-500 uppercase">
-                        Risk Events
+                        {t("riskEvents")}
                       </p>
                       <p className="text-lg font-bold text-gray-900">
                         {riskTotal}
                         <span className="ml-1 text-sm font-normal text-gray-400">
-                          events
+                          {t("events")}
                         </span>
                       </p>
                     </div>
@@ -310,7 +318,7 @@ export default function AnalyticsPage() {
                   </div>
                 </div>
                 <p className="mt-2 text-xs text-gray-400">
-                  {riskPoints.length} days of data
+                  {t("daysOfData").replace("{days}", String(riskPoints.length))}
                 </p>
               </Card>
             </div>
@@ -322,12 +330,12 @@ export default function AnalyticsPage() {
             const totalEvents = Object.values(usage.by_platform).reduce((s, v) => s + v, 0);
             return (
             <Card
-              title="Usage by Platform"
-              description={`${totalEvents} total events in the selected period`}
+              title={t("usageByPlatform")}
+              description={t("totalEventsPeriod").replace("{total}", String(totalEvents))}
               className="mb-6"
             >
               {Object.keys(usage.by_platform).length === 0 ? (
-                <p className="text-sm text-gray-500">No platform data available</p>
+                <p className="text-sm text-gray-500">{t("noPlatformData")}</p>
               ) : (
                 <div className="space-y-3">
                   {Object.entries(usage.by_platform)
@@ -364,14 +372,14 @@ export default function AnalyticsPage() {
 
           {/* Member Baselines */}
           <Card
-            title="Member Baselines"
-            description="Average daily activity per member over the last 30 days"
+            title={t("memberBaselines")}
+            description={t("memberBaselinesDescription")}
           >
             {(!baselines || baselines.length === 0) ? (
               <div className="py-8 text-center">
                 <BarChart3 className="mx-auto h-10 w-10 text-gray-300" />
                 <p className="mt-3 text-sm text-gray-500">
-                  No member baseline data available
+                  {t("noBaselineData")}
                 </p>
               </div>
             ) : (
@@ -380,16 +388,16 @@ export default function AnalyticsPage() {
                   <thead>
                     <tr className="border-b border-gray-100">
                       <th className="px-4 py-3 text-left font-medium text-gray-500">
-                        Member
+                        {t("member")}
                       </th>
                       <th className="px-4 py-3 text-left font-medium text-gray-500">
-                        Primary Platform
+                        {t("primaryPlatform")}
                       </th>
                       <th className="px-4 py-3 text-right font-medium text-gray-500">
-                        Total Events
+                        {t("totalEvents")}
                       </th>
                       <th className="px-4 py-3 text-right font-medium text-gray-500">
-                        Avg Daily
+                        {t("avgDaily")}
                       </th>
                     </tr>
                   </thead>
@@ -403,7 +411,7 @@ export default function AnalyticsPage() {
                           {member.member_name}
                         </td>
                         <td className="px-4 py-3 text-gray-600 capitalize">
-                          {member.primary_platform ?? "none"}
+                          {member.primary_platform ?? t("none")}
                         </td>
                         <td className="px-4 py-3 text-right text-gray-600">
                           {member.total_events ?? 0}
@@ -423,14 +431,14 @@ export default function AnalyticsPage() {
 
       {tab === "peer" && (
         <Card
-          title="Peer Comparison"
-          description="How each member's usage compares to the group"
+          title={t("peerComparison")}
+          description={t("peerComparisonDescription")}
         >
           {(!peerData?.members || peerData.members.length === 0) ? (
             <div className="py-8 text-center">
               <Users className="mx-auto h-10 w-10 text-gray-300" />
               <p className="mt-3 text-sm text-gray-500">
-                No peer comparison data available
+                {t("noPeerData")}
               </p>
             </div>
           ) : (
@@ -456,7 +464,7 @@ export default function AnalyticsPage() {
                         {usageLevelLabel(member.usage_level)}
                       </span>
                       <span className="text-gray-500">
-                        {member.event_count} events
+                        {t("eventCount").replace("{count}", String(member.event_count))}
                       </span>
                     </div>
                   </div>
