@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Shield, Plus, AlertTriangle, Loader2 } from "lucide-react";
 import { api } from "@/lib/api-client";
+import { useTranslations } from "@/contexts/LocaleContext";
 
 interface Policy {
   id: string;
@@ -15,6 +16,7 @@ interface Policy {
 }
 
 export default function GovernancePage() {
+  const t = useTranslations("governance");
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -26,10 +28,10 @@ export default function GovernancePage() {
   }, []);
 
   const typeLabels: Record<string, string> = {
-    acceptable_use: "Acceptable Use",
-    data_handling: "Data Handling",
-    model_access: "Model Access",
-    cost_control: "Cost Control",
+    acceptable_use: t("typeAcceptableUse"),
+    data_handling: t("typeDataHandling"),
+    model_access: t("typeModelAccess"),
+    cost_control: t("typeCostControl"),
   };
 
   const enforcementColors: Record<string, string> = {
@@ -46,17 +48,17 @@ export default function GovernancePage() {
     <div>
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">AI Governance</h1>
-          <p className="mt-1 text-sm text-gray-500">Manage AI usage policies and compliance</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t("title")}</h1>
+          <p className="mt-1 text-sm text-gray-500">{t("subtitle")}</p>
         </div>
-        <Button><Plus className="mr-2 h-4 w-4" />Create Policy</Button>
+        <Button><Plus className="mr-2 h-4 w-4" />{t("createPolicy")}</Button>
       </div>
 
       {policies.length === 0 ? (
         <Card>
           <div className="py-12 text-center">
             <Shield className="mx-auto h-10 w-10 text-gray-300" />
-            <p className="mt-3 text-sm text-gray-500">No policies created yet. Create your first AI usage policy.</p>
+            <p className="mt-3 text-sm text-gray-500">{t("emptyMessage")}</p>
           </div>
         </Card>
       ) : (
@@ -73,7 +75,7 @@ export default function GovernancePage() {
                     {policy.enforcement_level}
                   </span>
                   <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${policy.active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}`}>
-                    {policy.active ? "Active" : "Inactive"}
+                    {policy.active ? t("active") : t("inactive")}
                   </span>
                 </div>
               </div>

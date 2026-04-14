@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/Input";
 import { useAuth } from "@/hooks/use-auth";
 import { useAppeals, useSubmitAppeal } from "@/hooks/use-compliance";
 import { useToast } from "@/contexts/ToastContext";
+import { useTranslations } from "@/contexts/LocaleContext";
 
 const statusStyles: Record<string, { bg: string; text: string; icon: typeof Clock }> = {
   pending: { bg: "bg-amber-100", text: "text-amber-700", icon: Clock },
@@ -26,6 +27,7 @@ const statusStyles: Record<string, { bg: string; text: string; icon: typeof Cloc
 };
 
 export default function AppealsPage() {
+  const t = useTranslations("complianceAppeals");
   const { user } = useAuth();
   const groupId = user?.group_id || null;
   const { addToast } = useToast();
@@ -54,13 +56,13 @@ export default function AppealsPage() {
       },
       {
         onSuccess: () => {
-          addToast("Appeal submitted successfully", "success");
+          addToast(t("appealSubmitted"), "success");
           setShowForm(false);
           setRiskEventId("");
           setReason("");
         },
         onError: (err) =>
-          addToast((err as Error).message || "Failed to submit appeal", "error"),
+          addToast((err as Error).message || t("failedSubmit"), "error"),
       }
     );
   }
@@ -69,7 +71,7 @@ export default function AppealsPage() {
     return (
       <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-3 text-sm text-gray-500">Loading appeals...</span>
+        <span className="ml-3 text-sm text-gray-500">{t("loading")}</span>
       </div>
     );
   }
@@ -79,10 +81,10 @@ export default function AppealsPage() {
       <div className="flex h-64 flex-col items-center justify-center text-center">
         <AlertTriangle className="h-10 w-10 text-amber-500" />
         <p className="mt-3 text-sm font-medium text-gray-900">
-          Failed to load appeals
+          {t("failedLoad")}
         </p>
         <p className="mt-1 text-sm text-gray-500">
-          {(error as Error)?.message || "Something went wrong"}
+          {(error as Error)?.message || t("somethingWrong")}
         </p>
         <Button
           variant="secondary"
@@ -91,7 +93,7 @@ export default function AppealsPage() {
           onClick={() => refetch()}
         >
           <RefreshCw className="h-4 w-4" />
-          Try again
+          {t("tryAgain")}
         </Button>
       </div>
     );
@@ -104,48 +106,48 @@ export default function AppealsPage() {
     <div>
       <div className="mb-8 flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Appeals</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t("title")}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Contest risk classifications under your right to human review
+            {t("subtitle")}
             {total > 0 && (
-              <span className="ml-1 text-gray-400">({total} total)</span>
+              <span className="ml-1 text-gray-400">({total} {t("total")})</span>
             )}
           </p>
         </div>
         <Button onClick={() => setShowForm(!showForm)}>
           <Plus className="h-4 w-4" />
-          New Appeal
+          {t("newAppeal")}
         </Button>
       </div>
 
       {/* Submit Form */}
       {showForm && (
-        <Card title="Submit Appeal" className="mb-6">
+        <Card title={t("submitAppeal")} className="mb-6">
           <div className="max-w-lg space-y-4">
             {submitAppeal.isError && (
               <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
-                {(submitAppeal.error as Error)?.message || "Failed to submit"}
+                {(submitAppeal.error as Error)?.message || t("failedSubmit")}
               </div>
             )}
             <Input
-              label="Risk Event ID"
+              label={t("riskEventIdLabel")}
               value={riskEventId}
               onChange={(e) => setRiskEventId(e.target.value)}
-              placeholder="Enter the risk event ID to appeal"
-              helperText="You can find this on the Risks page for each event."
+              placeholder={t("riskEventIdPlaceholder")}
+              helperText={t("riskEventIdHelper")}
             />
             <div>
               <label
                 htmlFor="appeal-reason"
                 className="mb-1.5 block text-sm font-medium text-gray-700"
               >
-                Reason for Appeal
+                {t("reasonLabel")}
               </label>
               <textarea
                 id="appeal-reason"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                placeholder="Explain why you believe this classification is incorrect..."
+                placeholder={t("reasonPlaceholder")}
                 rows={4}
                 className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
@@ -156,7 +158,7 @@ export default function AppealsPage() {
                 isLoading={submitAppeal.isPending}
                 disabled={!riskEventId.trim() || !reason.trim()}
               >
-                Submit Appeal
+                {t("submitAppeal")}
               </Button>
               <Button
                 variant="ghost"
@@ -166,7 +168,7 @@ export default function AppealsPage() {
                   setReason("");
                 }}
               >
-                Cancel
+                {t("cancel")}
               </Button>
             </div>
           </div>
@@ -178,7 +180,7 @@ export default function AppealsPage() {
         <Card>
           <div className="py-12 text-center">
             <Gavel className="mx-auto h-12 w-12 text-gray-300" />
-            <p className="mt-4 text-sm text-gray-500">No appeals submitted</p>
+            <p className="mt-4 text-sm text-gray-500">{t("noAppeals")}</p>
           </div>
         </Card>
       ) : (
@@ -192,7 +194,7 @@ export default function AppealsPage() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm font-semibold text-gray-900">
-                        Event: {appeal.risk_event_id}
+                        {t("event")}: {appeal.risk_event_id}
                       </span>
                       <span
                         className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${style.bg} ${style.text}`}
@@ -205,7 +207,7 @@ export default function AppealsPage() {
                     {appeal.resolution && (
                       <div className="mt-3 rounded-lg bg-gray-50 p-3">
                         <p className="text-xs font-medium text-gray-500 uppercase">
-                          Resolution
+                          {t("resolution")}
                         </p>
                         <p className="mt-1 text-sm text-gray-700">
                           {appeal.resolution}
@@ -218,7 +220,7 @@ export default function AppealsPage() {
                       </div>
                     )}
                     <p className="mt-2 text-xs text-gray-400">
-                      Submitted {new Date(appeal.created_at).toLocaleString()}
+                      {t("submitted")} {new Date(appeal.created_at).toLocaleString()}
                     </p>
                   </div>
                 </div>

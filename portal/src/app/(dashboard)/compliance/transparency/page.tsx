@@ -14,8 +14,10 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/hooks/use-auth";
 import { useTransparencyReport } from "@/hooks/use-compliance";
+import { useTranslations } from "@/contexts/LocaleContext";
 
 export default function TransparencyPage() {
+  const t = useTranslations("complianceTransparency");
   const { user } = useAuth();
   const groupId = user?.group_id || null;
 
@@ -32,7 +34,7 @@ export default function TransparencyPage() {
       <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <span className="ml-3 text-sm text-gray-500">
-          Loading transparency report...
+          {t("loading")}
         </span>
       </div>
     );
@@ -43,10 +45,10 @@ export default function TransparencyPage() {
       <div className="flex h-64 flex-col items-center justify-center text-center">
         <AlertTriangle className="h-10 w-10 text-amber-500" />
         <p className="mt-3 text-sm font-medium text-gray-900">
-          Failed to load transparency report
+          {t("failedLoad")}
         </p>
         <p className="mt-1 text-sm text-gray-500">
-          {(error as Error)?.message || "Something went wrong"}
+          {(error as Error)?.message || t("somethingWrong")}
         </p>
         <Button
           variant="secondary"
@@ -55,7 +57,7 @@ export default function TransparencyPage() {
           onClick={() => refetch()}
         >
           <RefreshCw className="h-4 w-4" />
-          Try again
+          {t("tryAgain")}
         </Button>
       </div>
     );
@@ -66,7 +68,7 @@ export default function TransparencyPage() {
       <div className="py-12 text-center">
         <Scale className="mx-auto h-12 w-12 text-gray-300" />
         <p className="mt-4 text-sm text-gray-500">
-          No transparency report available
+          {t("noReport")}
         </p>
       </div>
     );
@@ -76,18 +78,18 @@ export default function TransparencyPage() {
     <div>
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">
-          Algorithmic Transparency
+          {t("title")}
         </h1>
         <p className="mt-1 text-sm text-gray-500">
-          EU AI Act compliance report detailing how risk classification works
+          {t("subtitle")}
         </p>
       </div>
 
       <div className="space-y-6">
         {/* Classification Approach */}
         <Card
-          title="Classification Approach"
-          description="How the system classifies and assesses risk"
+          title={t("classificationTitle")}
+          description={t("classificationDescription")}
         >
           <div className="flex items-start gap-3">
             <Brain className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary-600" />
@@ -99,8 +101,8 @@ export default function TransparencyPage() {
 
         {/* Categories */}
         <Card
-          title="Risk Categories"
-          description="Content categories monitored by the system"
+          title={t("categoriesTitle")}
+          description={t("categoriesDescription")}
         >
           <div className="flex items-start gap-3">
             <Tag className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary-600" />
@@ -119,8 +121,8 @@ export default function TransparencyPage() {
 
         {/* Data Sources */}
         <Card
-          title="Data Sources"
-          description="Where the system collects data from"
+          title={t("dataSourcesTitle")}
+          description={t("dataSourcesDescription")}
         >
           <div className="flex items-start gap-3">
             <Database className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary-600" />
@@ -140,8 +142,8 @@ export default function TransparencyPage() {
 
         {/* User Rights */}
         <Card
-          title="Your Rights Under EU AI Act"
-          description="Rights available to users of this system"
+          title={t("rightsTitle")}
+          description={t("rightsDescription")}
         >
           <div className="flex items-start gap-3">
             <Shield className="mt-0.5 h-5 w-5 flex-shrink-0 text-teal-600" />

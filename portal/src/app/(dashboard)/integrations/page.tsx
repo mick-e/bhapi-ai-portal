@@ -29,6 +29,7 @@ import {
   useTriggerDirectorySync,
 } from "@/hooks/use-integrations";
 import { useToast } from "@/contexts/ToastContext";
+import { useTranslations } from "@/contexts/LocaleContext";
 
 const providerOptions = [
   { value: "clever", label: "Clever" },
@@ -43,6 +44,7 @@ const statusStyles: Record<string, { bg: string; text: string }> = {
 };
 
 export default function IntegrationsPage() {
+  const t = useTranslations("integrations");
   const { user } = useAuth();
   const groupId = user?.group_id || null;
   const { addToast } = useToast();
@@ -79,11 +81,11 @@ export default function IntegrationsPage() {
       {
         onSuccess: () =>
           addToast(
-            `Auto-provisioning ${!currentValue ? "enabled" : "disabled"}`,
+            !currentValue ? t("autoProvisionEnabled") : t("autoProvisionDisabled"),
             "success"
           ),
         onError: (err) =>
-          addToast((err as Error).message || "Failed to update SSO config", "error"),
+          addToast((err as Error).message || t("failedUpdateSso"), "error"),
       }
     );
   }
@@ -95,11 +97,11 @@ export default function IntegrationsPage() {
       {
         onSuccess: (data) =>
           addToast(
-            `Directory sync complete: ${data.synced} synced, ${data.skipped} skipped`,
+            `${t("directorySyncComplete")}: ${data.synced} ${t("synced")}, ${data.skipped} ${t("skipped")}`,
             "success"
           ),
         onError: (err) =>
-          addToast((err as Error).message || "Directory sync failed", "error"),
+          addToast((err as Error).message || t("directorySyncFailed"), "error"),
       }
     );
   }
@@ -114,12 +116,12 @@ export default function IntegrationsPage() {
       },
       {
         onSuccess: () => {
-          addToast("SIS provider connected", "success");
+          addToast(t("sisConnected"), "success");
           setShowForm(false);
           setAccessToken("");
         },
         onError: (err) =>
-          addToast((err as Error).message || "Failed to connect", "error"),
+          addToast((err as Error).message || t("failedConnect"), "error"),
       }
     );
   }
@@ -131,11 +133,11 @@ export default function IntegrationsPage() {
       {
         onSuccess: (data) =>
           addToast(
-            `Sync complete: ${data.members_created} created, ${data.members_updated} updated`,
+            `${t("syncComplete")}: ${data.members_created} ${t("created")}, ${data.members_updated} ${t("updated")}`,
             "success"
           ),
         onError: (err) =>
-          addToast((err as Error).message || "Sync failed", "error"),
+          addToast((err as Error).message || t("syncFailed"), "error"),
       }
     );
   }
@@ -146,11 +148,11 @@ export default function IntegrationsPage() {
       { connectionId, groupId },
       {
         onSuccess: () => {
-          addToast("Provider disconnected", "success");
+          addToast(t("providerDisconnected"), "success");
           setConfirmDisconnect(null);
         },
         onError: (err) =>
-          addToast((err as Error).message || "Failed to disconnect", "error"),
+          addToast((err as Error).message || t("failedDisconnect"), "error"),
       }
     );
   }
@@ -159,7 +161,7 @@ export default function IntegrationsPage() {
     return (
       <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-3 text-sm text-gray-500">Loading integrations...</span>
+        <span className="ml-3 text-sm text-gray-500">{t("loading")}</span>
       </div>
     );
   }
@@ -169,10 +171,10 @@ export default function IntegrationsPage() {
       <div className="flex h-64 flex-col items-center justify-center text-center">
         <AlertTriangle className="h-10 w-10 text-amber-500" />
         <p className="mt-3 text-sm font-medium text-gray-900">
-          Failed to load integrations
+          {t("failedLoad")}
         </p>
         <p className="mt-1 text-sm text-gray-500">
-          {(error as Error)?.message || "Something went wrong"}
+          {(error as Error)?.message || t("somethingWrong")}
         </p>
         <Button
           variant="secondary"
@@ -181,7 +183,7 @@ export default function IntegrationsPage() {
           onClick={() => refetch()}
         >
           <RefreshCw className="h-4 w-4" />
-          Try again
+          {t("tryAgain")}
         </Button>
       </div>
     );
@@ -191,24 +193,24 @@ export default function IntegrationsPage() {
     <div>
       <div className="mb-8 flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Integrations</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t("title")}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Connect Student Information Systems to sync members automatically
+            {t("subtitle")}
           </p>
         </div>
         <Button onClick={() => setShowForm(!showForm)}>
           <Plus className="h-4 w-4" />
-          Connect Provider
+          {t("connectProvider")}
         </Button>
       </div>
 
       {/* Connect Form */}
       {showForm && (
-        <Card title="Connect SIS Provider" className="mb-6">
+        <Card title={t("connectSisTitle")} className="mb-6">
           <div className="max-w-lg space-y-4">
             {connectSIS.isError && (
               <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
-                {(connectSIS.error as Error)?.message || "Failed to connect"}
+                {(connectSIS.error as Error)?.message || t("failedConnect")}
               </div>
             )}
             <div>
@@ -216,7 +218,7 @@ export default function IntegrationsPage() {
                 htmlFor="sis-provider"
                 className="mb-1.5 block text-sm font-medium text-gray-700"
               >
-                Provider
+                {t("providerLabel")}
               </label>
               <select
                 id="sis-provider"
@@ -232,12 +234,12 @@ export default function IntegrationsPage() {
               </select>
             </div>
             <Input
-              label="Access Token"
+              label={t("accessTokenLabel")}
               type="password"
               value={accessToken}
               onChange={(e) => setAccessToken(e.target.value)}
-              placeholder="Paste your SIS access token"
-              helperText="You can find this in your SIS provider's admin dashboard."
+              placeholder={t("accessTokenPlaceholder")}
+              helperText={t("accessTokenHelper")}
             />
             <div className="flex gap-2 pt-2">
               <Button
@@ -245,7 +247,7 @@ export default function IntegrationsPage() {
                 isLoading={connectSIS.isPending}
                 disabled={!accessToken.trim()}
               >
-                Connect
+                {t("connect")}
               </Button>
               <Button
                 variant="ghost"
@@ -254,7 +256,7 @@ export default function IntegrationsPage() {
                   setAccessToken("");
                 }}
               >
-                Cancel
+                {t("cancel")}
               </Button>
             </div>
           </div>
@@ -268,10 +270,10 @@ export default function IntegrationsPage() {
             <div className="py-12 text-center">
               <Plug className="mx-auto h-12 w-12 text-gray-300" />
               <p className="mt-4 text-sm text-gray-500">
-                No SIS providers connected
+                {t("noSisProviders")}
               </p>
               <p className="mt-1 text-xs text-gray-400">
-                Connect Clever or ClassLink to import members automatically
+                {t("noSisProvidersHint")}
               </p>
             </div>
           </Card>
@@ -305,7 +307,7 @@ export default function IntegrationsPage() {
                       {conn.last_synced && (
                         <span className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />
-                          Last synced{" "}
+                          {t("lastSynced")}{" "}
                           {new Date(conn.last_synced).toLocaleString()}
                         </span>
                       )}
@@ -322,10 +324,10 @@ export default function IntegrationsPage() {
                       syncConnection.isPending &&
                       syncConnection.variables?.connectionId === conn.id
                     }
-                    aria-label={`Sync ${conn.provider}`}
+                    aria-label={`${t("sync")} ${conn.provider}`}
                   >
                     <RotateCw className="h-4 w-4" />
-                    Sync
+                    {t("sync")}
                   </Button>
                   {confirmDisconnect === conn.id ? (
                     <div className="flex gap-1">
@@ -335,14 +337,14 @@ export default function IntegrationsPage() {
                         onClick={() => handleDisconnect(conn.id)}
                         isLoading={disconnectSIS.isPending}
                       >
-                        Confirm
+                        {t("confirm")}
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => setConfirmDisconnect(null)}
                       >
-                        Cancel
+                        {t("cancel")}
                       </Button>
                     </div>
                   ) : (
@@ -350,10 +352,10 @@ export default function IntegrationsPage() {
                       variant="ghost"
                       size="sm"
                       onClick={() => setConfirmDisconnect(conn.id)}
-                      aria-label={`Disconnect ${conn.provider}`}
+                      aria-label={`${t("disconnect")} ${conn.provider}`}
                     >
                       <Unplug className="h-4 w-4" />
-                      Disconnect
+                      {t("disconnect")}
                     </Button>
                   )}
                 </div>
@@ -367,10 +369,10 @@ export default function IntegrationsPage() {
       <div className="mt-10">
         <div className="mb-4">
           <h2 className="text-lg font-bold text-gray-900">
-            Single Sign-On (SSO)
+            {t("ssoTitle")}
           </h2>
           <p className="mt-1 text-sm text-gray-500">
-            Manage SSO configurations and automatic member provisioning
+            {t("ssoSubtitle")}
           </p>
         </div>
 
@@ -379,11 +381,10 @@ export default function IntegrationsPage() {
             <div className="py-12 text-center">
               <Shield className="mx-auto h-12 w-12 text-gray-300" />
               <p className="mt-4 text-sm text-gray-500">
-                No SSO providers configured
+                {t("noSsoConfigured")}
               </p>
               <p className="mt-1 text-xs text-gray-400">
-                Set up Google Workspace or Microsoft Entra SSO to enable
-                automatic member provisioning
+                {t("noSsoConfiguredHint")}
               </p>
             </div>
           </Card>
@@ -407,12 +408,12 @@ export default function IntegrationsPage() {
                         </p>
                         <div className="mt-0.5 flex items-center gap-3 text-xs text-gray-500">
                           {config.tenant_id && (
-                            <span>Domain: {config.tenant_id}</span>
+                            <span>{t("domain")}: {config.tenant_id}</span>
                           )}
                           <span className="flex items-center gap-1">
                             <Users className="h-3 w-3" />
-                            Auto-provision:{" "}
-                            {config.auto_provision_members ? "On" : "Off"}
+                            {t("autoProvision")}:{" "}
+                            {config.auto_provision_members ? t("on") : t("off")}
                           </span>
                         </div>
                       </div>
@@ -423,7 +424,7 @@ export default function IntegrationsPage() {
                         type="button"
                         role="switch"
                         aria-checked={config.auto_provision_members}
-                        aria-label={`Toggle auto-provisioning for ${providerLabel}`}
+                        aria-label={`${t("toggleAutoProvisionLabel")} ${providerLabel}`}
                         onClick={() =>
                           handleToggleAutoProvision(
                             config.id,
@@ -452,10 +453,10 @@ export default function IntegrationsPage() {
                           triggerDirectorySync.isPending &&
                           triggerDirectorySync.variables?.configId === config.id
                         }
-                        aria-label={`Sync directory for ${providerLabel}`}
+                        aria-label={`${t("syncDirectoryLabel")} ${providerLabel}`}
                       >
                         <RotateCw className="h-4 w-4" />
-                        Sync Directory
+                        {t("syncDirectory")}
                       </Button>
                     </div>
                   </div>

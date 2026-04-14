@@ -20,8 +20,10 @@ import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/hooks/use-auth";
 import { useCOPPAChecklist, useCOPPAExport, useCOPPAReview } from "@/hooks/use-coppa";
 import type { COPPAChecklistItem } from "@/types";
+import { useTranslations } from "@/contexts/LocaleContext";
 
 function ScoreGauge({ score, status }: { score: number; status: string }) {
+  const t = useTranslations("complianceCoppa");
   const color =
     status === "compliant"
       ? "text-green-600"
@@ -45,10 +47,10 @@ function ScoreGauge({ score, status }: { score: number; status: string }) {
 
   const statusLabel =
     status === "compliant"
-      ? "Compliant"
+      ? t("statusCompliant")
       : status === "partial"
-        ? "Partial"
-        : "Non-Compliant";
+        ? t("statusPartial")
+        : t("statusNonCompliant");
 
   return (
     <div className="flex items-center gap-6">
@@ -67,7 +69,7 @@ function ScoreGauge({ score, status }: { score: number; status: string }) {
           {statusLabel}
         </span>
         <p className="mt-2 text-sm text-gray-500">
-          COPPA 2026 compliance score based on 12 automated checks.
+          {t("scoreDescription")}
         </p>
       </div>
     </div>
@@ -90,6 +92,7 @@ function StatusIcon({ status }: { status: string }) {
 }
 
 function ChecklistItemRow({ item }: { item: COPPAChecklistItem }) {
+  const t = useTranslations("complianceCoppa");
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -112,17 +115,17 @@ function ChecklistItemRow({ item }: { item: COPPAChecklistItem }) {
         <div className="px-4 pb-4 pl-12">
           <p className="text-sm text-gray-600">{item.description}</p>
           <p className="mt-2 text-xs text-gray-500">
-            <strong>Evidence:</strong> {item.evidence}
+            <strong>{t("evidence")}:</strong> {item.evidence}
           </p>
           <p className="mt-1 text-xs text-gray-400">
-            <strong>Regulation:</strong> {item.regulation_ref}
+            <strong>{t("regulation")}:</strong> {item.regulation_ref}
           </p>
           {item.status !== "complete" && item.status !== "not_applicable" && (
             <a
               href={item.action_url}
               className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary-700 hover:text-primary-800"
             >
-              Take action
+              {t("takeAction")}
               <ExternalLink className="h-3 w-3" />
             </a>
           )}
@@ -133,6 +136,7 @@ function ChecklistItemRow({ item }: { item: COPPAChecklistItem }) {
 }
 
 export default function COPPADashboardPage() {
+  const t = useTranslations("complianceCoppa");
   const { user } = useAuth();
   const groupId = user?.group_id ?? undefined;
 
@@ -170,7 +174,7 @@ export default function COPPADashboardPage() {
       <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <span className="ml-3 text-sm text-gray-500">
-          Assessing compliance...
+          {t("assessing")}
         </span>
       </div>
     );
@@ -181,10 +185,10 @@ export default function COPPADashboardPage() {
       <div className="flex h-64 flex-col items-center justify-center text-center">
         <AlertTriangle className="h-10 w-10 text-amber-500" />
         <p className="mt-3 text-sm font-medium text-gray-900">
-          Failed to load compliance data
+          {t("failedLoad")}
         </p>
         <p className="mt-1 text-sm text-gray-500">
-          {(error as Error)?.message || "Something went wrong"}
+          {(error as Error)?.message || t("somethingWrong")}
         </p>
         <Button
           variant="secondary"
@@ -193,7 +197,7 @@ export default function COPPADashboardPage() {
           onClick={() => refetch()}
         >
           <RefreshCw className="h-4 w-4" />
-          Try again
+          {t("tryAgain")}
         </Button>
       </div>
     );
@@ -205,10 +209,10 @@ export default function COPPADashboardPage() {
     <div>
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">
-          COPPA 2026 Compliance
+          {t("title")}
         </h1>
         <p className="mt-1 text-sm text-gray-500">
-          Automated compliance assessment for children&apos;s online privacy
+          {t("subtitle")}
         </p>
       </div>
 
@@ -224,7 +228,7 @@ export default function COPPADashboardPage() {
               size="sm"
             >
               <Download className="h-4 w-4" />
-              Export Evidence
+              {t("exportEvidence")}
             </Button>
             <Button
               onClick={handleReview}
@@ -232,20 +236,20 @@ export default function COPPADashboardPage() {
               size="sm"
             >
               <ClipboardCheck className="h-4 w-4" />
-              Mark Review Complete
+              {t("markReviewComplete")}
             </Button>
           </div>
         </div>
         {data.last_review && (
           <p className="mt-4 text-xs text-gray-400">
-            Last annual review: {new Date(data.last_review).toLocaleDateString()}
+            {t("lastAnnualReview")}: {new Date(data.last_review).toLocaleDateString()}
           </p>
         )}
       </div>
 
       {/* Checklist */}
       <div className="mt-6">
-        <Card title="Compliance Checklist" description="12 automated checks against COPPA 2026 requirements">
+        <Card title={t("checklistTitle")} description={t("checklistDescription")}>
           <div className="divide-y divide-gray-100">
             {data.checklist.map((item) => (
               <ChecklistItemRow key={item.id} item={item} />

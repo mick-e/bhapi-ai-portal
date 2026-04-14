@@ -17,6 +17,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/hooks/use-auth";
 import { useDataDashboard } from "@/hooks/use-data-dashboard";
+import { useTranslations } from "@/contexts/LocaleContext";
 
 function StatCard({
   label,
@@ -45,6 +46,7 @@ function StatCard({
 }
 
 function DataDashboardContent() {
+  const t = useTranslations("complianceDataDashboard");
   const searchParams = useSearchParams();
   const memberId = searchParams.get("member_id") ?? "";
   const { user } = useAuth();
@@ -60,10 +62,10 @@ function DataDashboardContent() {
       <div className="flex h-64 flex-col items-center justify-center text-center">
         <Eye className="h-10 w-10 text-gray-400" />
         <p className="mt-3 text-sm font-medium text-gray-900">
-          No member selected
+          {t("noMemberSelected")}
         </p>
         <p className="mt-1 text-sm text-gray-500">
-          Please select a family member to view their data collection dashboard.
+          {t("noMemberSelectedHint")}
         </p>
       </div>
     );
@@ -74,7 +76,7 @@ function DataDashboardContent() {
       <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <span className="ml-3 text-sm text-gray-500">
-          Loading data dashboard...
+          {t("loading")}
         </span>
       </div>
     );
@@ -85,10 +87,10 @@ function DataDashboardContent() {
       <div className="flex h-64 flex-col items-center justify-center text-center">
         <AlertTriangle className="h-10 w-10 text-amber-500" />
         <p className="mt-3 text-sm font-medium text-gray-900">
-          Failed to load data dashboard
+          {t("failedLoad")}
         </p>
         <p className="mt-1 text-sm text-gray-500">
-          {(error as Error)?.message || "Something went wrong"}
+          {(error as Error)?.message || t("somethingWrong")}
         </p>
         <Button
           variant="secondary"
@@ -97,7 +99,7 @@ function DataDashboardContent() {
           onClick={() => refetch()}
         >
           <RefreshCw className="h-4 w-4" />
-          Try again
+          {t("tryAgain")}
         </Button>
       </div>
     );
@@ -109,12 +111,12 @@ function DataDashboardContent() {
     <div>
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">
-          Data Collection Dashboard
+          {t("title")}
         </h1>
         <p className="mt-1 text-sm text-gray-500">
-          What data is collected about{" "}
+          {t("subtitleBefore")}{" "}
           <span className="font-medium text-gray-700">{data.member_name}</span>{" "}
-          and how it is used
+          {t("subtitleAfter")}
         </p>
       </div>
 
@@ -125,12 +127,11 @@ function DataDashboardContent() {
             <ShieldAlert className="mt-0.5 h-5 w-5 text-amber-600" />
             <div>
               <p className="text-sm font-medium text-amber-800">
-                Some features are limited
+                {t("featuresLimited")}
               </p>
               <p className="mt-1 text-sm text-amber-700">
-                Consent has not been granted for the following providers:{" "}
-                {data.degraded_providers.join(", ")}. Some safety features may
-                not work fully without these providers.
+                {t("consentNotGranted")}{" "}
+                {data.degraded_providers.join(", ")}. {t("safetyFeaturesNote")}
               </p>
             </div>
           </div>
@@ -140,19 +141,19 @@ function DataDashboardContent() {
       {/* Data summary cards */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <StatCard
-          label="Capture Events"
+          label={t("captureEvents")}
           value={data.data_summary.capture_events_count}
           icon={Database}
           color="text-blue-600"
         />
         <StatCard
-          label="Platforms Monitored"
+          label={t("platformsMonitored")}
           value={data.data_summary.platforms_monitored.length}
           icon={Eye}
           color="text-teal-600"
         />
         <StatCard
-          label="Risk Events"
+          label={t("riskEvents")}
           value={data.data_summary.risk_events_count}
           icon={Activity}
           color={
@@ -162,7 +163,7 @@ function DataDashboardContent() {
           }
         />
         <StatCard
-          label="Alerts Sent"
+          label={t("alertsSent")}
           value={data.data_summary.alerts_sent_count}
           icon={Bell}
           color="text-primary-600"
@@ -172,7 +173,7 @@ function DataDashboardContent() {
       {/* Platforms list */}
       {data.data_summary.platforms_monitored.length > 0 && (
         <div className="mt-4">
-          <Card title="Monitored Platforms">
+          <Card title={t("monitoredPlatformsTitle")}>
             <div className="flex flex-wrap gap-2">
               {data.data_summary.platforms_monitored.map((platform) => (
                 <span
@@ -194,7 +195,7 @@ function DataDashboardContent() {
             <span className="font-medium">
               {data.data_summary.high_severity_count}
             </span>{" "}
-            high or critical severity risk events detected.
+            {t("highSeverityMessage")}
           </p>
         </div>
       )}
@@ -202,21 +203,21 @@ function DataDashboardContent() {
       {/* Third-party sharing */}
       <div className="mt-6">
         <Card
-          title="Third-Party Data Sharing"
-          description="Which providers can access your child's data"
+          title={t("thirdPartyTitle")}
+          description={t("thirdPartyDescription")}
         >
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200 text-left">
                   <th className="pb-2 pr-4 font-medium text-gray-700">
-                    Provider
+                    {t("provider")}
                   </th>
                   <th className="pb-2 pr-4 font-medium text-gray-700">
-                    Consent Status
+                    {t("consentStatus")}
                   </th>
                   <th className="pb-2 font-medium text-gray-700">
-                    Last Updated
+                    {t("lastUpdated")}
                   </th>
                 </tr>
               </thead>
@@ -230,18 +231,18 @@ function DataDashboardContent() {
                       {item.consented ? (
                         <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
                           <Shield className="h-3 w-3" />
-                          Consented
+                          {t("consented")}
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-                          Not consented
+                          {t("notConsented")}
                         </span>
                       )}
                     </td>
                     <td className="py-2.5 text-gray-500">
                       {item.last_updated
                         ? new Date(item.last_updated).toLocaleDateString()
-                        : "Never"}
+                        : t("never")}
                     </td>
                   </tr>
                 ))}
@@ -255,24 +256,24 @@ function DataDashboardContent() {
       {data.retention_policies.length > 0 && (
         <div className="mt-6">
           <Card
-            title="Data Retention Policies"
-            description="How long your child's data is kept before deletion"
+            title={t("retentionTitle")}
+            description={t("retentionDescription")}
           >
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-200 text-left">
                     <th className="pb-2 pr-4 font-medium text-gray-700">
-                      Data Type
+                      {t("dataType")}
                     </th>
                     <th className="pb-2 pr-4 font-medium text-gray-700">
-                      Retention
+                      {t("retention")}
                     </th>
                     <th className="pb-2 pr-4 font-medium text-gray-700">
-                      Auto Delete
+                      {t("autoDelete")}
                     </th>
                     <th className="pb-2 font-medium text-gray-700">
-                      Estimated Deletion
+                      {t("estimatedDeletion")}
                     </th>
                   </tr>
                 </thead>
@@ -283,13 +284,13 @@ function DataDashboardContent() {
                         {policy.data_type.replace(/_/g, " ")}
                       </td>
                       <td className="py-2.5 pr-4 text-gray-600">
-                        {policy.retention_days} days
+                        {policy.retention_days} {t("days")}
                       </td>
                       <td className="py-2.5 pr-4">
                         {policy.auto_delete ? (
-                          <span className="text-green-600">Yes</span>
+                          <span className="text-green-600">{t("yes")}</span>
                         ) : (
-                          <span className="text-gray-400">No</span>
+                          <span className="text-gray-400">{t("no")}</span>
                         )}
                       </td>
                       <td className="py-2.5 text-gray-500">
@@ -297,7 +298,7 @@ function DataDashboardContent() {
                           ? new Date(
                               policy.estimated_deletion
                             ).toLocaleDateString()
-                          : "Manual"}
+                          : t("manual")}
                       </td>
                     </tr>
                   ))}
