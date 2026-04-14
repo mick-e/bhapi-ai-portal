@@ -27,8 +27,10 @@ import {
 } from "@/hooks/use-social-monitor";
 import type { SocialPost } from "@/hooks/use-social-monitor";
 import { useToast } from "@/contexts/ToastContext";
+import { useTranslations } from "@/contexts/LocaleContext";
 
 export default function SocialFeedPage() {
+  const t = useTranslations("socialFeed");
   const [selectedChildId, setSelectedChildId] = useState<string>("");
   const [flagPost, setFlagPost] = useState<SocialPost | null>(null);
   const [flagReason, setFlagReason] = useState("");
@@ -71,13 +73,13 @@ export default function SocialFeedPage() {
       { postId: flagPost.id, reason: flagReason },
       {
         onSuccess: () => {
-          addToast("Post flagged for review", "success");
+          addToast(t("postFlagged"), "success");
           setFlagPost(null);
           setFlagReason("");
         },
         onError: (err) => {
           addToast(
-            (err as Error).message || "Failed to flag post",
+            (err as Error).message || t("failedFlag"),
             "error"
           );
         },
@@ -92,10 +94,10 @@ export default function SocialFeedPage() {
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">
-          Social Feed Monitor
+          {t("title")}
         </h1>
         <p className="mt-1 text-sm text-gray-500">
-          Review your child's social posts, contacts, and activity
+          {t("description")}
         </p>
       </div>
 
@@ -103,12 +105,11 @@ export default function SocialFeedPage() {
       {membersLoading ? (
         <div className="mb-6 flex items-center gap-2 text-sm text-gray-500">
           <Loader2 className="h-4 w-4 animate-spin" />
-          Loading family members...
+          {t("loadingMembers")}
         </div>
       ) : children.length === 0 ? (
         <div className="mb-6 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-700 ring-1 ring-amber-200">
-          No active child members found. Add family members to monitor their
-          social activity.
+          {t("noChildren")}
         </div>
       ) : (
         <div className="mb-6 flex items-center gap-3">
@@ -116,11 +117,11 @@ export default function SocialFeedPage() {
             htmlFor="child-selector"
             className="text-sm font-medium text-gray-700"
           >
-            Viewing:
+            {t("viewing")}:
           </label>
           <select
             id="child-selector"
-            aria-label="Select child"
+            aria-label={t("selectChild")}
             value={effectiveChildId}
             onChange={(e) => setSelectedChildId(e.target.value)}
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
@@ -147,7 +148,7 @@ export default function SocialFeedPage() {
                   <p className="text-2xl font-bold text-gray-900">
                     {profile?.post_count ?? posts.length}
                   </p>
-                  <p className="text-sm text-gray-500">Total posts</p>
+                  <p className="text-sm text-gray-500">{t("totalPosts")}</p>
                 </div>
               </div>
             </div>
@@ -161,7 +162,7 @@ export default function SocialFeedPage() {
                     {profile?.total_likes_received ??
                       posts.reduce((s, p) => s + p.like_count, 0)}
                   </p>
-                  <p className="text-sm text-gray-500">Total likes received</p>
+                  <p className="text-sm text-gray-500">{t("totalLikes")}</p>
                 </div>
               </div>
             </div>
@@ -176,7 +177,7 @@ export default function SocialFeedPage() {
                       posts.reduce((s, p) => s + p.comment_count, 0)}
                   </p>
                   <p className="text-sm text-gray-500">
-                    Total comments received
+                    {t("totalComments")}
                   </p>
                 </div>
               </div>
@@ -189,7 +190,7 @@ export default function SocialFeedPage() {
               <Card>
                 <div className="mb-4 flex items-center justify-between">
                   <h2 className="text-base font-semibold text-gray-900">
-                    Recent Posts
+                    {t("recentPosts")}
                   </h2>
                   <Button
                     variant="secondary"
@@ -197,7 +198,7 @@ export default function SocialFeedPage() {
                     onClick={() => refetchFeed()}
                   >
                     <RefreshCw className="h-4 w-4" />
-                    Refresh
+                    {t("refresh")}
                   </Button>
                 </div>
 
@@ -205,14 +206,14 @@ export default function SocialFeedPage() {
                   <div className="flex h-32 items-center justify-center">
                     <Loader2 className="h-6 w-6 animate-spin text-primary" />
                     <span className="ml-2 text-sm text-gray-500">
-                      Loading posts...
+                      {t("loadingPosts")}
                     </span>
                   </div>
                 ) : feedError ? (
                   <div className="flex flex-col items-center justify-center py-8 text-center">
                     <AlertTriangle className="h-8 w-8 text-amber-500" />
                     <p className="mt-2 text-sm text-gray-600">
-                      Failed to load posts
+                      {t("failedLoadPosts")}
                     </p>
                     <Button
                       variant="secondary"
@@ -220,22 +221,21 @@ export default function SocialFeedPage() {
                       className="mt-3"
                       onClick={() => refetchFeed()}
                     >
-                      Try again
+                      {t("tryAgain")}
                     </Button>
                   </div>
                 ) : posts.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
                     <FileText className="h-10 w-10 text-gray-300" />
                     <p className="mt-3 text-sm font-medium text-gray-900">
-                      No posts yet
+                      {t("noPostsYet")}
                     </p>
                     <p className="mt-1 text-sm text-gray-500">
-                      {selectedChild?.display_name ?? "This child"} hasn't
-                      shared anything yet.
+                      {selectedChild?.display_name ?? t("thisChild")} {t("noShareYet")}
                     </p>
                   </div>
                 ) : (
-                  <ul className="divide-y divide-gray-100" aria-label="Social feed posts">
+                  <ul className="divide-y divide-gray-100" aria-label={t("postsLabel")}>
                     {posts.map((post) => (
                       <li key={post.id} className="py-4">
                         <div className="flex items-start justify-between gap-3">
@@ -248,13 +248,13 @@ export default function SocialFeedPage() {
                               {post.has_image && (
                                 <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-xs text-blue-600">
                                   <Image className="h-3 w-3" />
-                                  Image
+                                  {t("image")}
                                 </span>
                               )}
                               {post.has_video && (
                                 <span className="inline-flex items-center gap-1 rounded-full bg-purple-50 px-2 py-0.5 text-xs text-purple-600">
                                   <Video className="h-3 w-3" />
-                                  Video
+                                  {t("video")}
                                 </span>
                               )}
                             </div>
@@ -262,7 +262,7 @@ export default function SocialFeedPage() {
                             <p className="text-sm text-gray-800 line-clamp-3">
                               {post.content || (
                                 <span className="italic text-gray-400">
-                                  No text content
+                                  {t("noText")}
                                 </span>
                               )}
                             </p>
@@ -288,7 +288,7 @@ export default function SocialFeedPage() {
                               setFlagPost(post);
                               setFlagReason("");
                             }}
-                            aria-label={`Flag post by ${post.author_name}`}
+                            aria-label={`${t("flagPostBy")} ${post.author_name}`}
                             className="flex-shrink-0 rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-500"
                           >
                             <Flag className="h-4 w-4" />
@@ -305,7 +305,7 @@ export default function SocialFeedPage() {
             <div>
               <Card>
                 <h2 className="mb-4 text-base font-semibold text-gray-900">
-                  Contacts
+                  {t("contacts")}
                 </h2>
 
                 {contactsLoading ? (
@@ -314,13 +314,13 @@ export default function SocialFeedPage() {
                   </div>
                 ) : contactsError ? (
                   <p className="text-sm text-red-600">
-                    Failed to load contacts
+                    {t("failedLoadContacts")}
                   </p>
                 ) : contacts.length === 0 ? (
                   <div className="flex flex-col items-center py-8 text-center">
                     <Users className="h-8 w-8 text-gray-300" />
                     <p className="mt-2 text-sm text-gray-500">
-                      No contacts yet
+                      {t("noContactsYet")}
                     </p>
                   </div>
                 ) : (
@@ -329,9 +329,9 @@ export default function SocialFeedPage() {
                     {approvedContacts.length > 0 && (
                       <div>
                         <p className="mb-2 text-xs font-medium uppercase tracking-wider text-gray-400">
-                          Approved ({approvedContacts.length})
+                          {t("approved")} ({approvedContacts.length})
                         </p>
-                        <ul className="space-y-2" aria-label="Approved contacts">
+                        <ul className="space-y-2" aria-label={t("approvedContacts")}>
                           {approvedContacts.map((contact) => (
                             <li
                               key={contact.id}
@@ -356,9 +356,9 @@ export default function SocialFeedPage() {
                     {pendingContacts.length > 0 && (
                       <div>
                         <p className="mb-2 text-xs font-medium uppercase tracking-wider text-gray-400">
-                          Pending ({pendingContacts.length})
+                          {t("pending")} ({pendingContacts.length})
                         </p>
-                        <ul className="space-y-2" aria-label="Pending contact requests">
+                        <ul className="space-y-2" aria-label={t("pendingRequests")}>
                           {pendingContacts.map((contact) => (
                             <li
                               key={contact.id}
@@ -372,7 +372,7 @@ export default function SocialFeedPage() {
                                   {contact.contact_name}
                                 </p>
                                 <p className="text-xs text-gray-500">
-                                  Awaiting approval
+                                  {t("awaitingApproval")}
                                 </p>
                               </div>
                               <Clock className="h-4 w-4 flex-shrink-0 text-amber-400" />
@@ -412,28 +412,28 @@ export default function SocialFeedPage() {
                     id="flag-modal-title"
                     className="text-lg font-bold text-gray-900"
                   >
-                    Flag this post
+                    {t("flagThisPost")}
                   </h2>
                   <p className="text-sm text-gray-500">
-                    This will send it for moderation review
+                    {t("flagDesc")}
                   </p>
                 </div>
               </div>
 
               <div className="mt-4">
                 <p className="mb-3 rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700 line-clamp-3">
-                  {flagPost.content || "No text content"}
+                  {flagPost.content || t("noText")}
                 </p>
                 <label
                   htmlFor="flag-reason"
                   className="mb-1.5 block text-sm font-medium text-gray-700"
                 >
-                  Reason for flagging
+                  {t("flagReason")}
                 </label>
                 <textarea
                   id="flag-reason"
                   rows={3}
-                  placeholder="Describe why this post is concerning..."
+                  placeholder={t("flagReasonPlaceholder")}
                   value={flagReason}
                   onChange={(e) => setFlagReason(e.target.value)}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
@@ -448,7 +448,7 @@ export default function SocialFeedPage() {
                     setFlagReason("");
                   }}
                 >
-                  Cancel
+                  {t("cancel")}
                 </Button>
                 <Button
                   onClick={handleFlagConfirm}
@@ -457,7 +457,7 @@ export default function SocialFeedPage() {
                   className="bg-red-600 hover:bg-red-700"
                 >
                   <Flag className="h-4 w-4" />
-                  Flag post
+                  {t("flagPost")}
                 </Button>
               </div>
             </div>

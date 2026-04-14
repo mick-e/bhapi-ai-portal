@@ -31,6 +31,7 @@ import {
   useDenyUnblock,
 } from "@/hooks/use-blocking";
 import { useToast } from "@/contexts/ToastContext";
+import { useTranslations } from "@/contexts/LocaleContext";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api-client";
 
@@ -48,6 +49,7 @@ const AI_PLATFORMS = [
 ];
 
 export default function BlockingPage() {
+  const t = useTranslations("blocking");
   const { user } = useAuth();
   const groupId = user?.group_id || null;
   const { addToast } = useToast();
@@ -112,7 +114,7 @@ export default function BlockingPage() {
       },
       {
         onSuccess: () => {
-          addToast("Block rule created", "success");
+          addToast(t("ruleCreated"), "success");
           setShowForm(false);
           setSelectedMemberId("");
           setSelectedPlatforms(new Set());
@@ -120,7 +122,7 @@ export default function BlockingPage() {
           setReason("");
         },
         onError: (err) =>
-          addToast((err as Error).message || "Failed to create rule", "error"),
+          addToast((err as Error).message || t("failedCreate"), "error"),
       }
     );
   }
@@ -131,11 +133,11 @@ export default function BlockingPage() {
       { ruleId, groupId },
       {
         onSuccess: () => {
-          addToast("Block rule removed", "success");
+          addToast(t("ruleRemoved"), "success");
           setConfirmRevoke(null);
         },
         onError: (err) =>
-          addToast((err as Error).message || "Failed to remove rule", "error"),
+          addToast((err as Error).message || t("failedRemove"), "error"),
       }
     );
   }
@@ -145,9 +147,9 @@ export default function BlockingPage() {
     approveUnblock.mutate(
       { approvalId, groupId },
       {
-        onSuccess: () => addToast("Unblock request approved", "success"),
+        onSuccess: () => addToast(t("unblockApproved"), "success"),
         onError: (err) =>
-          addToast((err as Error).message || "Failed to approve", "error"),
+          addToast((err as Error).message || t("failedApprove"), "error"),
       }
     );
   }
@@ -157,9 +159,9 @@ export default function BlockingPage() {
     denyUnblock.mutate(
       { approvalId, groupId },
       {
-        onSuccess: () => addToast("Unblock request denied", "success"),
+        onSuccess: () => addToast(t("unblockDenied"), "success"),
         onError: (err) =>
-          addToast((err as Error).message || "Failed to deny", "error"),
+          addToast((err as Error).message || t("failedDeny"), "error"),
       }
     );
   }
@@ -168,7 +170,7 @@ export default function BlockingPage() {
     return (
       <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-3 text-sm text-gray-500">Loading...</span>
+        <span className="ml-3 text-sm text-gray-500">{t("loading")}</span>
       </div>
     );
   }
@@ -178,10 +180,10 @@ export default function BlockingPage() {
       <div className="flex h-64 flex-col items-center justify-center text-center">
         <AlertTriangle className="h-10 w-10 text-amber-500" />
         <p className="mt-3 text-sm font-medium text-gray-900">
-          Failed to load block rules
+          {t("failedToLoad")}
         </p>
         <p className="mt-1 text-sm text-gray-500">
-          {(error as Error)?.message || "Something went wrong"}
+          {(error as Error)?.message || t("somethingWentWrong")}
         </p>
         <Button
           variant="secondary"
@@ -190,7 +192,7 @@ export default function BlockingPage() {
           onClick={() => refetch()}
         >
           <RefreshCw className="h-4 w-4" />
-          Try again
+          {t("tryAgain")}
         </Button>
       </div>
     );
@@ -203,15 +205,15 @@ export default function BlockingPage() {
     <div>
       <div className="mb-6 flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">AI Controls</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t("title")}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Control which AI tools your children can use and when
+            {t("description")}
           </p>
         </div>
         {activeTab === "rules" && (
           <Button onClick={() => setShowForm(!showForm)}>
             <Plus className="h-4 w-4" />
-            Block an AI Platform
+            {t("blockPlatform")}
           </Button>
         )}
       </div>
@@ -219,9 +221,9 @@ export default function BlockingPage() {
       {/* Tab bar */}
       <div className="mb-6 flex gap-1 rounded-lg bg-gray-100 p-1">
         {([
-          { key: "rules" as const, label: "Blocked Platforms", icon: Ban },
-          { key: "screen-time" as const, label: "Screen Time", icon: Timer },
-          { key: "bedtime" as const, label: "Bedtime", icon: Moon },
+          { key: "rules" as const, label: t("tabBlocked"), icon: Ban },
+          { key: "screen-time" as const, label: t("tabScreenTime"), icon: Timer },
+          { key: "bedtime" as const, label: t("tabBedtime"), icon: Moon },
         ]).map(({ key, label, icon: Icon }) => (
           <button
             key={key}
@@ -252,7 +254,7 @@ export default function BlockingPage() {
                     <p className="text-xl font-semibold text-gray-900">
                       {effectiveness.total_rules}
                     </p>
-                    <p className="text-sm text-gray-500">Active block rules</p>
+                    <p className="text-sm text-gray-500">{t("activeBlockRules")}</p>
                   </div>
                 </div>
               </Card>
@@ -265,7 +267,7 @@ export default function BlockingPage() {
                     <p className="text-xl font-semibold text-gray-900">
                       {effectiveness.blocked_count}
                     </p>
-                    <p className="text-sm text-gray-500">Children protected</p>
+                    <p className="text-sm text-gray-500">{t("childrenProtected")}</p>
                   </div>
                 </div>
               </Card>
@@ -278,7 +280,7 @@ export default function BlockingPage() {
                     <p className="text-xl font-semibold text-gray-900">
                       {effectiveness.total_events}
                     </p>
-                    <p className="text-sm text-gray-500">Blocked attempts</p>
+                    <p className="text-sm text-gray-500">{t("blockedAttempts")}</p>
                   </div>
                 </div>
               </Card>
@@ -289,8 +291,8 @@ export default function BlockingPage() {
           {pending.length > 0 && (
             <Card className="mb-6">
               <div className="mb-4">
-                <h2 className="text-base font-semibold text-gray-900">Unblock Requests</h2>
-                <p className="mt-0.5 text-xs text-gray-500">Your children are asking to access blocked platforms</p>
+                <h2 className="text-base font-semibold text-gray-900">{t("unblockRequests")}</h2>
+                <p className="mt-0.5 text-xs text-gray-500">{t("unblockRequestsDesc")}</p>
               </div>
               <div className="space-y-3">
                 {pending.map((approval) => (
@@ -314,7 +316,7 @@ export default function BlockingPage() {
                         isLoading={approveUnblock.isPending}
                       >
                         <CheckCircle className="h-4 w-4" />
-                        Allow
+                        {t("allow")}
                       </Button>
                       <Button
                         variant="secondary"
@@ -323,7 +325,7 @@ export default function BlockingPage() {
                         isLoading={denyUnblock.isPending}
                       >
                         <XCircle className="h-4 w-4" />
-                        Keep Blocked
+                        {t("keepBlocked")}
                       </Button>
                     </div>
                   </div>
@@ -335,25 +337,25 @@ export default function BlockingPage() {
           {/* Create Block Rule Form */}
           {showForm && (
             <Card className="mb-6">
-              <h2 className="text-base font-semibold text-gray-900">Block an AI Platform</h2>
+              <h2 className="text-base font-semibold text-gray-900">{t("blockPlatform")}</h2>
               <p className="mt-0.5 mb-4 text-xs text-gray-500">
-                Choose a child and the AI platforms you want to block
+                {t("blockPlatformDesc")}
               </p>
               <div className="max-w-lg space-y-5">
                 {createRule.isError && (
                   <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
-                    {(createRule.error as Error)?.message || "Failed to create rule"}
+                    {(createRule.error as Error)?.message || t("failedCreate")}
                   </div>
                 )}
 
                 {/* Child picker */}
                 <div>
                   <label htmlFor="block-member" className="mb-1.5 block text-sm font-medium text-gray-700">
-                    Which child?
+                    {t("whichChild")}
                   </label>
                   {membersList.length === 0 ? (
                     <p className="text-sm text-gray-500">
-                      No members in your group yet. <a href="/members" className="font-medium text-primary-700 underline">Invite a member</a> first.
+                      {t("noMembersYet")} <a href="/members" className="font-medium text-primary-700 underline">{t("inviteMember")}</a> {t("first")}
                     </p>
                   ) : (
                     <select
@@ -362,7 +364,7 @@ export default function BlockingPage() {
                       onChange={(e) => setSelectedMemberId(e.target.value)}
                       className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                     >
-                      <option value="">Select a child...</option>
+                      <option value="">{t("selectChildPlaceholder")}</option>
                       {membersList.map((m) => (
                         <option key={m.id} value={m.id}>{m.display_name}</option>
                       ))}
@@ -373,7 +375,7 @@ export default function BlockingPage() {
                 {/* Platform picker */}
                 <div>
                   <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Which AI platforms?
+                    {t("whichPlatforms")}
                   </label>
                   <label className="mb-3 flex items-center gap-2">
                     <input
@@ -382,7 +384,7 @@ export default function BlockingPage() {
                       onChange={(e) => setBlockAllPlatforms(e.target.checked)}
                       className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                     />
-                    <span className="text-sm font-medium text-gray-700">Block all AI platforms</span>
+                    <span className="text-sm font-medium text-gray-700">{t("blockAllPlatforms")}</span>
                   </label>
                   {!blockAllPlatforms && (
                     <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -411,14 +413,14 @@ export default function BlockingPage() {
                 {/* Reason */}
                 <div>
                   <label htmlFor="block-reason" className="mb-1.5 block text-sm font-medium text-gray-700">
-                    Reason <span className="font-normal text-gray-400">(optional)</span>
+                    {t("reason")} <span className="font-normal text-gray-400">{t("optionalParens")}</span>
                   </label>
                   <input
                     id="block-reason"
                     type="text"
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
-                    placeholder="e.g. Too much time on ChatGPT this week"
+                    placeholder={t("reasonPlaceholder")}
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
                 </div>
@@ -429,7 +431,7 @@ export default function BlockingPage() {
                     isLoading={createRule.isPending}
                     disabled={!selectedMemberId || (!blockAllPlatforms && selectedPlatforms.size === 0)}
                   >
-                    Create Block Rule
+                    {t("createRule")}
                   </Button>
                   <Button
                     variant="ghost"
@@ -441,7 +443,7 @@ export default function BlockingPage() {
                       setReason("");
                     }}
                   >
-                    Cancel
+                    {t("cancel")}
                   </Button>
                 </div>
               </div>
@@ -453,10 +455,9 @@ export default function BlockingPage() {
             {activeRules.length === 0 ? (
               <div className="py-12 text-center">
                 <Shield className="mx-auto h-12 w-12 text-gray-300" />
-                <p className="mt-4 text-sm font-medium text-gray-700">No active block rules</p>
+                <p className="mt-4 text-sm font-medium text-gray-700">{t("noActiveRules")}</p>
                 <p className="mt-1 max-w-sm mx-auto text-xs text-gray-500">
-                  Block rules prevent your children from accessing specific AI platforms.
-                  Click &ldquo;Block an AI Platform&rdquo; above to create your first rule.
+                  {t("noActiveRulesDesc")}
                 </p>
                 <Button
                   variant="secondary"
@@ -465,7 +466,7 @@ export default function BlockingPage() {
                   onClick={() => setShowForm(true)}
                 >
                   <Plus className="h-4 w-4" />
-                  Block an AI Platform
+                  {t("blockPlatform")}
                 </Button>
               </div>
             ) : (
@@ -473,12 +474,12 @@ export default function BlockingPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-gray-100">
-                      <th className="px-4 py-3 text-left font-medium text-gray-500">Child</th>
-                      <th className="px-4 py-3 text-left font-medium text-gray-500">Blocked Platforms</th>
-                      <th className="px-4 py-3 text-left font-medium text-gray-500">Reason</th>
-                      <th className="px-4 py-3 text-left font-medium text-gray-500">Expires</th>
-                      <th className="px-4 py-3 text-left font-medium text-gray-500">Created</th>
-                      <th className="px-4 py-3 text-right font-medium text-gray-500">Actions</th>
+                      <th className="px-4 py-3 text-left font-medium text-gray-500">{t("colChild")}</th>
+                      <th className="px-4 py-3 text-left font-medium text-gray-500">{t("colBlockedPlatforms")}</th>
+                      <th className="px-4 py-3 text-left font-medium text-gray-500">{t("colReason")}</th>
+                      <th className="px-4 py-3 text-left font-medium text-gray-500">{t("colExpires")}</th>
+                      <th className="px-4 py-3 text-left font-medium text-gray-500">{t("colCreated")}</th>
+                      <th className="px-4 py-3 text-right font-medium text-gray-500">{t("colActions")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -508,7 +509,7 @@ export default function BlockingPage() {
                             </div>
                           ) : (
                             <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">
-                              All platforms
+                              {t("allPlatforms")}
                             </span>
                           )}
                         </td>
@@ -522,7 +523,7 @@ export default function BlockingPage() {
                               {new Date(rule.expires_at).toLocaleDateString()}
                             </span>
                           ) : (
-                            <span className="text-gray-400">Until removed</span>
+                            <span className="text-gray-400">{t("untilRemoved")}</span>
                           )}
                         </td>
                         <td className="px-4 py-3 text-gray-500">
@@ -537,14 +538,14 @@ export default function BlockingPage() {
                                 onClick={() => handleRevoke(rule.id)}
                                 isLoading={revokeRule.isPending}
                               >
-                                Yes, Remove
+                                {t("yesRemove")}
                               </Button>
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => setConfirmRevoke(null)}
                               >
-                                Cancel
+                                {t("cancel")}
                               </Button>
                             </div>
                           ) : (
@@ -552,10 +553,10 @@ export default function BlockingPage() {
                               variant="ghost"
                               size="sm"
                               onClick={() => setConfirmRevoke(rule.id)}
-                              aria-label={`Remove block rule for ${getMemberName(rule.member_id)}`}
+                              aria-label={`${t("removeRuleFor")} ${getMemberName(rule.member_id)}`}
                             >
                               <Trash2 className="h-4 w-4" />
-                              Remove
+                              {t("remove")}
                             </Button>
                           )}
                         </td>
@@ -585,6 +586,7 @@ export default function BlockingPage() {
 // ─── Screen Time Tab ────────────────────────────────────────────────────────
 
 function ScreenTimeTab({ groupId }: { groupId: string | null }) {
+  const t = useTranslations("blocking");
   const { data: members } = useQuery<{ items: Array<{ id: string; display_name: string }> }>({
     queryKey: ["members-list", groupId],
     queryFn: () => apiFetch(`/api/v1/groups/${groupId}/members?page_size=50`),
@@ -596,9 +598,9 @@ function ScreenTimeTab({ groupId }: { groupId: string | null }) {
       <Card>
         <div className="py-12 text-center">
           <Timer className="mx-auto h-12 w-12 text-gray-300" />
-          <p className="mt-4 text-sm font-medium text-gray-700">No members yet</p>
+          <p className="mt-4 text-sm font-medium text-gray-700">{t("noMembersTitle")}</p>
           <p className="mt-1 text-xs text-gray-500">
-            <a href="/members" className="font-medium text-primary-700 underline">Add a family member</a> to start managing screen time.
+            <a href="/members" className="font-medium text-primary-700 underline">{t("addFamilyMember")}</a> {t("toManageScreenTime")}
           </p>
         </div>
       </Card>
@@ -621,6 +623,7 @@ function ScreenTimeMemberRow({
   groupId: string;
   member: { id: string; display_name: string };
 }) {
+  const t = useTranslations("blocking");
   const { data: budget } = useQuery({
     queryKey: ["time-budget", "budget", groupId, member.id],
     queryFn: () =>
@@ -652,14 +655,14 @@ function ScreenTimeMemberRow({
             <p className="text-sm font-medium text-gray-900">{member.display_name}</p>
             {budget?.enabled ? (
               <p className="text-xs text-gray-500">
-                {budget.minutes_used} / {budget.budget_minutes} min today
-                {budget.exceeded && <span className="ml-1 font-medium text-red-600">Limit reached</span>}
+                {budget.minutes_used} / {budget.budget_minutes} {t("minToday")}
+                {budget.exceeded && <span className="ml-1 font-medium text-red-600">{t("limitReached")}</span>}
                 {budget.warn && !budget.exceeded && (
-                  <span className="ml-1 font-medium text-amber-600">Almost at limit</span>
+                  <span className="ml-1 font-medium text-amber-600">{t("almostLimit")}</span>
                 )}
               </p>
             ) : (
-              <p className="text-xs text-gray-400">No daily limit set</p>
+              <p className="text-xs text-gray-400">{t("noDailyLimit")}</p>
             )}
           </div>
         </div>
@@ -690,6 +693,7 @@ function formatHour(hour: number): string {
 }
 
 function BedtimeTab({ groupId }: { groupId: string | null }) {
+  const t = useTranslations("blocking");
   const { data: members } = useQuery<{ items: Array<{ id: string; display_name: string }> }>({
     queryKey: ["members-list", groupId],
     queryFn: () => apiFetch(`/api/v1/groups/${groupId}/members?page_size=50`),
@@ -701,9 +705,9 @@ function BedtimeTab({ groupId }: { groupId: string | null }) {
       <Card>
         <div className="py-12 text-center">
           <Moon className="mx-auto h-12 w-12 text-gray-300" />
-          <p className="mt-4 text-sm font-medium text-gray-700">No members yet</p>
+          <p className="mt-4 text-sm font-medium text-gray-700">{t("noMembersTitle")}</p>
           <p className="mt-1 text-xs text-gray-500">
-            <a href="/members" className="font-medium text-primary-700 underline">Add a family member</a> to start managing bedtime schedules.
+            <a href="/members" className="font-medium text-primary-700 underline">{t("addFamilyMember")}</a> {t("toManageBedtime")}
           </p>
         </div>
       </Card>
@@ -726,6 +730,7 @@ function BedtimeMemberRow({
   groupId: string;
   member: { id: string; display_name: string };
 }) {
+  const t = useTranslations("blocking");
   const { data: bedtime } = useQuery({
     queryKey: ["time-budget", "bedtime", groupId, member.id],
     queryFn: () =>
@@ -749,17 +754,17 @@ function BedtimeMemberRow({
             <p className="text-sm font-medium text-gray-900">{member.display_name}</p>
             {bedtime?.enabled && bedtime.start_hour != null && bedtime.end_hour != null ? (
               <p className="text-xs text-gray-500">
-                AI blocked {formatHour(bedtime.start_hour)} &ndash; {formatHour(bedtime.end_hour)}
+                {t("aiBlocked")} {formatHour(bedtime.start_hour)} &ndash; {formatHour(bedtime.end_hour)}
               </p>
             ) : (
-              <p className="text-xs text-gray-400">Bedtime not configured</p>
+              <p className="text-xs text-gray-400">{t("bedtimeNotConfigured")}</p>
             )}
           </div>
         </div>
         <div className="flex items-center gap-2">
           <Moon className={`h-4 w-4 ${bedtime?.enabled ? "text-indigo-500" : "text-gray-300"}`} />
           <span className={`text-xs font-medium ${bedtime?.enabled ? "text-indigo-600" : "text-gray-400"}`}>
-            {bedtime?.enabled ? "Active" : "Off"}
+            {bedtime?.enabled ? t("statusActive") : t("statusOff")}
           </span>
         </div>
       </div>

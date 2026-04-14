@@ -16,6 +16,7 @@ import {
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/hooks/use-auth";
+import { useTranslations } from "@/contexts/LocaleContext";
 import {
   useLiteracyModules,
   useLiteracyQuestions,
@@ -56,6 +57,7 @@ function LevelIcon({ level }: { level: string }) {
 // ─── Progress Card ───────────────────────────────────────────────────────────
 
 function ProgressCard({ memberId }: { memberId: string }) {
+  const t = useTranslations("literacy");
   const { data: progress, isLoading } = useLiteracyProgress(memberId);
 
   if (isLoading) return null;
@@ -69,12 +71,12 @@ function ProgressCard({ memberId }: { memberId: string }) {
         </div>
         <div className="flex-1">
           <div className="flex items-center gap-2">
-            <h3 className="text-sm font-semibold text-gray-900">Your Progress</h3>
+            <h3 className="text-sm font-semibold text-gray-900">{t("yourProgress")}</h3>
             <DifficultyBadge level={progress.current_level} />
           </div>
           <div className="mt-1 flex items-center gap-4 text-sm text-gray-500">
-            <span>{progress.modules_completed} modules completed</span>
-            <span>Average score: {progress.total_score.toFixed(0)}%</span>
+            <span>{progress.modules_completed} {t("modulesCompleted")}</span>
+            <span>{t("averageScore")}: {progress.total_score.toFixed(0)}%</span>
           </div>
         </div>
       </div>
@@ -91,13 +93,14 @@ function ModuleCard({
   module: LiteracyModule;
   onStart: (id: string) => void;
 }) {
+  const t = useTranslations("literacy");
   const categoryLabels: Record<string, string> = {
-    fundamentals: "Fundamentals",
-    safety: "Safety",
-    privacy: "Privacy",
-    critical_thinking: "Critical Thinking",
-    misinformation: "Misinformation",
-    ethics: "Ethics",
+    fundamentals: t("catFundamentals"),
+    safety: t("catSafety"),
+    privacy: t("catPrivacy"),
+    critical_thinking: t("catCriticalThinking"),
+    misinformation: t("catMisinformation"),
+    ethics: t("catEthics"),
   };
 
   return (
@@ -111,15 +114,15 @@ function ModuleCard({
           <p className="mt-1 text-sm text-gray-500">{module.description}</p>
           <div className="mt-3 flex items-center gap-3 text-xs text-gray-400">
             <span>{categoryLabels[module.category] || module.category}</span>
-            <span>Ages {module.min_age}-{module.max_age}</span>
-            <span>{module.question_count} questions</span>
+            <span>{t("ages")} {module.min_age}-{module.max_age}</span>
+            <span>{module.question_count} {t("questions")}</span>
           </div>
         </div>
       </div>
       <div className="mt-4">
         <Button size="sm" onClick={() => onStart(module.id)}>
           <BookOpen className="h-4 w-4" />
-          Start Quiz
+          {t("startQuiz")}
         </Button>
       </div>
     </Card>
@@ -141,6 +144,7 @@ function QuizView({
   memberId: string;
   onBack: () => void;
 }) {
+  const t = useTranslations("literacy");
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [result, setResult] = useState<AssessmentResponse | null>(null);
@@ -190,7 +194,7 @@ function QuizView({
       <div>
         <Button variant="ghost" size="sm" onClick={onBack} className="mb-4">
           <ArrowLeft className="h-4 w-4" />
-          Back to Modules
+          {t("backToModules")}
         </Button>
 
         <Card className="mb-6">
@@ -198,13 +202,13 @@ function QuizView({
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary-50 mb-4">
               <Trophy className="h-8 w-8 text-primary-600" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900">Quiz Complete!</h2>
+            <h2 className="text-xl font-bold text-gray-900">{t("quizComplete")}</h2>
             <p className="mt-1 text-sm text-gray-500">{module.title}</p>
             <p className="mt-4 text-3xl font-bold text-primary-600">
               {result.score.toFixed(0)}%
             </p>
             <p className="mt-1 text-sm text-gray-500">
-              {result.correct_count} of {result.total_questions} correct
+              {result.correct_count} {t("ofCorrect")} {result.total_questions} {t("correct")}
             </p>
           </div>
         </Card>
@@ -225,13 +229,13 @@ function QuizView({
                       {idx + 1}. {question?.question_text}
                     </p>
                     <p className="mt-1 text-sm text-gray-600">
-                      Your answer: <span className={r.is_correct ? "text-green-600 font-medium" : "text-red-600 font-medium"}>
+                      {t("yourAnswer")}: <span className={r.is_correct ? "text-green-600 font-medium" : "text-red-600 font-medium"}>
                         {r.selected_answer}
                       </span>
                     </p>
                     {!r.is_correct && (
                       <p className="mt-0.5 text-sm text-gray-600">
-                        Correct answer: <span className="text-green-600 font-medium">{r.correct_answer}</span>
+                        {t("correctAnswer")}: <span className="text-green-600 font-medium">{r.correct_answer}</span>
                       </p>
                     )}
                     <p className="mt-2 text-xs text-gray-500 bg-gray-50 rounded-lg p-2">
@@ -253,7 +257,7 @@ function QuizView({
     <div>
       <Button variant="ghost" size="sm" onClick={onBack} className="mb-4">
         <ArrowLeft className="h-4 w-4" />
-        Back to Modules
+        {t("backToModules")}
       </Button>
 
       <Card>
@@ -261,7 +265,7 @@ function QuizView({
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold text-gray-900">{module.title}</h2>
             <span className="text-sm text-gray-500">
-              Question {currentIndex + 1} of {totalQuestions}
+              {t("question")} {currentIndex + 1} {t("ofTotal")} {totalQuestions}
             </span>
           </div>
           <div className="mt-2 h-2 w-full rounded-full bg-gray-100">
@@ -305,7 +309,7 @@ function QuizView({
             onClick={handlePrev}
             disabled={currentIndex === 0}
           >
-            Previous
+            {t("previous")}
           </Button>
 
           <div className="flex gap-2">
@@ -315,7 +319,7 @@ function QuizView({
                 onClick={handleSubmit}
                 isLoading={submitMutation.isPending}
               >
-                Submit Quiz
+                {t("submitQuiz")}
               </Button>
             ) : (
               <Button
@@ -323,7 +327,7 @@ function QuizView({
                 onClick={handleNext}
                 disabled={!answers[currentQuestion.id] || isLastQuestion}
               >
-                Next
+                {t("next")}
               </Button>
             )}
           </div>
@@ -336,6 +340,7 @@ function QuizView({
 // ─── Main Page Content ───────────────────────────────────────────────────────
 
 function LiteracyPageContent() {
+  const t = useTranslations("literacy");
   const { user } = useAuth();
   const groupId = user?.group_id || null;
   const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
@@ -360,7 +365,7 @@ function LiteracyPageContent() {
     return (
       <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-3 text-sm text-gray-500">Loading modules...</span>
+        <span className="ml-3 text-sm text-gray-500">{t("loadingModules")}</span>
       </div>
     );
   }
@@ -370,10 +375,10 @@ function LiteracyPageContent() {
       <div className="flex h-64 flex-col items-center justify-center text-center">
         <AlertTriangle className="h-10 w-10 text-amber-500" />
         <p className="mt-3 text-sm font-medium text-gray-900">
-          Failed to load literacy modules
+          {t("failedToLoad")}
         </p>
         <p className="mt-1 text-sm text-gray-500">
-          {(modulesErr as Error)?.message || "Something went wrong"}
+          {(modulesErr as Error)?.message || t("somethingWentWrong")}
         </p>
         <Button
           variant="secondary"
@@ -382,7 +387,7 @@ function LiteracyPageContent() {
           onClick={() => refetchModules()}
         >
           <RefreshCw className="h-4 w-4" />
-          Try again
+          {t("tryAgain")}
         </Button>
       </div>
     );
@@ -393,9 +398,9 @@ function LiteracyPageContent() {
     return (
       <div>
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">AI Literacy</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t("title")}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Learn about AI safety and responsible use
+            {t("shortDescription")}
           </p>
         </div>
         <QuizView
@@ -414,7 +419,7 @@ function LiteracyPageContent() {
     return (
       <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-3 text-sm text-gray-500">Loading quiz...</span>
+        <span className="ml-3 text-sm text-gray-500">{t("loadingQuiz")}</span>
       </div>
     );
   }
@@ -424,9 +429,9 @@ function LiteracyPageContent() {
     <div>
       <div className="mb-8 flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">AI Literacy</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t("title")}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Learn about AI safety and responsible use through interactive quizzes
+            {t("description")}
           </p>
         </div>
         <select
@@ -434,14 +439,14 @@ function LiteracyPageContent() {
           onChange={(e) =>
             setAgeFilter(e.target.value ? Number(e.target.value) : undefined)
           }
-          aria-label="Filter by age"
+          aria-label={t("filterByAge")}
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
         >
-          <option value="">All ages</option>
-          <option value="6">Age 6+</option>
-          <option value="8">Age 8+</option>
-          <option value="10">Age 10+</option>
-          <option value="12">Age 12+</option>
+          <option value="">{t("allAges")}</option>
+          <option value="6">{t("age6Plus")}</option>
+          <option value="8">{t("age8Plus")}</option>
+          <option value="10">{t("age10Plus")}</option>
+          <option value="12">{t("age12Plus")}</option>
         </select>
       </div>
 
@@ -451,10 +456,10 @@ function LiteracyPageContent() {
         <div className="flex h-48 flex-col items-center justify-center text-center">
           <BookOpen className="mx-auto h-10 w-10 text-gray-300" />
           <p className="mt-3 text-sm font-medium text-gray-900">
-            No modules available
+            {t("noModulesAvailable")}
           </p>
           <p className="mt-1 text-sm text-gray-500">
-            Check back later for new AI literacy content
+            {t("checkBackLater")}
           </p>
         </div>
       ) : (

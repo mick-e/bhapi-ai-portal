@@ -28,6 +28,7 @@ import {
   useReviewAgreement,
 } from "@/hooks/use-agreement";
 import { useToast } from "@/contexts/ToastContext";
+import { useTranslations } from "@/contexts/LocaleContext";
 
 interface AgreementRule {
   category: string;
@@ -61,21 +62,21 @@ interface Agreement {
   created_at: string | null;
 }
 
-const ageBandDescriptions: Record<string, string> = {
-  ages_7_10: "Simple, clear rules for young children using AI with close supervision.",
-  ages_11_13: "Age-appropriate guidelines for pre-teens learning to use AI responsibly.",
-  ages_14_16: "Collaborative agreement for teens balancing independence with safety.",
-  ages_17_plus: "Mature guidelines for young adults preparing for independent AI use.",
-};
-
-const ageBandLabels: Record<string, string> = {
-  ages_7_10: "Ages 7-10",
-  ages_11_13: "Ages 11-13",
-  ages_14_16: "Ages 14-16",
-  ages_17_plus: "Ages 17+",
-};
-
 export default function AgreementPage() {
+  const t = useTranslations("familyAgreement");
+  const ageBandDescriptions: Record<string, string> = {
+    ages_7_10: t("ages7_10Desc"),
+    ages_11_13: t("ages11_13Desc"),
+    ages_14_16: t("ages14_16Desc"),
+    ages_17_plus: t("ages17PlusDesc"),
+  };
+
+  const ageBandLabels: Record<string, string> = {
+    ages_7_10: t("ages7_10"),
+    ages_11_13: t("ages11_13"),
+    ages_14_16: t("ages14_16"),
+    ages_17_plus: t("ages17Plus"),
+  };
   const { data: templates, isLoading: loadingTemplates } = useAgreementTemplates();
   const { data: agreement, isLoading: loadingAgreement, isError, error, refetch } = useActiveAgreement();
   const createAgreement = useCreateAgreement();
@@ -105,7 +106,7 @@ export default function AgreementPage() {
     return (
       <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-3 text-sm text-gray-500">Loading agreement...</span>
+        <span className="ml-3 text-sm text-gray-500">{t("loading")}</span>
       </div>
     );
   }
@@ -115,14 +116,14 @@ export default function AgreementPage() {
       <div className="flex h-64 flex-col items-center justify-center text-center">
         <AlertTriangle className="h-10 w-10 text-amber-500" />
         <p className="mt-3 text-sm font-medium text-gray-900">
-          Failed to load agreement
+          {t("failedToLoad")}
         </p>
         <p className="mt-1 text-sm text-gray-500">
-          {(error as Error)?.message || "Something went wrong"}
+          {(error as Error)?.message || t("somethingWentWrong")}
         </p>
         <Button variant="secondary" size="sm" className="mt-4" onClick={() => refetch()}>
           <RefreshCw className="h-4 w-4" />
-          Try again
+          {t("tryAgain")}
         </Button>
       </div>
     );
@@ -132,8 +133,8 @@ export default function AgreementPage() {
     createAgreement.mutate(
       { template_id: templateId },
       {
-        onSuccess: () => addToast("Agreement created successfully", "success"),
-        onError: (err) => addToast((err as Error).message || "Failed to create agreement", "error"),
+        onSuccess: () => addToast(t("agreementCreated"), "success"),
+        onError: (err) => addToast((err as Error).message || t("failedCreate"), "error"),
       }
     );
   }
@@ -144,9 +145,9 @@ export default function AgreementPage() {
       {
         onSuccess: () => {
           setEditMode(false);
-          addToast("Rules updated successfully", "success");
+          addToast(t("rulesUpdated"), "success");
         },
-        onError: (err) => addToast((err as Error).message || "Failed to update rules", "error"),
+        onError: (err) => addToast((err as Error).message || t("failedUpdateRules"), "error"),
       }
     );
   }
@@ -178,17 +179,17 @@ export default function AgreementPage() {
         onSuccess: () => {
           setSignerName("");
           setSignerId("");
-          addToast("Agreement signed successfully", "success");
+          addToast(t("signedSuccess"), "success");
         },
-        onError: (err) => addToast((err as Error).message || "Failed to sign", "error"),
+        onError: (err) => addToast((err as Error).message || t("failedSign"), "error"),
       }
     );
   }
 
   function handleReview() {
     reviewAgreement.mutate(undefined, {
-      onSuccess: () => addToast("Agreement marked as reviewed", "success"),
-      onError: (err) => addToast((err as Error).message || "Failed to mark reviewed", "error"),
+      onSuccess: () => addToast(t("markedReviewed"), "success"),
+      onError: (err) => addToast((err as Error).message || t("failedMarkReviewed"), "error"),
     });
   }
 
@@ -197,9 +198,9 @@ export default function AgreementPage() {
     return (
       <div>
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Family AI Agreement</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t("title")}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Create a shared agreement about AI usage with your family
+            {t("createDescription")}
           </p>
         </div>
 
@@ -229,7 +230,7 @@ export default function AgreementPage() {
                     ))}
                     {tpl.rules.length > 3 && (
                       <li className="text-xs text-gray-400">
-                        +{tpl.rules.length - 3} more rules
+                        +{tpl.rules.length - 3} {t("moreRules")}
                       </li>
                     )}
                   </ul>
@@ -239,7 +240,7 @@ export default function AgreementPage() {
                     size="sm"
                   >
                     <FileText className="h-4 w-4" />
-                    Use This Template
+                    {t("useTemplate")}
                   </Button>
                 </div>
               </Card>
@@ -254,14 +255,14 @@ export default function AgreementPage() {
     <div>
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Family AI Agreement</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t("title")}</h1>
           <p className="mt-1 text-sm text-gray-500">{agreement.title}</p>
         </div>
         <div className="flex gap-2">
           {!editMode && (
             <Button variant="secondary" size="sm" onClick={() => setEditMode(true)}>
               <Edit3 className="h-4 w-4" />
-              Edit Rules
+              {t("editRules")}
             </Button>
           )}
         </div>
@@ -273,11 +274,10 @@ export default function AgreementPage() {
           <Clock className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-600" />
           <div className="flex-1">
             <h4 className="text-sm font-semibold text-amber-900">
-              Agreement review is due
+              {t("reviewDue")}
             </h4>
             <p className="mt-1 text-sm text-amber-700">
-              It has been 90 days since this agreement was last reviewed. Review the rules
-              with your family to make sure they are still appropriate.
+              {t("reviewDueDesc")}
             </p>
             <Button
               size="sm"
@@ -285,7 +285,7 @@ export default function AgreementPage() {
               onClick={handleReview}
               isLoading={reviewAgreement.isPending}
             >
-              Mark as Reviewed
+              {t("markReviewed")}
             </Button>
           </div>
         </div>
@@ -293,8 +293,8 @@ export default function AgreementPage() {
 
       {/* Rules section */}
       <Card
-        title="Agreement Rules"
-        description={editMode ? "Toggle, add, or remove rules" : "Your family has agreed to these rules"}
+        title={t("agreementRules")}
+        description={editMode ? t("toggleAddRemove") : t("agreedRules")}
       >
         <div className="space-y-3">
           {(editMode ? editedRules : agreement.rules).map((rule, index) => (
@@ -350,25 +350,25 @@ export default function AgreementPage() {
                   onChange={(e) => setCustomCategory(e.target.value)}
                   className="rounded-lg border border-gray-300 px-2 py-2 text-sm focus:border-primary focus:outline-none"
                 >
-                  <option value="custom">Custom</option>
-                  <option value="platforms">Platforms</option>
-                  <option value="time">Time</option>
-                  <option value="content">Content</option>
-                  <option value="safety">Safety</option>
-                  <option value="honesty">Honesty</option>
-                  <option value="privacy">Privacy</option>
+                  <option value="custom">{t("catCustom")}</option>
+                  <option value="platforms">{t("catPlatforms")}</option>
+                  <option value="time">{t("catTime")}</option>
+                  <option value="content">{t("catContent")}</option>
+                  <option value="safety">{t("catSafety")}</option>
+                  <option value="honesty">{t("catHonesty")}</option>
+                  <option value="privacy">{t("catPrivacy")}</option>
                 </select>
                 <div className="flex-1">
                   <Input
                     value={customRule}
                     onChange={(e) => setCustomRule(e.target.value)}
-                    placeholder="Add a custom rule..."
+                    placeholder={t("addCustomRulePlaceholder")}
                     onKeyDown={(e) => e.key === "Enter" && handleAddCustomRule()}
                   />
                 </div>
                 <Button variant="secondary" size="sm" onClick={handleAddCustomRule}>
                   <Plus className="h-4 w-4" />
-                  Add
+                  {t("add")}
                 </Button>
               </div>
               <div className="flex justify-end gap-2 pt-2">
@@ -379,10 +379,10 @@ export default function AgreementPage() {
                     setEditedRules(agreement.rules);
                   }}
                 >
-                  Cancel
+                  {t("cancel")}
                 </Button>
                 <Button onClick={handleSaveRules} isLoading={updateAgreement.isPending}>
-                  Save Rules
+                  {t("saveRules")}
                 </Button>
               </div>
             </>
@@ -392,16 +392,16 @@ export default function AgreementPage() {
 
       {/* Signatures section */}
       <div className="mt-6">
-        <Card title="Signatures" description="Family members who have agreed to these rules">
+        <Card title={t("signatures")} description={t("signaturesDesc")}>
           <div className="space-y-3">
             {/* Parent signature */}
             {agreement.signed_by_parent && (
               <div className="flex items-center gap-3 rounded-lg bg-green-50 p-3">
                 <CheckCircle2 className="h-5 w-5 text-green-600" />
                 <div>
-                  <p className="text-sm font-medium text-green-900">Parent (creator)</p>
+                  <p className="text-sm font-medium text-green-900">{t("parentCreator")}</p>
                   <p className="text-xs text-green-700">
-                    Signed {agreement.signed_by_parent_at
+                    {t("signedOn")} {agreement.signed_by_parent_at
                       ? new Date(agreement.signed_by_parent_at).toLocaleDateString()
                       : ""}
                   </p>
@@ -416,7 +416,7 @@ export default function AgreementPage() {
                 <div>
                   <p className="text-sm font-medium text-green-900">{sig.name}</p>
                   <p className="text-xs text-green-700">
-                    Signed {new Date(sig.signed_at).toLocaleDateString()}
+                    {t("signedOn")} {new Date(sig.signed_at).toLocaleDateString()}
                   </p>
                 </div>
               </div>
@@ -425,18 +425,18 @@ export default function AgreementPage() {
             {/* Sign form */}
             <div className="border-t border-gray-200 pt-4">
               <h4 className="mb-3 text-sm font-semibold text-gray-900">
-                Add a Signature
+                {t("addSignature")}
               </h4>
               <div className="flex flex-col gap-2 sm:flex-row">
                 <Input
                   value={signerId}
                   onChange={(e) => setSignerId(e.target.value)}
-                  placeholder="Member ID"
+                  placeholder={t("memberIdPlaceholder")}
                 />
                 <Input
                   value={signerName}
                   onChange={(e) => setSignerName(e.target.value)}
-                  placeholder="Name"
+                  placeholder={t("namePlaceholder")}
                 />
                 <Button
                   onClick={handleSign}
@@ -445,7 +445,7 @@ export default function AgreementPage() {
                   size="sm"
                 >
                   <FileText className="h-4 w-4" />
-                  Sign
+                  {t("sign")}
                 </Button>
               </div>
             </div>
@@ -460,20 +460,20 @@ export default function AgreementPage() {
             <div className="flex items-center gap-4 text-sm text-gray-500">
               <span className="flex items-center gap-1.5">
                 <Calendar className="h-4 w-4" />
-                Created: {agreement.created_at ? new Date(agreement.created_at).toLocaleDateString() : "—"}
+                {t("created")}: {agreement.created_at ? new Date(agreement.created_at).toLocaleDateString() : "—"}
               </span>
               <span className="flex items-center gap-1.5">
                 <Clock className="h-4 w-4" />
-                Review due: {agreement.review_due ? new Date(agreement.review_due).toLocaleDateString() : "—"}
+                {t("reviewDueLabel")}: {agreement.review_due ? new Date(agreement.review_due).toLocaleDateString() : "—"}
               </span>
               <span className="flex items-center gap-1.5">
                 <Users className="h-4 w-4" />
-                {agreement.signed_by_members.length + (agreement.signed_by_parent ? 1 : 0)} signatures
+                {agreement.signed_by_members.length + (agreement.signed_by_parent ? 1 : 0)} {t("signaturesCount")}
               </span>
             </div>
             {!isReviewDue && (
               <Button variant="ghost" size="sm" onClick={handleReview} isLoading={reviewAgreement.isPending}>
-                Mark Reviewed
+                {t("markReviewed")}
               </Button>
             )}
           </div>

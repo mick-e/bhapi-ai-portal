@@ -14,19 +14,20 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useMembers, useRecordConsent } from "@/hooks/use-members";
 import { useToast } from "@/contexts/ToastContext";
+import { useTranslations } from "@/contexts/LocaleContext";
 import type { GroupMember, ConsentType } from "@/types";
 
-const CONSENT_TYPES: { value: ConsentType; label: string; description: string }[] = [
-  { value: "monitoring", label: "AI Monitoring", description: "Consent to monitor AI interactions for safety" },
-  { value: "ai_interaction", label: "AI Interaction", description: "Consent to use AI tools through monitored platforms" },
-  { value: "data_collection", label: "Data Collection", description: "Consent to collect and process usage data" },
-  { value: "coppa", label: "COPPA (US)", description: "Children's Online Privacy Protection Act — required for users under 13 in the US" },
-  { value: "gdpr", label: "GDPR (EU)", description: "General Data Protection Regulation — required for users under 16 in the EU" },
-  { value: "lgpd", label: "LGPD (Brazil)", description: "Lei Geral de Protecao de Dados — required for users under 18 in Brazil" },
-  { value: "au_privacy", label: "AU Privacy (Australia)", description: "Australian Privacy Act — required for users under 16" },
-];
-
 export default function ConsentPage() {
+  const t = useTranslations("consent");
+  const CONSENT_TYPES: { value: ConsentType; label: string; description: string }[] = [
+    { value: "monitoring", label: t("typeMonitoring"), description: t("typeMonitoringDesc") },
+    { value: "ai_interaction", label: t("typeAiInteraction"), description: t("typeAiInteractionDesc") },
+    { value: "data_collection", label: t("typeDataCollection"), description: t("typeDataCollectionDesc") },
+    { value: "coppa", label: t("typeCoppa"), description: t("typeCoppaDesc") },
+    { value: "gdpr", label: t("typeGdpr"), description: t("typeGdprDesc") },
+    { value: "lgpd", label: t("typeLgpd"), description: t("typeLgpdDesc") },
+    { value: "au_privacy", label: t("typeAuPrivacy"), description: t("typeAuPrivacyDesc") },
+  ];
   const [showRecordModal, setShowRecordModal] = useState(false);
   const [selectedMember, setSelectedMember] = useState<GroupMember | null>(null);
 
@@ -44,7 +45,7 @@ export default function ConsentPage() {
     return (
       <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-3 text-sm text-gray-500">Loading consent data...</span>
+        <span className="ml-3 text-sm text-gray-500">{t("loadingData")}</span>
       </div>
     );
   }
@@ -53,11 +54,11 @@ export default function ConsentPage() {
     return (
       <div className="flex h-64 flex-col items-center justify-center text-center">
         <AlertTriangle className="h-10 w-10 text-amber-500" />
-        <p className="mt-3 text-sm font-medium text-gray-900">Failed to load consent data</p>
-        <p className="mt-1 text-sm text-gray-500">{(error as Error)?.message || "Something went wrong"}</p>
+        <p className="mt-3 text-sm font-medium text-gray-900">{t("failedToLoad")}</p>
+        <p className="mt-1 text-sm text-gray-500">{(error as Error)?.message || t("somethingWentWrong")}</p>
         <Button variant="secondary" size="sm" className="mt-4" onClick={() => refetch()}>
           <RefreshCw className="h-4 w-4" />
-          Try again
+          {t("tryAgain")}
         </Button>
       </div>
     );
@@ -72,9 +73,9 @@ export default function ConsentPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Consent Management</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t("title")}</h1>
         <p className="mt-1 text-sm text-gray-500">
-          Manage guardian consent for monitored members (COPPA/GDPR/LGPD compliance)
+          {t("description")}
         </p>
       </div>
 
@@ -89,7 +90,7 @@ export default function ConsentPage() {
               <p className="text-2xl font-bold text-gray-900">
                 {membersNeedingConsent.filter((m) => m.status === "active").length}
               </p>
-              <p className="text-sm text-gray-500">Consent recorded</p>
+              <p className="text-sm text-gray-500">{t("consentRecorded")}</p>
             </div>
           </div>
         </div>
@@ -102,7 +103,7 @@ export default function ConsentPage() {
               <p className="text-2xl font-bold text-gray-900">
                 {membersNeedingConsent.filter((m) => m.status === "invited").length}
               </p>
-              <p className="text-sm text-gray-500">Pending consent</p>
+              <p className="text-sm text-gray-500">{t("pendingConsent")}</p>
             </div>
           </div>
         </div>
@@ -115,14 +116,14 @@ export default function ConsentPage() {
               <p className="text-2xl font-bold text-gray-900">
                 {membersNeedingConsent.length}
               </p>
-              <p className="text-sm text-gray-500">Members requiring consent</p>
+              <p className="text-sm text-gray-500">{t("membersRequiringConsent")}</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Consent Types Reference */}
-      <Card title="Required Consent Types" description="Based on member age and jurisdiction">
+      <Card title={t("requiredTypes")} description={t("requiredTypesDesc")}>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {CONSENT_TYPES.map((ct) => (
             <div
@@ -138,22 +139,22 @@ export default function ConsentPage() {
 
       {/* Members Consent Table */}
       <div className="mt-6">
-        <Card title="Member Consent Status">
+        <Card title={t("memberConsentStatus")}>
           <div className="-mx-6 -my-4 overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Member
+                    {t("colMember")}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Role
+                    {t("colRole")}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Status
+                    {t("colStatus")}
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Actions
+                    {t("colActions")}
                   </th>
                 </tr>
               </thead>
@@ -163,7 +164,7 @@ export default function ConsentPage() {
                     <td colSpan={4} className="px-6 py-12 text-center">
                       <ShieldCheck className="mx-auto h-10 w-10 text-gray-300" />
                       <p className="mt-3 text-sm text-gray-500">
-                        No members currently require consent
+                        {t("noMembersRequire")}
                       </p>
                     </td>
                   </tr>
@@ -190,12 +191,12 @@ export default function ConsentPage() {
                         {member.status === "active" ? (
                           <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
                             <CheckCircle2 className="h-3 w-3" />
-                            Active
+                            {t("statusActive")}
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
                             <Clock className="h-3 w-3" />
-                            Pending
+                            {t("statusPending")}
                           </span>
                         )}
                       </td>
@@ -208,7 +209,7 @@ export default function ConsentPage() {
                             setShowRecordModal(true);
                           }}
                         >
-                          Record Consent
+                          {t("recordConsent")}
                         </Button>
                       </td>
                     </tr>
@@ -223,6 +224,7 @@ export default function ConsentPage() {
       {showRecordModal && selectedMember && (
         <RecordConsentModal
           member={selectedMember}
+          consentTypes={CONSENT_TYPES}
           onClose={() => {
             setShowRecordModal(false);
             setSelectedMember(null);
@@ -235,11 +237,14 @@ export default function ConsentPage() {
 
 function RecordConsentModal({
   member,
+  consentTypes,
   onClose,
 }: {
   member: GroupMember;
+  consentTypes: { value: ConsentType; label: string; description: string }[];
   onClose: () => void;
 }) {
+  const t = useTranslations("consent");
   const { addToast } = useToast();
   const recordConsent = useRecordConsent();
   const [consentType, setConsentType] = useState<ConsentType>("monitoring");
@@ -257,11 +262,11 @@ function RecordConsentModal({
       },
       {
         onSuccess: () => {
-          addToast(`Consent recorded for ${member.display_name}`, "success");
+          addToast(`${t("recordedFor")} ${member.display_name}`, "success");
           onClose();
         },
         onError: (err) =>
-          addToast((err as Error).message || "Failed to record consent", "error"),
+          addToast((err as Error).message || t("failedRecord"), "error"),
       }
     );
   }
@@ -273,24 +278,24 @@ function RecordConsentModal({
     >
       <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-gray-900">Record Consent</h2>
+          <h2 className="text-lg font-bold text-gray-900">{t("recordConsent")}</h2>
           <button
             onClick={onClose}
             className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-            aria-label="Close"
+            aria-label={t("close")}
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         <p className="mt-1 text-sm text-gray-500">
-          Recording consent for <strong>{member.display_name}</strong>
+          {t("recordingFor")} <strong>{member.display_name}</strong>
         </p>
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           <div>
             <label htmlFor="consent-type" className="block text-sm font-medium text-gray-700">
-              Consent Type
+              {t("consentTypeLabel")}
             </label>
             <select
               id="consent-type"
@@ -298,7 +303,7 @@ function RecordConsentModal({
               onChange={(e) => setConsentType(e.target.value as ConsentType)}
               className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
             >
-              {CONSENT_TYPES.map((ct) => (
+              {consentTypes.map((ct) => (
                 <option key={ct.value} value={ct.value}>
                   {ct.label}
                 </option>
@@ -308,13 +313,13 @@ function RecordConsentModal({
 
           <div>
             <label htmlFor="consent-evidence" className="block text-sm font-medium text-gray-700">
-              Evidence (optional)
+              {t("evidenceOptional")}
             </label>
             <textarea
               id="consent-evidence"
               value={evidence}
               onChange={(e) => setEvidence(e.target.value)}
-              placeholder="Reference to signed consent form, verbal consent date, etc."
+              placeholder={t("evidencePlaceholder")}
               rows={3}
               className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
             />
@@ -322,10 +327,10 @@ function RecordConsentModal({
 
           <div className="flex items-center justify-end gap-3 pt-2">
             <Button variant="secondary" size="sm" type="button" onClick={onClose}>
-              Cancel
+              {t("cancel")}
             </Button>
             <Button size="sm" type="submit" isLoading={recordConsent.isPending}>
-              Record Consent
+              {t("recordConsent")}
             </Button>
           </div>
         </form>

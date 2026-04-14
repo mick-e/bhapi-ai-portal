@@ -32,6 +32,7 @@ import {
   useUpdateReportSchedule,
 } from "@/hooks/use-reports";
 import { useFamilyWeeklyReport, useSendFamilyReport } from "@/hooks/use-family-report";
+import { useTranslations } from "@/contexts/LocaleContext";
 import type {
   Report,
   ReportType,
@@ -55,28 +56,31 @@ const typeColors: Record<ReportType, string> = {
   compliance: "bg-purple-50 text-purple-600",
 };
 
-const statusConfig: Record<
+function getStatusConfig(t: (k: string) => string): Record<
   ReportStatus,
   { icon: typeof CheckCircle2; label: string; color: string }
-> = {
-  ready: {
-    icon: CheckCircle2,
-    label: "Ready",
-    color: "text-green-600",
-  },
-  generating: {
-    icon: Clock,
-    label: "Generating",
-    color: "text-amber-600",
-  },
-  failed: {
-    icon: XCircle,
-    label: "Failed",
-    color: "text-red-600",
-  },
-};
+> {
+  return {
+    ready: {
+      icon: CheckCircle2,
+      label: t("statusReady"),
+      color: "text-green-600",
+    },
+    generating: {
+      icon: Clock,
+      label: t("statusGenerating"),
+      color: "text-amber-600",
+    },
+    failed: {
+      icon: XCircle,
+      label: t("statusFailed"),
+      color: "text-red-600",
+    },
+  };
+}
 
 export default function ReportsPage() {
+  const t = useTranslations("reports");
   const [filterType, setFilterType] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -105,7 +109,7 @@ export default function ReportsPage() {
     return (
       <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-3 text-sm text-gray-500">Loading reports...</span>
+        <span className="ml-3 text-sm text-gray-500">{t("loading")}</span>
       </div>
     );
   }
@@ -115,10 +119,10 @@ export default function ReportsPage() {
       <div className="flex h-64 flex-col items-center justify-center text-center">
         <AlertTriangle className="h-10 w-10 text-amber-500" />
         <p className="mt-3 text-sm font-medium text-gray-900">
-          Failed to load reports
+          {t("failedToLoad")}
         </p>
         <p className="mt-1 text-sm text-gray-500">
-          {(error as Error)?.message || "Something went wrong"}
+          {(error as Error)?.message || t("somethingWentWrong")}
         </p>
         <Button
           variant="secondary"
@@ -127,7 +131,7 @@ export default function ReportsPage() {
           onClick={() => refetch()}
         >
           <RefreshCw className="h-4 w-4" />
-          Try again
+          {t("tryAgain")}
         </Button>
       </div>
     );
@@ -137,19 +141,19 @@ export default function ReportsPage() {
     <div>
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Reports</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t("title")}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Generated reports on AI usage, safety, and compliance
+            {t("description")}
             {totalReports > 0 && (
               <span className="ml-1 text-gray-400">
-                ({totalReports} total)
+                ({totalReports} {t("totalSuffix")})
               </span>
             )}
           </p>
         </div>
         <Button onClick={() => setShowCreateModal(true)}>
           <FileBarChart className="h-4 w-4" />
-          Generate Report
+          {t("generateReport")}
         </Button>
       </div>
 
@@ -162,7 +166,7 @@ export default function ReportsPage() {
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900">{totalReports}</p>
-              <p className="text-sm text-gray-500">Reports generated</p>
+              <p className="text-sm text-gray-500">{t("reportsGenerated")}</p>
             </div>
           </div>
         </div>
@@ -175,7 +179,7 @@ export default function ReportsPage() {
               <p className="text-2xl font-bold text-gray-900">
                 {reports.filter((r) => r.status === "ready").length}
               </p>
-              <p className="text-sm text-gray-500">Available for download</p>
+              <p className="text-sm text-gray-500">{t("availableDownload")}</p>
             </div>
           </div>
         </div>
@@ -186,7 +190,7 @@ export default function ReportsPage() {
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900">PDF / CSV</p>
-              <p className="text-sm text-gray-500">Export formats</p>
+              <p className="text-sm text-gray-500">{t("exportFormats")}</p>
             </div>
           </div>
         </div>
@@ -194,7 +198,7 @@ export default function ReportsPage() {
 
       {/* Filter */}
       <div className="mb-6 flex items-center gap-3">
-        <span className="text-sm text-gray-500">Filter by type:</span>
+        <span className="text-sm text-gray-500">{t("filterByType")}:</span>
         <select
           value={filterType}
           onChange={(e) => {
@@ -203,11 +207,11 @@ export default function ReportsPage() {
           }}
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
         >
-          <option value="all">All types</option>
-          <option value="safety">Safety</option>
-          <option value="spend">Spend</option>
-          <option value="activity">Activity</option>
-          <option value="compliance">Compliance</option>
+          <option value="all">{t("typeAll")}</option>
+          <option value="safety">{t("typeSafety")}</option>
+          <option value="spend">{t("typeSpend")}</option>
+          <option value="activity">{t("typeActivity")}</option>
+          <option value="compliance">{t("typeCompliance")}</option>
         </select>
       </div>
 
@@ -230,8 +234,8 @@ export default function ReportsPage() {
             <FileBarChart className="mx-auto h-12 w-12 text-gray-300" />
             <p className="mt-4 text-sm text-gray-500">
               {filterType !== "all"
-                ? "No reports match your filter"
-                : "No reports generated yet"}
+                ? t("noReportsMatchFilter")
+                : t("noReportsYet")}
             </p>
             <Button
               variant="secondary"
@@ -239,7 +243,7 @@ export default function ReportsPage() {
               className="mt-4"
               onClick={() => setShowCreateModal(true)}
             >
-              Generate your first report
+              {t("generateFirstReport")}
             </Button>
           </div>
         )}
@@ -249,7 +253,7 @@ export default function ReportsPage() {
       {totalPages > 1 && (
         <div className="mt-6 flex items-center justify-between">
           <p className="text-sm text-gray-500">
-            Showing {reports.length} of {totalReports} reports
+            {t("showing")} {reports.length} {t("ofWord")} {totalReports} {t("reportsLabel")}
           </p>
           <div className="flex items-center gap-2">
             <Button
@@ -259,10 +263,10 @@ export default function ReportsPage() {
               onClick={() => setPage((p) => Math.max(1, p - 1))}
             >
               <ChevronLeft className="h-4 w-4" />
-              Previous
+              {t("previous")}
             </Button>
             <span className="text-sm text-gray-600">
-              Page {page} of {totalPages}
+              {t("page")} {page} {t("ofWord")} {totalPages}
             </span>
             <Button
               variant="secondary"
@@ -270,7 +274,7 @@ export default function ReportsPage() {
               disabled={page >= totalPages}
               onClick={() => setPage((p) => p + 1)}
             >
-              Next
+              {t("next")}
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
@@ -288,7 +292,7 @@ export default function ReportsPage() {
             onClick={() => setShowScheduleSection(true)}
           >
             <Calendar className="h-4 w-4" />
-            Configure Scheduled Reports
+            {t("configureScheduled")}
           </Button>
         </div>
       )}
@@ -315,6 +319,8 @@ function ReportCard({
   onDownload: () => void;
   isDownloading: boolean;
 }) {
+  const t = useTranslations("reports");
+  const statusConfig = getStatusConfig(t);
   const TypeIcon = typeIcons[report.type] || FileBarChart;
   const colorClass = typeColors[report.type] || "bg-gray-50 text-gray-600";
   const status = statusConfig[report.status] || statusConfig.ready;
@@ -335,7 +341,7 @@ function ReportCard({
                 {report.title}
               </h3>
               <p className="mt-0.5 text-xs text-gray-400">
-                Period: {formatDateRange(report.period_start, report.period_end)}
+                {t("period")}: {formatDateRange(report.period_start, report.period_end)}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -351,13 +357,13 @@ function ReportCard({
                   isLoading={isDownloading}
                 >
                   <Download className="h-3.5 w-3.5" />
-                  Download
+                  {t("download")}
                 </Button>
               )}
               {report.status === "generating" && (
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700">
                   <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" />
-                  Processing
+                  {t("processing")}
                 </span>
               )}
             </div>
@@ -367,7 +373,7 @@ function ReportCard({
             <span className="capitalize">{report.type}</span>
             <span className="uppercase">{report.format}</span>
             {report.generated_at && (
-              <span>Generated: {formatDate(report.generated_at)}</span>
+              <span>{t("generated")}: {formatDate(report.generated_at)}</span>
             )}
           </div>
         </div>
@@ -377,6 +383,7 @@ function ReportCard({
 }
 
 function CreateReportModal({ onClose }: { onClose: () => void }) {
+  const t = useTranslations("reports");
   const [reportType, setReportType] = useState<ReportType>("safety");
   const [format, setFormat] = useState<ReportFormat>("pdf");
   const [periodStart, setPeriodStart] = useState("");
@@ -408,7 +415,7 @@ function CreateReportModal({ onClose }: { onClose: () => void }) {
         <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold text-gray-900">
-              Generate Report
+              {t("generateReport")}
             </h2>
             <button
               onClick={onClose}
@@ -418,35 +425,35 @@ function CreateReportModal({ onClose }: { onClose: () => void }) {
             </button>
           </div>
           <p className="mt-1 text-sm text-gray-500">
-            Create a new report for your group
+            {t("createNewReport")}
           </p>
 
           {createMutation.isError && (
             <div className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
               {(createMutation.error as Error)?.message ||
-                "Failed to create report"}
+                t("failedCreate")}
             </div>
           )}
 
           <div className="mt-4 space-y-4">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                Report type
+                {t("reportType")}
               </label>
               <select
                 value={reportType}
                 onChange={(e) => setReportType(e.target.value as ReportType)}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               >
-                <option value="safety">Safety Summary</option>
-                <option value="spend">Spend Report</option>
-                <option value="activity">Activity Report</option>
-                <option value="compliance">Compliance Report</option>
+                <option value="safety">{t("safetySummary")}</option>
+                <option value="spend">{t("spendReport")}</option>
+                <option value="activity">{t("activityReport")}</option>
+                <option value="compliance">{t("complianceReport")}</option>
               </select>
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                Format
+                {t("format")}
               </label>
               <select
                 value={format}
@@ -459,13 +466,13 @@ function CreateReportModal({ onClose }: { onClose: () => void }) {
               </select>
             </div>
             <Input
-              label="Period start"
+              label={t("periodStart")}
               type="date"
               value={periodStart}
               onChange={(e) => setPeriodStart(e.target.value)}
             />
             <Input
-              label="Period end"
+              label={t("periodEnd")}
               type="date"
               value={periodEnd}
               onChange={(e) => setPeriodEnd(e.target.value)}
@@ -480,14 +487,14 @@ function CreateReportModal({ onClose }: { onClose: () => void }) {
                 createMutation.reset();
               }}
             >
-              Cancel
+              {t("cancel")}
             </Button>
             <Button
               onClick={handleCreate}
               isLoading={createMutation.isPending}
               disabled={!periodStart || !periodEnd}
             >
-              Generate
+              {t("generate")}
             </Button>
           </div>
         </div>
@@ -497,15 +504,16 @@ function CreateReportModal({ onClose }: { onClose: () => void }) {
 }
 
 function ScheduleSection() {
+  const t = useTranslations("reports");
   const { data: schedules, isLoading } = useReportSchedules();
   const updateSchedule = useUpdateReportSchedule();
 
   const reportTypes: ReportType[] = ["safety", "spend", "activity", "compliance"];
   const scheduleOptions: { value: ReportSchedule; label: string }[] = [
-    { value: "none", label: "None" },
-    { value: "daily", label: "Daily" },
-    { value: "weekly", label: "Weekly" },
-    { value: "monthly", label: "Monthly" },
+    { value: "none", label: t("schedNone") },
+    { value: "daily", label: t("schedDaily") },
+    { value: "weekly", label: t("schedWeekly") },
+    { value: "monthly", label: t("schedMonthly") },
   ];
 
   function getCurrentSchedule(type: ReportType): ReportScheduleConfig {
@@ -527,10 +535,10 @@ function ScheduleSection() {
     <div className="mt-6">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-lg font-semibold text-gray-900">
-          Scheduled Reports
+          {t("scheduledReports")}
         </h2>
         <p className="text-sm text-gray-500">
-          Automatically generate and email reports on a schedule
+          {t("scheduledReportsDesc")}
         </p>
       </div>
       {isLoading ? (
@@ -555,10 +563,10 @@ function ScheduleSection() {
                   </div>
                   <div className="flex-1 space-y-3">
                     <h3 className="text-sm font-semibold capitalize text-gray-900">
-                      {type} Report
+                      {type} {t("reportSuffix")}
                     </h3>
                     <div className="flex items-center gap-2">
-                      <label className="text-xs text-gray-500">Schedule:</label>
+                      <label className="text-xs text-gray-500">{t("scheduleLabel")}:</label>
                       <select
                         value={config.schedule}
                         onChange={(e) =>
@@ -578,7 +586,7 @@ function ScheduleSection() {
                     </div>
                     {config.schedule !== "none" && (
                       <div className="flex items-center gap-2">
-                        <label className="text-xs text-gray-500">Format:</label>
+                        <label className="text-xs text-gray-500">{t("formatLabel")}:</label>
                         <select
                           value={config.format}
                           onChange={(e) =>
@@ -609,16 +617,17 @@ function ScheduleSection() {
 // ─── Weekly Family Report Section ────────────────────────────────────────────
 
 function WeeklyFamilyReportSection() {
+  const t = useTranslations("reports");
   const { data: report, isLoading, isError } = useFamilyWeeklyReport();
   const sendReport = useSendFamilyReport();
 
   if (isLoading) {
     return (
       <div className="mt-8">
-        <Card title="Weekly Family Safety Report">
+        <Card title={t("weeklyFamilyReport")}>
           <div className="flex h-24 items-center justify-center">
             <Loader2 className="h-5 w-5 animate-spin text-primary" />
-            <span className="ml-2 text-sm text-gray-500">Loading weekly report...</span>
+            <span className="ml-2 text-sm text-gray-500">{t("loadingWeekly")}</span>
           </div>
         </Card>
       </div>
@@ -628,9 +637,9 @@ function WeeklyFamilyReportSection() {
   if (isError || !report) {
     return (
       <div className="mt-8">
-        <Card title="Weekly Family Safety Report">
+        <Card title={t("weeklyFamilyReport")}>
           <p className="text-sm text-gray-500">
-            No weekly report data available yet. Reports are generated once you have activity data.
+            {t("noWeeklyData")}
           </p>
         </Card>
       </div>
@@ -641,7 +650,7 @@ function WeeklyFamilyReportSection() {
     <div className="mt-8 space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-gray-900">
-          Weekly Family Safety Report
+          {t("weeklyFamilyReport")}
         </h2>
         <Button
           variant="secondary"
@@ -650,7 +659,7 @@ function WeeklyFamilyReportSection() {
           isLoading={sendReport.isPending}
         >
           <Mail className="h-4 w-4" />
-          Email Report
+          {t("emailReport")}
         </Button>
       </div>
 
@@ -665,7 +674,7 @@ function WeeklyFamilyReportSection() {
               <p className="text-2xl font-bold text-gray-900">
                 {report.family_safety_score}
               </p>
-              <p className="text-sm text-gray-500">Family Safety Score</p>
+              <p className="text-sm text-gray-500">{t("familySafetyScore")}</p>
             </div>
           </div>
         </div>
@@ -678,7 +687,7 @@ function WeeklyFamilyReportSection() {
               <p className="text-2xl font-bold text-gray-900">
                 {report.member_count}
               </p>
-              <p className="text-sm text-gray-500">Family Members</p>
+              <p className="text-sm text-gray-500">{t("familyMembers")}</p>
             </div>
           </div>
         </div>
@@ -691,14 +700,14 @@ function WeeklyFamilyReportSection() {
               <p className="text-2xl font-bold text-gray-900">
                 {report.action_items.unresolved_alerts}
               </p>
-              <p className="text-sm text-gray-500">Unresolved Alerts</p>
+              <p className="text-sm text-gray-500">{t("unresolvedAlerts")}</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Per-member breakdown */}
-      <Card title="Member Breakdown">
+      <Card title={t("memberBreakdown")}>
         <div className="space-y-3">
           {report.members.map((m) => (
             <div
@@ -709,24 +718,24 @@ function WeeklyFamilyReportSection() {
                 <p className="text-sm font-medium text-gray-900">{m.display_name}</p>
                 <p className="mt-0.5 text-xs text-gray-500">
                   {m.platforms_used.length > 0
-                    ? `Platforms: ${m.platforms_used.join(", ")}`
-                    : "No AI usage this week"}
+                    ? `${t("platformsLabel")}: ${m.platforms_used.join(", ")}`
+                    : t("noAiUsageThisWeek")}
                 </p>
               </div>
               <div className="flex items-center gap-4 text-sm">
                 <div className="text-center">
                   <p className="font-semibold text-gray-900">{m.safety_score}</p>
-                  <p className="text-xs text-gray-500">Safety</p>
+                  <p className="text-xs text-gray-500">{t("safetyShort")}</p>
                 </div>
                 <div className="text-center">
                   <p className="font-semibold text-gray-900">{m.events_this_week}</p>
-                  <p className="text-xs text-gray-500">Events</p>
+                  <p className="text-xs text-gray-500">{t("eventsShort")}</p>
                 </div>
                 <div className="text-center">
                   <p className={`font-semibold ${m.risk_count > 0 ? "text-red-600" : "text-green-600"}`}>
                     {m.risk_count}
                   </p>
-                  <p className="text-xs text-gray-500">Risks</p>
+                  <p className="text-xs text-gray-500">{t("risksShort")}</p>
                 </div>
                 <div className="text-center">
                   {m.week_change > 0 ? (
@@ -740,26 +749,26 @@ function WeeklyFamilyReportSection() {
                   ) : (
                     <p className="text-xs text-gray-400">--</p>
                   )}
-                  <p className="text-xs text-gray-500">Change</p>
+                  <p className="text-xs text-gray-500">{t("changeShort")}</p>
                 </div>
               </div>
             </div>
           ))}
           {report.members.length === 0 && (
-            <p className="text-sm text-gray-500">No member data available.</p>
+            <p className="text-sm text-gray-500">{t("noMemberData")}</p>
           )}
         </div>
       </Card>
 
       {/* Highlights */}
       {(report.highlights.safest_member || report.highlights.most_improved) && (
-        <Card title="Highlights">
+        <Card title={t("highlights")}>
           <div className="flex flex-wrap gap-4">
             {report.highlights.safest_member && (
               <div className="flex items-center gap-2 rounded-lg bg-green-50 px-4 py-2">
                 <Shield className="h-4 w-4 text-green-600" />
                 <span className="text-sm text-green-800">
-                  Safest member: <strong>{report.highlights.safest_member}</strong>
+                  {t("safestMember")}: <strong>{report.highlights.safest_member}</strong>
                 </span>
               </div>
             )}
@@ -767,7 +776,7 @@ function WeeklyFamilyReportSection() {
               <div className="flex items-center gap-2 rounded-lg bg-blue-50 px-4 py-2">
                 <TrendingUp className="h-4 w-4 text-blue-600" />
                 <span className="text-sm text-blue-800">
-                  Most improved: <strong>{report.highlights.most_improved}</strong>
+                  {t("mostImproved")}: <strong>{report.highlights.most_improved}</strong>
                 </span>
               </div>
             )}

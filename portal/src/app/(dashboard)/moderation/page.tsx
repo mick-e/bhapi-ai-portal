@@ -3,6 +3,7 @@
 import { AlertTriangle, Clock, Inbox, CheckCircle, Loader2, RefreshCw } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { useModerationSla } from "@/hooks/use-moderation-sla";
+import { useTranslations } from "@/contexts/LocaleContext";
 
 // SLA targets (must match backend constants)
 const PRE_PUBLISH_SLA_MS = 2_000;   // <2s for pre-publish (under 13)
@@ -31,7 +32,7 @@ interface MetricCardProps {
   icon: React.ReactNode;
 }
 
-function MetricCard({ title, value, label, warn, icon }: MetricCardProps) {
+function MetricCard({ title, value, label, warn, icon, breachLabel }: MetricCardProps & { breachLabel?: string }) {
   return (
     <Card
       className={warn ? "ring-amber-400 ring-2" : undefined}
@@ -51,7 +52,7 @@ function MetricCard({ title, value, label, warn, icon }: MetricCardProps) {
       {warn && (
         <div className="mt-3 flex items-center gap-1 text-xs font-medium text-amber-600">
           <AlertTriangle className="h-3 w-3" />
-          SLA threshold breached
+          {breachLabel ?? "SLA threshold breached"}
         </div>
       )}
     </Card>
@@ -59,6 +60,7 @@ function MetricCard({ title, value, label, warn, icon }: MetricCardProps) {
 }
 
 export default function ModerationSLAPage() {
+  const t = useTranslations("moderation");
   const { data, isLoading, isError, dataUpdatedAt } = useModerationSla();
 
   const lastUpdated = dataUpdatedAt
@@ -70,15 +72,15 @@ export default function ModerationSLAPage() {
       {/* Header */}
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Moderation SLA Dashboard</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t("title")}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Live pipeline performance — auto-refreshes every 10 seconds
+            {t("description")}
           </p>
         </div>
         {lastUpdated && (
           <div className="flex items-center gap-1.5 text-xs text-gray-400">
             <RefreshCw className="h-3.5 w-3.5" />
-            Updated {lastUpdated}
+            {t("updated")} {lastUpdated}
           </div>
         )}
       </div>
@@ -96,10 +98,10 @@ export default function ModerationSLAPage() {
           <div className="py-12 text-center">
             <AlertTriangle className="mx-auto h-10 w-10 text-amber-400" />
             <p className="mt-3 text-sm font-medium text-gray-700">
-              Unable to load SLA metrics
+              {t("unableToLoad")}
             </p>
             <p className="mt-1 text-xs text-gray-400">
-              Check your connection and refresh.
+              {t("checkConnection")}
             </p>
           </div>
         </Card>
@@ -112,8 +114,8 @@ export default function ModerationSLAPage() {
             <div className="mb-6 flex items-center gap-3 rounded-lg bg-amber-50 px-4 py-3 ring-1 ring-amber-200">
               <AlertTriangle className="h-5 w-5 flex-shrink-0 text-amber-500" />
               <p className="text-sm font-medium text-amber-700">
-                {data.sla_breach_count_24h} SLA breach{data.sla_breach_count_24h !== 1 ? "es" : ""} in the last 24 hours.
-                Review the queue to resolve pending items.
+                {data.sla_breach_count_24h} {data.sla_breach_count_24h !== 1 ? t("slaBreachesPlural") : t("slaBreachSingle")} {t("inLast24h")}
+                {" "}{t("reviewQueue")}
               </p>
             </div>
           )}
@@ -121,36 +123,40 @@ export default function ModerationSLAPage() {
           {/* Pre-publish pipeline section */}
           <section aria-labelledby="pre-publish-heading" className="mb-8">
             <h2 id="pre-publish-heading" className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500">
-              Pre-publish pipeline — under 13 (target: &lt;2 s)
+              {t("prePublishHeading")}
             </h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <MetricCard
-                title="P50 latency"
+                title={t("p50Latency")}
                 value={formatMs(data.pre_publish_p50_ms)}
-                label="Median processing time"
+                label={t("medianProcessing")}
                 warn={data.pre_publish_p50_ms > PRE_PUBLISH_SLA_MS}
                 icon={<Clock className="h-5 w-5" />}
+                breachLabel={t("slaBreached")}
               />
               <MetricCard
-                title="P95 latency"
+                title={t("p95Latency")}
                 value={formatMs(data.pre_publish_p95_ms)}
-                label="95th-percentile processing time"
+                label={t("p95Processing")}
                 warn={data.pre_publish_p95_ms > PRE_PUBLISH_SLA_MS}
                 icon={<Clock className="h-5 w-5" />}
+                breachLabel={t("slaBreached")}
               />
               <MetricCard
-                title="Queue depth"
+                title={t("queueDepth")}
                 value={String(data.queue_depth)}
-                label="Pending items in queue"
+                label={t("pendingInQueue")}
                 warn={data.queue_depth > 50}
                 icon={<Inbox className="h-5 w-5" />}
+                breachLabel={t("slaBreached")}
               />
               <MetricCard
-                title="Oldest pending"
+                title={t("oldestPending")}
                 value={formatAge(data.oldest_pending_age_seconds)}
-                label="Age of oldest pending item"
+                label={t("ageOldestPending")}
                 warn={data.oldest_pending_age_seconds > PRE_PUBLISH_SLA_MS / 1_000}
                 icon={<Clock className="h-5 w-5" />}
+                breachLabel={t("slaBreached")}
               />
             </div>
           </section>
@@ -158,35 +164,39 @@ export default function ModerationSLAPage() {
           {/* Post-publish pipeline section */}
           <section aria-labelledby="post-publish-heading" className="mb-8">
             <h2 id="post-publish-heading" className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500">
-              Post-publish pipeline — ages 13-15 (target: &lt;60 s)
+              {t("postPublishHeading")}
             </h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <MetricCard
-                title="P50 latency"
+                title={t("p50Latency")}
                 value={formatMs(data.post_publish_p50_ms)}
-                label="Median takedown time"
+                label={t("medianTakedown")}
                 warn={data.post_publish_p50_ms > POST_PUBLISH_SLA_MS}
                 icon={<Clock className="h-5 w-5" />}
+                breachLabel={t("slaBreached")}
               />
               <MetricCard
-                title="P95 latency"
+                title={t("p95Latency")}
                 value={formatMs(data.post_publish_p95_ms)}
-                label="95th-percentile takedown time"
+                label={t("p95Takedown")}
                 warn={data.post_publish_p95_ms > POST_PUBLISH_SLA_MS}
                 icon={<Clock className="h-5 w-5" />}
+                breachLabel={t("slaBreached")}
               />
               <MetricCard
-                title="SLA breaches (24h)"
+                title={t("slaBreaches24h")}
                 value={String(data.sla_breach_count_24h)}
-                label="Items that exceeded SLA target"
+                label={t("itemsExceededSla")}
                 warn={data.sla_breach_count_24h > 0}
                 icon={<AlertTriangle className="h-5 w-5" />}
+                breachLabel={t("slaBreached")}
               />
               <MetricCard
-                title="Total reviewed (24h)"
+                title={t("totalReviewed24h")}
                 value={String(data.total_reviewed_24h)}
-                label="Decisions made in last 24 hours"
+                label={t("decisionsLast24h")}
                 icon={<CheckCircle className="h-5 w-5" />}
+                breachLabel={t("slaBreached")}
               />
             </div>
           </section>

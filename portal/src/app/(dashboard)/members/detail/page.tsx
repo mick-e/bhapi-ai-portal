@@ -42,6 +42,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useDeviceSummary, useRewards } from "@/hooks/use-rewards";
 import { apiFetch, integrationsApi } from "@/lib/api-client";
 import { useToast } from "@/contexts/ToastContext";
+import { useTranslations } from "@/contexts/LocaleContext";
 
 export default function MemberDetailPage() {
   return (
@@ -52,6 +53,7 @@ export default function MemberDetailPage() {
 }
 
 function MemberDetailContent() {
+  const t = useTranslations("memberDetail");
   const searchParams = useSearchParams();
   const memberId = searchParams.get("id") || "";
   const { user } = useAuth();
@@ -125,9 +127,9 @@ function MemberDetailContent() {
     return (
       <div className="flex h-64 flex-col items-center justify-center text-center">
         <AlertTriangle className="h-10 w-10 text-amber-500" />
-        <p className="mt-3 text-sm font-medium text-gray-900">No member selected</p>
+        <p className="mt-3 text-sm font-medium text-gray-900">{t("noMemberSelected")}</p>
         <Link href="/members" className="mt-2 text-sm text-primary-700 hover:underline">
-          Back to Members
+          {t("backToMembers")}
         </Link>
       </div>
     );
@@ -137,7 +139,7 @@ function MemberDetailContent() {
     return (
       <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-3 text-sm text-gray-500">Loading member...</span>
+        <span className="ml-3 text-sm text-gray-500">{t("loading")}</span>
       </div>
     );
   }
@@ -146,13 +148,13 @@ function MemberDetailContent() {
     return (
       <div className="flex h-64 flex-col items-center justify-center text-center">
         <AlertTriangle className="h-10 w-10 text-amber-500" />
-        <p className="mt-3 text-sm font-medium text-gray-900">Failed to load member</p>
+        <p className="mt-3 text-sm font-medium text-gray-900">{t("failedToLoad")}</p>
         <p className="mt-1 text-sm text-gray-500">
-          {(error as Error)?.message || "Something went wrong"}
+          {(error as Error)?.message || t("somethingWentWrong")}
         </p>
         <Button variant="secondary" size="sm" className="mt-4" onClick={() => refetch()}>
           <RefreshCw className="h-4 w-4" />
-          Try again
+          {t("tryAgain")}
         </Button>
       </div>
     );
@@ -185,7 +187,7 @@ function MemberDetailContent() {
         className="mb-6 inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-700"
       >
         <ArrowLeft className="h-4 w-4" />
-        Back to Members
+        {t("backToMembers")}
       </Link>
 
       {/* Member header */}
@@ -202,7 +204,7 @@ function MemberDetailContent() {
               {member.status}
             </span>
             <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${riskColors[member.risk_level || "low"]}`}>
-              {member.risk_level || "low"} risk
+              {member.risk_level || "low"} {t("risk")}
             </span>
           </div>
         </div>
@@ -210,21 +212,21 @@ function MemberDetailContent() {
 
       {/* Stats cards */}
       <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-4">
-        <StatCard icon={<Activity className="h-5 w-5 text-primary" />} label="Total Activity" value={String(activityData?.total ?? 0)} />
-        <StatCard icon={<AlertTriangle className="h-5 w-5 text-amber-500" />} label="Risk Events" value={String(riskData?.total ?? 0)} />
-        <StatCard icon={<CreditCard className="h-5 w-5 text-accent" />} label="Total Spend" value={`$${totalSpend.toFixed(2)}`} />
-        <StatCard icon={<Clock className="h-5 w-5 text-gray-500" />} label="Last Active" value={member.last_active ? formatRelativeTime(member.last_active) : "Never"} />
+        <StatCard icon={<Activity className="h-5 w-5 text-primary" />} label={t("totalActivity")} value={String(activityData?.total ?? 0)} />
+        <StatCard icon={<AlertTriangle className="h-5 w-5 text-amber-500" />} label={t("riskEvents")} value={String(riskData?.total ?? 0)} />
+        <StatCard icon={<CreditCard className="h-5 w-5 text-accent" />} label={t("totalSpend")} value={`$${totalSpend.toFixed(2)}`} />
+        <StatCard icon={<Clock className="h-5 w-5 text-gray-500" />} label={t("lastActive")} value={member.last_active ? formatRelativeTime(member.last_active) : t("never")} />
       </div>
 
       {/* Safety Score Gauge */}
       {safetyScore && (
         <div className="mb-8">
-          <Card title="Safety Score">
+          <Card title={t("safetyScore")}>
             <div className="flex items-center gap-8">
               <CircularScoreGauge score={safetyScore.score} />
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-gray-700">Trend:</span>
+                  <span className="text-sm font-medium text-gray-700">{t("trend")}:</span>
                   <span className={`text-sm font-semibold ${
                     safetyScore.trend === "improving"
                       ? "text-green-600"
@@ -237,7 +239,7 @@ function MemberDetailContent() {
                 </div>
                 {safetyScore.top_categories.length > 0 && (
                   <div className="mt-3">
-                    <p className="text-xs font-medium text-gray-500">Top risk categories</p>
+                    <p className="text-xs font-medium text-gray-500">{t("topRiskCategories")}</p>
                     <div className="mt-1 flex flex-wrap gap-1.5">
                       {safetyScore.top_categories.map((cat) => (
                         <span
@@ -268,16 +270,16 @@ function MemberDetailContent() {
 
       {/* Age Verification & Blocking Controls */}
       <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Card title="Age Verification">
+        <Card title={t("ageVerification")}>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">
-                {member.date_of_birth ? `DOB: ${member.date_of_birth}` : "Date of birth not verified"}
+                {member.date_of_birth ? `${t("dob")}: ${member.date_of_birth}` : t("dobNotVerified")}
               </p>
               {member.age_verified && (
                 <p className="mt-1 flex items-center gap-1 text-xs text-green-600">
                   <ShieldCheck className="h-3.5 w-3.5" />
-                  Verified
+                  {t("verified")}
                 </p>
               )}
             </div>
@@ -290,31 +292,31 @@ function MemberDetailContent() {
                   setAgeVerifying(true);
                   try {
                     await integrationsApi.startAgeVerification(groupId, memberId);
-                    addToast("Age verification started", "success");
+                    addToast(t("ageVerifStarted"), "success");
                   } catch {
-                    addToast("Failed to start verification", "error");
+                    addToast(t("failedStartVerif"), "error");
                   } finally {
                     setAgeVerifying(false);
                   }
                 }}
               >
                 <ShieldCheck className="h-4 w-4" />
-                Verify Age
+                {t("verifyAge")}
               </Button>
             )}
           </div>
         </Card>
 
-        <Card title="Blocking Controls">
+        <Card title={t("blockingControls")}>
           <div className="flex items-center justify-between">
             <div>
               {blockStatus?.blocked ? (
                 <p className="flex items-center gap-1.5 text-sm font-medium text-red-600">
                   <Ban className="h-4 w-4" />
-                  AI access blocked ({blockStatus.rules?.length || 0} active rule{(blockStatus.rules?.length || 0) !== 1 ? "s" : ""})
+                  {t("aiAccessBlocked")} ({blockStatus.rules?.length || 0} {(blockStatus.rules?.length || 0) !== 1 ? t("activeRulesPlural") : t("activeRuleSingle")})
                 </p>
               ) : (
-                <p className="text-sm text-gray-600">AI access allowed</p>
+                <p className="text-sm text-gray-600">{t("aiAccessAllowed")}</p>
               )}
             </div>
             {blockStatus?.blocked ? (
@@ -328,14 +330,14 @@ function MemberDetailContent() {
                     revokeBlock.mutate(
                       { ruleId: rule.id, groupId },
                       {
-                        onSuccess: () => addToast("Block rule revoked", "success"),
-                        onError: () => addToast("Failed to revoke block", "error"),
+                        onSuccess: () => addToast(t("blockRevoked"), "success"),
+                        onError: () => addToast(t("failedRevoke"), "error"),
                       }
                     );
                   }
                 }}
               >
-                Unblock
+                {t("unblock")}
               </Button>
             ) : (
               <Button
@@ -346,14 +348,14 @@ function MemberDetailContent() {
                   createBlock.mutate(
                     { group_id: groupId, member_id: memberId, reason: "Manual block from member page" },
                     {
-                      onSuccess: () => addToast("Member blocked", "success"),
-                      onError: () => addToast("Failed to block member", "error"),
+                      onSuccess: () => addToast(t("memberBlocked"), "success"),
+                      onError: () => addToast(t("failedBlockMember"), "error"),
                     }
                   );
                 }}
               >
                 <Ban className="h-4 w-4" />
-                Block Access
+                {t("blockAccess")}
               </Button>
             )}
           </div>
@@ -456,7 +458,7 @@ function MemberDetailContent() {
 
       {/* AI Screen Time & Bedtime */}
       <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Card title="AI Screen Time">
+        <Card title={t("aiScreenTime")}>
           <div className="flex items-center gap-4">
             <TimerGauge
               minutesUsed={timeBudget?.minutes_used ?? 0}
@@ -466,20 +468,20 @@ function MemberDetailContent() {
               {timeBudget?.enabled ? (
                 <>
                   <p className="text-sm text-gray-600">
-                    {timeBudget.minutes_used} / {timeBudget.budget_minutes} min today
+                    {timeBudget.minutes_used} / {timeBudget.budget_minutes} {t("minToday")}
                   </p>
                   {timeBudget.exceeded && (
-                    <p className="mt-1 text-xs font-medium text-red-600">Budget exceeded</p>
+                    <p className="mt-1 text-xs font-medium text-red-600">{t("budgetExceeded")}</p>
                   )}
                   {timeBudget.warn && !timeBudget.exceeded && (
-                    <p className="mt-1 text-xs font-medium text-amber-600">Approaching limit</p>
+                    <p className="mt-1 text-xs font-medium text-amber-600">{t("approachingLimit")}</p>
                   )}
                   <p className="mt-1 text-xs text-gray-400">
-                    Weekday: {timeBudget.weekday_minutes}m &middot; Weekend: {timeBudget.weekend_minutes}m
+                    {t("weekday")}: {timeBudget.weekday_minutes}m &middot; {t("weekend")}: {timeBudget.weekend_minutes}m
                   </p>
                 </>
               ) : (
-                <p className="text-sm text-gray-500">No time budget set</p>
+                <p className="text-sm text-gray-500">{t("noTimeBudget")}</p>
               )}
             </div>
           </div>
@@ -487,7 +489,7 @@ function MemberDetailContent() {
           {/* 7-day usage bar chart */}
           {usageHistory && usageHistory.length > 0 && (
             <div className="mt-4">
-              <p className="mb-2 text-xs font-medium text-gray-500">Last 7 days</p>
+              <p className="mb-2 text-xs font-medium text-gray-500">{t("last7Days")}</p>
               <div className="flex items-end gap-1" style={{ height: 60 }}>
                 {[...usageHistory].reverse().map((day) => {
                   const maxMin = Math.max(...usageHistory.map((d) => d.budget_minutes || 60));
@@ -510,7 +512,7 @@ function MemberDetailContent() {
             <div className="mt-4 space-y-2">
               <div className="flex gap-2">
                 <label className="text-xs text-gray-500">
-                  Weekday (min)
+                  {t("weekdayMin")}
                   <input
                     type="number"
                     min={0}
@@ -520,7 +522,7 @@ function MemberDetailContent() {
                   />
                 </label>
                 <label className="text-xs text-gray-500">
-                  Weekend (min)
+                  {t("weekendMin")}
                   <input
                     type="number"
                     min={0}
@@ -546,18 +548,18 @@ function MemberDetailContent() {
                       },
                       {
                         onSuccess: () => {
-                          addToast("Screen time updated", "success");
+                          addToast(t("screenTimeUpdated"), "success");
                           setEditingBudget(false);
                         },
-                        onError: () => addToast("Failed to update", "error"),
+                        onError: () => addToast(t("failedUpdate"), "error"),
                       }
                     );
                   }}
                 >
-                  Save
+                  {t("save")}
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => setEditingBudget(false)}>
-                  Cancel
+                  {t("cancel")}
                 </Button>
               </div>
             </div>
@@ -573,26 +575,26 @@ function MemberDetailContent() {
               }}
             >
               <Timer className="h-4 w-4" />
-              {timeBudget?.enabled ? "Edit Budget" : "Set Budget"}
+              {timeBudget?.enabled ? t("editBudget") : t("setBudget")}
             </Button>
           )}
         </Card>
 
-        <Card title="Bedtime Mode">
+        <Card title={t("bedtimeMode")}>
           <div className="flex items-center gap-3">
             <Moon className="h-5 w-5 text-indigo-500" />
             <div className="flex-1">
               {bedtimeConfig?.enabled ? (
                 <>
                   <p className="text-sm font-medium text-gray-700">
-                    Active: {bedtimeConfig.start_hour}:00 &ndash; {bedtimeConfig.end_hour}:00
+                    {t("active")}: {bedtimeConfig.start_hour}:00 &ndash; {bedtimeConfig.end_hour}:00
                   </p>
                   <p className="mt-0.5 text-xs text-gray-400">
-                    AI blocked during bedtime hours
+                    {t("aiBlockedDuring")}
                   </p>
                 </>
               ) : (
-                <p className="text-sm text-gray-500">Bedtime mode not active</p>
+                <p className="text-sm text-gray-500">{t("bedtimeNotActive")}</p>
               )}
             </div>
           </div>
@@ -600,7 +602,7 @@ function MemberDetailContent() {
           <div className="mt-4 space-y-2">
             <div className="flex gap-2">
               <label className="text-xs text-gray-500">
-                Start hour
+                {t("startHour")}
                 <select
                   value={bedStart}
                   onChange={(e) => setBedStart(Number(e.target.value))}
@@ -612,7 +614,7 @@ function MemberDetailContent() {
                 </select>
               </label>
               <label className="text-xs text-gray-500">
-                End hour
+                {t("endHour")}
                 <select
                   value={bedEnd}
                   onChange={(e) => setBedEnd(Number(e.target.value))}
@@ -636,13 +638,13 @@ function MemberDetailContent() {
                       data: { start_hour: bedStart, end_hour: bedEnd },
                     },
                     {
-                      onSuccess: () => addToast("Bedtime mode updated", "success"),
-                      onError: () => addToast("Failed to set bedtime", "error"),
+                      onSuccess: () => addToast(t("bedtimeUpdated"), "success"),
+                      onError: () => addToast(t("failedSetBedtime"), "error"),
                     }
                   );
                 }}
               >
-                {bedtimeConfig?.enabled ? "Update Bedtime" : "Enable Bedtime"}
+                {bedtimeConfig?.enabled ? t("updateBedtime") : t("enableBedtime")}
               </Button>
               {bedtimeConfig?.enabled && (
                 <Button
@@ -653,13 +655,13 @@ function MemberDetailContent() {
                     deleteBedtime.mutate(
                       { groupId: groupId!, memberId },
                       {
-                        onSuccess: () => addToast("Bedtime mode disabled", "success"),
-                        onError: () => addToast("Failed to disable", "error"),
+                        onSuccess: () => addToast(t("bedtimeDisabled"), "success"),
+                        onError: () => addToast(t("failedDisable"), "error"),
                       }
                     );
                   }}
                 >
-                  Disable
+                  {t("disable")}
                 </Button>
               )}
             </div>
@@ -668,9 +670,9 @@ function MemberDetailContent() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card title="Recent Activity">
+        <Card title={t("recentActivity")}>
           {recentActivity.length === 0 ? (
-            <p className="py-4 text-center text-sm text-gray-500">No activity yet</p>
+            <p className="py-4 text-center text-sm text-gray-500">{t("noActivityYet")}</p>
           ) : (
             <div className="space-y-3">
               {recentActivity.map((event) => (
@@ -689,9 +691,9 @@ function MemberDetailContent() {
           )}
         </Card>
 
-        <Card title="Risk Events">
+        <Card title={t("riskEvents")}>
           {recentRisks.length === 0 ? (
-            <p className="py-4 text-center text-sm text-gray-500">No risk events</p>
+            <p className="py-4 text-center text-sm text-gray-500">{t("noRiskEvents")}</p>
           ) : (
             <div className="space-y-3">
               {recentRisks.map((risk) => (
@@ -702,7 +704,7 @@ function MemberDetailContent() {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${riskColors[risk.severity]}`}>{risk.severity}</span>
-                    {risk.acknowledged && <span className="text-xs text-green-600">Ack</span>}
+                    {risk.acknowledged && <span className="text-xs text-green-600">{t("ack")}</span>}
                   </div>
                 </div>
               ))}
@@ -714,18 +716,18 @@ function MemberDetailContent() {
       {/* Recent Summaries */}
       <div className="mt-6">
         <Card
-          title="Recent Summaries"
+          title={t("recentSummaries")}
           footer={
             <Link
               href={`/activity/summaries?member_id=${memberId}`}
               className="inline-flex items-center gap-1 text-sm font-medium text-primary-700 hover:text-primary-800"
             >
-              View all summaries
+              {t("viewAllSummaries")}
             </Link>
           }
         >
           {(!summariesData || summariesData.items.length === 0) ? (
-            <p className="py-4 text-center text-sm text-gray-500">No conversation summaries yet</p>
+            <p className="py-4 text-center text-sm text-gray-500">{t("noSummariesYet")}</p>
           ) : (
             <div className="space-y-3">
               {summariesData.items.slice(0, 5).map((summary) => (
@@ -763,19 +765,19 @@ function MemberDetailContent() {
       </div>
 
       <div className="mt-6">
-        <Card title="Recent Spend">
+        <Card title={t("recentSpend")}>
           {recentSpend.length === 0 ? (
-            <p className="py-4 text-center text-sm text-gray-500">No spend records</p>
+            <p className="py-4 text-center text-sm text-gray-500">{t("noSpendRecords")}</p>
           ) : (
             <div className="-mx-6 -my-4 overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Provider</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Model</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">Tokens</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">Cost</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">Time</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">{t("colProvider")}</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">{t("colModel")}</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">{t("colTokens")}</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">{t("colCost")}</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">{t("colTime")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 bg-white">
@@ -797,28 +799,28 @@ function MemberDetailContent() {
 
       {/* Devices Section (F12) */}
       <div className="mt-6">
-        <Card title="Devices">
+        <Card title={t("devices")}>
           {!deviceSummary ? (
-            <p className="py-4 text-center text-sm text-gray-500">No device data available</p>
+            <p className="py-4 text-center text-sm text-gray-500">{t("noDeviceData")}</p>
           ) : (
             <div className="space-y-4">
               <div className="flex items-center gap-6">
                 <div className="flex items-center gap-2">
                   <Monitor className="h-5 w-5 text-gray-500" />
                   <div>
-                    <p className="text-xs text-gray-500">Total Time</p>
+                    <p className="text-xs text-gray-500">{t("totalTime")}</p>
                     <p className="text-lg font-bold text-gray-900">{deviceSummary.total_minutes} min</p>
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500">Sessions</p>
+                  <p className="text-xs text-gray-500">{t("sessions")}</p>
                   <p className="text-lg font-bold text-gray-900">{deviceSummary.session_count}</p>
                 </div>
               </div>
 
               {deviceSummary.device_breakdown.length > 0 && (
                 <div>
-                  <h4 className="mb-2 text-xs font-medium uppercase tracking-wider text-gray-500">By Device</h4>
+                  <h4 className="mb-2 text-xs font-medium uppercase tracking-wider text-gray-500">{t("byDevice")}</h4>
                   <div className="space-y-2">
                     {deviceSummary.device_breakdown.map((dev) => (
                       <div key={dev.device_id} className="flex items-center justify-between rounded-lg border border-gray-100 p-3">
@@ -828,7 +830,7 @@ function MemberDetailContent() {
                         </div>
                         <div className="flex items-center gap-4 text-sm">
                           <span className="text-gray-500">{dev.minutes} min</span>
-                          <span className="text-gray-400">{dev.sessions} sessions</span>
+                          <span className="text-gray-400">{dev.sessions} {t("sessionsLower")}</span>
                         </div>
                       </div>
                     ))}
@@ -838,12 +840,12 @@ function MemberDetailContent() {
 
               {deviceSummary.platform_breakdown.length > 0 && (
                 <div>
-                  <h4 className="mb-2 text-xs font-medium uppercase tracking-wider text-gray-500">By Platform</h4>
+                  <h4 className="mb-2 text-xs font-medium uppercase tracking-wider text-gray-500">{t("byPlatform")}</h4>
                   <div className="flex flex-wrap gap-2">
                     {deviceSummary.platform_breakdown.map((plat) => (
                       <div key={plat.platform} className="rounded-lg bg-gray-50 px-3 py-2">
                         <p className="text-sm font-medium text-gray-700 capitalize">{plat.platform}</p>
-                        <p className="text-xs text-gray-500">{plat.minutes} min / {plat.sessions} sessions</p>
+                        <p className="text-xs text-gray-500">{plat.minutes} min / {plat.sessions} {t("sessionsLower")}</p>
                       </div>
                     ))}
                   </div>
@@ -856,11 +858,11 @@ function MemberDetailContent() {
 
       {/* Rewards Section (F14) */}
       <div className="mt-6">
-        <Card title="Rewards">
+        <Card title={t("rewards")}>
           {!rewards || rewards.length === 0 ? (
             <div className="py-6 text-center">
               <Trophy className="mx-auto h-10 w-10 text-gray-300" />
-              <p className="mt-2 text-sm text-gray-500">No rewards earned yet</p>
+              <p className="mt-2 text-sm text-gray-500">{t("noRewardsYet")}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -880,8 +882,8 @@ function MemberDetailContent() {
                       <p className="text-sm font-medium text-gray-900">{reward.trigger_description}</p>
                       <p className="text-xs text-gray-500">
                         {reward.reward_type === "extra_time"
-                          ? `+${reward.value} minutes extra time`
-                          : `Badge: Tier ${reward.value}`}
+                          ? `+${reward.value} ${t("minutesExtra")}`
+                          : `${t("badgeTier")} ${reward.value}`}
                       </p>
                     </div>
                   </div>
@@ -890,7 +892,7 @@ function MemberDetailContent() {
                       {new Date(reward.earned_at).toLocaleDateString()}
                     </p>
                     {reward.redeemed && (
-                      <span className="text-xs text-gray-400">Redeemed</span>
+                      <span className="text-xs text-gray-400">{t("redeemed")}</span>
                     )}
                   </div>
                 </div>

@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/hooks/use-auth";
 import { useMembers } from "@/hooks/use-members";
 import { useToast } from "@/contexts/ToastContext";
+import { useTranslations } from "@/contexts/LocaleContext";
 import type { GroupMember } from "@/types";
 import {
   useThirdPartyConsents,
@@ -44,14 +45,14 @@ type PrivacySection =
   | "push-notifications"
   | "verification";
 
-const sections: { value: PrivacySection; label: string; icon: typeof Shield }[] = [
-  { value: "third-party", label: "Third-Party Data", icon: Eye },
-  { value: "retention", label: "Data Retention", icon: Database },
-  { value: "push-notifications", label: "Push Notifications", icon: Bell },
-  { value: "verification", label: "Identity Verification", icon: Video },
-];
-
 export default function PrivacySettingsPage() {
+  const t = useTranslations("privacySettings");
+  const sections: { value: PrivacySection; label: string; icon: typeof Shield }[] = [
+    { value: "third-party", label: t("thirdPartyData"), icon: Eye },
+    { value: "retention", label: t("dataRetention"), icon: Database },
+    { value: "push-notifications", label: t("pushNotifications"), icon: Bell },
+    { value: "verification", label: t("identityVerification"), icon: Video },
+  ];
   const { user } = useAuth();
   const { data: membersData, isLoading: membersLoading } = useMembers({ page_size: 10 });
   const [activeSection, setActiveSection] = useState<PrivacySection>("third-party");
@@ -70,7 +71,7 @@ export default function PrivacySettingsPage() {
     return (
       <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-3 text-sm text-gray-500">Loading privacy settings...</span>
+        <span className="ml-3 text-sm text-gray-500">{t("loading")}</span>
       </div>
     );
   }
@@ -83,12 +84,11 @@ export default function PrivacySettingsPage() {
           className="mb-4 inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Settings
+          {t("backToSettings")}
         </Link>
-        <h1 className="text-2xl font-bold text-gray-900">COPPA Privacy Controls</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t("title")}</h1>
         <p className="mt-1 text-sm text-gray-500">
-          Manage third-party data sharing, retention policies, notification consent, and
-          parental identity verification as required by COPPA 2026.
+          {t("description")}
         </p>
       </div>
 
@@ -96,7 +96,7 @@ export default function PrivacySettingsPage() {
       {childMembers.length > 0 && (
         <div className="mb-6">
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Select child member
+            {t("selectChild")}
           </label>
           <select
             value={activeMemberId}
@@ -113,9 +113,9 @@ export default function PrivacySettingsPage() {
       )}
 
       {childMembers.length === 0 ? (
-        <Card title="No Members" description="">
+        <Card title={t("noMembers")} description="">
           <p className="text-sm text-gray-500">
-            Add a child member to your group to configure COPPA privacy controls.
+            {t("addChildHint")}
           </p>
         </Card>
       ) : (
@@ -168,21 +168,22 @@ export default function PrivacySettingsPage() {
 // ─── Third-Party Data Consent Section ────────────────────────────────────────
 
 function ThirdPartySection({ groupId, memberId }: { groupId: string; memberId: string }) {
+  const t = useTranslations("privacySettings");
   const { data: consents, isLoading } = useThirdPartyConsents(groupId, memberId);
   const updateConsent = useUpdateThirdPartyConsent(groupId, memberId);
   const refuseAll = useRefusePartialCollection(groupId);
   const { addToast } = useToast();
 
   if (isLoading) {
-    return <LoadingCard title="Third-Party Data Sharing" />;
+    return <LoadingCard title={t("thirdPartyTitle")} />;
   }
 
   const items = consents || [];
 
   return (
     <Card
-      title="Third-Party Data Sharing"
-      description="Control which third-party services can process your child's data. You can consent to monitoring while refusing third-party sharing."
+      title={t("thirdPartyTitle")}
+      description={t("thirdPartyDesc")}
     >
       <div className="space-y-4">
         {/* Refuse all toggle */}
@@ -190,11 +191,10 @@ function ThirdPartySection({ groupId, memberId }: { groupId: string; memberId: s
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-sm font-medium text-amber-900">
-                Refuse all third-party data sharing
+                {t("refuseAll")}
               </p>
               <p className="mt-1 text-xs text-amber-700">
-                Allow Bhapi to collect data for safety monitoring, but prevent sharing with
-                third-party analytics, AI, and communication providers.
+                {t("refuseAllDesc")}
               </p>
             </div>
             <Button
@@ -204,7 +204,7 @@ function ThirdPartySection({ groupId, memberId }: { groupId: string; memberId: s
                 refuseAll.mutate(
                   { member_id: memberId, refuse_third_party_sharing: true },
                   {
-                    onSuccess: () => addToast("Third-party sharing refused", "success"),
+                    onSuccess: () => addToast(t("sharingRefused"), "success"),
                     onError: (e) => addToast((e as Error).message, "error"),
                   }
                 )
@@ -212,7 +212,7 @@ function ThirdPartySection({ groupId, memberId }: { groupId: string; memberId: s
               isLoading={refuseAll.isPending}
             >
               <Lock className="h-3 w-3" />
-              Refuse All
+              {t("refuseAllShort")}
             </Button>
           </div>
         </div>
@@ -226,12 +226,12 @@ function ThirdPartySection({ groupId, memberId }: { groupId: string; memberId: s
                 <p className="mt-0.5 text-xs text-gray-500">{item.data_purpose}</p>
                 {item.consented_at && (
                   <p className="mt-1 text-xs text-green-600">
-                    Consented: {new Date(item.consented_at).toLocaleDateString()}
+                    {t("consented")}: {new Date(item.consented_at).toLocaleDateString()}
                   </p>
                 )}
                 {item.withdrawn_at && (
                   <p className="mt-1 text-xs text-red-600">
-                    Withdrawn: {new Date(item.withdrawn_at).toLocaleDateString()}
+                    {t("withdrawn")}: {new Date(item.withdrawn_at).toLocaleDateString()}
                   </p>
                 )}
               </div>
@@ -245,7 +245,7 @@ function ThirdPartySection({ groupId, memberId }: { groupId: string; memberId: s
                       {
                         onSuccess: () =>
                           addToast(
-                            item.consented ? "Consent withdrawn" : "Consent granted",
+                            item.consented ? t("consentWithdrawn") : t("consentGranted"),
                             "success"
                           ),
                         onError: (e) => addToast((e as Error).message, "error"),
@@ -267,34 +267,34 @@ function ThirdPartySection({ groupId, memberId }: { groupId: string; memberId: s
 // ─── Data Retention Section ──────────────────────────────────────────────────
 
 function RetentionSection({ groupId }: { groupId: string }) {
+  const t = useTranslations("privacySettings");
   const { data: policies, isLoading } = useRetentionPolicies(groupId);
   const updatePolicy = useUpdateRetentionPolicy(groupId);
   const { addToast } = useToast();
 
   if (isLoading) {
-    return <LoadingCard title="Data Retention Policies" />;
+    return <LoadingCard title={t("retentionTitle")} />;
   }
 
   const items = policies || [];
 
   return (
     <Card
-      title="Data Retention Policies"
-      description="Configure how long each type of your child's data is kept. Data is automatically and permanently deleted after the retention period."
+      title={t("retentionTitle")}
+      description={t("retentionDesc")}
     >
       <div className="space-y-4">
         <div className="rounded-lg bg-blue-50 p-3">
           <p className="text-xs text-blue-700">
             <ShieldCheck className="mr-1 inline h-3 w-3" />
-            Some data types have regulatory minimum retention periods that cannot be reduced.
-            Audit logs must be kept for at least 3 years.
+            {t("regulatoryMinimum")}
           </p>
         </div>
 
         <div className="rounded-lg bg-green-50 p-4 ring-1 ring-green-100">
-          <p className="text-sm font-medium text-green-800">Data auto-cleanup active</p>
+          <p className="text-sm font-medium text-green-800">{t("autoCleanupActive")}</p>
           <p className="text-xs text-green-600">
-            Your data retention policies are enforced automatically. Expired records are cleaned up daily.
+            {t("autoCleanupDesc")}
           </p>
         </div>
 
@@ -307,7 +307,7 @@ function RetentionSection({ groupId }: { groupId: string }) {
                 updatePolicy.mutate(
                   { data_type: policy.data_type, retention_days: days, auto_delete: autoDelete },
                   {
-                    onSuccess: () => addToast("Retention policy updated", "success"),
+                    onSuccess: () => addToast(t("policyUpdated"), "success"),
                     onError: (e) => addToast((e as Error).message, "error"),
                   }
                 )
@@ -327,6 +327,7 @@ function RetentionPolicyRow({
   policy: RetentionPolicy;
   onUpdate: (days: number, autoDelete: boolean) => void;
 }) {
+  const t = useTranslations("privacySettings");
   const [days, setDays] = useState(policy.retention_days);
 
   return (
@@ -340,7 +341,7 @@ function RetentionPolicyRow({
           {policy.records_deleted > 0 && (
             <p className="mt-1 text-xs text-gray-400">
               <Clock className="mr-1 inline h-3 w-3" />
-              {policy.records_deleted.toLocaleString()} records deleted to date
+              {policy.records_deleted.toLocaleString()} {t("recordsDeletedToDate")}
             </p>
           )}
         </div>
@@ -353,14 +354,14 @@ function RetentionPolicyRow({
             onChange={(e) => setDays(parseInt(e.target.value, 10) || 30)}
             className="w-20 rounded border border-gray-300 px-2 py-1 text-sm text-right"
           />
-          <span className="text-xs text-gray-500">days</span>
+          <span className="text-xs text-gray-500">{t("days")}</span>
           <Button
             variant="secondary"
             size="sm"
             onClick={() => onUpdate(days, policy.auto_delete)}
             disabled={days === policy.retention_days}
           >
-            Save
+            {t("save")}
           </Button>
         </div>
       </div>
@@ -371,29 +372,30 @@ function RetentionPolicyRow({
 // ─── Push Notification Consent Section ───────────────────────────────────────
 
 function PushNotificationSection({ groupId, memberId }: { groupId: string; memberId: string }) {
+  const t = useTranslations("privacySettings");
   const { data: consents, isLoading } = usePushNotificationConsents(groupId, memberId);
   const updateConsent = useUpdatePushNotificationConsent(groupId);
   const { addToast } = useToast();
 
   if (isLoading) {
-    return <LoadingCard title="Push Notification Consent" />;
+    return <LoadingCard title={t("pushConsentTitle")} />;
   }
 
   const notificationTypes = [
     {
       type: "risk_alerts",
-      label: "Safety Risk Alerts",
-      description: "Critical and high-severity safety alerts about your child's AI interactions",
+      label: t("riskAlertsLabel"),
+      description: t("riskAlertsDesc"),
     },
     {
       type: "activity_summaries",
-      label: "Activity Summaries",
-      description: "Daily summaries of your child's AI usage and conversation topics",
+      label: t("activitySummariesLabel"),
+      description: t("activitySummariesDesc"),
     },
     {
       type: "weekly_reports",
-      label: "Weekly Reports",
-      description: "Weekly safety and usage reports with trends and insights",
+      label: t("weeklyReportsLabel"),
+      description: t("weeklyReportsDesc"),
     },
   ];
 
@@ -403,8 +405,8 @@ function PushNotificationSection({ groupId, memberId }: { groupId: string; membe
 
   return (
     <Card
-      title="Push Notification Consent"
-      description="COPPA 2026 requires separate consent before sending push notifications containing information about your child. Toggle each notification type below."
+      title={t("pushConsentTitle")}
+      description={t("pushConsentDesc")}
     >
       <div className="divide-y divide-gray-100">
         {notificationTypes.map(({ type, label, description }) => {
@@ -426,7 +428,7 @@ function PushNotificationSection({ groupId, memberId }: { groupId: string; membe
                       { member_id: memberId, notification_type: type, consented: !isConsented },
                       {
                         onSuccess: () =>
-                          addToast(isConsented ? "Consent withdrawn" : "Consent granted", "success"),
+                          addToast(isConsented ? t("consentWithdrawn") : t("consentGranted"), "success"),
                         onError: (e) => addToast((e as Error).message, "error"),
                       }
                     )
@@ -446,13 +448,14 @@ function PushNotificationSection({ groupId, memberId }: { groupId: string; membe
 // ─── Identity Verification Section ───────────────────────────────────────────
 
 function VerificationSection({ groupId }: { groupId: string }) {
+  const t = useTranslations("privacySettings");
   const { data: statusData, isLoading: statusLoading } = useVideoVerificationStatus(groupId);
   const { data: verifications, isLoading: verifLoading } = useVideoVerifications(groupId);
   const initiate = useInitiateVideoVerification(groupId);
   const { addToast } = useToast();
 
   if (statusLoading || verifLoading) {
-    return <LoadingCard title="Identity Verification" />;
+    return <LoadingCard title={t("identityVerification")} />;
   }
 
   const hasValid = statusData?.has_valid_verification ?? false;
@@ -460,8 +463,8 @@ function VerificationSection({ groupId }: { groupId: string }) {
 
   return (
     <Card
-      title="Parental Identity Verification"
-      description="COPPA 2026 requires video-based identity verification for parental consent. Knowledge-based verification alone is no longer sufficient."
+      title={t("parentalVerification")}
+      description={t("parentalVerificationDesc")}
     >
       <div className="space-y-4">
         {/* Current status */}
@@ -475,9 +478,9 @@ function VerificationSection({ groupId }: { groupId: string }) {
               <>
                 <CheckCircle2 className="h-5 w-5 text-green-600" />
                 <div>
-                  <p className="text-sm font-medium text-green-900">Identity Verified</p>
+                  <p className="text-sm font-medium text-green-900">{t("identityVerified")}</p>
                   <p className="text-xs text-green-700">
-                    Your identity has been verified. Parental consent is valid.
+                    {t("identityVerifiedDesc")}
                   </p>
                 </div>
               </>
@@ -485,9 +488,9 @@ function VerificationSection({ groupId }: { groupId: string }) {
               <>
                 <AlertTriangle className="h-5 w-5 text-amber-600" />
                 <div>
-                  <p className="text-sm font-medium text-amber-900">Verification Required</p>
+                  <p className="text-sm font-medium text-amber-900">{t("verificationRequired")}</p>
                   <p className="text-xs text-amber-700">
-                    Please verify your identity to maintain COPPA-compliant parental consent.
+                    {t("verificationRequiredDesc")}
                   </p>
                 </div>
               </>
@@ -497,18 +500,18 @@ function VerificationSection({ groupId }: { groupId: string }) {
 
         {/* Verification methods */}
         <div className="space-y-3">
-          <p className="text-sm font-medium text-gray-700">Start verification</p>
+          <p className="text-sm font-medium text-gray-700">{t("startVerification")}</p>
           <div className="grid gap-3 sm:grid-cols-2">
             {[
               {
                 method: "yoti_id_check",
-                label: "ID Document Check",
-                desc: "Upload a government ID for automated verification",
+                label: t("idCheckLabel"),
+                desc: t("idCheckDesc"),
               },
               {
                 method: "video_selfie",
-                label: "Video Selfie",
-                desc: "Record a short video selfie for identity matching",
+                label: t("videoSelfieLabel"),
+                desc: t("videoSelfieDesc"),
               },
             ].map(({ method, label, desc }) => (
               <button
@@ -517,7 +520,7 @@ function VerificationSection({ groupId }: { groupId: string }) {
                   initiate.mutate(
                     { verification_method: method },
                     {
-                      onSuccess: () => addToast("Verification initiated", "success"),
+                      onSuccess: () => addToast(t("verificationInitiated"), "success"),
                       onError: (e) => addToast((e as Error).message, "error"),
                     }
                   )
@@ -536,7 +539,7 @@ function VerificationSection({ groupId }: { groupId: string }) {
         {/* Verification history */}
         {items.length > 0 && (
           <div className="space-y-2">
-            <p className="text-sm font-medium text-gray-700">Verification history</p>
+            <p className="text-sm font-medium text-gray-700">{t("verificationHistory")}</p>
             <div className="divide-y divide-gray-100 rounded-lg border border-gray-200">
               {items.map((v) => (
                 <div key={v.id} className="flex items-center justify-between px-4 py-3">
@@ -562,11 +565,12 @@ function VerificationSection({ groupId }: { groupId: string }) {
 // ─── Shared components ───────────────────────────────────────────────────────
 
 function LoadingCard({ title }: { title: string }) {
+  const t = useTranslations("privacySettings");
   return (
     <Card title={title} description="">
       <div className="flex items-center gap-2 py-8">
         <Loader2 className="h-4 w-4 animate-spin" />
-        <span className="text-sm text-gray-500">Loading...</span>
+        <span className="text-sm text-gray-500">{t("loadingShort")}</span>
       </div>
     </Card>
   );

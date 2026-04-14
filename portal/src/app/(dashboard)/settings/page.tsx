@@ -12,7 +12,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { locales, localeLabels } from "@/i18n";
-import { useLocale } from "@/contexts/LocaleContext";
+import { useLocale, useTranslations } from "@/contexts/LocaleContext";
 import { useAuth } from "@/hooks/use-auth";
 import {
   useGroupSettings,
@@ -31,6 +31,7 @@ export default function SettingsPage() {
 }
 
 function SettingsPageInner() {
+  const t = useTranslations("settings");
   const { user } = useAuth();
 
   const {
@@ -45,7 +46,7 @@ function SettingsPageInner() {
     return (
       <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-3 text-sm text-gray-500">Loading settings...</span>
+        <span className="ml-3 text-sm text-gray-500">{t("loading")}</span>
       </div>
     );
   }
@@ -54,13 +55,13 @@ function SettingsPageInner() {
     return (
       <div className="flex h-64 flex-col items-center justify-center text-center">
         <AlertTriangle className="h-10 w-10 text-amber-500" />
-        <p className="mt-3 text-sm font-medium text-gray-900">Failed to load settings</p>
+        <p className="mt-3 text-sm font-medium text-gray-900">{t("failedToLoad")}</p>
         <p className="mt-1 text-sm text-gray-500">
-          {(error as Error)?.message || "Something went wrong"}
+          {(error as Error)?.message || t("somethingWentWrong")}
         </p>
         <Button variant="secondary" size="sm" className="mt-4" onClick={() => refetch()}>
           <RefreshCw className="h-4 w-4" />
-          Try again
+          {t("tryAgain")}
         </Button>
       </div>
     );
@@ -69,9 +70,9 @@ function SettingsPageInner() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t("title")}</h1>
         <p className="mt-1 text-sm text-gray-500">
-          Manage your profile and notification preferences
+          {t("description")}
         </p>
       </div>
 
@@ -99,6 +100,7 @@ function ProfileSection({
   email: string;
   accountType: string;
 }) {
+  const t = useTranslations("settings");
   const [name, setName] = useState(displayName);
   const [emailVal, setEmailVal] = useState(email);
   const updateProfile = useUpdateProfile();
@@ -114,29 +116,29 @@ function ProfileSection({
     updateProfile.mutate(
       { display_name: name, email: emailVal },
       {
-        onSuccess: () => addToast("Profile updated successfully", "success"),
+        onSuccess: () => addToast(t("profileUpdated"), "success"),
         onError: (err) =>
-          addToast((err as Error).message || "Failed to update profile", "error"),
+          addToast((err as Error).message || t("failedUpdateProfile"), "error"),
       }
     );
   }
 
   return (
-    <Card title="Profile" description="Update your personal information">
+    <Card title={t("profile")} description={t("profileDesc")}>
       <div className="max-w-lg space-y-4">
         {updateProfile.isError && (
           <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
-            {(updateProfile.error as Error)?.message || "Failed to update profile"}
+            {(updateProfile.error as Error)?.message || t("failedUpdateProfile")}
           </div>
         )}
         <Input
-          label="Display name"
+          label={t("displayName")}
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Your name"
+          placeholder={t("yourNamePlaceholder")}
         />
         <Input
-          label="Email address"
+          label={t("emailAddress")}
           type="email"
           value={emailVal}
           onChange={(e) => setEmailVal(e.target.value)}
@@ -144,7 +146,7 @@ function ProfileSection({
         />
         <div>
           <label className="mb-1.5 block text-sm font-medium text-gray-700">
-            Account type
+            {t("accountType")}
           </label>
           <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600">
             <Globe className="h-4 w-4" />
@@ -153,7 +155,7 @@ function ProfileSection({
         </div>
         <div>
           <label htmlFor="locale-select" className="mb-1.5 block text-sm font-medium text-gray-700">
-            Language
+            {t("language")}
           </label>
           <select
             id="locale-select"
@@ -168,7 +170,7 @@ function ProfileSection({
             ))}
           </select>
           <p className="mt-1.5 text-sm text-gray-500">
-            Language changes apply immediately across the app.
+            {t("languageHint")}
           </p>
         </div>
         <div className="pt-2">
@@ -177,7 +179,7 @@ function ProfileSection({
             isLoading={updateProfile.isPending}
             disabled={name === displayName && emailVal === email}
           >
-            Save Changes
+            {t("saveChanges")}
           </Button>
         </div>
       </div>
@@ -192,6 +194,7 @@ function NotificationsSection({
 }: {
   notifications: NotificationPreferences;
 }) {
+  const t = useTranslations("settings");
   const [prefs, setPrefs] = useState<NotificationPreferences>(notifications);
   const [smsEnabled, setSmsEnabled] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -212,9 +215,9 @@ function NotificationsSection({
     updateSettings.mutate(
       { notifications: prefs, sms_enabled: smsEnabled, digest_mode: digestFrequency },
       {
-        onSuccess: () => addToast("Notification preferences saved", "success"),
+        onSuccess: () => addToast(t("prefsSaved"), "success"),
         onError: (err) =>
-          addToast((err as Error).message || "Failed to save preferences", "error"),
+          addToast((err as Error).message || t("failedSavePrefs"), "error"),
       }
     );
     if (phoneNumber) {
@@ -223,12 +226,12 @@ function NotificationsSection({
   }
 
   return (
-    <Card title="Notifications" description="Choose what alerts you receive">
+    <Card title={t("notifications")} description={t("notificationsDesc")}>
       <div className="max-w-lg space-y-6">
         {/* Digest Frequency Selector */}
         <div>
           <label htmlFor="digest-frequency" className="mb-1.5 block text-sm font-medium text-gray-700">
-            Digest frequency
+            {t("digestFrequency")}
           </label>
           <select
             id="digest-frequency"
@@ -236,71 +239,71 @@ function NotificationsSection({
             onChange={(e) => setDigestFrequency(e.target.value)}
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           >
-            <option value="immediate">Immediate (real-time alerts)</option>
-            <option value="hourly">Hourly digest</option>
-            <option value="daily">Daily digest</option>
-            <option value="weekly">Weekly digest</option>
+            <option value="immediate">{t("digestImmediate")}</option>
+            <option value="hourly">{t("digestHourly")}</option>
+            <option value="daily">{t("digestDaily")}</option>
+            <option value="weekly">{t("digestWeekly")}</option>
           </select>
           <p className="mt-1.5 text-xs text-gray-500">
-            Choose how often you receive batched alert summaries by email.
+            {t("digestHint")}
           </p>
         </div>
 
         <NotificationToggle
-          label="Critical safety alerts"
-          description="Immediate notification for blocked or dangerous content"
+          label={t("criticalSafetyAlerts")}
+          description={t("criticalSafetyDesc")}
           checked={prefs.critical_safety}
           disabled
           onToggle={() => {}}
         />
         <NotificationToggle
-          label="Risk warnings"
-          description="Alerts for medium and high-risk interactions"
+          label={t("riskWarnings")}
+          description={t("riskWarningsDesc")}
           checked={prefs.risk_warnings}
           onToggle={() => toggle("risk_warnings")}
         />
         <NotificationToggle
-          label="Spend alerts"
-          description="Budget thresholds and overspend notifications"
+          label={t("spendAlerts")}
+          description={t("spendAlertsDesc")}
           checked={prefs.spend_alerts}
           onToggle={() => toggle("spend_alerts")}
         />
         <NotificationToggle
-          label="Member updates"
-          description="New member joins, role changes, invitation status"
+          label={t("memberUpdates")}
+          description={t("memberUpdatesDesc")}
           checked={prefs.member_updates}
           onToggle={() => toggle("member_updates")}
         />
         <NotificationToggle
-          label="Weekly digest"
-          description="Summary email of AI activity and safety status"
+          label={t("weeklyDigest")}
+          description={t("weeklyDigestDesc")}
           checked={prefs.weekly_digest}
           onToggle={() => toggle("weekly_digest")}
         />
         <NotificationToggle
-          label="Report notifications"
-          description="Alert when new reports are generated"
+          label={t("reportNotifications")}
+          description={t("reportNotificationsDesc")}
           checked={prefs.report_notifications}
           onToggle={() => toggle("report_notifications")}
         />
 
         <div className="border-t border-gray-200 pt-6">
-          <h4 className="mb-4 text-sm font-semibold text-gray-900">SMS Notifications</h4>
+          <h4 className="mb-4 text-sm font-semibold text-gray-900">{t("smsNotifications")}</h4>
           <NotificationToggle
-            label="Enable SMS alerts"
-            description="Receive critical alerts via text message (standard rates may apply)"
+            label={t("enableSmsAlerts")}
+            description={t("enableSmsAlertsDesc")}
             checked={smsEnabled}
             onToggle={() => setSmsEnabled(!smsEnabled)}
           />
           {smsEnabled && (
             <div className="mt-4">
               <Input
-                label="Phone number"
+                label={t("phoneNumberLabel")}
                 type="tel"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
                 placeholder="+1 (555) 123-4567"
-                helperText="Include country code. Used for SMS alerts only."
+                helperText={t("phoneNumberHelp")}
               />
             </div>
           )}
@@ -308,7 +311,7 @@ function NotificationsSection({
 
         <div className="pt-2">
           <Button onClick={handleSave} isLoading={updateSettings.isPending}>
-            Save Preferences
+            {t("savePreferences")}
           </Button>
         </div>
       </div>

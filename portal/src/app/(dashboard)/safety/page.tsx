@@ -23,6 +23,7 @@ import {
 } from "@/hooks/use-emergency-contacts";
 import type { EmergencyContact } from "@/hooks/use-emergency-contacts";
 import { useToast } from "@/contexts/ToastContext";
+import { useTranslations } from "@/contexts/LocaleContext";
 import type { SafetyLevel } from "@/types";
 
 export default function SafetyPage() {
@@ -34,6 +35,7 @@ export default function SafetyPage() {
 }
 
 function SafetyPageInner() {
+  const t = useTranslations("safety");
   const {
     data: settings,
     isLoading,
@@ -46,7 +48,7 @@ function SafetyPageInner() {
     return (
       <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-3 text-sm text-gray-500">Loading safety settings...</span>
+        <span className="ml-3 text-sm text-gray-500">{t("loadingSettings")}</span>
       </div>
     );
   }
@@ -55,13 +57,13 @@ function SafetyPageInner() {
     return (
       <div className="flex h-64 flex-col items-center justify-center text-center">
         <AlertTriangle className="h-10 w-10 text-amber-500" />
-        <p className="mt-3 text-sm font-medium text-gray-900">Failed to load safety settings</p>
+        <p className="mt-3 text-sm font-medium text-gray-900">{t("failedToLoad")}</p>
         <p className="mt-1 text-sm text-gray-500">
-          {(error as Error)?.message || "Something went wrong"}
+          {(error as Error)?.message || t("somethingWentWrong")}
         </p>
         <Button variant="secondary" size="sm" className="mt-4" onClick={() => refetch()}>
           <RefreshCw className="h-4 w-4" />
-          Try again
+          {t("tryAgain")}
         </Button>
       </div>
     );
@@ -70,9 +72,9 @@ function SafetyPageInner() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Safety</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t("title")}</h1>
         <p className="mt-1 text-sm text-gray-500">
-          Configure content filtering rules and emergency contacts
+          {t("description")}
         </p>
       </div>
 
@@ -91,12 +93,6 @@ function SafetyPageInner() {
 
 // ─── Safety Rules ────────────────────────────────────────────────────────────
 
-const SAFETY_LEVEL_OPTIONS = [
-  { value: "strict", label: "Strict (recommended for children)" },
-  { value: "moderate", label: "Moderate" },
-  { value: "permissive", label: "Permissive" },
-];
-
 function SafetyRulesSection({
   safetyLevel: initialLevel,
   autoBlockCritical: initialAutoBlock,
@@ -106,11 +102,18 @@ function SafetyRulesSection({
   autoBlockCritical: boolean;
   piiDetection: boolean;
 }) {
+  const t = useTranslations("safety");
   const [safetyLevel, setSafetyLevel] = useState<SafetyLevel>(initialLevel);
   const [autoBlock, setAutoBlock] = useState(initialAutoBlock);
   const [piiDetect, setPiiDetect] = useState(initialPiiDetect);
   const updateSettings = useUpdateGroupSettings();
   const { addToast } = useToast();
+
+  const SAFETY_LEVEL_OPTIONS = [
+    { value: "strict", label: t("levelStrict") },
+    { value: "moderate", label: t("levelModerate") },
+    { value: "permissive", label: t("levelPermissive") },
+  ];
 
   useEffect(() => {
     setSafetyLevel(initialLevel);
@@ -126,44 +129,45 @@ function SafetyRulesSection({
         pii_detection: piiDetect,
       },
       {
-        onSuccess: () => addToast("Safety rules updated", "success"),
+        onSuccess: () => addToast(t("rulesUpdated"), "success"),
         onError: (err) =>
-          addToast((err as Error).message || "Failed to update safety rules", "error"),
+          addToast((err as Error).message || t("failedUpdateRules"), "error"),
       }
     );
   }
 
   return (
     <Card
-      title="Safety Rules"
-      description="Configure content filtering and safety policies"
+      title={t("safetyRules")}
+      description={t("safetyRulesDesc")}
     >
       <div className="max-w-lg space-y-6">
         <Select
-          label="Default safety level"
+          label={t("defaultSafetyLevel")}
           options={SAFETY_LEVEL_OPTIONS}
           value={safetyLevel}
           onChange={(v) => setSafetyLevel(v as SafetyLevel)}
         />
 
         <SafetyToggle
-          label="Auto-block critical content"
-          description="Automatically block interactions flagged as critical risk"
+          label={t("autoBlockCritical")}
+          description={t("autoBlockDesc")}
           checked={autoBlock}
           disabled
           onToggle={() => {}}
+          disabledLabel={t("alwaysEnabled")}
         />
 
         <SafetyToggle
-          label="PII detection"
-          description="Flag interactions containing personal information"
+          label={t("piiDetection")}
+          description={t("piiDetectionDesc")}
           checked={piiDetect}
           onToggle={() => setPiiDetect(!piiDetect)}
         />
 
         <div className="pt-2">
           <Button onClick={handleSave} isLoading={updateSettings.isPending}>
-            Save Rules
+            {t("saveRules")}
           </Button>
         </div>
       </div>
@@ -173,22 +177,22 @@ function SafetyRulesSection({
 
 // ─── Emergency Contacts ──────────────────────────────────────────────────────
 
-const RELATIONSHIP_LABELS: Record<string, string> = {
-  grandparent: "Grandparent",
-  school_counselor: "School Counselor",
-  trusted_adult: "Trusted Adult",
-  aunt_uncle: "Aunt / Uncle",
-  family_friend: "Family Friend",
-  therapist: "Therapist",
-  other: "Other",
-};
-
-const RELATIONSHIP_OPTIONS = Object.entries(RELATIONSHIP_LABELS).map(([value, label]) => ({
-  value,
-  label,
-}));
-
 function EmergencyContactsSection() {
+  const t = useTranslations("safety");
+  const RELATIONSHIP_LABELS: Record<string, string> = {
+    grandparent: t("relGrandparent"),
+    school_counselor: t("relSchoolCounselor"),
+    trusted_adult: t("relTrustedAdult"),
+    aunt_uncle: t("relAuntUncle"),
+    family_friend: t("relFamilyFriend"),
+    therapist: t("relTherapist"),
+    other: t("relOther"),
+  };
+
+  const RELATIONSHIP_OPTIONS = Object.entries(RELATIONSHIP_LABELS).map(([value, label]) => ({
+    value,
+    label,
+  }));
   const { data: contacts, isLoading, isError } = useEmergencyContacts();
   const addContact = useAddEmergencyContact();
   const removeContact = useRemoveEmergencyContact();
@@ -222,10 +226,10 @@ function EmergencyContactsSection() {
           setEmail("");
           setNotifyOn(["critical"]);
           setConsentGiven(false);
-          addToast("Emergency contact added", "success");
+          addToast(t("contactAdded"), "success");
         },
         onError: (err) =>
-          addToast((err as Error).message || "Failed to add contact", "error"),
+          addToast((err as Error).message || t("failedAddContact"), "error"),
       }
     );
   }
@@ -234,7 +238,7 @@ function EmergencyContactsSection() {
     removeContact.mutate(id, {
       onSuccess: () => {
         setConfirmDelete(null);
-        addToast("Emergency contact removed", "success");
+        addToast(t("contactRemoved"), "success");
       },
     });
   }
@@ -256,25 +260,25 @@ function EmergencyContactsSection() {
 
   return (
     <Card
-      title="Emergency Contacts"
-      description="People who should be notified during critical safety events"
+      title={t("emergencyContacts")}
+      description={t("emergencyContactsDesc")}
     >
       <div className="max-w-lg space-y-4">
         {addContact.isError && (
           <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
-            {(addContact.error as Error)?.message || "Failed to add contact"}
+            {(addContact.error as Error)?.message || t("failedAddContact")}
           </div>
         )}
 
         {isLoading && (
           <div className="flex items-center gap-2 py-4">
             <Loader2 className="h-4 w-4 animate-spin" />
-            <span className="text-sm text-gray-500">Loading contacts...</span>
+            <span className="text-sm text-gray-500">{t("loadingContacts")}</span>
           </div>
         )}
 
         {isError && (
-          <p className="text-sm text-red-600">Failed to load emergency contacts.</p>
+          <p className="text-sm text-red-600">{t("failedLoadContacts")}</p>
         )}
 
         {contacts && contacts.length > 0 && (
@@ -312,7 +316,7 @@ function EmergencyContactsSection() {
                     ))}
                   </div>
                   {!c.consent_given && (
-                    <p className="mt-1 text-xs text-amber-600">Consent not yet given</p>
+                    <p className="mt-1 text-xs text-amber-600">{t("consentNotYet")}</p>
                   )}
                 </div>
                 {confirmDelete === c.id ? (
@@ -323,14 +327,14 @@ function EmergencyContactsSection() {
                       onClick={() => handleRemove(c.id)}
                       isLoading={removeContact.isPending}
                     >
-                      Confirm
+                      {t("confirm")}
                     </Button>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => setConfirmDelete(null)}
                     >
-                      Cancel
+                      {t("cancel")}
                     </Button>
                   </div>
                 ) : (
@@ -349,35 +353,34 @@ function EmergencyContactsSection() {
 
         {contacts && contacts.length === 0 && !showForm && (
           <p className="text-sm text-gray-500">
-            No emergency contacts yet. Add someone who should be notified during
-            critical safety events.
+            {t("noContactsYet")}
           </p>
         )}
 
         {showForm ? (
           <div className="space-y-3 rounded-lg border border-gray-200 p-4">
-            <h4 className="text-sm font-semibold text-gray-900">Add Emergency Contact</h4>
+            <h4 className="text-sm font-semibold text-gray-900">{t("addEmergencyContact")}</h4>
             <Input
-              label="Name"
+              label={t("nameLabel")}
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Full name"
+              placeholder={t("fullNamePlaceholder")}
             />
             <Select
-              label="Relationship"
+              label={t("relationship")}
               options={RELATIONSHIP_OPTIONS}
               value={relationship}
               onChange={setRelationship}
             />
             <Input
-              label="Phone (optional)"
+              label={t("phoneOptional")}
               type="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="+1 (555) 123-4567"
             />
             <Input
-              label="Email (optional)"
+              label={t("emailOptional")}
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -385,7 +388,7 @@ function EmergencyContactsSection() {
             />
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                Notify on
+                {t("notifyOn")}
               </label>
               <div className="flex flex-wrap gap-2">
                 {["critical", "self_harm", "csam_adjacent"].map((type) => (
@@ -404,34 +407,33 @@ function EmergencyContactsSection() {
               </div>
             </div>
             <SafetyToggle
-              label="Contact has given consent"
-              description="This person has agreed to be contacted during emergencies"
+              label={t("contactConsentLabel")}
+              description={t("contactConsentDesc")}
               checked={consentGiven}
               onToggle={() => setConsentGiven(!consentGiven)}
             />
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="secondary" onClick={resetForm}>
-                Cancel
+                {t("cancel")}
               </Button>
               <Button
                 onClick={handleAdd}
                 isLoading={addContact.isPending}
                 disabled={!name || (!phone && !email)}
               >
-                Add Contact
+                {t("addContact")}
               </Button>
             </div>
           </div>
         ) : (
           <Button variant="secondary" onClick={() => setShowForm(true)}>
             <UserPlus className="h-4 w-4" />
-            Add Emergency Contact
+            {t("addEmergencyContact")}
           </Button>
         )}
 
         <p className="text-xs text-gray-400">
-          Emergency contacts will be notified via SMS and/or email when critical
-          safety events are detected. Ensure you have their consent before adding them.
+          {t("contactsFooterNote")}
         </p>
       </div>
     </Card>
@@ -446,12 +448,14 @@ function SafetyToggle({
   checked,
   disabled,
   onToggle,
+  disabledLabel,
 }: {
   label: string;
   description: string;
   checked: boolean;
   disabled?: boolean;
   onToggle: () => void;
+  disabledLabel?: string;
 }) {
   return (
     <div className="flex items-start justify-between gap-4">
@@ -459,7 +463,7 @@ function SafetyToggle({
         <p className="text-sm font-medium text-gray-900">{label}</p>
         <p className="mt-0.5 text-xs text-gray-500">{description}</p>
         {disabled && (
-          <p className="mt-0.5 text-xs text-amber-600">Always enabled for safety</p>
+          <p className="mt-0.5 text-xs text-amber-600">{disabledLabel ?? "Always enabled for safety"}</p>
         )}
       </div>
       <button
