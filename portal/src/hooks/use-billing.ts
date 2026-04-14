@@ -2,7 +2,13 @@
 
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { billingApi } from "@/lib/api-client";
-import type { CheckoutRequest, CheckoutResponse, TrialStatus } from "@/types";
+import type {
+  CheckoutRequest,
+  CheckoutResponse,
+  PlansResponse,
+  SubscriptionStatus,
+  TrialStatus,
+} from "@/types";
 
 export function useTrialStatus() {
   return useQuery<TrialStatus>({
@@ -28,5 +34,22 @@ export function useBillingPortal() {
     onSuccess: (result) => {
       window.location.href = result.url;
     },
+  });
+}
+
+export function useSubscription() {
+  return useQuery<SubscriptionStatus>({
+    queryKey: ["billing-subscription"],
+    queryFn: () => billingApi.getSubscription(),
+    staleTime: 60_000,
+    retry: false,
+  });
+}
+
+export function usePlans() {
+  return useQuery<PlansResponse>({
+    queryKey: ["billing-plans"],
+    queryFn: () => billingApi.getPlans(),
+    staleTime: 5 * 60_000,
   });
 }

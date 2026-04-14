@@ -57,6 +57,8 @@ import type {
   RecordConsentRequest,
   PaginatedResponse,
   PortalResponse,
+  PlansResponse,
+  SubscriptionStatus,
 } from "@/types";
 
 // ─── Base Client ────────────────────────────────────────────────────────────
@@ -282,16 +284,8 @@ export const activityApi = {
 
 // ─── Risk Events ────────────────────────────────────────────────────────────
 
-interface RiskEventListBackend {
-  items: RiskEvent[];
-  total: number;
-  offset: number;
-  limit: number;
-  has_more: boolean;
-}
-
 export const riskApi = {
-  async list(params?: {
+  list(params?: {
     page?: number;
     page_size?: number;
     severity?: string;
@@ -299,25 +293,15 @@ export const riskApi = {
     resolved?: boolean;
     member_id?: string;
   }): Promise<PaginatedResponse<RiskEvent>> {
-    const page = params?.page ?? 1;
-    const pageSize = params?.page_size ?? 20;
-    const offset = (page - 1) * pageSize;
     const query = qs({
-      offset,
-      limit: pageSize,
+      page: params?.page,
+      page_size: params?.page_size,
       severity: params?.severity,
       category: params?.category,
       acknowledged: params?.resolved,
       member_id: params?.member_id,
     });
-    const data = await api.get<RiskEventListBackend>(`/api/v1/risk/events${query}`);
-    return {
-      items: data.items,
-      total: data.total,
-      page,
-      page_size: pageSize,
-      total_pages: Math.max(1, Math.ceil(data.total / pageSize)),
-    };
+    return api.get<PaginatedResponse<RiskEvent>>(`/api/v1/risk/events${query}`);
   },
 
   acknowledge(data: AcknowledgeRiskRequest): Promise<RiskEvent> {
@@ -481,6 +465,14 @@ export const billingApi = {
 
   getPortalUrl(): Promise<PortalResponse> {
     return api.get<PortalResponse>("/api/v1/billing/portal");
+  },
+
+  getSubscription(): Promise<SubscriptionStatus> {
+    return api.get<SubscriptionStatus>("/api/v1/billing/subscription");
+  },
+
+  getPlans(): Promise<PlansResponse> {
+    return api.get<PlansResponse>("/api/v1/billing/plans");
   },
 };
 

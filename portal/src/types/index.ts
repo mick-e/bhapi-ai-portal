@@ -415,6 +415,36 @@ export interface PortalResponse {
   url: string;
 }
 
+export interface BillingPlan {
+  name: string;
+  description: string;
+  price_monthly: number | null;
+  price_annual: number | null;
+  price_unit?: string;
+  member_limit?: number;
+  platform_limit?: number;
+  features: string[];
+  stripe_price_monthly?: string | null;
+  stripe_price_annual?: string | null;
+}
+
+export interface PlansResponse {
+  plans: Record<string, BillingPlan>;
+}
+
+export interface SubscriptionStatus {
+  id: string;
+  group_id: string;
+  plan_type: string;
+  billing_cycle: string;
+  status: string;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  trial_end: string | null;
+  current_period_end: string | null;
+  created_at: string;
+}
+
 // ─── Contact Inquiry ────────────────────────────────────────────────────────
 
 export type EstimatedMembers = "10-50" | "50-200" | "200-500" | "500+";

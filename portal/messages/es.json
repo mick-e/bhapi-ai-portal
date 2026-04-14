@@ -1873,5 +1873,22 @@
     "noChildrenTitle": "No children added yet",
     "noChildrenDescription": "Add a child to your group to see their unified dashboard.",
     "partialFailure": "Some sections failed to load. Other sections may still show data."
+  },
+  "billing": {
+    "title": "Billing & Subscription",
+    "description": "View your current plan, manage billing, and explore upgrade options.",
+    "loading": "Loading billing information...",
+    "error": "Unable to load billing information",
+    "tryAgain": "Try again",
+    "currentPlan": "Current Plan",
+    "freePlan": "Free Plan",
+    "manageBilling": "Manage Billing",
+    "availablePlans": "Available Plans",
+    "yourPlan": "Your Plan",
+    "currentlyActive": "Currently Active",
+    "selectPlan": "Select Plan",
+    "contactSales": "Contact Sales",
+    "renewsOn": "Renews on",
+    "trialEnds": "Trial ends"
   }
 }
