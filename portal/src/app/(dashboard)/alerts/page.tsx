@@ -26,6 +26,7 @@ import {
 import { usePanicReports, useRespondToPanic, useQuickResponses } from "@/hooks/use-panic";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/contexts/ToastContext";
+import { useTranslations } from "@/contexts/LocaleContext";
 import type { Alert, AlertSeverity, PanicReport } from "@/types";
 
 // ─── Calm language maps ────────────────────────────────────────────────────
@@ -61,6 +62,7 @@ const SEVERITY_LABEL: Record<AlertSeverity, string> = {
 // ─── Page ──────────────────────────────────────────────────────────────────
 
 export default function AlertsPage() {
+  const t = useTranslations("alerts");
   const { user } = useAuth();
   const groupId = user?.group_id || null;
   const [activeTab, setActiveTab] = useState<"active" | "handled">("active");
@@ -119,7 +121,7 @@ export default function AlertsPage() {
     return (
       <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-3 text-sm text-gray-500">Loading alerts...</span>
+        <span className="ml-3 text-sm text-gray-500">{t("loading")}</span>
       </div>
     );
   }
@@ -128,13 +130,13 @@ export default function AlertsPage() {
     return (
       <div className="flex h-64 flex-col items-center justify-center text-center">
         <AlertTriangle className="h-10 w-10 text-amber-500" />
-        <p className="mt-3 text-sm font-medium text-gray-900">Failed to load alerts</p>
+        <p className="mt-3 text-sm font-medium text-gray-900">{t("failedToLoad")}</p>
         <p className="mt-1 text-sm text-gray-500">
-          {(error as Error)?.message || "Something went wrong"}
+          {(error as Error)?.message || t("somethingWentWrong")}
         </p>
         <Button variant="secondary" size="sm" className="mt-4" onClick={() => refetch()}>
           <RefreshCw className="h-4 w-4" />
-          Try again
+          {t("tryAgain")}
         </Button>
       </div>
     );
@@ -145,8 +147,8 @@ export default function AlertsPage() {
       {/* Header */}
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Alerts</h1>
-          <p className="mt-1 text-sm text-gray-500">Things that may need your attention</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t("title")}</h1>
+          <p className="mt-1 text-sm text-gray-500">{t("thingsNeedAttention")}</p>
         </div>
         {activeAlerts.filter((a) => !a.read).length > 0 && (
           <Button
@@ -156,7 +158,7 @@ export default function AlertsPage() {
             isLoading={markAllReadMutation.isPending}
           >
             <CheckCircle2 className="h-4 w-4" />
-            Mark all read
+            {t("markAllRead")}
           </Button>
         )}
       </div>
@@ -164,8 +166,8 @@ export default function AlertsPage() {
       {/* Tabs */}
       <Tabs
         tabs={[
-          { key: "active", label: "Active", count: activeAlerts.length },
-          { key: "handled", label: "Handled", count: handledAlerts.length },
+          { key: "active", label: t("tabActive"), count: activeAlerts.length },
+          { key: "handled", label: t("tabHandled"), count: handledAlerts.length },
         ]}
         active={activeTab}
         onChange={(key) => setActiveTab(key as "active" | "handled")}
@@ -177,14 +179,14 @@ export default function AlertsPage() {
         activeTab === "active" ? (
           <EmptyState
             icon={<Bell className="h-12 w-12" />}
-            title="All clear"
-            message="No active alerts right now. We'll let you know if anything needs attention."
+            title={t("allClear")}
+            message={t("allClearMessage")}
           />
         ) : (
           <EmptyState
             icon={<CheckCircle2 className="h-12 w-12" />}
-            title="No handled alerts yet"
-            message="Alerts you've marked as handled will appear here."
+            title={t("noHandledYet")}
+            message={t("noHandledYetMessage")}
           />
         )
       ) : (

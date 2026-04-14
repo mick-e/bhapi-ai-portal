@@ -29,8 +29,10 @@ import {
   useBulkRemoveMembers,
 } from "@/hooks/use-members";
 import { useToast } from "@/contexts/ToastContext";
+import { useTranslations } from "@/contexts/LocaleContext";
 
 export default function MembersPage() {
+  const t = useTranslations("members");
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
@@ -180,7 +182,7 @@ export default function MembersPage() {
     return (
       <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-3 text-sm text-gray-500">Loading members...</span>
+        <span className="ml-3 text-sm text-gray-500">{t("loading")}</span>
       </div>
     );
   }
@@ -190,10 +192,10 @@ export default function MembersPage() {
       <div className="flex h-64 flex-col items-center justify-center text-center">
         <AlertTriangle className="h-10 w-10 text-amber-500" />
         <p className="mt-3 text-sm font-medium text-gray-900">
-          Failed to load members
+          {t("failedToLoad")}
         </p>
         <p className="mt-1 text-sm text-gray-500">
-          {(error as Error)?.message || "Something went wrong"}
+          {(error as Error)?.message || t("somethingWentWrong")}
         </p>
         <Button
           variant="secondary"
@@ -202,7 +204,7 @@ export default function MembersPage() {
           onClick={() => refetch()}
         >
           <RefreshCw className="h-4 w-4" />
-          Try again
+          {t("tryAgain")}
         </Button>
       </div>
     );
@@ -212,14 +214,14 @@ export default function MembersPage() {
     <div>
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Members</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t("title")}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Manage your group members and their access
+            {t("description")}
           </p>
         </div>
         <Button onClick={() => setShowInviteModal(true)}>
           <UserPlus className="h-4 w-4" />
-          Invite Member
+          {t("inviteMember")}
         </Button>
       </div>
 
@@ -232,7 +234,7 @@ export default function MembersPage() {
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900">{activeCount}</p>
-              <p className="text-sm text-gray-500">Active members</p>
+              <p className="text-sm text-gray-500">{t("activeMembers")}</p>
             </div>
           </div>
         </div>
@@ -243,7 +245,7 @@ export default function MembersPage() {
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900">{invitedCount}</p>
-              <p className="text-sm text-gray-500">Pending invites</p>
+              <p className="text-sm text-gray-500">{t("pendingInvites")}</p>
             </div>
           </div>
         </div>
@@ -254,7 +256,7 @@ export default function MembersPage() {
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900">{totalMembers}</p>
-              <p className="text-sm text-gray-500">Total members</p>
+              <p className="text-sm text-gray-500">{t("totalMembers")}</p>
             </div>
           </div>
         </div>
@@ -266,13 +268,13 @@ export default function MembersPage() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search members..."
+            placeholder={t("searchMembers")}
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
               setPage(1);
             }}
-            aria-label="Search members"
+            aria-label={t("searchAriaLabel")}
             className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
         </div>

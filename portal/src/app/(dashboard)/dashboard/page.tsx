@@ -5,9 +5,11 @@ import { SafetyScoreCard } from "@/components/SafetyScoreCard";
 import { ActionsNeeded } from "@/components/ActionsNeeded";
 import { WeeklySummary } from "@/components/WeeklySummary";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { useTranslations } from "@/contexts/LocaleContext";
 
 export default function DashboardPage() {
   const { data: score, isLoading } = useSafetyScore();
+  const t = useTranslations("dashboard");
 
   if (isLoading) {
     return (
@@ -23,9 +25,9 @@ export default function DashboardPage() {
     return (
       <div className="p-6">
         <EmptyState
-          title="Welcome to Bhapi"
-          message="Add your first child to start monitoring AI usage and keep your family safe."
-          actionLabel="Add a child"
+          title={t("welcomeEmpty")}
+          message={t("welcomeEmptyMessage")}
+          actionLabel={t("addChild")}
           onAction={() => (window.location.href = "/members")}
         />
       </div>
@@ -39,10 +41,10 @@ export default function DashboardPage() {
       <WeeklySummary />
       {/* Trust: What we collect */}
       <div className="rounded-lg bg-blue-50 px-4 py-3 ring-1 ring-blue-100">
-        <p className="text-sm font-medium text-blue-800">What we monitor</p>
+        <p className="text-sm font-medium text-blue-800">{t("whatWeMonitor")}</p>
         <p className="mt-1 text-xs text-blue-600">
-          AI conversation metadata (platforms, duration, risk signals). We never read message content unless flagged for safety.{" "}
-          <a href="/settings/privacy" className="underline">Manage privacy settings</a>
+          {t("whatWeMonitorDesc")}{" "}
+          <a href="/settings/privacy" className="underline">{t("managePrivacy")}</a>
         </p>
       </div>
     </div>

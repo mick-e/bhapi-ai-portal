@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/Button";
 import { ActivityDetailModal } from "@/components/ActivityDetailModal";
 import { DateRangeFilter } from "@/components/DateRangeFilter";
 import { useActivity } from "@/hooks/use-activity";
+import { useTranslations } from "@/contexts/LocaleContext";
 import type { CaptureEvent, EventType } from "@/types";
 
 const typeIcons: Record<EventType, typeof MessageSquare> = {
@@ -37,6 +38,7 @@ const typeLabels: Record<EventType, string> = {
 };
 
 export default function ActivityPage() {
+  const t = useTranslations("activity");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterRisk, setFilterRisk] = useState<string>("all");
   const [filterProvider, setFilterProvider] = useState<string>("all");
@@ -71,7 +73,7 @@ export default function ActivityPage() {
     return (
       <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-3 text-sm text-gray-500">Loading activity...</span>
+        <span className="ml-3 text-sm text-gray-500">{t("loading")}</span>
       </div>
     );
   }
@@ -81,10 +83,10 @@ export default function ActivityPage() {
       <div className="flex h-64 flex-col items-center justify-center text-center">
         <AlertTriangle className="h-10 w-10 text-amber-500" />
         <p className="mt-3 text-sm font-medium text-gray-900">
-          Failed to load activity
+          {t("failedToLoad")}
         </p>
         <p className="mt-1 text-sm text-gray-500">
-          {(error as Error)?.message || "Something went wrong"}
+          {(error as Error)?.message || t("somethingWentWrong")}
         </p>
         <Button
           variant="secondary"
@@ -93,7 +95,7 @@ export default function ActivityPage() {
           onClick={() => refetch()}
         >
           <RefreshCw className="h-4 w-4" />
-          Try again
+          {t("tryAgain")}
         </Button>
       </div>
     );
@@ -102,9 +104,9 @@ export default function ActivityPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Activity</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t("title")}</h1>
         <p className="mt-1 text-sm text-gray-500">
-          Timeline of all AI interactions across your group
+          {t("description")}
           {totalEvents > 0 && (
             <span className="ml-1 text-gray-400">
               ({totalEvents.toLocaleString()} total)
@@ -124,13 +126,13 @@ export default function ActivityPage() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search activity..."
+            placeholder={t("searchPlaceholder")}
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
               setPage(1);
             }}
-            aria-label="Search activity"
+            aria-label={t("searchAriaLabel")}
             className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
         </div>
@@ -142,14 +144,14 @@ export default function ActivityPage() {
               setFilterRisk(e.target.value);
               setPage(1);
             }}
-            aria-label="Filter by risk level"
+            aria-label={t("filterByRisk")}
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           >
-            <option value="all">All risk levels</option>
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-            <option value="critical">Critical</option>
+            <option value="all">{t("allRiskLevels")}</option>
+            <option value="low">{t("low")}</option>
+            <option value="medium">{t("medium")}</option>
+            <option value="high">{t("high")}</option>
+            <option value="critical">{t("critical")}</option>
           </select>
           <select
             value={filterProvider}
@@ -157,10 +159,10 @@ export default function ActivityPage() {
               setFilterProvider(e.target.value);
               setPage(1);
             }}
-            aria-label="Filter by provider"
+            aria-label={t("filterByProvider")}
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           >
-            <option value="all">All providers</option>
+            <option value="all">{t("allProviders")}</option>
             <option value="OpenAI">OpenAI</option>
             <option value="Anthropic">Anthropic</option>
             <option value="Google">Google</option>
@@ -173,14 +175,14 @@ export default function ActivityPage() {
               setFilterType(e.target.value);
               setPage(1);
             }}
-            aria-label="Filter by event type"
+            aria-label={t("filterByType")}
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           >
-            <option value="all">All types</option>
-            <option value="chat">Chat</option>
-            <option value="code">Code</option>
-            <option value="image">Image</option>
-            <option value="document">Document</option>
+            <option value="all">{t("allTypes")}</option>
+            <option value="chat">{t("chat")}</option>
+            <option value="code">{t("codeGeneration")}</option>
+            <option value="image">{t("imageAnalysis")}</option>
+            <option value="document">{t("document")}</option>
           </select>
         </div>
       </div>
@@ -203,8 +205,8 @@ export default function ActivityPage() {
               filterRisk !== "all" ||
               filterProvider !== "all" ||
               filterType !== "all"
-                ? "No activity matches your filters"
-                : "No activity recorded yet"}
+                ? t("noMatchFilters")
+                : t("noActivityYet")}
             </p>
           </div>
         )}
@@ -214,7 +216,7 @@ export default function ActivityPage() {
       {totalPages > 1 && (
         <div className="mt-6 flex items-center justify-between">
           <p className="text-sm text-gray-500">
-            Showing {events.length} of {totalEvents.toLocaleString()} events
+            {t("showing").replace("{count}", String(events.length)).replace("{total}", totalEvents.toLocaleString())}
           </p>
           <div className="flex items-center gap-2">
             <Button
@@ -224,10 +226,10 @@ export default function ActivityPage() {
               onClick={() => setPage((p) => Math.max(1, p - 1))}
             >
               <ChevronLeft className="h-4 w-4" />
-              Previous
+              {t("previous")}
             </Button>
             <span className="text-sm text-gray-600">
-              Page {page} of {totalPages}
+              {t("pageOf").replace("{page}", String(page)).replace("{total}", String(totalPages))}
             </span>
             <Button
               variant="secondary"
@@ -235,7 +237,7 @@ export default function ActivityPage() {
               disabled={page >= totalPages}
               onClick={() => setPage((p) => p + 1)}
             >
-              Next
+              {t("next")}
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>

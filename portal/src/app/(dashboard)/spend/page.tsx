@@ -19,9 +19,11 @@ import { Button } from "@/components/ui/Button";
 import { useSpendSummary, useSpendRecords, useCreateBudgetThreshold } from "@/hooks/use-spend";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/contexts/ToastContext";
+import { useTranslations } from "@/contexts/LocaleContext";
 import type { SpendRecord } from "@/types";
 
 export default function SpendPage() {
+  const t = useTranslations("spend");
   const [period, setPeriod] = useState<"day" | "week" | "month">("month");
   const [recordsPage, setRecordsPage] = useState(1);
   const [showBudgetModal, setShowBudgetModal] = useState(false);
@@ -48,7 +50,7 @@ export default function SpendPage() {
     return (
       <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-3 text-sm text-gray-500">Loading spend data...</span>
+        <span className="ml-3 text-sm text-gray-500">{t("loading")}</span>
       </div>
     );
   }
@@ -58,10 +60,10 @@ export default function SpendPage() {
       <div className="flex h-64 flex-col items-center justify-center text-center">
         <AlertTriangle className="h-10 w-10 text-amber-500" />
         <p className="mt-3 text-sm font-medium text-gray-900">
-          Failed to load spend data
+          {t("failedToLoad")}
         </p>
         <p className="mt-1 text-sm text-gray-500">
-          {(summaryErr as Error)?.message || "Something went wrong"}
+          {(summaryErr as Error)?.message || t("somethingWentWrong")}
         </p>
         <Button
           variant="secondary"
@@ -70,7 +72,7 @@ export default function SpendPage() {
           onClick={() => refetchSummary()}
         >
           <RefreshCw className="h-4 w-4" />
-          Try again
+          {t("tryAgain")}
         </Button>
       </div>
     );
@@ -82,9 +84,9 @@ export default function SpendPage() {
     <div>
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Spend Management</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t("title")}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Monitor and control AI API costs across your group
+            {t("description")}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -95,9 +97,9 @@ export default function SpendPage() {
             }
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           >
-            <option value="day">Today</option>
-            <option value="week">This week</option>
-            <option value="month">This month</option>
+            <option value="day">{t("periodToday")}</option>
+            <option value="week">{t("periodThisWeek")}</option>
+            <option value="month">{t("periodThisMonth")}</option>
           </select>
           <Button
             variant="secondary"
@@ -105,7 +107,7 @@ export default function SpendPage() {
             onClick={() => setShowBudgetModal(true)}
           >
             <Settings2 className="h-4 w-4" />
-            Set Budget
+            {t("setBudget")}
           </Button>
         </div>
       </div>

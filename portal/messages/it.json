@@ -58,7 +58,13 @@
     "ofBudgetAmount": "di ${amount} di budget",
     "topProvider": "Fornitore principale",
     "na": "N/D",
-    "topUser": "Utente principale"
+    "topUser": "Utente principale",
+    "welcomeEmpty": "Welcome to Bhapi",
+    "welcomeEmptyMessage": "Add your first child to start monitoring AI usage and keep your family safe.",
+    "addChild": "Add a child",
+    "whatWeMonitor": "What we monitor",
+    "whatWeMonitorDesc": "AI conversation metadata (platforms, duration, risk signals). We never read message content unless flagged for safety.",
+    "managePrivacy": "Manage privacy settings"
   },
   "onboarding": {
     "welcomeToBhapi": "Benvenuto su Bhapi",
@@ -198,7 +204,9 @@
     "bulkSuspendFailed": "Sospensione di massa fallita",
     "bulkActivateFailed": "Attivazione di massa fallita",
     "bulkRemoveFailed": "Rimozione di massa fallita",
-    "confirmBulkRemove": "Rimuovere {count} membro/i? Questa azione non può essere annullata."
+    "confirmBulkRemove": "Rimuovere {count} membro/i? Questa azione non può essere annullata.",
+    "somethingWentWrong": "Something went wrong",
+    "tryAgain": "Try again"
   },
   "memberDetail": {
     "backToMembers": "Torna ai Membri",
@@ -252,7 +260,9 @@
     "next": "Successivo",
     "pageOf": "Pagina {page} di {total}",
     "tokens": "{count} token",
-    "flagged": "Segnalato"
+    "flagged": "Segnalato",
+    "somethingWentWrong": "Something went wrong",
+    "tryAgain": "Try again"
   },
   "risks": {
     "title": "Eventi di Rischio",
@@ -277,7 +287,9 @@
     "showing": "Visualizzazione {count} di {total} eventi",
     "previous": "Precedente",
     "next": "Successivo",
-    "pageOf": "Pagina {page} di {total}"
+    "pageOf": "Pagina {page} di {total}",
+    "somethingWentWrong": "Something went wrong",
+    "tryAgain": "Try again"
   },
   "alerts": {
     "title": "Avvisi",
@@ -320,7 +332,16 @@
     "snooze4h": "4 ore",
     "snooze24h": "24 ore",
     "snoozeAriaLabel": "Posticipa avviso",
-    "memberLabel": "Membro: {name}"
+    "memberLabel": "Membro: {name}",
+    "thingsNeedAttention": "Things that need your attention, grouped by child",
+    "tabActive": "Active",
+    "tabHandled": "Handled",
+    "allClear": "All clear",
+    "allClearMessage": "No active alerts right now. We'll let you know if anything needs your attention.",
+    "noHandledYet": "No handled alerts yet",
+    "noHandledYetMessage": "Once you respond to alerts, they'll appear here.",
+    "somethingWentWrong": "Something went wrong",
+    "tryAgain": "Try again"
   },
   "spend": {
     "title": "Gestione Spese",
@@ -373,7 +394,9 @@
     "saveBudget": "Salva Budget",
     "validBudgetAmount": "Inserisca un importo di budget valido",
     "budgetSaved": "Soglia di budget salvata",
-    "failedToSaveBudget": "Impossibile salvare il budget"
+    "failedToSaveBudget": "Impossibile salvare il budget",
+    "somethingWentWrong": "Something went wrong",
+    "tryAgain": "Try again"
   },
   "consent": {
     "title": "Gestione Consenso",

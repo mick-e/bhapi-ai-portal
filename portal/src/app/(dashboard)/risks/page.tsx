@@ -23,6 +23,7 @@ import { useRiskEvents, useAcknowledgeRisk } from "@/hooks/use-alerts";
 import { useDeepfakeGuidance } from "@/hooks/use-deepfake-guidance";
 import { useToast } from "@/contexts/ToastContext";
 import { useAuth } from "@/hooks/use-auth";
+import { useTranslations } from "@/contexts/LocaleContext";
 import type { RiskEvent, RiskSeverity, DeepfakeGuidance } from "@/types";
 
 const severityStyles: Record<
@@ -64,6 +65,7 @@ const categories = [
 ];
 
 export default function RisksPage() {
+  const t = useTranslations("risks");
   const [filterSeverity, setFilterSeverity] = useState<string>("all");
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [filterAck, setFilterAck] = useState<string>("all");
@@ -114,7 +116,7 @@ export default function RisksPage() {
       <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <span className="ml-3 text-sm text-gray-500">
-          Loading risk events...
+          {t("loading")}
         </span>
       </div>
     );
@@ -125,10 +127,10 @@ export default function RisksPage() {
       <div className="flex h-64 flex-col items-center justify-center text-center">
         <AlertTriangle className="h-10 w-10 text-amber-500" />
         <p className="mt-3 text-sm font-medium text-gray-900">
-          Failed to load risk events
+          {t("failedToLoad")}
         </p>
         <p className="mt-1 text-sm text-gray-500">
-          {(error as Error)?.message || "Something went wrong"}
+          {(error as Error)?.message || t("somethingWentWrong")}
         </p>
         <Button
           variant="secondary"
@@ -137,7 +139,7 @@ export default function RisksPage() {
           onClick={() => refetch()}
         >
           <RefreshCw className="h-4 w-4" />
-          Try again
+          {t("tryAgain")}
         </Button>
       </div>
     );
@@ -146,9 +148,9 @@ export default function RisksPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Risk Events</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t("title")}</h1>
         <p className="mt-1 text-sm text-gray-500">
-          Safety events detected by the risk pipeline
+          {t("description")}
           {totalEvents > 0 && (
             <span className="ml-1 text-gray-400">
               ({totalEvents} total)
@@ -166,10 +168,10 @@ export default function RisksPage() {
             setFilterSeverity(e.target.value);
             setPage(1);
           }}
-          aria-label="Filter by severity"
+          aria-label={t("filterBySeverity")}
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
         >
-          <option value="all">All severities</option>
+          <option value="all">{t("allSeverities")}</option>
           <option value="critical">Critical</option>
           <option value="high">High</option>
           <option value="medium">Medium</option>
@@ -181,12 +183,12 @@ export default function RisksPage() {
             setFilterCategory(e.target.value);
             setPage(1);
           }}
-          aria-label="Filter by category"
+          aria-label={t("filterByCategory")}
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
         >
           {categories.map((cat) => (
             <option key={cat} value={cat}>
-              {cat === "all" ? "All categories" : cat.replace(/_/g, " ")}
+              {cat === "all" ? t("allCategories") : cat.replace(/_/g, " ")}
             </option>
           ))}
         </select>
@@ -196,12 +198,12 @@ export default function RisksPage() {
             setFilterAck(e.target.value);
             setPage(1);
           }}
-          aria-label="Filter by status"
+          aria-label={t("filterByStatus")}
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
         >
-          <option value="all">All statuses</option>
-          <option value="unacknowledged">Unacknowledged</option>
-          <option value="acknowledged">Acknowledged</option>
+          <option value="all">{t("allStatuses")}</option>
+          <option value="unacknowledged">{t("unacknowledged")}</option>
+          <option value="acknowledged">{t("acknowledgedStatus")}</option>
         </select>
       </div>
 
@@ -228,7 +230,7 @@ export default function RisksPage() {
           <div className="py-12 text-center">
             <ShieldAlert className="mx-auto h-12 w-12 text-gray-300" />
             <p className="mt-4 text-sm text-gray-500">
-              No risk events match your filters
+              {t("noMatchFilters")}
             </p>
           </div>
         )}
