@@ -356,3 +356,155 @@ async def test_member_can_submit_to_queue(member_client):
         "content_id": str(uuid.uuid4()),
     })
     assert resp.status_code == 201
+
+
+# ---------------------------------------------------------------------------
+# COPPA 2026: third-party consent gating for image moderation (F-013)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_image_pipeline_skips_hive_when_no_consent(sec_session):
+    """COPPA 2026 (F-013): image_pipeline must NOT call Hive/Sensity when
+    third-party consent for ``hive_sensity`` is missing. It should short-circuit
+    to NEEDS_REVIEW with provider='none' before any HTTP call."""
+    from unittest.mock import AsyncMock, patch
+    from uuid import uuid4
+
+    from src.moderation.image_pipeline import (
+        ImageClassification,
+        ImageModerationPipeline,
+    )
+
+    group_id = uuid4()
+    member_id = uuid4()
+
+    p = ImageModerationPipeline()
+    p.configure(hive_api_key="test-hive-key")
+
+    # No ThirdPartyConsentItem exists -> check_third_party_consent returns False.
+    # Patch _call_hive to ensure it is NEVER invoked.
+    with patch.object(p, "_call_hive", new_callable=AsyncMock) as mock_hive:
+        result = await p.classify_image(
+            "https://example.com/img.jpg",
+            age_tier="young",
+            group_id=group_id,
+            member_id=member_id,
+            db=sec_session,
+        )
+
+    assert mock_hive.await_count == 0, "Hive must not be called without consent"
+    assert result.classification == ImageClassification.NEEDS_REVIEW
+    assert result.provider == "none"
+
+
+@pytest.mark.asyncio
+async def test_image_pipeline_calls_hive_when_consent_granted(sec_session):
+    """When consent exists for ``hive_sensity``, the pipeline proceeds to
+    call Hive (verified by mocking _call_hive)."""
+    from unittest.mock import AsyncMock, patch
+    from uuid import uuid4
+
+    from src.auth.models import User
+    from src.compliance.models import ThirdPartyConsentItem
+    from src.groups.models import Group, GroupMember
+    from src.moderation.image_pipeline import (
+        ImageClassification,
+        ImageModerationPipeline,
+        ImageResult,
+    )
+
+    # Create parent user, group, and child member
+    parent = User(
+        id=uuid4(),
+        email=f"consent-{uuid4().hex[:8]}@example.com",
+        password_hash="$2b$12$fakehashfakehashfakehashfakehashfakehashfakehashfak",
+        display_name="Consent Parent",
+        account_type="family",
+        email_verified=False,
+        mfa_enabled=False,
+    )
+    sec_session.add(parent)
+    await sec_session.flush()
+
+    group = Group(
+        id=uuid4(),
+        name="Consent Family",
+        type="family",
+        owner_id=parent.id,
+        settings={},
+    )
+    sec_session.add(group)
+    await sec_session.flush()
+
+    member = GroupMember(
+        id=uuid4(),
+        group_id=group.id,
+        user_id=None,
+        role="member",
+        display_name="Child",
+    )
+    sec_session.add(member)
+    await sec_session.flush()
+
+    # Grant consent for Hive/Sensity
+    consent = ThirdPartyConsentItem(
+        id=uuid4(),
+        group_id=group.id,
+        member_id=member.id,
+        parent_user_id=parent.id,
+        provider_key="hive_sensity",
+        provider_name="Hive / Sensity",
+        data_purpose="Image safety classification",
+        consented=True,
+    )
+    sec_session.add(consent)
+    await sec_session.flush()
+
+    p = ImageModerationPipeline()
+    p.configure(hive_api_key="test-hive-key")
+
+    with patch.object(p, "_call_hive", new_callable=AsyncMock) as mock_hive:
+        mock_hive.return_value = ImageResult(
+            classification=ImageClassification.SAFE,
+            confidence=0.95,
+            provider="hive",
+        )
+        result = await p.classify_image(
+            "https://example.com/img.jpg",
+            age_tier="teen",
+            group_id=group.id,
+            member_id=member.id,
+            db=sec_session,
+        )
+
+    assert mock_hive.await_count == 1, "Hive must be called when consent granted"
+    assert result.classification == ImageClassification.SAFE
+    assert result.provider == "hive"
+
+
+@pytest.mark.asyncio
+async def test_image_pipeline_backward_compatible_without_consent_args():
+    """Callers that don't pass group_id/member_id/db still work (consent check
+    only applies when context is supplied). Falls back to pre-existing behavior."""
+    from unittest.mock import AsyncMock, patch
+
+    from src.moderation.image_pipeline import (
+        ImageClassification,
+        ImageModerationPipeline,
+        ImageResult,
+    )
+
+    p = ImageModerationPipeline()
+    p.configure(hive_api_key="test-hive-key")
+
+    with patch.object(p, "_call_hive", new_callable=AsyncMock) as mock_hive:
+        mock_hive.return_value = ImageResult(
+            classification=ImageClassification.SAFE,
+            confidence=0.9,
+            provider="hive",
+        )
+        result = await p.classify_image("https://example.com/img.jpg")
+
+    assert mock_hive.await_count == 1
+    assert result.classification == ImageClassification.SAFE

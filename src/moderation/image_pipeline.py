@@ -7,9 +7,15 @@ import hashlib
 import hmac
 from dataclasses import dataclass, field
 from enum import StrEnum
+from typing import TYPE_CHECKING
 
 import httpx
 import structlog
+
+if TYPE_CHECKING:
+    from uuid import UUID
+
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = structlog.get_logger()
 
@@ -102,11 +108,16 @@ class ImageModerationPipeline:
         self,
         image_url: str,
         age_tier: str | None = None,
+        group_id: "UUID | None" = None,
+        member_id: "UUID | None" = None,
+        db: "AsyncSession | None" = None,
     ) -> ImageResult:
         """Classify an image using Hive API.
 
         Falls back to NEEDS_REVIEW if API unavailable.
         Adjusts thresholds for younger age tiers.
+        COPPA 2026: if group_id/member_id/db are provided, gates the Hive
+        call on third-party consent for the ``hive_sensity`` provider.
         """
         if not image_url or not image_url.strip():
             logger.warning("image_pipeline_empty_url")
@@ -135,6 +146,28 @@ class ImageModerationPipeline:
                 categories={},
                 provider="none",
             )
+
+        # COPPA 2026: Check third-party consent before calling Hive/Sensity
+        if group_id and member_id and db:
+            from src.compliance.coppa_2026 import check_third_party_consent
+
+            has_consent = await check_third_party_consent(
+                db, group_id, member_id, "hive_sensity"
+            )
+            if not has_consent:
+                logger.info(
+                    "image_moderation_skipped_no_consent",
+                    consent_degraded=True,
+                    provider="hive_sensity",
+                    group_id=str(group_id),
+                    member_id=str(member_id),
+                )
+                return ImageResult(
+                    classification=ImageClassification.NEEDS_REVIEW,
+                    confidence=0.0,
+                    categories={},
+                    provider="none",
+                )
 
         try:
             return await self._call_hive(image_url, thresholds)
