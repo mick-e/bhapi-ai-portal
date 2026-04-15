@@ -30,9 +30,9 @@ class User(Base, UUIDMixin, TimestampMixin, SoftDeleteMixin):
     mfa_secret: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     # Relationships
-    oauth_connections: Mapped[list["OAuthConnection"]] = relationship(back_populates="user", lazy="selectin")
-    sessions: Mapped[list["Session"]] = relationship(back_populates="user", lazy="selectin")
-    api_keys: Mapped[list["ApiKey"]] = relationship(back_populates="user", lazy="selectin")
+    oauth_connections: Mapped[list["OAuthConnection"]] = relationship(back_populates="user")
+    sessions: Mapped[list["Session"]] = relationship(back_populates="user")
+    api_keys: Mapped[list["ApiKey"]] = relationship(back_populates="user")
 
 
 class OAuthConnection(Base, UUIDMixin, TimestampMixin):
