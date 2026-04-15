@@ -114,16 +114,17 @@ def create_app() -> FastAPI:
         # Base security headers
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
-        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline'; "
+            "script-src 'self'; "
             "style-src 'self' 'unsafe-inline'; "
             "img-src 'self' data: https:; "
             "font-src 'self' https:; "
-            "connect-src 'self' https://api.stripe.com; "
+            "connect-src 'self' https://api.stripe.com https://js.stripe.com; "
+            "frame-src https://js.stripe.com; "
             "frame-ancestors 'none'"
         )
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
         # Enhanced security headers
         await add_security_headers(request, response)
         return response
