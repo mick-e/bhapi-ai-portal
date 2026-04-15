@@ -55,8 +55,8 @@ async def list_events(
     severity: str | None = Query(None, description="Filter by severity level"),
     member_id: UUID | None = Query(None, description="Filter by member ID"),
     acknowledged: bool | None = Query(None, description="Filter by acknowledgement status"),
-    offset: int = Query(0, ge=0, description="Pagination offset"),
-    limit: int = Query(50, ge=1, le=100, description="Pagination limit"),
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(20, ge=1, le=100, description="Items per page"),
     auth: GroupContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -68,8 +68,8 @@ async def list_events(
         severity=severity,
         member_id=member_id,
         acknowledged=acknowledged,
-        limit=limit,
-        offset=offset,
+        page=page,
+        page_size=page_size,
     )
 
     # Enrich with member names
@@ -91,12 +91,13 @@ async def list_events(
         item["description"] = (e.details or {}).get("reasoning", e.category)
         items.append(item)
 
+    total_pages = (total + page_size - 1) // page_size if total > 0 else 0
     return {
         "items": items,
         "total": total,
-        "offset": offset,
-        "limit": limit,
-        "has_more": (offset + limit) < total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": total_pages,
     }
 
 

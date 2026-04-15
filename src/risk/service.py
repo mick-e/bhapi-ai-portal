@@ -74,13 +74,14 @@ async def list_risk_events(
     severity: str | None = None,
     member_id: UUID | None = None,
     acknowledged: bool | None = None,
-    limit: int = 50,
-    offset: int = 0,
+    page: int = 1,
+    page_size: int = 20,
 ) -> tuple[list[RiskEvent], int]:
     """List risk events for a group with optional filters.
 
     Returns (events, total_count).
     """
+    offset = (page - 1) * page_size
     # Validate filter values
     if category and category not in ALL_CATEGORIES:
         raise ValidationError(f"Invalid category: {category}")
@@ -110,7 +111,7 @@ async def list_risk_events(
     total = count_result.scalar() or 0
 
     # Get paginated results
-    query = query.order_by(RiskEvent.created_at.desc()).offset(offset).limit(limit)
+    query = query.order_by(RiskEvent.created_at.desc()).offset(offset).limit(page_size)
     result = await db.execute(query)
     events = list(result.scalars().all())
 

@@ -41,9 +41,9 @@ class RiskEventListResponse(BaseSchema):
 
     items: list[RiskEventResponse]
     total: int
-    offset: int
-    limit: int
-    has_more: bool
+    page: int
+    page_size: int
+    total_pages: int
 
 
 class RiskConfigResponse(BaseSchema):

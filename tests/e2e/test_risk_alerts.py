@@ -247,13 +247,15 @@ async def test_risk_event_pagination(risk_client):
     await session.commit()
 
     resp = await client.get(
-        f"/api/v1/risk/events?group_id={gid}&limit=2&offset=0", headers=headers
+        f"/api/v1/risk/events?group_id={gid}&page_size=2&page=1", headers=headers
     )
     assert resp.status_code == 200
     data = resp.json()
     assert len(data["items"]) == 2
     assert data["total"] == 5
-    assert data["has_more"] is True
+    assert data["page"] == 1
+    assert data["page_size"] == 2
+    assert data["total_pages"] == 3
 
 
 @pytest.mark.asyncio
