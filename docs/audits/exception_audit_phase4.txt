@@ -1,0 +1,309 @@
+Phase 4 Task 2 (R-10) — except Exception Audit
+================================================
+
+Generated:    2026-04-15
+Total occurrences: 146
+Files affected:    70
+Source pattern:    `grep -rn "except Exception" src/`
+
+Related plan:   docs/superpowers/plans/2026-10-01-phase4-market-leadership.md (Task 2)
+Source plan:    docs/superpowers/plans/2026-04-12-review-recommendations-implementation.md (R-10 / Task 13)
+
+------------------------------------------------------------
+Categorization schema (K / F / R)
+------------------------------------------------------------
+
+Every `except Exception` in the list below must be categorized as one of:
+
+  K  KEEP (fire-and-forget)
+       The try/except is correct as-is in intent: best-effort code where a
+       single failure should not cascade. Fix: replace `pass` with
+         `logger.debug("<op>_degraded", exc_info=True, ...)`.
+       Canonical examples:
+         * SSE fan-out (src/alerts/sse.py) — one dead subscriber queue must
+           not kill the broadcast.
+         * Push/email side effects inside alert processing.
+         * Best-effort audit writes.
+         * Dashboard aggregation sections (src/portal/service.py) — each
+           section wrapped so one section's failure shows a "degraded"
+           banner instead of a 500. The router's outer catch-all already
+           returns degraded_sections=["all"] on unexpected errors; preserve
+           both layers.
+
+  F  FIX (business logic)
+       The exception indicates a real failure that should be surfaced to
+       the caller or retried. Fix: either (a) narrow to a specific exception
+       class (httpx.HTTPError, sqlalchemy.exc.*, etc.) and let others
+       propagate, or (b) keep the broad catch but log at WARNING/ERROR and
+       either re-raise or return an explicit failure sentinel.
+       Canonical examples:
+         * Billing writes, integration API calls where silent failure =
+           lost state.
+         * Token refresh paths where swallowing means the user stays
+           logged out without explanation.
+
+  R  REMOVE (unnecessary try/except)
+       The wrapped code cannot actually raise Exception, or the except
+       block does nothing useful (e.g. `except Exception: raise`,
+       `except Exception: pass` with no side effects and the caller cannot
+       observe the swallowed failure). Fix: delete the try/except; let
+       Python's default behavior apply.
+
+Replacement rules (matches plan Task 13 / R-10):
+
+  Before                                After (K)
+  ------                                ----------
+  try:                                  try:
+      do_side_effect()                      do_side_effect()
+  except Exception:                     except Exception:
+      pass                                  logger.debug(
+                                                "side_effect_degraded",
+                                                exc_info=True,
+                                            )
+
+  Before                                After (F)
+  ------                                ----------
+  try:                                  try:
+      charge_customer()                     charge_customer()
+  except Exception:                     except Exception:
+      pass                                  logger.warning(
+                                                "charge_failed",
+                                                exc_info=True,
+                                            )
+                                            raise  # or return sentinel
+
+All logs must use structlog's key=value args — NEVER f-strings.
+Correlation IDs flow through middleware automatically.
+
+------------------------------------------------------------
+Batch 1 scope (this PR)
+------------------------------------------------------------
+
+Only src/portal/service.py is in scope for Batch 1. All other files
+remain for future batches and are listed below with line numbers for
+mechanical enumeration. Module-level K/F/R notes are provided where a
+clear module-wide pattern is visible from spot-reading.
+
+------------------------------------------------------------
+Per-file line list with annotations
+------------------------------------------------------------
+
+### src/portal/service.py  (26 catches — Batch 1 focus)
+
+Module note: ALL 26 catches are category K (dashboard section
+degradation). Prior cleanup has already converted every `pass` in this
+module to `logger.exception(..., group_id=...)` or
+`logger.exception(..., member_id=...)` plus a
+`degraded_sections.append("<name>")`. No changes required in Batch 1.
+The existing code uses `logger.exception` (ERROR level) rather than the
+`logger.debug` pattern from the plan; this is stricter than the plan
+requires and is retained intentionally so failures show up in
+production logs without needing to flip log level.
+
+  65    K   dashboard entry (group lookup) — re-raises NotFoundError,
+            returns degraded_sections=["all"] on other errors.
+  90    K   members section
+  153   K   activity section (active members + interactions + recent feed)
+  218   K   alerts section (unread/critical counts + recent alerts)
+  312   K   spend section (month/today/budget/top provider/top member)
+  360   K   risk section (events today, high-severity, trend)
+  381   K   activity trend (7-day)
+  401   K   risk breakdown by category (30-day)
+  422   K   spend trend (7-day)
+  628   K   social activity: posts
+  652   K   social activity: messages
+  682   K   social activity: contacts
+  729   K   social activity: flagged content
+  770   K   social activity: time trend
+  841   K   child profile: avatar/basic info
+  870   K   child profile: risk score
+  893   K   child profile: AI timeline
+  915   K   child profile: social timeline
+  937   K   child profile: messages timeline
+  958   K   child profile: risk timeline
+  988   K   child profile: moderation timeline
+  1027  K   child profile: risk trend
+  1066  K   child profile: platform breakdown
+  1082  K   child profile: unresolved alerts
+  1098  K   child profile: pending contacts
+  1111  K   child profile: flagged count
+
+### src/portal/router.py  (3 catches)
+
+Module note: likely K — endpoint-level catch-alls that return
+`degraded_sections=["all"]` on unexpected errors. All three already use
+`logger.exception`.
+
+  46, 87, 111    K (endpoint catch-all, returns degraded response)
+
+### src/portal/unified.py  (2 catches)
+
+Module note: likely K — unified dashboard aggregator following same
+pattern as service.py. Currently returns `{}` / `[]` silently; should
+add `logger.debug("unified_<section>_degraded", exc_info=True)`.
+
+  20, 39    K (silent fallback — add debug log in future batch)
+
+### src/main.py  (5 catches)
+
+  166, 220, 227, 229, 240    mixed — startup/shutdown handlers and
+            middleware error boundary; likely K.
+
+### src/database.py  (3 catches)
+
+  79, 93    R-or-keep — session rollback+raise pattern; the `except` is
+            load-bearing (needs the rollback) so NOT removable.
+  111       F — connection retry loop; already logs at warning/error.
+
+### src/redis_client.py  (1 catch)
+
+  44        K (redis optional; in-memory fallback).
+
+### src/config.py  (1 catch)
+
+  177       likely K.
+
+### src/auth/service.py  (5 catches)
+
+  379, 393, 689   likely K (best-effort audit / token refresh hints).
+  437, 762        likely F (auth flow — silent swallow is a security
+                  smell; audit individually in a later batch).
+
+### src/auth/router.py  (2 catches)
+  180, 198        likely F.
+
+### src/alerts/sse.py  (1 catch)
+
+  48        K — classic SSE fan-out; one bad subscriber queue must not
+            break broadcast. Needs `logger.debug("sse_queue_put_degraded",
+            exc_info=True)`.
+
+### src/alerts/push.py  (1 catch)
+  183       K — push send failure, already logs warning.
+
+### src/alerts/web_push.py  (1 catch)
+  136       K — same rationale as push.
+
+### src/alerts/service.py  (4 catches)
+  91, 109, 127, 140   mixed — notification side effects (K) mixed with
+                       alert creation (F). Triage per-call.
+
+### src/alerts/router.py  (1 catch)
+  629       likely K.
+
+### src/alerts/scheduler.py  (1 catch)
+  79        K — scheduler loop, must not die.
+
+### src/alerts/panic.py  (3 catches)
+  122, 163, 169   mixed K/F — panic button has multiple notification
+                   channels; one channel failure = K, all-channels
+                   failure = F.
+
+### src/billing/*  (5 catches across 5 files)
+  billing/service.py:462, scheduler.py:106, threshold_checker.py:137,
+  trial_reminders.py:102, providers/openai_client.py:148
+  Module note: likely F — billing writes must not silently swallow.
+
+### src/capture/service.py:99, summarizer.py:310  (2 catches)
+  Module note: likely mixed — summarizer (F, needs retry), ingest
+  service (F, lost events = lost evidence).
+
+### src/contacts/service.py  (2 catches)
+  177, 543        likely K (approval notifications) but review each.
+
+### src/compliance/*  (5 catches across 5 files)
+  coppa_2026.py:442, coppa_dashboard.py:516, deletion_worker.py:86,
+  export_worker.py:112, retention.py:219
+  Module note: F — compliance workers; silent failure = regulatory risk.
+
+### src/groups/*  (12 catches across 5 files)
+  agreement.py:284, emergency_contacts.py:(204, 227),
+  privacy.py:(267, 286, 313, 341), rewards.py:(155, 172, 188, 217),
+  service.py:266
+  Module note: mixed. Rewards/privacy deltas = K (audit trail). Agreement
+  + emergency contacts = F (load-bearing consent).
+
+### src/integrations/*  (7 catches across 5 files)
+  canvas.py:88, classlink.py:36, clever.py:38, directory_sync.py:(101,
+  218, 281), powerschool.py:63
+  Module note: F — SIS sync; silent failure = roster drift.
+
+### src/intelligence/*  (4 catches)
+  anomaly.py:(616, 655, 689), event_bus.py:49
+  Module note: K — correlation/anomaly scoring is best-effort; event_bus
+  fan-out is fire-and-forget.
+
+### src/jobs/runner.py:(129, 361)  (2 catches)
+  K — cron runner must survive individual task failures.
+
+### src/messaging/*  (6 catches)
+  service.py:(286, 316, 384, 511, 553), router.py:34
+  Module note: mixed. Message delivery = K (other channels still work);
+  send + receive = F.
+
+### src/moderation/*  (6 catches)
+  csam.py:(100, 210), esafety.py:132, image_pipeline.py:193,
+  service.py:(160, 442)
+  Module note: F — moderation is safety-critical. CSAM and eSafety
+  catches in particular need loud logging and should re-raise.
+
+### src/realtime/*  (8 catches)
+  auth.py:31, connections.py:(28, 60), main.py:105, notifications.py:64,
+  pubsub.py:(39, 63, 86)
+  Module note: K — websocket connection churn is normal; disconnects and
+  pubsub drops must not crash the realtime service.
+
+### src/reporting/*  (7 catches)
+  family_report.py:(328, 359), router.py:(90, 96), scheduler.py:83,
+  service.py:(253, 307)
+  Module note: mixed. Scheduler loop = K. Router catch-alls = F (report
+  generation should surface 500s, not silent empty PDFs).
+
+### src/risk/*  (11 catches)
+  engine.py:(127, 167, 214, 241, 247, 260), pipeline.py:113,
+  platform_ratings.py:195, safety_classifier.py:(112, 227), worker.py:53
+  Module note: mixed. Classifier fallbacks = K (keyword fallback on
+  vertex_ai failure is designed behavior). Worker loop = K. Pipeline
+  orchestration = F.
+
+### src/social/behavioral.py:331  (1 catch)
+  K — behavioral scoring is best-effort.
+
+### src/device_agent/service.py:32  (1 catch)
+  triage — single entry, review in future batch.
+
+### src/blocking/time_budget.py:75  (1 catch)
+  likely K.
+
+### src/age_tier/middleware.py:119  (1 catch)
+  likely K — middleware error boundary.
+
+### src/api_platform/webhooks.py:(102, 124)  (2 catches)
+  K — outbound webhook delivery (external endpoint failure must not
+  cascade).
+
+### src/email/service.py:159  (1 catch)
+  K — email send; already logs warning.
+
+### src/governance/ohio.py:141  (1 catch)
+  triage.
+
+### src/sms/service.py:97  (1 catch)
+  K — SMS send side effect; already logs.
+
+------------------------------------------------------------
+Next batches
+------------------------------------------------------------
+
+Batch 2:  src/risk/engine.py (6) + src/risk/pipeline.py (1)
+Batch 3:  src/alerts/* (11 total across 6 files)
+Batch 4:  src/moderation/* (6) + src/compliance/* (5)
+Batch 5:  src/auth/* (7) + src/integrations/* (7)
+Batch 6:  src/billing/* (5) + src/reporting/* (7)
+Batch 7:  src/messaging/* (6) + src/groups/* (12)
+Batch 8:  src/realtime/* (8) + src/intelligence/* (4) + residual
+          (src/main.py, src/database.py, src/portal/unified.py,
+          src/portal/router.py, etc.)
+
+Each later batch should regenerate this file's header counts and
+re-confirm the per-file line list before editing.
