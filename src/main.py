@@ -114,6 +114,10 @@ def create_app() -> FastAPI:
         # Base security headers
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
+        # Stripe domains needed for Checkout.js and Radar fraud detection.
+        # Portal uses redirect Checkout (not embedded Elements), but js.stripe.com
+        # is still required in connect-src + frame-src. Forward-compatible if we
+        # switch to embedded Elements later. Regression test: test_security_headers.py
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
             "script-src 'self'; "

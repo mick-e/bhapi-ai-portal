@@ -103,6 +103,30 @@ async def sec_client(sec_engine):
     await session.close()
 
 
+@pytest_asyncio.fixture
+async def minimal_client(sec_engine):
+    """Lightweight AsyncClient for header-only tests (no DB session needed).
+
+    Use this when you only need to inspect response headers or status codes
+    and don't need to seed data or authenticate.
+    """
+    app = create_app()
+
+    async def get_db_override():
+        session = AsyncSession(sec_engine, expire_on_commit=False)
+        try:
+            yield session
+        finally:
+            await session.close()
+
+    app.dependency_overrides[get_db] = get_db_override
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        yield client
+
+
 # ---------------------------------------------------------------------------
 # Auth helpers
 # ---------------------------------------------------------------------------

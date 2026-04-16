@@ -3,56 +3,16 @@
 Covers R-09 (Phase 4 Task 1):
 - script-src must NOT include 'unsafe-inline' (XSS defense)
 - HSTS must include 'preload' directive (HSTS preload list eligibility)
+- Stripe domains must appear in connect-src and frame-src (billing regression-proofing)
 """
 
 import pytest
-import pytest_asyncio
-from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
-
-from src.database import Base, get_db
-from src.main import create_app
-
-
-@pytest_asyncio.fixture(scope="function")
-async def client():
-    """Create a test HTTP client with in-memory SQLite."""
-    engine = create_async_engine(
-        "sqlite+aiosqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
-    app = create_app()
-
-    async def override_get_db():
-        async_session_maker = sessionmaker(
-            engine, class_=AsyncSession, expire_on_commit=False,
-        )
-        async with async_session_maker() as session:
-            yield session
-
-    app.dependency_overrides[get_db] = override_get_db
-
-    async with AsyncClient(
-        transport=ASGITransport(app=app),
-        base_url="http://test",
-    ) as ac:
-        yield ac
-
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
-    await engine.dispose()
 
 
 @pytest.mark.asyncio
-async def test_csp_script_src_has_no_unsafe_inline(client):
+async def test_csp_script_src_has_no_unsafe_inline(minimal_client):
     """script-src must NOT allow 'unsafe-inline' (XSS protection)."""
-    response = await client.get("/health/live")
+    response = await minimal_client.get("/health/live")
     csp = response.headers.get("Content-Security-Policy", "")
     directives = {d.split()[0]: d for d in csp.split("; ") if d}
     script_src = directives.get("script-src", "")
@@ -62,8 +22,38 @@ async def test_csp_script_src_has_no_unsafe_inline(client):
 
 
 @pytest.mark.asyncio
-async def test_hsts_includes_preload(client):
+async def test_hsts_includes_preload(minimal_client):
     """HSTS header should include 'preload' directive for HSTS preload list eligibility."""
-    response = await client.get("/health/live")
+    response = await minimal_client.get("/health/live")
     hsts = response.headers.get("Strict-Transport-Security", "")
     assert "preload" in hsts, f"HSTS missing preload: {hsts}"
+
+
+@pytest.mark.asyncio
+async def test_csp_includes_stripe_domains(minimal_client):
+    """Stripe JS must be allowed in connect-src and frame-src for billing checkout.
+
+    The portal uses Stripe redirect Checkout (not embedded Elements), but
+    js.stripe.com is still needed for Checkout.js and fraud detection (Radar).
+    This test guards against accidental removal during CSP tightening.
+    """
+    response = await minimal_client.get("/health/live")
+    csp = response.headers.get("Content-Security-Policy", "")
+
+    assert "https://js.stripe.com" in csp, (
+        f"CSP missing js.stripe.com — billing will break: {csp}"
+    )
+    assert "https://api.stripe.com" in csp, (
+        f"CSP missing api.stripe.com — billing will break: {csp}"
+    )
+
+    directives = {d.split()[0]: d for d in csp.split("; ") if d}
+    frame_src = directives.get("frame-src", "")
+    connect_src = directives.get("connect-src", "")
+
+    assert "https://js.stripe.com" in frame_src, (
+        f"frame-src missing js.stripe.com: {frame_src}"
+    )
+    assert "https://js.stripe.com" in connect_src, (
+        f"connect-src missing js.stripe.com: {connect_src}"
+    )
