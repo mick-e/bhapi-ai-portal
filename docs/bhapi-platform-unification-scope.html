@@ -1,0 +1,1673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bhapi Platform Unification &mdash; Scope Document</title>
+<style>
+  /* ===== FONTS ===== */
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+  /* ===== CSS VARIABLES ===== */
+  :root {
+    --primary: #FF6B35;
+    --primary-dark: #E55A2B;
+    --primary-light: #FFF3ED;
+    --accent: #0D9488;
+    --accent-dark: #0B7A70;
+    --accent-light: #E6F7F6;
+    --text: #1A1A2E;
+    --text-secondary: #4A4A6A;
+    --text-muted: #7A7A9A;
+    --border: #E2E8F0;
+    --bg: #FFFFFF;
+    --bg-alt: #F8FAFC;
+    --danger: #DC2626;
+    --warning: #F59E0B;
+    --success: #059669;
+  }
+
+  /* ===== RESET & BASE ===== */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 10.5pt;
+    line-height: 1.6;
+    color: var(--text);
+    background: var(--bg);
+  }
+
+  /* ===== LAYOUT ===== */
+  .document {
+    max-width: 210mm;
+    margin: 0 auto;
+    padding: 20mm 25mm;
+  }
+
+  /* ===== COVER PAGE ===== */
+  .cover-page {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    text-align: center;
+    padding: 40mm 25mm;
+    position: relative;
+  }
+
+  .cover-logo {
+    width: 220px;
+    margin-bottom: 40px;
+  }
+
+  .cover-title {
+    font-size: 28pt;
+    font-weight: 800;
+    color: var(--primary);
+    letter-spacing: -0.5px;
+    margin-bottom: 8px;
+    line-height: 1.2;
+  }
+
+  .cover-subtitle {
+    font-size: 14pt;
+    font-weight: 400;
+    color: var(--text-secondary);
+    margin-bottom: 50px;
+    letter-spacing: 0.5px;
+  }
+
+  .cover-divider {
+    width: 80px;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+    border-radius: 2px;
+    margin: 0 auto 50px;
+  }
+
+  .cover-meta {
+    font-size: 10pt;
+    color: var(--text-secondary);
+    line-height: 2;
+  }
+
+  .cover-meta strong {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  .cover-confidential {
+    position: absolute;
+    bottom: 30mm;
+    left: 25mm;
+    right: 25mm;
+    border: 2px solid var(--danger);
+    border-radius: 8px;
+    padding: 16px 20px;
+    background: #FEF2F2;
+  }
+
+  .cover-confidential h4 {
+    color: var(--danger);
+    font-size: 9pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 6px;
+  }
+
+  .cover-confidential p {
+    color: var(--text-secondary);
+    font-size: 7.5pt;
+    line-height: 1.5;
+    text-align: left;
+  }
+
+  /* ===== PAGE HEADER (screen & print) ===== */
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--primary);
+    margin-bottom: 30px;
+  }
+
+  .page-header img {
+    height: 28px;
+    width: auto;
+  }
+
+  .page-header-text {
+    font-size: 7.5pt;
+    color: var(--text-muted);
+    text-align: right;
+    line-height: 1.4;
+  }
+
+  /* ===== HEADINGS ===== */
+  h1 {
+    font-size: 22pt;
+    font-weight: 800;
+    color: var(--primary);
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 3px solid var(--primary);
+  }
+
+  h2 {
+    font-size: 16pt;
+    font-weight: 700;
+    color: var(--primary);
+    margin-top: 36px;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--primary-light);
+    page-break-after: avoid;
+  }
+
+  h3 {
+    font-size: 12pt;
+    font-weight: 600;
+    color: var(--accent-dark);
+    margin-top: 28px;
+    margin-bottom: 12px;
+    page-break-after: avoid;
+  }
+
+  h4 {
+    font-size: 10.5pt;
+    font-weight: 600;
+    color: var(--text);
+    margin-top: 20px;
+    margin-bottom: 8px;
+    page-break-after: avoid;
+  }
+
+  /* ===== PARAGRAPHS & TEXT ===== */
+  p {
+    margin-bottom: 10px;
+  }
+
+  strong {
+    font-weight: 600;
+  }
+
+  /* ===== TABLES ===== */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0 24px;
+    font-size: 9.5pt;
+    page-break-inside: avoid;
+  }
+
+  thead th {
+    background: var(--primary);
+    color: white;
+    font-weight: 600;
+    text-align: left;
+    padding: 10px 14px;
+    font-size: 9pt;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  thead th:first-child {
+    border-radius: 6px 0 0 0;
+  }
+
+  thead th:last-child {
+    border-radius: 0 6px 0 0;
+  }
+
+  tbody td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  tbody tr:nth-child(even) {
+    background: var(--bg-alt);
+  }
+
+  tbody tr:last-child td:first-child {
+    border-radius: 0 0 0 6px;
+  }
+
+  tbody tr:last-child td:last-child {
+    border-radius: 0 0 6px 0;
+  }
+
+  /* Accent-colored table variant */
+  table.accent thead th {
+    background: var(--accent);
+  }
+
+  /* ===== CALLOUT BOXES ===== */
+  .callout {
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 16px 0;
+    page-break-inside: avoid;
+  }
+
+  .callout-danger {
+    background: #FEF2F2;
+    border-left: 4px solid var(--danger);
+  }
+
+  .callout-warning {
+    background: #FFFBEB;
+    border-left: 4px solid var(--warning);
+  }
+
+  .callout-info {
+    background: var(--accent-light);
+    border-left: 4px solid var(--accent);
+  }
+
+  .callout-primary {
+    background: var(--primary-light);
+    border-left: 4px solid var(--primary);
+  }
+
+  .callout h4 {
+    margin-top: 0;
+    margin-bottom: 6px;
+    font-size: 9.5pt;
+    font-weight: 700;
+  }
+
+  .callout-danger h4 { color: var(--danger); }
+  .callout-warning h4 { color: #B45309; }
+  .callout-info h4 { color: var(--accent-dark); }
+  .callout-primary h4 { color: var(--primary-dark); }
+
+  .callout p {
+    font-size: 9pt;
+    margin-bottom: 4px;
+    color: var(--text-secondary);
+  }
+
+  .callout p:last-child {
+    margin-bottom: 0;
+  }
+
+  /* ===== BADGES & TAGS ===== */
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 8pt;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    vertical-align: middle;
+  }
+
+  .badge-danger { background: #FEE2E2; color: var(--danger); }
+  .badge-warning { background: #FEF3C7; color: #92400E; }
+  .badge-info { background: #DBEAFE; color: #1E40AF; }
+  .badge-success { background: #D1FAE5; color: #065F46; }
+  .badge-primary { background: var(--primary-light); color: var(--primary-dark); }
+  .badge-accent { background: var(--accent-light); color: var(--accent-dark); }
+
+  /* ===== TIMELINE / PHASE INDICATOR ===== */
+  .phase-banner {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white;
+    padding: 14px 20px;
+    border-radius: 8px;
+    margin: 24px 0 16px;
+    page-break-after: avoid;
+  }
+
+  .phase-banner h2 {
+    color: white;
+    border: none;
+    margin: 0;
+    padding: 0;
+    font-size: 14pt;
+  }
+
+  .phase-banner .phase-dates {
+    font-size: 9pt;
+    opacity: 0.9;
+    margin-top: 4px;
+    font-weight: 400;
+  }
+
+  /* ===== DEPENDENCY DIAGRAM ===== */
+  .diagram-box {
+    background: var(--bg-alt);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    margin: 16px 0;
+    font-family: 'Courier New', monospace;
+    font-size: 8.5pt;
+    line-height: 1.8;
+    overflow-x: auto;
+    white-space: pre;
+    page-break-inside: avoid;
+  }
+
+  /* ===== SPEC TABLES ===== */
+  .spec-table {
+    margin: 12px 0 20px;
+  }
+
+  .spec-table thead th {
+    background: var(--accent);
+  }
+
+  .spec-field {
+    font-family: 'Courier New', monospace;
+    font-size: 8.5pt;
+    color: var(--accent-dark);
+    font-weight: 600;
+  }
+
+  .spec-type {
+    font-family: 'Courier New', monospace;
+    font-size: 8.5pt;
+    color: var(--text-muted);
+  }
+
+  /* ===== TASK ITEM ===== */
+  .task-group {
+    margin: 20px 0;
+    padding: 16px 20px;
+    background: var(--bg-alt);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    page-break-inside: avoid;
+  }
+
+  .task-group h4 {
+    margin-top: 0;
+    color: var(--primary-dark);
+  }
+
+  .task-meta {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+    font-size: 9pt;
+  }
+
+  .task-meta span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .deliverables {
+    margin: 8px 0;
+    padding-left: 20px;
+  }
+
+  .deliverables li {
+    margin-bottom: 4px;
+    font-size: 9.5pt;
+  }
+
+  /* ===== TOC ===== */
+  .toc {
+    margin: 20px 0 40px;
+  }
+
+  .toc-section {
+    margin-bottom: 20px;
+  }
+
+  .toc-section h3 {
+    margin-top: 0;
+    margin-bottom: 8px;
+    font-size: 10pt;
+  }
+
+  .toc ol {
+    list-style: none;
+    padding-left: 0;
+    counter-reset: toc-counter;
+  }
+
+  .toc ol li {
+    counter-increment: toc-counter;
+    padding: 4px 0;
+    font-size: 9.5pt;
+    border-bottom: 1px dotted var(--border);
+  }
+
+  .toc ol li::before {
+    content: counter(toc-counter) ". ";
+    color: var(--primary);
+    font-weight: 600;
+    min-width: 28px;
+    display: inline-block;
+  }
+
+  .toc ol ol {
+    padding-left: 28px;
+    counter-reset: sub-toc-counter;
+  }
+
+  .toc ol ol li {
+    counter-increment: sub-toc-counter;
+    font-size: 9pt;
+    border: none;
+    padding: 2px 0;
+  }
+
+  .toc ol ol li::before {
+    content: counter(toc-counter) "." counter(sub-toc-counter) " ";
+  }
+
+  /* ===== DASHBOARD MOCKUP ===== */
+  .dashboard-mockup {
+    background: var(--bg-alt);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin: 20px 0;
+    page-break-inside: avoid;
+  }
+
+  .dashboard-mockup h4 {
+    text-align: center;
+    color: var(--primary);
+    margin-top: 0;
+    margin-bottom: 16px;
+    font-size: 11pt;
+  }
+
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .dashboard-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+  }
+
+  .dashboard-card h5 {
+    font-size: 8.5pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  .dashboard-card ul {
+    list-style: none;
+    padding: 0;
+    font-size: 9pt;
+    line-height: 1.8;
+  }
+
+  .dashboard-card.full-width {
+    grid-column: 1 / -1;
+  }
+
+  /* ===== LISTS ===== */
+  ul, ol {
+    margin: 8px 0 12px;
+    padding-left: 24px;
+  }
+
+  li {
+    margin-bottom: 4px;
+  }
+
+  /* ===== FOOTER ===== */
+  .page-footer {
+    margin-top: 60px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 7.5pt;
+    color: var(--text-muted);
+  }
+
+  /* ===== SECTION BREAK ===== */
+  .section-break {
+    page-break-before: always;
+  }
+
+  /* ===== VERSION TABLE ===== */
+  .version-table {
+    margin: 24px 0;
+  }
+
+  .version-table table {
+    max-width: 500px;
+  }
+
+  /* ===== PRINT STYLES ===== */
+  @media print {
+    @page {
+      size: A4;
+      margin: 20mm 18mm 25mm 18mm;
+
+      @top-left {
+        content: "";
+      }
+      @bottom-center {
+        content: counter(page);
+        font-family: 'Inter', sans-serif;
+        font-size: 8pt;
+        color: #7A7A9A;
+      }
+    }
+
+    @page:first {
+      margin: 0;
+    }
+
+    body {
+      font-size: 9.5pt;
+    }
+
+    .document {
+      padding: 0;
+      max-width: none;
+    }
+
+    .cover-page {
+      padding: 35mm 25mm;
+      page-break-after: always;
+    }
+
+    .section-break {
+      page-break-before: always;
+    }
+
+    .phase-banner,
+    .callout,
+    .task-group,
+    .dashboard-mockup,
+    table {
+      page-break-inside: avoid;
+    }
+
+    h2, h3, h4 {
+      page-break-after: avoid;
+    }
+
+    .page-header {
+      position: running(header);
+    }
+
+    .no-print {
+      display: none;
+    }
+
+    a {
+      color: var(--text);
+      text-decoration: none;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================ -->
+<!-- COVER PAGE                                                    -->
+<!-- ============================================================ -->
+<div class="cover-page">
+  <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAABqCAYAAAD5jB57AAAACXBIWXMAABYlAAAWJQFJUiTwAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAACi8SURBVHgB7X3rcl1Hdt5afQ4o6uIhYIm0+YuHeQFCT0BwXkCQq1IGKV5AV6UqKXtMME5VxqmJcTBT8YwrTkhO7IpTUzUABIrSVH6IfAETfIER+AIh+IsZURRA2yVRxDl7ea2+d+99bsABCVL7Y4FnX3t39673Xt0bwWLrk3OLRbeYB8SW7CPAekG4+t7FWyvwCuDJ2twiIs4T0QmuPRLQOhBw/T9bgRo1+uDR8lzrGTzbPnn59nZ+DuW/r9fO3mWCOm0Pof2faQ1QAbanLtxaggOMJ2tnv+Cf6fiYqz8Atd+98NmBrn+NF48Hy7OTk4feulIUsABQHDEUA5sKcQU639yYssyCX308N8+nfm1uYxnsCUtAJAe6O/TDo5c/W4cDCNEcXO92fCxiDpJ9RXhm6uKn96BGDTAa440JvMvU0ao6z/Sz+d0OnTl++TNhGHXFaA3UBBUzhzZVRItM0AdwUEE4Lz+a/90h2wbUyhCxUMUs1KgBgTl484Tsx3TjIIzzxoT6XLYV73rTxBBU2Hb7SGoaDiC2lucnUWErZWyB0RyeUUi1oEYNxqEJtSgMILQRW0uybZiFyByn6a2bZy8pd6M96JlCNs1+mcMODp5NEuXVM5ovbBMVAJNQo4agoJlcgBoBS2DIX6E73i3oQ88g7mAgOFfIAeYPD+M7GWaO1KA3HWvUsEDndxjCzmkmpnfmlVPKSVl7KCMu+3ugScypRMDYzArmIpGCGjUCREvkgtMcy7QBwbaqlrKlCw8wsMQUzriMj9WoIZDxPUMbqZnFhji5QFW4GDescCVKfQ0sObwHFWn0yjQ8VpPSAQXUqGGAUNy2W5nkLEvSgopVldpgKTO4MCkcYMSmVVzflOFfBT+qxovA1IXf3GDaWI+PVSkHPnDj6IXP1pUbUDO/qYpxkvhVkcC55nDb6mA7UTVeMHDnjQ/5Z9XtB3PcMIowx3sXPl2Q7Sa4U+H2zLx6FYz4XvU0LS9qBqkRYeryiqSRzH+1dlbMLRlEPiFswY7Gff7/tmgOd23TbaQpJtFR0KOJBxbGITc/sp+2wWjEOopVowqsJYRBbve7JhoHSQcF4+jPQTaxnHrsHeatw1g1do9IuKaEFNvzr44ELvtPgjqKVWO3SEwsa5JEp4P30g9ba398qoDGDMvwFsfGTH4UuRJokwu4XyBtxLbd+BAPciosR6y0f1J555ef/NvpBh2agaJ7ijWOpKNM8qWTBdG2OPaEsKEINztQ3N+fuo8GnaLdePMUN3W6wC73NU6inb8j0H2N6iHb0RsNhV9MfXTrIRwgSP3fgcPTqtGYBkWniLqTCpRPAzL1h02laOPZc7wv2bSwz3i8NjfTBHVKhGjR4fecZa03fdUCmdksXkdoiEVFlPTx8tyMmsAPeJj9EseLJ/UUJTFxjE8QYJlLCO7J2lkh1dtcmVVr/40BSVDBtyGYWyl3SzbnoSZc4hotCDMDdI0H4+7R7OTDGTPEPcFMgl+vnXvADHPv+U6x9CJeXAx5idyIRYX8IommdDvFs9JvicCk2kgzdVaE3ir4pX198+wGH1h/vkM3XnSdHTRTN9+6RCAZ1Y1p/p20YRMSgZaNK+ifogB6YwKl/vfZcV5RCm6Pm9m/XD433WgUn/MIequwBKua/My1uQffdeCHrr+QibbnIIFLYGS6uccEfUaO2XThZT48U3aMXX5LSHisjjBph+chD14u7WXG3xbXpWjig0HXyezCnQ5cPjQBiyY93tQpnTeClXWtDF4grTzfgX1lFCGsHzQPX9GMrCf0mNpgNtclHcOqaoOzAhQPekH7RWmVtP40aWtaEQgKyM+7ffllnlltoBpL/TUNNxtfEHSPlPtPHsxabOfb92XSVOReUMlBjwhf/y+Tkw4xQQpzuPNUUhdmDkkvCR6aDi1+zvKTm3PLW5+cOwG7Rj64GYw7fwxw+lBTfcFnLvmrII949UJF/ZnJpB+21s4twj5g6+Ozp3/QePMLmQjGvXkkTgdK+9UwRDzYW51ao2nsEmuVzf2qcwzReK7+wzKHIB3wjTMjhKhwXupvJsjtDSIoRZNJ/lWcnuRoh4+cKCbenNfbuQbxIipuENuGfHyTL5yBvEkVBFTuDDMzsaqDdKXEzlc7f3Tso/+7ASNgWA3SD3HeVlynMF/AmDDVkll3723sfHt5qmI+827AzHGtQFgo1zOuS3qsLNDSOua/TApsRhQ/3A8NuHXz7DV+yJXezJDTAlGVFO/LUKinxs7sVps8+fjsA5fVW/2uNVveYetmVmGakkFpEpd30lsyZ70snSrFFVSNp6REmFIkl32yUTT/USaowB6BQ8xfibVMmt5vpHFRQCSt0UvsHikJszTx5l3YI8QkkbUBqpgjzXQIbXDH3FwGdy3aiT95XX1p3N9vNNU/SpACxgSp/1drc3fZ9VnorykQKZvSnW6b9xDTX4lG2fpgv2F91/VHsV6cexCGCeJ+YsbQZq1KbT7Vxz4MmqVc6Sr0S4DM7Xy9O8WNXh610YlqLNnnyROjEHBq/gUTxby8wBKpuRZngWblTT+5eW4Zdgljr795t1pDl/fL0jWdD9PbvA37VijdHQeT6PqzkOA3MVPV967OVUdNfyOEeiMGOjRaj6JZf74NzCR7qX91H0VC0lZXhROOAGJ1F26kbIpibkKFBlDFi+pf0ThiJo0WJwqGhtMC1U4qJoOf1UydvoDy8dS+T1+au09s/Cc3zy7ALnCk+dYyl1059bm8n0hXL3UpGyhN3yP1EmaTorlH6+8ymLl/zT03nT43qQnl/kUAUW7iBkGcvstcq/DfkdHppR/Qa2SXv6fCiVC5+OLAtdTHyUodyF4EZ47lLx8o00qTbzRxaGkcVKMz4zJzgqrMJerDKL20TxASMcM4e1o/m3Bxi6UpjADtdCJ9kJugpl9y36KkhTG32/M6p++xElOHJvDuqPV2kPXU+OfDsrNLkRlr6hmO9zb/MImMYgW9BVq0/TLJUdXPd1v/FI75wmOb1RcFSUylUK38FJGqw21ms9tsuN9jMbrZ6cDm4Qac6CJM8W2nENQsRwxORc4P9NZEtgZsajxZO3fl3Qu3bsAQwGzyvSs3N0VSTaP/X+e6bVCB96XupnU8+KYjbHCaTCKbqyNVlxfVgiM2hQ5twhIMASP59JJF/sWk/kR1ayVszTfc47pudHdwUx9tFpNNUjz4VkyziSIMNwVRMdTHaeaWtThqI4R+FUaA1J8jS21TSkFBSGni9vU1zdK0ZJ4IuM6NuCN9XnSi+vOAXZdoBm2/J3UsC4f47DRNvD10/asCM3G5mvncmFp5HMRUplxIZroAbvOBG6rzzfVBERw9KNOkZcgWd7NViiRzIi23ueyT/cqWKBZN4P+r0hz9IIzBL2Jp0Oi4G1Tkyi3G2iPMPkvbMGy9HSSagsosPyNItbc5Eu9bxlgaZlR/a+2PrxAqdpjNSpPp2bRcB8Xh+1HWD2OT8oEJ10NpbAZLfpIcphXF40dTA6Jn8l47TZhnM2fR31pVXoau6rw/TCRUaD5o1DSA5J7DR9Zl7C9a1SRwvPwfO6RlFBvYKd5nCd8ehhCOXb618e6FT99nx2fJPQtL9n4uOVkaq7cG2vS9VXEv4MLvn//0zDBEJmFQWZURd+jf8IM2vSmV2fcu6mXaVBzpNEwMvR+++vjcvERTnKnQ24yy2hzh6nsXPjszbMqLnhi0Q2e4Rg9zfzKUGz8JZXC+DUNCFhwEvfAaVQ5cJsfYylCqmH33/GeXp4YILcs13M626tBJWe0wlJcipyFVNK/BUAgmWhx4smfclimzfCJ2to0DGLSKNjM2VOe7M1O7iKFLo/k5l2NmoJ4RF6kdXRmmXOcLhPrm5017WO5fHdZsiyFtVV0QYtsO5dkt8GNNnllZJg1caI/vuVJ5tASiLsGfvHv+0+uwq3o/e5/N3PumdIR07bPgK0jv8NaMpBANUzYHmhaxFKXM668pZlv6buqj39yBEWHqr5l8s3w2+ITeh2XTXAYpYUiUrZZEUej/K0fSA/FaO8yG3Tj29fDpzrdn9jIoZlJLikwz5BLOY3LwCzNREPMXT7yn1BlEtXr04uhE5mAEQrFUNids8RFzcgz9dD+n8ctlCU3SdN6OUFYgvKJQPz22h3QceVfYOaSJzAmmakfY/Komzg4qU0b6mdVaZEO0WAoARLQExdUptiBgl/BMwqZrzAyxGUfRuIrCYVYB7WECQllTqfyBURHRTcbc6jY6H54cw4jxu2Ze8N0g0XqbSNikAS8MowiJc74VxhJNh+12iiXYa70v/uZ60CJplWO/RDq5A4d7xucbzeY8VLbDlWVfEmvro9dutWGPkBl0im16+5RSQCNj9kuDyiuUXkXf3ulMzjgCZNvCPsc4VtfXTALdtq2pZwanQsC3RduJ88OVilkf5LAmVhqVySM0kdpEWB01FaQf2En+qWM8ryIzZjESQw0lEeK93K7k8/enxpRWwUWvBru7dx3UBPYbwDqNSSi0Giy9BkrzYTF17tN7OmqXEFgeodRbRwabKWF1wtzJNYLC1V+1YUwQn4qNwHvhiKHNdCRc09KRrSEGD9OASNV7SEysyguSF17shEnu44A4myjf8IDYpCsI8xFvdgSHiXHnKSOJXQkwljwpgWpwiDLpmqq+I4IeK4fLesJ8/lTlPfEeR1HGnXkrkbtgEmEyphPVQsRSTwLToWndNsS0H5wmdxYbrYy7/khY4cdQ5geJWTpxGvqVk2ReEJQzSEKZyUBhb3WD2/vx+QPuzju5PV9lF+7ARAsGIralM+buL6hHw/PifppyEgcGElF6pPL+N747ZSRfnlulckId2akdhGbn2QaXu019xqAEqpKBDSaagXlibWEQmYkF3IMxQ3XfWCkfrWLwoq8Gce8v97V9CRCc8yzVJKjfpDgqxmZaxeh2O+tmKybuMtRE8xTsAaq62F3i8Hbq37jIVSyNtXRtVd3dJTxZdbxEbEhj73PtsANt4KD0G+y9mj9f30r2MjiB1+ima0+NA+JLoRvQLflPkZDt0feDgFFOnpumXUo1CTZpFN4F2hcGmYC3N/tfYaU0Uav/Nf1URC85uTvYl1QisNzx7TUPnjpFC3sk7sXtEGkP+wB+wMNefmdkevQ0aYsuTYbre3Us4tQ+pNJrEGykkURn/bi6aD+k1b8QxGAilq0X7erbY0mYF7M8Iy8ZEcdmw8cwxBaiEHmc3hFNUfRPvXB2dS8TsRijhSUoO7qV5yrvVQr6jAgHU3dc80vKoAfuGdnx2ORo9bqbL2gFoRD7fe5X09Em7BP4AU8pyYmjTEANloYxM6VmLrqjuQbxl1dEOPQc4XHaKJA+M4QL3V8Kts6VGlBGPhodnZH7YT9QNQ7itvXLq7yr3JdpYqIted/62z2hSnMMA0zGDygZIghRSByzSIpAMUOUInA2gDno+XEgJ9Yg5dtKqSZxqNVlqiqFY8iUHITYxCAfZTD7RX8TKpSQ2aNDiJNdoVx+GuqEnkxZxezkU1ho/wjLP0zeJSYEnjJk/zpQKefKmClxG/hnCvYJiDEtVrdDsi/7lWHF5lAaR9LeN5PCI2dxGJW7F8iIMlYMTqZp3tLh6mHvUrDCnk4HPcctj6u+L5GjT+RsKxcEYTuETvc2T783cicbk7SZ+LfH/QqT+9LcNM8wk+NJP6+qQJV/lEZhSS81NaCUSIvkGjyGfG9qs+phyRGFe4oi9YJqTEyTTVcQVIcfOSTaLTZhSOROsykYxoqyKq4IFPTqcCUCqSokjVHIkagruV/7AXQZ1UHqVgmpnqDUPIkc+6TfO83DY5vOmz4+rKYT6pw+m6X+QP8tZuxqDW42FZ+77x6SOrqR6QJwQvJvYMxQ2P0gVLbXyyFqwqCITh6J2F9TBUuj4FjSKD0nL/M4SnqAKiNabKONvb9FY5v0934Y0HeYMnXQ8pHCNlGgsdffjfDnJmEeLCAcJFCJqpM243doNhUXvuEeSj3SrrVXj5JeMD7IiCyBmk2rXfFuCB4OjuiktmhOrMWYVUis9ap9IOiptXT4k4KEKwsFH7WYHbeZ0phoXMk1VhoyzYmvAlTN0KnZpceGFsZdf4Xqkn1aD+HkNIK6ByOAskFb/Sz32+gevl31sl1FIr/gyvjm/prP8ZafWRVGUOvQF1SpblMMMBt2gVSQ5JGVAfdiGHilipwu24bJwsySGwtMikj1N+XzkOkwqAoTu19f/yHm8wwLqT8Xe8k+qSJaGerV6Awet+tXhsCHeWUsoqBi3RSuSqG/KKlrapS54v0gMwy54Hn/JP+88ksqdorV/qWFe8wnfPfVurLIl9ZJVDOaUAf1u/tOdXluz748KhZGmd/QD0EgVZkoI0gQRKy+JyzS4f2TBv35uISqzJunKLxcNV6m/wjuDRqkTDOA3bFqo1jZsyvmsWkEi7LsXlkby07S3zWkwxoT9HnOCFXRBBlwGj4HTKfEUGpumWeMexwkjbYlvoi/ol96S7P7xgrH6rcwyWIGqIpuNRCX90pkW5/MLQaBlAOzsO0Ae5RyWz2cSMvTDDM1jgUVZDE6N7XXCdJegpDPrwwqr8TIGMJZOTTtvHf+01XUnv8gNYsok/R3u3ylnuPNksBlg0JFxWOm5GctDSoTo/yZsiTH8dtWEPtreeBKE4apU58ni9ZmM+sOlVI+XJg08f90n+027CurpjAJLAbi6uVDxP5IH0RU5MrDJA8tlGdxShbW2w2Ty3pbwhyyGJ3sx/RRZmR5pnrKP+swNFK/K4lk2Z8wUKgnpPRjjnCugGLx67Wzn4/SaFmlhE2030IWRekVuZIZcOOYbCPYr++DpMTsoikmG2BQBnFBZvoAJhOYEMoZsiaKyMJigwXTUFOQBfJuZKVG3lxMAzCYmFfxPUOZp0QlUzA2fcqX6+dOC5N/NcLKmXp9YmYsxxyxRVBVKe2a43CrwFeZx4HZbfTK/vplf2RCytdrc7N85WmyajSVKEF16j+EDw41cfbJzXMrRJ07/9x5vp7PNtTf34DGBxwCu8JkM2WDub6SpvOKinV79dI2A7WH6RqyZZI3VyhLQ1D7pUeStvSUoJWQ+TBPbs5x37nV5qujKeE4O71A1/kdXeF7fqmwuMvvLAkZi8T9veabM0rWxgWY0T2Dqg/hj65hNQlhrzJy5ov2xUQCWHly82xbVvVvIH2R11+YeuKQmlEFXSpklUmqeo433yL61OS9CZ1RZo16+naCCZwNECNZFws7cJkHHX4rDrmtSiTZXI0yVcy2LUJj/gfNN+HrtXNbTPJPRQiyEX7CCENMEmOCDakrBLbhFJ6hHyvfD1mBAXjGf4eSEJ+fhpkS7BCCcTfIbdmyUOkPtXP4atF4Pgs9smeryuLdk3zkWsHK/+ubesmmh/bEESlHXy997N8T9fAXMFBI/MScsEuVjq9GCARLEPcBBKsloSGxIHjz11x/1N+L8ZkckkJCk6JaqaKuoT8wM0vNllLYnro4XAZxrvnSbABT1yI3sQTi/fOppXKBPpLVQ6VaCQiFvKAWX9bqJw3zCoVn6P8eDjt//HBSB1e/8pKn+2NiYdIHeTbAMNBzxcnMFQ+2vCEErHSWqRTYkP6WwT8+MUV+0C79hcq69zNZesOKHh/hJEqXjo3rltY1MFBgIl3Hlhm8pB6OPGLuK5TMcoTVKfajYSQMMNfsXinAI6YWP3EpvjjcahqJPfN3MHkhWDFvIkiduKN9wx/KWk6jzSXIbcg49cHs75+JVbbHR8XUpVt3ZL2w2Mx0RFcm8JwygoNc7bRWEFN0nvr4Dr1ABH3WXCbPOO7a/Jn2f6quYypwy3QG2XV6c/Ofdp6NtCJkdZmu3FTAVkZAZUE4s8gbVmiBQYtSx0xSlijGBFJY8jvkGyQjM4d/irdFYyJzzxj3fBAsRc6IyueHh10vLBJKtpTkNyaecE1qi7vrc6EWCyjIiC9+Rvn+HP3bNoSJBmUmc+8qzOvpr40j816vVzaOlXYwi8RVzgeJIS+Nb7lqbsakoOqBFihpll7OoZGOFJe5oRcXG5k5DvftGPLJa+NbtCEuNyA3F0fXJrKCYxBKoaSyFo5NlPx5vc0pfY3MR3c+C/jM2wrm5nBpD1A2yJhr0og2NvszEyWaPphrMEAA+2dtqIaa2ZVA5TGoilKTZ/Y0sWK8e/HT67L8IxXFZmwO9VKh5c7LzmbmghHwcOP3z3/6/m4a6uYo58lqeR3k45swRqBdjQX7JHiyDLoPI8KtPIl+3rVCSpxcyPKdbH16mrzBP5J1fVWX3gc9ik+eKHOGJBMn6ZmqgZV5UOF5UX1njFasficJ42YOciyE8+Mm6FPcUJ1vz+x21ZRCvxvK3l3aNtYg+v0NHGQWwn334mcnOQ7/J0C9p1L24nqMRj9jG5T/1pEa73O0ak/5OkjF9V42qu3UTbVDt2GMKHzmASXmgpeeLKEaqjHkOrEpZOzHrKlLK5SY2nnEDErnysSoe2CbSUGv66sXYOtwf5F6Wv2+DNFyBGcVeqB64oTrb+XfrwRQRCuqDuh1jV1tyuZcZWmYZ3jrvi7gIWvZM+9d+M3CXqYkk159P/6WZtZvhNuNDl3Xz4cRIYM9inDBfdIAS6FIZ4NSyQ+Rl1VAd5Uvvz3O744/XptrM6f/VS4NNSE0uvPv7WJd2OGeGVYfF6AJpz/tAl09NoZBTp150IBFLng+9DNV2vgYR+K1FoCtbkG//Jfi2fXcRpeFp/nCZbQpFontXeBSv9Ucv1qbW+GLL/Yiblc/Dru2Ygkvn9fjE/NE7itakXbr0y7btnU+sTJ6pKo3zMdA9UdGKQkWsBnaocK/v5EZxEGWqO82uLEo30qHlnxjgvkx/aKpNn+A1XXxUJhCVurYr8UI9Grjti7GpOiuqx28sW+ra8gz187OMpPwi7czLrFYV9i4Pu4F0ySXqcsDgLw5wzL6FBU4XeprWX0ecYPrcr9JeHfQZwxM2o9aRPm2hi4L1wsqVgcJLm6zMMglGIC3mEHerOgHPRjYkHboFTNbpIcFohCv/t4MSdrTOg9G3H/epdv79blt+xFYFvZ0SiZZdaXvOsyI0fN2zSA1vp948vHcsmi06rPBVFFKnXxR32TfT+zPgh81Xl9gf9Oqt+n1aqJmkBqjgagy6vO6ogk1dg35dolqyPco9FI626Rg470xOpIHEhJ/1MMnNnpmg0wmJZTCNa8A9OerG2/Pg16LmPT729mhe7HPUzPILqAdTYkC6YUVNF0YgugCfL16brFT7PzRscvj+1TEQYPkmVoecUu0mfzQKJp5GA42nqzqqQNtbsykTe5E5Pd3iPl8a+1ce+rCrSW5rjaxRoSO/iDeBUnH5gERnZOgU9RYbprht1YDm781X5F6/aCZQxKEQ7t126kL6PblmmdwcMHMscgRMh4PokltMBa+7nrNuaJL7SfLczqEXzPIiDgEijuXQ8kFakIwHauz97ln9TGUvwY1P9+3xdNeJnR77Ywh3wd66FdGUPWf1qnfwoHEV7/+6BIzxyJZRnZtsH9O4EnOcvvxr+ZmagYZAY/+91yLO3HedC4ZYilswowlHJGu8sdbraL71sDxglcOQkCFYQhy7faCwibZ7dcUzjGAa93mcSQ9I08zNVmNaLf9OxXmaeBizSAjYGKiOW0JxHRoQVbyoNEeLrMnEEn79dMi5jPxaAjJmiWWMcj0BR1QJ/3Jr84tsinYQltP1N99tcLOv1ci42NpbThdM8gIoG63hU7qWNJIJGjhto2ZwR092X3+1jK8TrDti4gIKfrz/XDAoLU/iVMO3jQWkwq1HrFvVQs3ZRPSQNoxWTPICGB7dduZVuY3lqCgCUNvFaHz+d/s4/9zdmwLqL10yBRebZaA/oC7FwqFOeYY6KDhEKq7UVDB11UnLGq/0ZhV0qbIF9muGWQENJ4dug0uglPYnGTdmQqpsIkWhc4QDU6fHOvi4pd/f+61iGoVXUtcLmLliE5LXadBDtb44ZN/+Oia5HxR4etugiqgmcQwdUEUGMhaCQXcrhlkBExdXdnmjrwB5H0QMuYGySrg5DofIvvWdvokh9c/37o2/8r7I2yMbHq/K3FsARNz85+/eQoHAE/+/vwVfhNXTBgerRAzE2TSOruQvfEtpWXPoViqGWRENJ4farNk2bDOnIl2SOzcSU8XBtUmFoZxA4IT3Ymdz+FVR6HWrZagOEzqNasRGOtTV/frE3LD48tr56aZC66R1/jMHl3xlQhiX0THtiTgYoWdHgspYOn4f/hss2aQESFapIt0mbpZqFN+uoZhyIdBAZzUMsfo9OO/+2hXE6kOCo7+6OY6t/GXIWIHjimcbb/VhF7Zvi8Oj67NtVQDPrcRRs0U5JhE19eN3QA4IYfkzayVo39aj6TvGsf+9NYGd+iNOKIDNqrjnD33ZzQIWfOLz3Vh4fH/2tv6xi8b7/3o1oIqqI1OCtsQKW9vKMIzU3/2ctPchTkmVOOujEW5gT80w7kUOekQhBmR04Jc/60Gj5W4sur5ILuE+BMd3LnLm9r5dlPizLab1FeGm+DEbn373StGSr2qeHBtdvIdeEe3n02Z7WNXb730/DOp0+/h218Q6JUc/TsRxLNf3eRognjBc5CGXD169ZPr/h6osWuIpGpC8wvJ6ZH9ZPqxm4efvCJn8er8RtHv7aNXX20mOUh40GaG/cHbd1FmXfr3QEZzo+11iOYmm6B8vHDoyntXP7kcl1mbWHvA8avsxNnBJzMGCxANHqIeJwiRHbIpDOjMLt5ffHzt/Cttbh0UPPr5XEuYA2QKsYlOmdCIj1iRG58SkE8Vcv4jwOYOdEvCqtYgY8CXf3t+xczTDgtWeBvLrl9BERG6Vm4JYdv9CO2jf3Gz1iS7hDBHo9kQzXHC9i9YPW1HaBDN6JReYsjcRJSsdNFpdE6KwMvLrjXIGDDRaC6wRNo0YV8TJUHvGpLN90Uf7dF5QCGdQeaRtB//91qT7AaaORrMHIAtl2RIXmODCe+Cd86t5jDvKAqyLFQxh6DWIGPCo5/PtxpKnHZsWccjrGrvBJrbtoavm6hjT8g9dzpF5+rxv9y/lVheJ3z1i3MfcLhjmelcf43AhKMQnQ6xI/zgPmpgZkAaL8Sc1u9o6Q/+8812r2fUDDJGbP2P86c6HVxnKWWcdvDvyAP9ClDBo7fmlzkPuLlDO2dqJumPxz8/v8jC3/h/SBTYwPWlYRZ3vTFvvekF9lM560f/8uaZfs+pTawxYuovbt7vdOBq4pjHcXdznNCqejeIaMwt7UTKWz3RpOaDL35xfuivSX2fICbV478+z844tsFn5SJSNsNRr+lPNuPYZu76jGMzXWHzX75rfjjoebUG2Qf87mfn26hg0XogaR+bFMdoBSl90C594H14GyCm1e5Od+l4u9YmAu7XWaVwmeRbIq7/go7IO9V2q1860sgis7fZ3WEtPUS/1gyyT9BMArAY+x+xK2J2bXQl/mpS5JSYy3GTt5aO/dXaCnxPIeMbbzffvua+8w65k+GGPNCZVWT30S3Xqo8os8rpZrfT+OHx9srmMM+uGWQf8fhnbCcXbAo4VeIkGpmpIgLnURL4sXcKYUkbKTbe/Eq32PneaZMnP7t4ha3PNrf/iFGsCL5vLH9I3yn3ieEIbqn6SIFsdovhmUNQM8g+43dt0SS46LSHNZ10bB5N1NfyTbinZD3oHcNYfOx6B3ZuvO6M8rh9foZkcXCk0zYypWUIudFwiAODBMlXqpxG9vdobBbQODMKc5giauw7hEn4pXlzy6U7uBBW7JN4Waf8pB7QXxVwg40mK/uhIlw5+tOPl+A1w9Z/vXB6R9arUmYV+DhUrnst/k67O0UhCgiOg8J9ur8OTXRnpn4yehJlzSAvCL/7yflZVGqZX/FkbiQ7YOSmxwa0C8b4z9eG6x/wsdXO8+erx3/zamuUxz9hjYFa084YK8pHw8vCA6N00CibyvVTInQQN75R6szJ9squ5qfUDPIC8ag931I7XR71lZQIcLm/4csfYOexq5RxYjji8PvOjkBYgW73xrG/fvkZtcPiwQI73+/84BI3aJal/Iw7brVkiDxlSAWFy0OMB2ed/IHrx362tosPfMbPqvFC8ejH8y1UhTBJC8B8xNy/Tif9nClhOcHmoWJkU2irnKJr/YAj6NmON9ihXz+oWuXxj1lbNFDWNJ7nuh6RY6ahwfE2mbdOe7rQd/oVIQjDrGZ03GldnXFCV//wv61dhz2iZpCXhP//Xy5e57f55xCPfGTOure4/HE/EhyoxZ93hBOS9fiCdd65UxR09w/+5ubI30wcF0RTvHP4nWlmZM0UXLvJpC1RRqflkYwuY8MqeHF6Vo1x1OJ2bxZUXD7+i5vrMAbUDPIS8ejHF+abgP/T5RI5mqn6Ph+y1x6McVtAmNhgrwf3Za84q8JhE4RhlKTCFBv7yTDCEIeZIVShTrNMn+GKnRLfy/tXrra2Efp/fw7LNJm0hwiS70SjT0aQj7USNJg5RotU9UPNIC8ZYnKpgj5n2j7lMlJiukaMXfcwKgwQMlgA4hcZ7PNoahDF0WQXBMCiWGeiks+dbfDvBnWLp4epeLDd/ebpyev9F114tDDX6k6oyaZqnlAEkwXiNFLR4rKm+XEnyH/E2GZG+fb4neikNY9c3VxzKEStMMQqzOzm6CI++hSwaB/7m5s3YMyoGeSA4Hf/iQcVQbU9GWNYECIxmiBMWfSeKUQESMGvJYQ8JOrjAFEZibKJBxD0FvJIvn2SApxk234y1CNoOHttZASldfb1CA64B9l62ykydpgoana40NzrI1xaea6zPzNWrRGjZpADhEcLrE0a3UXQHwYFm7dNFJsfnrgTewrAxUUdECNbLTqYh5XjkxQ5xrlDnIegE1NH4OoZabpIuyVlmGNx1CmpD3oGhzRaB2H0CPTnrRGX/vBvV/bsiPdDzSAHEI/+44V5lM8sALXQZmYjxdGqjKxSzz4+EwjKS26vhbyZlg+uuZFqc58zc6hUhis3qCd7XTa+l9fD243BpsKcAcB4F/p5bqwjMsdW5XPVx6/vj9aIUTPIAcajhYtt1FN5sSWU5ZglhIKduRERprXl7ShZCANHqsPsm5wMveuOmfss4+h8MIgiSynZpxEoSD2jOPBWDtcaeD6AUDfL/q4474z7y9e5McIY6/CCUDPIAYeYXfzDGoUu8ctqUUKkQQCHw34IxdJ9kOzWUInMFMMkLqU4kEMcMgb7HKJ8KSNXqExlsZmy1fTkc2wx0WZxG5wmw0QbeayLOfUiGcOhZpBXBJpRCsMovNvSB5OQZ3QxhnOB+HxI2K99E+wWiPz96HgcRu5HKdl5V0jiHiFgvp3XP4l06WMckm7AS2EMh5pBXkE8+tH8PMpnxFAvjtYXnnYjT8CrkIiJiigaFkeyMC8nRuJ+RIOWRWl0P0SqELGynMJbj0/593ZBsHr8714eY0BUtRqvKB792fwMU9Q8E94H/Cb1PPjIDQhGlRHPzp4Jxn903Doj6MoIisVejWHfjUyU4DWCVwfxfjDtIlfDliTX3eMD954dgusnr6+89IWvHWoGeQ3wYGF+8vAzmGU/4AMm8tmeGcKQRpVyfwSiUC9AGqaFbOTbaQs/BgJh4CTwCSXPDiacN/42WW2ssum4fvwfXr62qELNIK8ZhFkOfQMzTcXMAjBD2l/xysM55YnJAz0I2p8DcOFWux24IA4Hu/ERGwr2w3lRPHmb9zd4+7Yq4N6xX60c+MzjmkFeczz69zoKNsNSmpmFTjHhTqcRqeAlhMhVSGlxVG9nbYUorLsqGtsLDAe2PBRTaZ0kw1ix+XQYNg6S+TQMagb5HuLLfzc/vVOAfD/jlAKYLgq9SkiLY7UtjPKfEuQj5xZ8YJs9/G1UzAQIslbxJpf9UE3ABptNm/CKo2aQGiVYrQPQgVZ+roGw3W2A1gKvAwMMwr8Crz4k2O0PycoAAAAASUVORK5CYII=" alt="Bhapi" class="cover-logo">
+
+  <h1 class="cover-title">Bhapi Platform Unification</h1>
+  <p class="cover-subtitle">Scope Document</p>
+
+  <div class="cover-divider"></div>
+
+  <div class="cover-meta">
+    <strong>Bhapi Inc.</strong><br>
+    2810 N Church St, Wilmington, DE 19802-4447, United States<br>
+    EIN: 35-2707716<br><br>
+    <strong>Prepared by:</strong> Michael Esber<br>
+    <strong>Date:</strong> 19 March 2026<br>
+    <strong>Program Duration:</strong> March 17 &mdash; September 17, 2026 (6 months)<br>
+    <strong>Classification:</strong> Confidential &mdash; Internal Use Only
+  </div>
+
+  <div class="cover-confidential">
+    <h4>Confidential &amp; Proprietary</h4>
+    <p>This document contains confidential and proprietary information belonging to Bhapi Inc. It is intended solely for use by authorised employees and contractors of Bhapi Inc. Unauthorised reproduction, distribution, or disclosure of this document or any of the information contained herein is strictly prohibited. If you have received this document in error, please notify the author immediately and destroy all copies. By accessing this document, you acknowledge that you are bound by all applicable non-disclosure agreements and confidentiality obligations.</p>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- DOCUMENT BODY                                                 -->
+<!-- ============================================================ -->
+<div class="document">
+
+<!-- Page header for printed pages -->
+<div class="page-header">
+  <img src="data:image/png;base64,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" alt="Bhapi" style="height:28px;width:auto;">
+  <div class="page-header-text">
+    Bhapi Platform Unification &mdash; Scope Document<br>
+    Confidential &mdash; Bhapi Inc. &mdash; 19 March 2026
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- VERSION HISTORY                                               -->
+<!-- ============================================================ -->
+<h1>Version History</h1>
+
+<div class="version-table">
+<table>
+  <thead>
+    <tr><th>Version</th><th>Date</th><th>Author</th><th>Changes</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>1.0</td><td>19 March 2026</td><td>Michael Esber</td><td>Initial release</td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ============================================================ -->
+<!-- TABLE OF CONTENTS                                             -->
+<!-- ============================================================ -->
+<h1>Table of Contents</h1>
+
+<div class="toc">
+  <ol>
+    <li><strong>Executive Summary</strong></li>
+    <li><strong>Program Overview</strong>
+      <ol>
+        <li>Goal &amp; Vision</li>
+        <li>Architecture Decisions</li>
+        <li>Technology Stack</li>
+        <li>Program Structure &amp; Phases</li>
+        <li>Dependency Map</li>
+        <li>Cross-Cutting Standards</li>
+      </ol>
+    </li>
+    <li><strong>Phase 0: Emergency Stabilization</strong> (Weeks 1&ndash;5)
+      <ol>
+        <li>Sub-Plan 1: COPPA 2026 Compliance</li>
+        <li>Sub-Plan 2: Legacy Security &amp; Archival</li>
+        <li>Sub-Plan 3: Platform Unification Foundation</li>
+      </ol>
+    </li>
+    <li><strong>Phase 1: Moat Defense</strong> (Weeks 6&ndash;12)
+      <ol>
+        <li>Sub-Plan 4: School Market Entry</li>
+        <li>Sub-Plan 5: Social Module &amp; Back-Office</li>
+      </ol>
+    </li>
+    <li><strong>Phase 2: Platform Expansion</strong> (Weeks 13&ndash;20)
+      <ol>
+        <li>Sub-Plan 6: Mobile App &amp; Device Agent</li>
+        <li>Sub-Plan 4 (cont.): EU AI Act Compliance</li>
+      </ol>
+    </li>
+    <li><strong>Phase 3: Competitive Parity</strong> (Weeks 21&ndash;26)
+      <ol>
+        <li>Sub-Plan 7: Competitive Features &amp; Bundle</li>
+      </ol>
+    </li>
+    <li><strong>Explicitly Deferred Scope</strong></li>
+    <li><strong>Quality Gates &amp; Exit Criteria</strong></li>
+    <li><strong>Resource Requirements &amp; Budget</strong></li>
+    <li><strong>Architecture Decision Records (ADR) Index</strong></li>
+  </ol>
+</div>
+
+<!-- ============================================================ -->
+<!-- 1. EXECUTIVE SUMMARY                                          -->
+<!-- ============================================================ -->
+<div class="section-break"></div>
+<h1>1. Executive Summary</h1>
+
+<p>This document defines the scope, deliverables, timeline, and resource requirements for the <strong>Bhapi Platform Unification</strong> programme &mdash; a 6-month initiative to consolidate all Bhapi products into a single, market-competitive platform under the <strong>bhapi.ai</strong> domain.</p>
+
+<h3>The Challenge</h3>
+<p>Bhapi currently operates three separate codebases (AI Portal, Social App, Back-Office) with fragmented user experiences, zero test coverage on legacy systems, 18 unresolved security vulnerabilities, and three imminent regulatory deadlines. Competitors &mdash; GoGuardian, Bark, and Aura &mdash; are expanding aggressively into adjacent markets.</p>
+
+<h3>The Solution</h3>
+<p>Unify all products into a single <strong>Bhapi Platform</strong> repository with shared authentication, a consolidated database, and one deployment pipeline. Archive legacy systems. Build a greenfield mobile application. Ship competitive features to defend and expand market position.</p>
+
+<div class="callout callout-danger">
+  <h4>Regulatory Deadlines &mdash; Non-Negotiable</h4>
+  <p><strong>COPPA 2026:</strong> April 22, 2026 &mdash; FTC enforcement, fines up to $50,120 per violation</p>
+  <p><strong>Ohio AI Mandate:</strong> July 1, 2026 &mdash; State governance requirements for schools</p>
+  <p><strong>EU AI Act:</strong> August 2, 2026 &mdash; High-risk AI system conformity requirements</p>
+</div>
+
+<h3>Key Deliverables</h3>
+<table>
+  <thead>
+    <tr><th>Phase</th><th>Timeline</th><th>Key Deliverables</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Phase 0</strong><br>Emergency Stabilization</td>
+      <td>Weeks 1&ndash;5<br>Mar 17 &ndash; Apr 22</td>
+      <td>COPPA 2026 full compliance, legacy repos archived, platform foundation established, mobile app scaffold, social module directory structure</td>
+    </tr>
+    <tr>
+      <td><strong>Phase 1</strong><br>Moat Defense</td>
+      <td>Weeks 6&ndash;12<br>Apr 23 &ndash; Jun 8</td>
+      <td>Chrome Web Store enterprise listing, Ohio governance tools, 15+ AI platforms monitored, social features (posts, comments, followers, messaging), back-office admin</td>
+    </tr>
+    <tr>
+      <td><strong>Phase 2</strong><br>Platform Expansion</td>
+      <td>Weeks 13&ndash;20<br>Jun 9 &ndash; Aug 3</td>
+      <td>Mobile app in TestFlight / Play Store beta, EU AI Act compliance, screen time &amp; location tracking, device agent for AI app monitoring</td>
+    </tr>
+    <tr>
+      <td><strong>Phase 3</strong><br>Competitive Parity</td>
+      <td>Weeks 21&ndash;26<br>Aug 4 &ndash; Sep 17</td>
+      <td>Unified family dashboard, bundle pricing, public API, wellbeing analysis, 5+ school deployments, cross-product intelligence</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>Investment Summary</h3>
+<table>
+  <thead>
+    <tr><th>Category</th><th>Estimate</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Engineering effort</td><td>70&ndash;96 person-weeks across 7 sub-plans</td></tr>
+    <tr><td>Recommended headcount</td><td>6&ndash;7 engineers (2 backend, 2 mobile, 1 frontend, 1 ML/AI, 1 fractional DevOps)</td></tr>
+    <tr><td>Legal counsel (COPPA + EU AI Act)</td><td>$15,000&ndash;$30,000</td></tr>
+    <tr><td>Penetration testing</td><td>$10,000&ndash;$20,000</td></tr>
+    <tr><td>Apple Developer Enterprise</td><td>$299/year</td></tr>
+    <tr><td>SOC 2 Type II audit (Phase 3+)</td><td>$30,000&ndash;$50,000</td></tr>
+  </tbody>
+</table>
+
+<!-- ============================================================ -->
+<!-- 2. PROGRAM OVERVIEW                                           -->
+<!-- ============================================================ -->
+<div class="section-break"></div>
+<h1>2. Program Overview</h1>
+
+<h2>2.1 Goal &amp; Vision</h2>
+<p>Unify all Bhapi products (AI Portal, Social App, Back-Office) into a single <strong>Bhapi Platform</strong> codebase, achieve regulatory compliance (COPPA 2026, EU AI Act, Ohio AI mandate), eliminate critical technical debt and security vulnerabilities, and ship competitive features to defend market position against GoGuardian, Bark, and Aura.</p>
+
+<h2>2.2 Architecture Decisions</h2>
+<p>The programme is guided by five Architecture Decision Records (ADRs) established prior to this scope document:</p>
+
+<table>
+  <thead>
+    <tr><th>ADR</th><th>Decision</th><th>Impact</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>ADR-001</strong></td><td>Unified authentication (Portal's JWT + API keys)</td><td>Single auth system across all products</td></tr>
+    <tr><td><strong>ADR-002</strong></td><td>Social features as FastAPI modules</td><td>Posts, messaging, followers built in unified backend</td></tr>
+    <tr><td><strong>ADR-003</strong></td><td>MongoDB &rarr; PostgreSQL migration (deferred)</td><td>Legacy data migration deferred; fresh start</td></tr>
+    <tr><td><strong>ADR-004</strong></td><td>Mobile greenfield on Expo SDK 52+</td><td>Replaces legacy React Native 0.64 app entirely</td></tr>
+    <tr><td><strong>ADR-005</strong></td><td>Single repository, archive legacy</td><td><code>bhapi-ai-portal</code> becomes the sole active codebase</td></tr>
+  </tbody>
+</table>
+
+<h2>2.3 Technology Stack</h2>
+<table class="accent">
+  <thead>
+    <tr><th>Layer</th><th>Technologies</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>Backend</strong></td><td>Python 3.11, FastAPI, SQLAlchemy async, Alembic, PostgreSQL 16</td></tr>
+    <tr><td><strong>Web Frontend</strong></td><td>Next.js 15, React 19, TypeScript, Tailwind CSS</td></tr>
+    <tr><td><strong>Mobile</strong></td><td>Expo SDK 52+, React Native 0.76+, TypeScript</td></tr>
+    <tr><td><strong>Browser Extension</strong></td><td>Manifest V3 (Chrome + Firefox + Safari)</td></tr>
+    <tr><td><strong>Infrastructure</strong></td><td>Render, Redis (optional), Stripe, SendGrid, Twilio</td></tr>
+  </tbody>
+</table>
+
+<h2>2.4 Program Structure &amp; Phases</h2>
+
+<div class="diagram-box">PHASE 0: Emergency Stabilization (Weeks 1-5, Mar 17 — Apr 22)
+  ├── Sub-Plan 1: COPPA 2026 Compliance         [REGULATORY DEADLINE: Apr 22]
+  ├── Sub-Plan 2: Legacy Security & Archival     [CRITICAL TECH DEBT]
+  └── Sub-Plan 3: Platform Unification Foundation [ARCHITECTURAL]
+
+PHASE 1: Moat Defense (Weeks 6-12, Apr 23 — Jun 8)
+  ├── Sub-Plan 4: School Market Entry            [COMPETITIVE]
+  └── Sub-Plan 5: Social Module Foundation       [PRODUCT EXPANSION]
+
+PHASE 2: Platform Expansion (Weeks 13-20, Jun 9 — Aug 3)
+  ├── Sub-Plan 6: Mobile App & Device Agent      [COMPETITIVE]
+  └── Sub-Plan 4 (cont): EU AI Act Compliance    [REGULATORY DEADLINE: Aug 2]
+
+PHASE 3: Competitive Parity (Weeks 21-26, Aug 4 — Sep 17)
+  └── Sub-Plan 7: Competitive Features & Bundle  [MARKET EXPANSION]</div>
+
+<h2>2.5 Dependency Map</h2>
+
+<div class="diagram-box">Sub-Plan 1 (COPPA) ─────────────────────────────────────► All plans inherit compliance
+Sub-Plan 2 (Legacy) ─► Sub-Plan 3 (Unification) ─► Sub-Plan 5 (Social)
+                                                  ─► Sub-Plan 6 (Mobile)
+Sub-Plan 3 (Unification) ─► Sub-Plan 4 (School) ─► Sub-Plan 7 (Bundle)
+Sub-Plan 5 (Social) ──────► Sub-Plan 6 (Mobile, social screens)
+                           ► Sub-Plan 7 (Bundle pricing)
+Sub-Plan 6 (Mobile) ──────► Sub-Plan 7 (screen time, location)</div>
+
+<h2>2.6 Cross-Cutting Standards</h2>
+<p>The following standards apply to <strong>all sub-plans</strong> without exception:</p>
+
+<table>
+  <thead>
+    <tr><th>Concern</th><th>Standard</th><th>Enforcement</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Testing</td><td>TDD: write failing test first, then implement</td><td>CI blocks merge without tests</td></tr>
+    <tr><td>Security</td><td>OWASP Top 10, encrypted credentials, RBAC on all endpoints</td><td>Security test suite per module</td></tr>
+    <tr><td>Accessibility</td><td>WCAG 2.1 AA</td><td>TypeScript check + vitest + manual check</td></tr>
+    <tr><td>Internationalisation</td><td>6 languages (EN, FR, ES, DE, PT-BR, IT)</td><td>All user-facing strings in translation files</td></tr>
+    <tr><td>Logging</td><td><code>structlog</code> with correlation IDs</td><td>Never <code>print()</code></td></tr>
+    <tr><td>Errors</td><td><code>BhapiException</code> subclasses only</td><td>Never raw HTTP exceptions</td></tr>
+    <tr><td>Code Quality</td><td>Ruff (100-char line), strict TypeScript</td><td>CI enforces</td></tr>
+    <tr><td>Documentation</td><td>Update project docs when adding modules/routes</td><td>Part of Definition of Done</td></tr>
+  </tbody>
+</table>
+
+<!-- ============================================================ -->
+<!-- 3. PHASE 0 — EMERGENCY STABILIZATION                          -->
+<!-- ============================================================ -->
+<div class="section-break"></div>
+<div class="phase-banner">
+  <h2>Phase 0: Emergency Stabilization</h2>
+  <div class="phase-dates">Weeks 1&ndash;5 &bull; March 17 &ndash; April 22, 2026</div>
+</div>
+
+<div class="callout callout-warning">
+  <h4>Phase 0 Priority Order</h4>
+  <p><strong>Sub-Plan 1 (COPPA):</strong> Hard deadline Apr 22 &mdash; non-negotiable</p>
+  <p><strong>Sub-Plan 2 (Legacy triage):</strong> Should start immediately &mdash; active security risk</p>
+  <p><strong>Sub-Plan 3 (Unification):</strong> Can begin in Phase 0 but may slip to Phase 1 start without regulatory consequences</p>
+</div>
+
+<!-- SUB-PLAN 1 -->
+<h2>3.1 Sub-Plan 1: COPPA 2026 Compliance</h2>
+
+<div class="task-meta">
+  <span><strong>Deadline:</strong> <span class="badge badge-danger">April 22, 2026</span></span>
+  <span><strong>Effort:</strong> 4&ndash;5 person-weeks</span>
+  <span><strong>Risk if missed:</strong> FTC fines up to $50,120 per violation</span>
+</div>
+
+<h3>Context</h3>
+<p>The FTC's updated COPPA rule introduces five new requirements. The AI Portal has partial compliance (consent flows exist, COPPA dashboard exists, Yoti age verification integrated). Gaps remain in third-party consent itemisation, written data retention policy, VPC strengthening, "refuse partial collection" toggle, and push notification consent separation.</p>
+
+<div class="callout callout-info">
+  <h4>Existing Infrastructure</h4>
+  <p>Migration <code>031_coppa_2026.py</code> already creates tables: <code>third_party_consent_items</code>, <code>retention_policies</code>, <code>push_notification_consents</code>, <code>video_verifications</code>. New work builds on these existing tables.</p>
+</div>
+
+<h3>Task 1.1: Third-Party Data Flow Audit &amp; Disclosure Model</h3>
+<div class="task-group">
+  <h4>Objective</h4>
+  <p>Create the data model and validation schemas for tracking per-third-party parental consent, as required by COPPA 2026 Section 312.5(a)(2).</p>
+
+  <h4>Data Model: ThirdPartyConsentItem</h4>
+  <table class="spec-table">
+    <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td class="spec-field">id</td><td class="spec-type">UUID</td><td>Primary key</td></tr>
+      <tr><td class="spec-field">group_id</td><td class="spec-type">UUID (FK &rarr; groups)</td><td>Family/school group</td></tr>
+      <tr><td class="spec-field">member_id</td><td class="spec-type">UUID (FK &rarr; group_members)</td><td>Child member</td></tr>
+      <tr><td class="spec-field">parent_user_id</td><td class="spec-type">UUID (FK &rarr; users)</td><td>Consenting parent</td></tr>
+      <tr><td class="spec-field">provider_key</td><td class="spec-type">String(50)</td><td>Internal provider identifier</td></tr>
+      <tr><td class="spec-field">provider_name</td><td class="spec-type">String(100)</td><td>Display name (e.g., "Stripe")</td></tr>
+      <tr><td class="spec-field">data_purpose</td><td class="spec-type">String(500)</td><td>Why data is shared</td></tr>
+      <tr><td class="spec-field">consented</td><td class="spec-type">Boolean</td><td>Current consent status (default: false)</td></tr>
+      <tr><td class="spec-field">consented_at</td><td class="spec-type">DateTime (TZ)</td><td>When consent was granted</td></tr>
+      <tr><td class="spec-field">withdrawn_at</td><td class="spec-type">DateTime (TZ)</td><td>When consent was revoked</td></tr>
+      <tr><td class="spec-field">ip_address</td><td class="spec-type">String(45)</td><td>IP at time of consent action</td></tr>
+      <tr><td class="spec-field">created_at / updated_at</td><td class="spec-type">DateTime (TZ)</td><td>Audit timestamps</td></tr>
+    </tbody>
+  </table>
+
+  <h4>Data Model: RetentionPolicy</h4>
+  <table class="spec-table">
+    <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td class="spec-field">id</td><td class="spec-type">UUID</td><td>Primary key</td></tr>
+      <tr><td class="spec-field">data_category</td><td class="spec-type">String(255), unique</td><td>Category of data retained</td></tr>
+      <tr><td class="spec-field">purpose</td><td class="spec-type">String(1000)</td><td>Why it is retained</td></tr>
+      <tr><td class="spec-field">retention_days</td><td class="spec-type">Integer</td><td>Number of days before deletion</td></tr>
+      <tr><td class="spec-field">deletion_method</td><td class="spec-type">String(500)</td><td>How data is removed</td></tr>
+      <tr><td class="spec-field">is_active</td><td class="spec-type">Boolean</td><td>Whether policy is current</td></tr>
+    </tbody>
+  </table>
+
+  <h4>Validation Rules</h4>
+  <ul>
+    <li>Third-party name: required, 1&ndash;255 characters, cannot be blank/whitespace-only</li>
+    <li>Purpose: required, 1&ndash;1,000 characters</li>
+    <li>Data categories: required, minimum 1 item</li>
+  </ul>
+
+  <h4>Deliverables</h4>
+  <ul class="deliverables">
+    <li>COPPA 2026 sub-module (<code>src/compliance/coppa_2026/</code>)</li>
+    <li>SQLAlchemy models wrapping existing migration 031 tables</li>
+    <li>Pydantic validation schemas</li>
+    <li>Unit tests for model and schema validation</li>
+  </ul>
+</div>
+
+<h3>Task 1.2: Third-Party Consent Service &amp; API</h3>
+<div class="task-group">
+  <h4>Objective</h4>
+  <p>Build the service layer and REST API for parents to view, grant, and revoke consent for each third-party data recipient.</p>
+
+  <h4>Platform Third Parties (Pre-Seeded)</h4>
+  <table class="spec-table">
+    <thead><tr><th>Provider</th><th>Purpose</th><th>Data Categories</th></tr></thead>
+    <tbody>
+      <tr><td>Stripe</td><td>Payment processing for subscription billing</td><td>email, name, payment_method</td></tr>
+      <tr><td>SendGrid</td><td>Transactional email delivery</td><td>email, name</td></tr>
+      <tr><td>Twilio</td><td>SMS alert delivery</td><td>phone_number</td></tr>
+      <tr><td>Hive AI</td><td>Deepfake detection analysis</td><td>content_metadata</td></tr>
+      <tr><td>Sensity AI</td><td>Deepfake detection analysis</td><td>content_metadata</td></tr>
+      <tr><td>Yoti</td><td>Age verification for parental consent</td><td>facial_image, date_of_birth</td></tr>
+    </tbody>
+  </table>
+
+  <h4>API Endpoints</h4>
+  <table class="spec-table">
+    <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th><th>Auth</th></tr></thead>
+    <tbody>
+      <tr><td>GET</td><td><code>/api/v1/compliance/coppa/third-parties</code></td><td>List all third-party consents for group</td><td>Any authenticated user</td></tr>
+      <tr><td>POST</td><td><code>/api/v1/compliance/coppa/third-parties/{id}/consent</code></td><td>Grant consent for a specific third party</td><td>Owner/Admin only</td></tr>
+      <tr><td>DELETE</td><td><code>/api/v1/compliance/coppa/third-parties/{id}/consent</code></td><td>Revoke consent for a specific third party</td><td>Owner/Admin only</td></tr>
+      <tr><td>GET</td><td><code>/api/v1/compliance/coppa/data-retention</code></td><td>Get data retention policies</td><td>Any authenticated user</td></tr>
+    </tbody>
+  </table>
+
+  <h4>Deliverables</h4>
+  <ul class="deliverables">
+    <li>Consent management service with auto-seeding of platform third parties</li>
+    <li>FastAPI router registered in main application</li>
+    <li>Alembic migration for any new columns beyond migration 031</li>
+    <li>E2E and security test suites</li>
+  </ul>
+</div>
+
+<h3>Task 1.3: Refuse Partial Collection Toggle</h3>
+<div class="task-group">
+  <h4>Objective</h4>
+  <p>COPPA 2026 grants parents the right to consent to data collection while refusing third-party sharing. Implement a group-level toggle that, when enabled, automatically revokes all non-integral third-party consents.</p>
+
+  <h4>Specification</h4>
+  <ul>
+    <li>New column <code>refuse_third_party_sharing</code> (Boolean) on Group model</li>
+    <li>When toggled ON: all non-integral third-party consents are automatically revoked</li>
+    <li>Integral services (e.g., Stripe for billing) are exempt from bulk revocation</li>
+    <li>Accessible via <code>PATCH /api/v1/groups/{id}/settings</code></li>
+  </ul>
+</div>
+
+<h3>Task 1.4: VPC Enhancement (Verifiable Parental Consent)</h3>
+<div class="task-group">
+  <h4>Objective</h4>
+  <p>COPPA 2026 eliminates knowledge-based VPC methods. Implement SMS + confirmation as the primary VPC mechanism.</p>
+
+  <h4>API Endpoints</h4>
+  <table class="spec-table">
+    <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td>POST</td><td><code>/api/v1/auth/vpc/initiate</code></td><td>Send verification SMS to parent's phone</td></tr>
+      <tr><td>POST</td><td><code>/api/v1/auth/vpc/verify</code></td><td>Confirm consent with verification code</td></tr>
+    </tbody>
+  </table>
+
+  <h4>Flow</h4>
+  <p>1. Parent provides phone number &rarr; 2. System sends SMS with 6-digit code &rarr; 3. Parent enters code &rarr; 4. System records verified consent with timestamp and method</p>
+</div>
+
+<h3>Task 1.5: Push Notification Consent</h3>
+<div class="task-group">
+  <h4>Objective</h4>
+  <p>Separate push notification consent from general service consent. Alert delivery must check push consent before sending notifications containing child data. Uses existing <code>push_notification_consents</code> table from migration 031 with per-member, per-notification-type tracking.</p>
+</div>
+
+<h3>Task 1.6: Written Security Program &amp; Data Retention Policy</h3>
+<div class="task-group">
+  <h4>Objective</h4>
+  <p>COPPA requires a written security programme and documented data retention policies.</p>
+
+  <h4>Data Retention Schedule</h4>
+  <table>
+    <thead><tr><th>Data Category</th><th>Retention</th><th>Purpose</th><th>Deletion Method</th></tr></thead>
+    <tbody>
+      <tr><td>Conversation captures</td><td>90 days</td><td>AI safety monitoring</td><td>Secure deletion</td></tr>
+      <tr><td>Risk scores</td><td>1 year</td><td>Trend analysis</td><td>Soft delete + purge</td></tr>
+      <tr><td>Alert history</td><td>1 year</td><td>Safety record</td><td>Soft delete + purge</td></tr>
+      <tr><td>Account data</td><td>Account duration + 30 days</td><td>Service delivery</td><td>Full deletion</td></tr>
+      <tr><td>Billing data</td><td>7 years</td><td>Legal/tax requirement</td><td>Archive + restrict</td></tr>
+      <tr><td>Consent records</td><td>3 years after revocation</td><td>Compliance audit trail</td><td>Archive</td></tr>
+      <tr><td>Extension telemetry</td><td>30 days</td><td>Performance monitoring</td><td>Auto-purge</td></tr>
+    </tbody>
+  </table>
+
+  <h4>Security Programme Requirements</h4>
+  <ul>
+    <li>Designated responsible person</li>
+    <li>Safeguards proportionate to data sensitivity</li>
+    <li>Annual review commitment</li>
+    <li>Risk assessment schedule</li>
+  </ul>
+</div>
+
+<h3>Task 1.7: COPPA 2026 Frontend &mdash; Consent Management UI</h3>
+<div class="task-group">
+  <h4>Objective</h4>
+  <p>Build the parent-facing consent management page at <code>/compliance/coppa</code> with third-party list, consent toggles, retention disclosures, and full i18n support across all 6 languages.</p>
+</div>
+
+<h3>Task 1.8: COPPA 2026 Integration Test Suite</h3>
+<div class="task-group">
+  <h4>Objective</h4>
+  <p>Comprehensive security and E2E tests covering: authentication enforcement, RBAC (child members cannot modify consent), and full registration &rarr; VPC &rarr; consent management &rarr; refuse partial &rarr; verification flow.</p>
+</div>
+
+<!-- SUB-PLAN 2 -->
+<h2>3.2 Sub-Plan 2: Legacy Security Triage &amp; Archival</h2>
+
+<div class="task-meta">
+  <span><strong>Effort:</strong> 2&ndash;3 person-weeks</span>
+  <span><strong>Dependency:</strong> None (parallel with Sub-Plan 1)</span>
+</div>
+
+<h3>Context</h3>
+<p>The three <code>bhapi-inc</code> repositories (bhapi-api, bhapi-mobile, back-office) have zero tests, 18 unmerged Snyk PRs, and critical security vulnerabilities. Per ADR-005, these repos will be archived. The unified platform is built fresh with no code porting &mdash; legacy repos serve as <strong>feature reference only</strong>.</p>
+
+<div class="callout callout-primary">
+  <h4>Effort Savings via ADR-004/005</h4>
+  <p>Archival + greenfield mobile eliminates ~26&ndash;37 person-weeks of legacy stabilisation work (React Native upgrade, test backfill, security hardening) that would otherwise be required.</p>
+</div>
+
+<h3>Task 2.1: Security Audit of Legacy Repos</h3>
+<div class="task-group">
+  <p>Review all 18 Snyk PRs, document which vulnerabilities are actively exploitable vs. theoretical, assess current user base and data exposure, make go/no-go decision on the legacy app.</p>
+
+  <h4>Decision Matrix</h4>
+  <table>
+    <thead><tr><th>Condition</th><th>Action</th></tr></thead>
+    <tbody>
+      <tr><td>Active users + exploitable vulnerabilities</td><td>Take offline immediately, notify users, plan migration</td></tr>
+      <tr><td>Active users + no exploitable vulnerabilities</td><td>Merge Snyk PRs, set deprecation timeline</td></tr>
+      <tr><td>No active users</td><td>Archive immediately per ADR-005</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h3>Task 2.2: Archive Legacy Repositories</h3>
+<div class="task-group">
+  <p>Add deprecation notices to each repository README, archive repos on GitHub (<code>bhapi-inc/bhapi-api</code>, <code>bhapi-inc/bhapi-mobile</code>, <code>bhapi-inc/back-office</code>), and extract reference material.</p>
+</div>
+
+<h3>Task 2.3: Extract Feature Reference</h3>
+<div class="task-group">
+  <p>Document and catalogue from legacy repos into <code>docs/legacy-reference/</code>:</p>
+  <ul>
+    <li>~30 REST API endpoints from bhapi-api (request/response shapes, moderation workflows)</li>
+    <li>43 screens and 29 components from bhapi-mobile (navigation flow, social features)</li>
+    <li>Back-office features from portal.bhapi.com (4 RBAC roles, 5 admin pages)</li>
+    <li>Google Cloud AI integration patterns</li>
+  </ul>
+</div>
+
+<!-- SUB-PLAN 3 -->
+<h2>3.3 Sub-Plan 3: Platform Unification Foundation</h2>
+
+<div class="task-meta">
+  <span><strong>Effort:</strong> 3&ndash;4 person-weeks</span>
+  <span><strong>Dependency:</strong> Sub-Plan 2 (archival decision)</span>
+</div>
+
+<h3>Task 3.1: Repository Rename &amp; Brand Update</h3>
+<div class="task-group">
+  <p>Rename <code>bhapi-ai-portal</code> to <code>bhapi-platform</code> on GitHub (automatic redirect). Update all internal references across deployment configs, CI workflows, documentation, and package manifests.</p>
+</div>
+
+<h3>Task 3.2: Social Module Directory Structure (ADR-002)</h3>
+<div class="task-group">
+  <h4>Module Scaffold</h4>
+  <table class="spec-table">
+    <thead><tr><th>Module</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td><code>src/social/posts/</code></td><td>Posts with media, likes, risk-scored content</td></tr>
+      <tr><td><code>src/social/comments/</code></td><td>Threaded comments with reactions</td></tr>
+      <tr><td><code>src/social/followers/</code></td><td>Follow/unfollow with privacy controls</td></tr>
+      <tr><td><code>src/social/messaging/</code></td><td>Conversations with encrypted messages</td></tr>
+      <tr><td><code>src/social/search/</code></td><td>PostgreSQL FTS for users, posts, hashtags</td></tr>
+      <tr><td><code>src/social/moderation/</code></td><td>Shared content moderation hooks</td></tr>
+    </tbody>
+  </table>
+
+  <h4>Social Permission Strings</h4>
+  <table class="spec-table">
+    <thead><tr><th>Permission</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><code>social:post:create</code></td><td>Create posts</td></tr>
+      <tr><td><code>social:post:moderate</code></td><td>Moderate (approve/reject) posts</td></tr>
+      <tr><td><code>social:message:send</code></td><td>Send direct messages</td></tr>
+      <tr><td><code>social:follow</code></td><td>Follow other users</td></tr>
+      <tr><td><code>social:search</code></td><td>Search social content</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h3>Task 3.3: Mobile App Scaffold (ADR-004)</h3>
+<div class="task-group">
+  <p>Initialise Expo SDK 52+ project in <code>mobile/</code> directory with TypeScript strict mode, secure token storage via <code>expo-secure-store</code>, Expo Router, and TanStack React Query. Add to CI pipeline.</p>
+</div>
+
+<h3>Task 3.4: Unified Auth Extensions (ADR-001)</h3>
+<div class="task-group">
+  <p>Add refresh token support (mobile apps need long-lived sessions) and OAuth2 stubs for Google/Apple sign-in. Web continues using cookies; mobile uses refresh tokens in SecureStore.</p>
+</div>
+
+<!-- ============================================================ -->
+<!-- 4. PHASE 1 — MOAT DEFENSE                                     -->
+<!-- ============================================================ -->
+<div class="section-break"></div>
+<div class="phase-banner">
+  <h2>Phase 1: Moat Defense</h2>
+  <div class="phase-dates">Weeks 6&ndash;12 &bull; April 23 &ndash; June 8, 2026</div>
+</div>
+
+<h2>4.1 Sub-Plan 4: School Market Entry</h2>
+
+<div class="task-meta">
+  <span><strong>Effort:</strong> 14&ndash;20 person-weeks (split across Phase 1 and Phase 2)</span>
+  <span><strong>Dependency:</strong> Sub-Plan 3 (platform foundation)</span>
+</div>
+
+<h3>Task 4.1: Google Admin Console Integration</h3>
+<div class="task-group">
+  <p>Enable enterprise deployment of the browser extension via Google Admin Console for Chromebook-heavy school environments.</p>
+  <h4>Capabilities</h4>
+  <ul>
+    <li>Mass extension deployment status tracking</li>
+    <li>Device inventory synchronisation</li>
+    <li>Policy management (AI platform monitoring per organisational unit)</li>
+    <li>User provisioning sync with Clever/ClassLink</li>
+  </ul>
+  <h4>Frontend Pages</h4>
+  <ul>
+    <li><code>/school/deployment</code> &mdash; Device deployment status</li>
+    <li><code>/school/policies</code> &mdash; AI monitoring policies</li>
+    <li><code>/school/devices</code> &mdash; Device inventory</li>
+  </ul>
+</div>
+
+<h3>Task 4.2: Ohio AI Governance Compliance Package</h3>
+<div class="task-group">
+  <div class="callout callout-info">
+    <h4>First-Mover Opportunity</h4>
+    <p>No competitor currently offers state-specific AI governance tools. This positions Bhapi uniquely in the school market.</p>
+  </div>
+  <h4>Features</h4>
+  <ul>
+    <li><strong>AI acceptable-use policy generator</strong> &mdash; Template engine producing school-specific policies based on state requirements, district size, grade levels, AI platforms in use, and staff training needs</li>
+    <li><strong>Compliance dashboard</strong> &mdash; Policy status, last review date, AI tool inventory, training completion, audit trail</li>
+    <li><strong>AI tool inventory &amp; risk assessment</strong> &mdash; Auto-populated from monitoring data</li>
+    <li><strong>School board reporting</strong> &mdash; PDF/CSV export formatted for presentations</li>
+  </ul>
+</div>
+
+<h3>Task 4.3: AI Platform Expansion (10 &rarr; 15+)</h3>
+<div class="task-group">
+  <p>Extend browser extension detection to cover 5 additional AI platforms:</p>
+  <table>
+    <thead><tr><th>Platform</th><th>Priority</th></tr></thead>
+    <tbody>
+      <tr><td>Meta AI</td><td>High &mdash; embedded in Facebook/Instagram/WhatsApp</td></tr>
+      <tr><td>Mistral</td><td>Medium &mdash; growing EU adoption</td></tr>
+      <tr><td>Cohere</td><td>Medium &mdash; enterprise/education focus</td></tr>
+      <tr><td>Llama (Meta)</td><td>Medium &mdash; open-source proliferation</td></tr>
+      <tr><td>DeepSeek</td><td>High &mdash; rapid growth, limited safety controls</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- SUB-PLAN 5 -->
+<h2>4.2 Sub-Plan 5: Social Module &amp; Back-Office Implementation</h2>
+
+<div class="task-meta">
+  <span><strong>Effort:</strong> 20&ndash;28 person-weeks</span>
+  <span><strong>Dependencies:</strong> Sub-Plan 3 (scaffold), Sub-Plan 1 (COPPA for child data)</span>
+</div>
+
+<h3>Context</h3>
+<p>Build social features and back-office admin as modules in the unified FastAPI backend per ADR-002. All social content passes through the existing risk assessment engine for child safety. The old bhapi-api Express code and portal.bhapi.com serve as functional reference only.</p>
+
+<h4>Account Model Mapping</h4>
+<table>
+  <thead><tr><th>Social App (bhapi.com)</th><th>AI Portal (bhapi.ai)</th><th>Status</th></tr></thead>
+  <tbody>
+    <tr><td>Organisation</td><td>Group</td><td><span class="badge badge-success">Exists</span></td></tr>
+    <tr><td>Parent account (master)</td><td>Group owner</td><td><span class="badge badge-success">Exists</span></td></tr>
+    <tr><td>Child sub-accounts</td><td>Group members (child role)</td><td><span class="badge badge-success">Exists</span></td></tr>
+    <tr><td>Invitation-only registration</td><td>Group invitations</td><td><span class="badge badge-success">Exists</span></td></tr>
+    <tr><td>Account status</td><td>Member status</td><td><span class="badge badge-success">Exists</span></td></tr>
+  </tbody>
+</table>
+
+<h3>Task 5.1: Posts Module</h3>
+<div class="task-group">
+  <h4>Data Model: Post</h4>
+  <table class="spec-table">
+    <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td class="spec-field">author_id</td><td class="spec-type">UUID (FK &rarr; users)</td><td>Post author</td></tr>
+      <tr><td class="spec-field">group_id</td><td class="spec-type">UUID (FK &rarr; groups)</td><td>Owning group</td></tr>
+      <tr><td class="spec-field">content</td><td class="spec-type">Text</td><td>Post body</td></tr>
+      <tr><td class="spec-field">content_type</td><td class="spec-type">String(20)</td><td>text / image / video</td></tr>
+      <tr><td class="spec-field">media_url</td><td class="spec-type">String(1000)</td><td>Optional media attachment</td></tr>
+      <tr><td class="spec-field">risk_score</td><td class="spec-type">Integer (0&ndash;100)</td><td>From risk engine</td></tr>
+      <tr><td class="spec-field">moderation_status</td><td class="spec-type">String(20)</td><td>approved / pending / rejected</td></tr>
+      <tr><td class="spec-field">like_count</td><td class="spec-type">Integer</td><td>Denormalised like count</td></tr>
+      <tr><td class="spec-field">comment_count</td><td class="spec-type">Integer</td><td>Denormalised comment count</td></tr>
+    </tbody>
+  </table>
+
+  <h4>API Endpoints</h4>
+  <table class="spec-table">
+    <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td>POST</td><td><code>/api/v1/social/posts</code></td><td>Create post (requires <code>social:post:create</code>)</td></tr>
+      <tr><td>GET</td><td><code>/api/v1/social/posts</code></td><td>Feed (paginated, filtered by group/user/age-tier)</td></tr>
+      <tr><td>GET</td><td><code>/api/v1/social/posts/{id}</code></td><td>Single post</td></tr>
+      <tr><td>DELETE</td><td><code>/api/v1/social/posts/{id}</code></td><td>Soft-delete own post</td></tr>
+      <tr><td>POST</td><td><code>/api/v1/social/posts/{id}/like</code></td><td>Like/unlike toggle</td></tr>
+    </tbody>
+  </table>
+
+  <h4>Safety Integration</h4>
+  <ul>
+    <li>All posts pass through <code>src/risk/service.py</code> for safety scoring before publishing</li>
+    <li>Posts exceeding risk threshold are held for moderation</li>
+    <li>Age-appropriate content filtering based on member age tier</li>
+  </ul>
+</div>
+
+<h3>Tasks 5.2&ndash;5.6: Comments, Followers, Messaging, Search, Moderation</h3>
+<div class="task-group">
+  <table>
+    <thead><tr><th>Task</th><th>Module</th><th>Key Features</th></tr></thead>
+    <tbody>
+      <tr><td>5.2</td><td>Comments</td><td>Threaded comments with reactions, moderation hooks</td></tr>
+      <tr><td>5.3</td><td>Followers</td><td>Follow/unfollow, privacy controls, parent-approved contacts for under-13</td></tr>
+      <tr><td>5.4</td><td>Messaging</td><td>Conversations, encrypted messages (<code>encrypt_credential()</code>), WebSocket real-time delivery, parent-approved contacts for under-13</td></tr>
+      <tr><td>5.5</td><td>Search</td><td>PostgreSQL FTS (reuses existing GIN index infrastructure)</td></tr>
+      <tr><td>5.6</td><td>Moderation</td><td>14-category risk taxonomy, image moderation, profanity filter, age-appropriate checks</td></tr>
+    </tbody>
+  </table>
+
+  <h4>Messaging Data Model</h4>
+  <table class="spec-table">
+    <thead><tr><th>Table</th><th>Key Fields</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td><code>social_conversations</code></td><td>group_id, conversation_type (direct/group), last_message_at</td><td>Container for messages</td></tr>
+      <tr><td><code>social_conversation_participants</code></td><td>conversation_id, user_id, last_read_at</td><td>Unique constraint on (conversation_id, user_id)</td></tr>
+      <tr><td><code>social_messages</code></td><td>conversation_id, sender_id, content_encrypted, risk_score, moderation_status</td><td>Content encrypted at rest; soft-delete enabled</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h3>Task 5.7: Back-Office Admin Module</h3>
+<div class="task-group">
+  <h4>Objective</h4>
+  <p>Replace <code>portal.bhapi.com</code> with integrated admin pages in the unified portal. New module at <code>src/admin/</code>.</p>
+
+  <h4>Admin Pages</h4>
+  <table>
+    <thead><tr><th>Page</th><th>Route</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td>Accounts</td><td><code>/admin/accounts</code></td><td>User management: list, search, invite, activate/deactivate, bulk CSV import</td></tr>
+      <tr><td>Posts</td><td><code>/admin/posts</code></td><td>Content moderation queue: approve, block, delete, moderator notes</td></tr>
+      <tr><td>Organisations</td><td><code>/admin/organizations</code></td><td>Group management: create, edit, member counts, subscription status</td></tr>
+      <tr><td>Support</td><td><code>/admin/support</code></td><td>Ticket CRUD, assignment, status tracking, communication history</td></tr>
+      <tr><td>Settings</td><td><code>/admin/settings</code></td><td>Toxicity thresholds, auto-actions, email templates, platform config</td></tr>
+    </tbody>
+  </table>
+
+  <h4>RBAC Matrix</h4>
+  <table>
+    <thead><tr><th>Role</th><th>Accounts</th><th>Posts</th><th>Organisations</th><th>Support</th><th>Settings</th></tr></thead>
+    <tbody>
+      <tr><td>Super-Admin</td><td>Full</td><td>Full</td><td>Full</td><td>Full</td><td>Full</td></tr>
+      <tr><td>Admin</td><td>Full</td><td>Full</td><td>Full</td><td>&mdash;</td><td>Full</td></tr>
+      <tr><td>Moderator</td><td>&mdash;</td><td>Queue only</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
+      <tr><td>Support</td><td>Read-only</td><td>&mdash;</td><td>&mdash;</td><td>Full</td><td>&mdash;</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h3>Task 5.8: Social Frontend Pages</h3>
+<div class="task-group">
+  <p>Build web portal pages for social features: feed (<code>/social/feed</code>), messaging (<code>/social/messages</code>), profile (<code>/social/profile</code>), and search (<code>/social/search</code>). React Query hooks, vitest tests, and i18n strings for all 6 languages.</p>
+</div>
+
+<!-- ============================================================ -->
+<!-- 5. PHASE 2 — PLATFORM EXPANSION                               -->
+<!-- ============================================================ -->
+<div class="section-break"></div>
+<div class="phase-banner">
+  <h2>Phase 2: Platform Expansion</h2>
+  <div class="phase-dates">Weeks 13&ndash;20 &bull; June 9 &ndash; August 3, 2026</div>
+</div>
+
+<h2>5.1 Sub-Plan 6: Mobile App &amp; Device Agent</h2>
+
+<div class="task-meta">
+  <span><strong>Effort:</strong> 16&ndash;22 person-weeks</span>
+  <span><strong>Dependencies:</strong> Sub-Plan 3 (scaffold), Sub-Plan 5 (social APIs), Sub-Plan 1 (COPPA)</span>
+</div>
+
+<h3>Context</h3>
+<p>Greenfield Expo SDK 52+ mobile app per ADR-004. This is the <strong>single unified Bhapi mobile app</strong> replacing the current apps on App Store and Play Store. Designed from Figma designs with bhapi.ai branding overlay.</p>
+
+<h3>User Experiences</h3>
+<table>
+  <thead><tr><th>Experience</th><th>Features</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Parent</strong></td><td>AI safety dashboard, alerts, consent management, screen time controls, location tracking, social activity monitoring, content moderation approvals, family agreement management</td></tr>
+    <tr><td><strong>Child</strong></td><td>Social feed (posts, likes, comments), messaging (parent-approved contacts), profiles, AI safety status (age-appropriate view), panic button, rewards, AI literacy modules</td></tr>
+    <tr><td><strong>Device Agent</strong></td><td>Background AI platform monitoring, notification capture, usage tracking</td></tr>
+  </tbody>
+</table>
+
+<h3>Task 6.1: Mobile Core (Auth, Navigation, Theme)</h3>
+<div class="task-group">
+  <p>Expo Router file-based routing, API client, SecureStore token management, shared UI components, brand theme (#FF6B35 primary, #0D9488 accent, Inter font).</p>
+</div>
+
+<h3>Tasks 6.2&ndash;6.3: Parent Dashboard &amp; Child Social Experience</h3>
+<div class="task-group">
+  <p>Port key dashboard views to mobile for parents. Build social feed, messaging, and profile screens for child users.</p>
+</div>
+
+<h3>Task 6.4: Device Agent &mdash; AI App Monitoring</h3>
+<div class="task-group">
+  <h4>Platform Capabilities</h4>
+  <table>
+    <thead><tr><th>Platform</th><th>API</th><th>Capabilities</th></tr></thead>
+    <tbody>
+      <tr><td>iOS</td><td>Screen Time API (iOS 15+), MDM profiles</td><td>App usage data, managed device control. No content capture (sandbox)</td></tr>
+      <tr><td>Android</td><td>UsageStatsManager, Accessibility Service</td><td>App usage time, content capture (user approval required), Device Admin for managed devices</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h3>Task 6.5: Screen Time Management</h3>
+<div class="task-group">
+  <p>New backend module (<code>src/screen_time/</code>) with per-app time limits, scheduling (school hours, homework, free time), "one more minute" extension requests (parent approval via push notification), and daily/weekly/monthly reports.</p>
+</div>
+
+<h3>Task 6.6: Location Tracking</h3>
+<div class="task-group">
+  <p>New backend module (<code>src/location/</code>) with real-time child location (with consent), geofencing (school, home, allowed zones) with alerts, location history timeline, and panic button integration with location attachment.</p>
+</div>
+
+<!-- EU AI ACT -->
+<h2>5.2 Sub-Plan 4 (continued): EU AI Act Compliance</h2>
+
+<div class="task-meta">
+  <span><strong>Deadline:</strong> <span class="badge badge-danger">August 2, 2026</span></span>
+</div>
+
+<h3>Task 4.4: EU AI Act Conformity Assessment</h3>
+<div class="task-group">
+  <p>New module (<code>src/compliance/eu_ai_act/</code>) addressing high-risk AI system requirements under Articles 9&ndash;15, 43, and 49.</p>
+
+  <h4>Requirements Coverage</h4>
+  <table>
+    <thead><tr><th>Article</th><th>Requirement</th><th>Deliverable</th></tr></thead>
+    <tbody>
+      <tr><td>Art. 9</td><td>Risk management system</td><td>Continuous risk identification dashboard</td></tr>
+      <tr><td>Art. 10</td><td>Data governance</td><td>Bias testing framework with published results</td></tr>
+      <tr><td>Art. 11</td><td>Technical documentation</td><td>Auto-generated from codebase metadata</td></tr>
+      <tr><td>Art. 15</td><td>Accuracy &amp; robustness</td><td>Performance benchmark dashboard</td></tr>
+      <tr><td>Art. 43</td><td>Conformity assessment</td><td>Self-assessment questionnaire + document output</td></tr>
+      <tr><td>Art. 49</td><td>EU database registration</td><td>Registration submission</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ============================================================ -->
+<!-- 6. PHASE 3 — COMPETITIVE PARITY                               -->
+<!-- ============================================================ -->
+<div class="section-break"></div>
+<div class="phase-banner">
+  <h2>Phase 3: Competitive Parity</h2>
+  <div class="phase-dates">Weeks 21&ndash;26 &bull; August 4 &ndash; September 17, 2026</div>
+</div>
+
+<h2>6.1 Sub-Plan 7: Competitive Features &amp; Bundle</h2>
+
+<div class="task-meta">
+  <span><strong>Effort:</strong> 14&ndash;20 person-weeks</span>
+  <span><strong>Dependencies:</strong> Sub-Plans 5 and 6</span>
+</div>
+
+<h3>Task 7.1: AI Mood/Wellbeing Analysis</h3>
+<div class="task-group">
+  <p>New module (<code>src/wellbeing/</code>): longitudinal mood tracking across AI conversations, emotional pattern alerts, wellbeing score with contributing factors, privacy-preserving sentiment analysis (aggregate signals, not content).</p>
+</div>
+
+<h3>Task 7.2: Unified Family Dashboard</h3>
+<div class="task-group">
+  <h4>Objective</h4>
+  <p>The primary parent view at bhapi.ai &mdash; everything about their child in one place, combining AI safety, social activity, screen time, location, and wellbeing data.</p>
+
+  <div class="dashboard-mockup">
+    <h4>Bhapi Family Dashboard &mdash; [Child Name]</h4>
+    <div class="dashboard-grid">
+      <div class="dashboard-card">
+        <h5>AI Safety</h5>
+        <ul>
+          <li>Risk score: 72/100</li>
+          <li>AI chats today: 7</li>
+          <li>Flagged: 1 conversation</li>
+          <li>Platforms: ChatGPT, Claude, Gemini</li>
+        </ul>
+      </div>
+      <div class="dashboard-card">
+        <h5>Social Activity</h5>
+        <ul>
+          <li>Posts today: 3</li>
+          <li>Messages: 12</li>
+          <li>New connections: 1</li>
+          <li>Moderation flags: 0</li>
+        </ul>
+      </div>
+      <div class="dashboard-card">
+        <h5>Screen Time</h5>
+        <ul>
+          <li>Total: 2h 15m (12% below average)</li>
+          <li>AI: 45m | Social: 35m | Other: 55m</li>
+        </ul>
+      </div>
+      <div class="dashboard-card">
+        <h5>Location</h5>
+        <ul>
+          <li>Current: School (since 8:30am)</li>
+          <li>Geofence: In zone</li>
+          <li>Last check-in: 12:15pm</li>
+        </ul>
+      </div>
+      <div class="dashboard-card full-width">
+        <h5>Wellbeing Score: 85/100</h5>
+        <ul>
+          <li>Mood trend: Stable &bull; Social engagement: Healthy &bull; AI dependency risk: Low &bull; Action needed: Review 1 flag</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h3>Task 7.3: Bundle Pricing &amp; Subscription Tiers</h3>
+<div class="task-group">
+  <table>
+    <thead><tr><th>Tier</th><th>Includes</th><th>Price</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Bhapi Safety</strong></td><td>AI Portal only</td><td>$9.99/month</td></tr>
+      <tr><td><strong>Bhapi Social</strong></td><td>Social features</td><td>Free (premium $4.99/month)</td></tr>
+      <tr><td><strong>Bhapi Family</strong></td><td>AI + Social + Mobile Agent</td><td><strong>$14.99/month</strong></td></tr>
+      <tr><td><strong>Bhapi School</strong></td><td>AI + Governance (per-seat)</td><td>$4&ndash;8/student/year</td></tr>
+      <tr><td><strong>Bhapi Enterprise</strong></td><td>All + API + Support</td><td>Custom pricing</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h3>Task 7.4: Public API with SDKs</h3>
+<div class="task-group">
+  <p>New module (<code>src/api_public/</code>): OAuth 2.0 authentication, tiered rate limiting, interactive API documentation page at <code>/developer/api-docs</code>.</p>
+</div>
+
+<h3>Task 7.5: Cross-Product Data Intelligence</h3>
+<div class="task-group">
+  <p>New module (<code>src/intelligence/</code>): cross-product signal aggregation combining social behaviour and AI usage for richer safety insights. Example: social activity drops + AI chatbot usage spikes &rarr; dependency risk alert.</p>
+</div>
+
+<!-- ============================================================ -->
+<!-- 7. DEFERRED SCOPE                                             -->
+<!-- ============================================================ -->
+<div class="section-break"></div>
+<h1>7. Explicitly Deferred Scope</h1>
+
+<p>The following items are <strong>intentionally excluded</strong> from this 6-month programme. Each has been evaluated and deferred with rationale.</p>
+
+<table>
+  <thead><tr><th>ID</th><th>Item</th><th>Priority</th><th>Effort</th><th>Rationale for Deferral</th></tr></thead>
+  <tbody>
+    <tr><td>P-H3</td><td>Social Media Monitoring (30+ platforms)</td><td><span class="badge badge-danger">High</span></td><td>14&ndash;20 pw</td><td>Requires device agent in production. Bark achieves this via device-level monitoring. Re-evaluate Q4 2026.</td></tr>
+    <tr><td>P-H5</td><td>VR/Metaverse Monitoring</td><td><span class="badge badge-danger">High</span></td><td>8&ndash;12 pw</td><td>Market adoption still early. Only Qustodio has moved here. Re-evaluate Q4 2026.</td></tr>
+    <tr><td>P-M2</td><td>Gaming Safety</td><td><span class="badge badge-warning">Medium</span></td><td>10&ndash;14 pw</td><td>Aura covers 200+ games; partnership approach better than build.</td></tr>
+    <tr><td>P-M3</td><td>Community Safety Intelligence</td><td><span class="badge badge-warning">Medium</span></td><td>6&ndash;8 pw</td><td>Needs critical mass of users first. Premature before growth in Phase 3.</td></tr>
+    <tr><td>P-M5</td><td>Identity Theft Protection</td><td><span class="badge badge-warning">Medium</span></td><td>2&ndash;4 pw</td><td>Business development timeline. Evaluate Q4 2026.</td></tr>
+    <tr><td>A-C2</td><td>React Native 0.64 Upgrade</td><td><span class="badge badge-danger">Was Critical</span></td><td>8&ndash;12 pw</td><td><strong>Superseded by ADR-004.</strong> Greenfield Expo SDK 52+ replaces the upgrade entirely.</td></tr>
+    <tr><td>A-C3</td><td>Legacy App Test Coverage</td><td><span class="badge badge-danger">Was Critical</span></td><td>12&ndash;17 pw</td><td><strong>Superseded by ADR-004/005.</strong> Legacy repos are archived, not maintained.</td></tr>
+    <tr><td>A-M1</td><td>Stories/Reels</td><td><span class="badge badge-warning">Medium</span></td><td>8&ndash;12 pw</td><td>Social foundation must ship first. Phase 4+ feature.</td></tr>
+    <tr><td>A-M2</td><td>Safe AI Creative Tools</td><td><span class="badge badge-warning">Medium</span></td><td>8&ndash;10 pw</td><td>Nice-to-have after social foundation ships.</td></tr>
+    <tr><td>A-M3</td><td>Educational Content Integration</td><td><span class="badge badge-warning">Medium</span></td><td>6&ndash;8 pw</td><td>Partnership-dependent; not a build task.</td></tr>
+  </tbody>
+</table>
+
+<div class="callout callout-info">
+  <h4>Effort Reconciliation</h4>
+  <p>This plan covers approximately <strong>70&ndash;96 person-weeks</strong> of the gap analysis's 127&ndash;175 pw total. The delta is accounted for by deferred items above and ADR-004/005 decisions that eliminate ~26&ndash;37 pw of legacy stabilisation work.</p>
+</div>
+
+<p><strong>MongoDB Migration:</strong> Deferred. The unified platform is built fresh with no connection to the current bhapi.com MongoDB. User migration from the legacy social app can happen later as a separate initiative.</p>
+
+<!-- ============================================================ -->
+<!-- 8. QUALITY GATES                                              -->
+<!-- ============================================================ -->
+<div class="section-break"></div>
+<h1>8. Quality Gates &amp; Exit Criteria</h1>
+
+<h2>Per-Phase Exit Criteria</h2>
+<table>
+  <thead><tr><th>Phase</th><th>Exit Criteria</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Phase 0</strong></td><td>COPPA 2026 compliant (legal sign-off). Legacy repos archived. All existing tests pass.</td></tr>
+    <tr><td><strong>Phase 1</strong></td><td>Chrome Web Store listing live. Ohio governance MVP deployed. 15+ AI platforms monitored. Social posts/comments/followers modules complete with tests.</td></tr>
+    <tr><td><strong>Phase 2</strong></td><td>Mobile app in TestFlight/Play Store beta. EU AI Act compliant. Screen time + location live. Device agent capturing AI app usage. Messaging module complete.</td></tr>
+    <tr><td><strong>Phase 3</strong></td><td>Unified dashboard live. Bundle pricing live. Public API in beta. 5+ school deployments. Wellbeing analysis in beta.</td></tr>
+  </tbody>
+</table>
+
+<h2>Continuous Quality Standards</h2>
+<table>
+  <thead><tr><th>Standard</th><th>Requirement</th></tr></thead>
+  <tbody>
+    <tr><td>Test coverage</td><td>Every new module has unit + E2E + security tests</td></tr>
+    <tr><td>CI pipeline</td><td><code>pytest</code> + <code>vitest</code> + <code>tsc --noEmit</code> all pass</td></tr>
+    <tr><td>Security</td><td>No new Snyk/Dependabot vulnerabilities unaddressed for &gt;7 days</td></tr>
+    <tr><td>Performance</td><td>API response time &lt;200ms p95 for read endpoints</td></tr>
+    <tr><td>Accessibility</td><td>WCAG 2.1 AA for all new pages</td></tr>
+    <tr><td>Internationalisation</td><td>All user-facing strings in 6 languages</td></tr>
+    <tr><td>Documentation</td><td>Project docs updated after each module addition</td></tr>
+  </tbody>
+</table>
+
+<!-- ============================================================ -->
+<!-- 9. RESOURCE REQUIREMENTS                                      -->
+<!-- ============================================================ -->
+<div class="section-break"></div>
+<h1>9. Resource Requirements &amp; Budget</h1>
+
+<h2>Engineering Headcount (Recommended)</h2>
+<table>
+  <thead><tr><th>Role</th><th>Count</th><th>Focus Areas</th></tr></thead>
+  <tbody>
+    <tr><td>Senior Backend (Python/FastAPI)</td><td>2</td><td>COPPA, social modules, compliance, APIs</td></tr>
+    <tr><td>Mobile (Expo/React Native)</td><td>2</td><td>Mobile app, device agent</td></tr>
+    <tr><td>Frontend (React/Next.js)</td><td>1</td><td>Portal pages, unified dashboard</td></tr>
+    <tr><td>ML/AI Engineer</td><td>1</td><td>Wellbeing analysis, threat detection</td></tr>
+    <tr><td>DevOps/Security</td><td>1 (fractional)</td><td>CI/CD, security hardening, penetration testing</td></tr>
+  </tbody>
+</table>
+
+<h2>External Costs</h2>
+<table>
+  <thead><tr><th>Item</th><th>Estimated Cost</th><th>Timing</th></tr></thead>
+  <tbody>
+    <tr><td>Legal counsel (COPPA + EU AI Act)</td><td>$15,000&ndash;$30,000</td><td>Immediate (Phase 0)</td></tr>
+    <tr><td>Penetration testing</td><td>$10,000&ndash;$20,000</td><td>Phase 1</td></tr>
+    <tr><td>Apple Developer Enterprise</td><td>$299/year</td><td>Phase 2</td></tr>
+    <tr><td>SOC 2 Type II audit</td><td>$30,000&ndash;$50,000</td><td>Phase 3+</td></tr>
+  </tbody>
+</table>
+
+<!-- ============================================================ -->
+<!-- 10. ADR INDEX                                                 -->
+<!-- ============================================================ -->
+<div class="section-break"></div>
+<h1>10. Architecture Decision Records (ADR) Index</h1>
+
+<table>
+  <thead><tr><th>ADR</th><th>Decision</th><th>Related Sub-Plan</th></tr></thead>
+  <tbody>
+    <tr><td>ADR-001</td><td>Unified auth (Portal's JWT + API keys)</td><td>Sub-Plan 3</td></tr>
+    <tr><td>ADR-002</td><td>Social modules in FastAPI backend</td><td>Sub-Plan 5</td></tr>
+    <tr><td>ADR-003</td><td>MongoDB &rarr; PostgreSQL migration (deferred)</td><td>Sub-Plan 2</td></tr>
+    <tr><td>ADR-004</td><td>Mobile greenfield on Expo SDK 52+</td><td>Sub-Plan 6</td></tr>
+    <tr><td>ADR-005</td><td>Single repository, archive legacy</td><td>Sub-Plans 2, 3</td></tr>
+  </tbody>
+</table>
+
+<!-- ============================================================ -->
+<!-- FOOTER                                                        -->
+<!-- ============================================================ -->
+<div class="page-footer">
+  <div>
+    <img src="data:image/png;base64,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" alt="Bhapi" style="height:20px;width:auto;">
+  </div>
+  <div>Bhapi Inc. &bull; Confidential &mdash; Internal Use Only &bull; 19 March 2026</div>
+</div>
+
+<p style="text-align:center;margin-top:24px;font-size:8pt;color:var(--text-muted);font-style:italic;">
+  This plan should be reviewed weekly. Next scheduled review: 24 March 2026.<br>
+  Regulatory deadlines are non-negotiable. Feature deadlines are adjustable.
+</p>
+
+</div><!-- .document -->
+
+</body>
+</html>
