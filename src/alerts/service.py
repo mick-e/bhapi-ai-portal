@@ -106,8 +106,14 @@ async def create_alert(db: AsyncSession, data: AlertCreate) -> Alert:
             "title": alert.title if hasattr(alert, "title") else "",
             "created_at": str(alert.created_at) if hasattr(alert, "created_at") else "",
         })
-    except Exception:
-        pass  # SSE failure must never block alert creation
+    except Exception as exc:
+        # SSE failure must never block alert creation
+        logger.debug(
+            "alert_sse_notify_degraded",
+            error=str(exc),
+            alert_id=str(alert.id),
+            group_id=str(alert.group_id),
+        )
 
     # Best-effort push notification (never blocks alert creation)
     try:
@@ -137,8 +143,14 @@ async def create_alert(db: AsyncSession, data: AlertCreate) -> Alert:
                 "title": alert.title,
                 "body": alert.body,
             })
-        except Exception:
-            pass  # Emergency contact failure must never block alert creation
+        except Exception as exc:
+            # Emergency contact failure must never block alert creation
+            logger.debug(
+                "alert_emergency_contact_degraded",
+                error=str(exc),
+                alert_id=str(alert.id),
+                group_id=str(alert.group_id),
+            )
 
     return alert
 

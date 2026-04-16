@@ -45,8 +45,13 @@ class SSEConnectionManager:
             try:
                 await queue.put(message)
                 count += 1
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug(
+                    "sse_broadcast_degraded",
+                    error=str(exc),
+                    group_id=str(group_id),
+                    event_type=event_type,
+                )
         return count
 
     @property

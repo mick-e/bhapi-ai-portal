@@ -195,8 +195,14 @@ async def register(
                     "ip_address": request.client.host if request.client else None,
                 },
             )
-    except Exception:
-        pass  # Audit logging should never block registration
+    except Exception as exc:
+        # Audit logging should never block registration
+        logger.debug(
+            "auth_registration_audit_degraded",
+            error=str(exc),
+            email=data.email,
+            user_id=str(user.id),
+        )
 
     return await _create_auth_response(db, str(user.id), response)
 

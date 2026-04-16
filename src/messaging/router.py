@@ -31,7 +31,12 @@ async def _get_user_age_tier(db: AsyncSession, user_id: UUID) -> str | None:
         from src.social.service import get_profile
         profile = await get_profile(db, user_id)
         return profile.age_tier
-    except Exception:
+    except Exception as exc:
+        logger.debug(
+            "messaging_age_tier_lookup_degraded",
+            error=str(exc),
+            user_id=str(user_id),
+        )
         return None
 
 

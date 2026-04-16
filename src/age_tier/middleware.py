@@ -116,7 +116,12 @@ async def _get_user_age_tier(db: AsyncSession, user_id: Any) -> AgeTier | None:
 
         profile = await get_profile(db, user_id)
         return AgeTier(profile.age_tier)
-    except Exception:
+    except Exception as exc:
+        logger.debug(
+            "age_tier_middleware_profile_lookup_degraded",
+            error=str(exc),
+            user_id=str(user_id),
+        )
         return None
 
 

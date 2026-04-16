@@ -152,7 +152,14 @@ async def _evaluate_trigger(
                 )
             )
             return (result.scalar() or 0) > 0
-        except Exception:
+        except Exception as exc:
+            logger.debug(
+                "reward_trigger_evaluation_degraded",
+                error=str(exc),
+                trigger=trigger_name,
+                group_id=str(group_id),
+                member_id=str(member_id),
+            )
             return False
 
     elif trigger_name == "safety_score_above_80":
@@ -169,7 +176,14 @@ async def _evaluate_trigger(
             risk_count = result.scalar() or 0
             # Safety score = 100 - (risk_count * 5), check if > 80
             return (100 - risk_count * 5) > 80
-        except Exception:
+        except Exception as exc:
+            logger.debug(
+                "reward_trigger_evaluation_degraded",
+                error=str(exc),
+                trigger=trigger_name,
+                group_id=str(group_id),
+                member_id=str(member_id),
+            )
             return False
 
     elif trigger_name == "week_no_high_risk":
@@ -185,7 +199,14 @@ async def _evaluate_trigger(
                 )
             )
             return (result.scalar() or 0) == 0
-        except Exception:
+        except Exception as exc:
+            logger.debug(
+                "reward_trigger_evaluation_degraded",
+                error=str(exc),
+                trigger=trigger_name,
+                group_id=str(group_id),
+                member_id=str(member_id),
+            )
             return False
 
     elif trigger_name == "agreement_compliance_week":
@@ -214,7 +235,14 @@ async def _evaluate_trigger(
             no_blocks = (block_result.scalar() or 0) == 0
 
             return has_activity and no_blocks
-        except Exception:
+        except Exception as exc:
+            logger.debug(
+                "reward_trigger_evaluation_degraded",
+                error=str(exc),
+                trigger=trigger_name,
+                group_id=str(group_id),
+                member_id=str(member_id),
+            )
             return False
 
     return False

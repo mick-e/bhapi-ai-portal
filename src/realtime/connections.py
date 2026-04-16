@@ -25,8 +25,12 @@ class ConnectionManager:
                 await self._connections[user_id].close(
                     code=4000, reason="New connection"
                 )
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug(
+                    "realtime_connection_cleanup_degraded",
+                    error=str(exc),
+                    user_id=user_id,
+                )
         self._connections[user_id] = websocket
         self._last_heartbeat[user_id] = datetime.now(timezone.utc)
         logger.info("ws_connected", user_id=user_id, total=len(self._connections))
