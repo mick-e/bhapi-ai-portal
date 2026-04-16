@@ -174,6 +174,8 @@ def endpoint_rate_limit(max_requests: int, window_seconds: int) -> Callable:
     """
 
     async def _check(request: Request) -> None:
+        if settings.rate_limit_fail_open:
+            return
         client_ip = request.client.host if request.client else "unknown"
         # Build a key that is unique per endpoint + IP
         path = request.url.path
