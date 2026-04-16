@@ -6,7 +6,7 @@ AI safety governance platform at **bhapi.ai** for parents, school admins, and cl
 
 **Optimizes for:** Child safety, regulatory compliance (COPPA/GDPR/LGPD), real-time alerting, data privacy.
 **Stack:** FastAPI (Python 3.11) + Next.js 15 (TypeScript) + PostgreSQL 16
-**Version:** 4.0.0 (Phase 1 complete + Launch Excellence — production-ready UX, calm design, mobile wired to real APIs)
+**Version:** 4.0.0 (Phases 0-3 complete + Launch Excellence — production-ready UX, calm design, mobile wired to real APIs)
 
 ## 2. Tech Stack
 
@@ -92,7 +92,7 @@ All custom exceptions inherit from `src.exceptions.BhapiException`:
 
 ### Database
 - **ORM:** SQLAlchemy 2.x async (asyncpg for PostgreSQL, aiosqlite for SQLite in tests)
-- **Migrations:** Alembic (32 migrations: 001-031 original schema through COPPA 2026, 032 social/contacts/moderation/governance/messaging models + indexes)
+- **Migrations:** Alembic (52 migrations: 001-031 original schema through COPPA 2026, 032 social/contacts/moderation/governance/messaging, 033-052 Phase 2-3 features + Launch Excellence)
 - **Mixins:** `UUIDMixin` (UUID PK), `TimestampMixin` (`created_at` + `updated_at`), `SoftDeleteMixin` (`deleted_at` with auto-filtering)
 - Content excerpts stored encrypted via `encrypt_credential()`, decrypted on read. TTL cleanup job runs daily.
 
@@ -166,16 +166,16 @@ All custom exceptions inherit from `src.exceptions.BhapiException`:
 
 ### Commands
 ```bash
-pytest tests/ -v              # All backend (2699 passed, 139 skipped, 4 xfailed — 2026-03-20)
-pytest tests/e2e/ -v          # E2E (~900+ passed, in-memory SQLite, no keys needed)
-pytest tests/unit/ -v          # Unit tests (~1100+ passed)
-pytest tests/security/ -v     # Security (348 passed — 2026-03-20)
+pytest tests/ -v              # All backend (4639+ passed — 2026-04-16)
+pytest tests/e2e/ -v          # E2E (1766 passed, in-memory SQLite, no keys needed)
+pytest tests/unit/ -v          # Unit tests
+pytest tests/security/ -v     # Security (1035 passed — 2026-04-16)
 cd portal && npx vitest run   # Frontend (174+ tests)
 cd portal && npx tsc --noEmit # Type check (MUST run separately)
-cd mobile && npx turbo run test  # Mobile (213 tests across 7 packages — 2026-03-20)
-cd extension && npx jest       # Extension (43 tests — 2026-03-20)
+cd mobile && npx turbo run test  # Mobile (665+ tests across 7 packages)
+cd extension && npx jest       # Extension (43 tests)
 # Production E2E (requires PROD_API_KEY in .env.local):
-PROD_BASE_URL=https://bhapi.ai PROD_API_KEY=<token> pytest tests/e2e/test_production.py -v  # 82 passed, 13 perm failures
+PROD_BASE_URL=https://bhapi.ai PROD_API_KEY=<token> pytest tests/e2e/test_production.py -v
 ```
 
 ### Definition of Done
@@ -300,12 +300,14 @@ The Bhapi platform is being unified per the design spec at `docs/superpowers/spe
 | `media/` | `/api/v1/media` | Cloudflare R2 upload, Images resize, Stream transcode | Done |
 | `messaging/` | `/api/v1/messages` | Conversation + message CRUD (skeleton — full real-time in Phase 2) | Done |
 
-### Future Backend Modules (Phase 2+)
+### Phase 2-3 Backend Modules (IMPLEMENTED)
 | Module | Prefix | Purpose | Phase |
 |--------|--------|---------|-------|
 | `device_agent/` | `/api/v1/device` | Mobile agent data, screen time, location | P2 |
 | `intelligence/` | `/api/v1/intelligence` | Cross-product correlation, unified risk scores | P2-P3 |
 | `creative/` | `/api/v1/creative` | AI art, story creation, templates | P3 |
+| `location/` | `/api/v1/location` | Geofencing, school check-in, audit log | P2 |
+| `screen_time/` | `/api/v1/screen-time` | Per-app limits, schedules, extension requests | P2 |
 
 ### Content Moderation
 - Pre-publish for under-13 (all content screened before posting, <2s SLA)
@@ -325,7 +327,7 @@ The Bhapi platform is being unified per the design spec at `docs/superpowers/spe
 - AU compliance: `docs/compliance/australian-online-safety-analysis.md`
 
 ### Next Migration
-**033** — Push tokens (P2-S8), then 034-041 for Phase 2 features (see Phase 2 plan for full mapping)
+**053** — Next available migration number (052 migrations through Phase 3 + Launch Excellence)
 
 ### Legacy Repos (Archived)
 bhapi-inc/bhapi-api, bhapi-inc/bhapi-mobile, bhapi-inc/back-office — all archived on GitHub. Feature inventories at `docs/legacy/`.
