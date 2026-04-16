@@ -3,8 +3,8 @@
 
 Allowed:
 - Imports from src.exceptions, src.models, src.schemas, src.config,
-  src.database, src.dependencies, src.encryption, src.redis_client,
-  src.__version__
+  src.constants, src.database, src.dependencies, src.encryption,
+  src.redis_client, src.__version__
 - Imports from a module's own __init__.py (e.g., src.groups can import from src.groups)
 - Self-imports (a module importing from itself)
 - Deferred imports inside function bodies (these are acceptable for breaking cycles)
@@ -22,6 +22,7 @@ SHARED_MODULES = {
     "src.models",
     "src.schemas",
     "src.config",
+    "src.constants",
     "src.database",
     "src.dependencies",
     "src.encryption",
