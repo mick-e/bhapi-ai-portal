@@ -68,3 +68,9 @@ Thumbs.db
 mobile/node_modules/
 mobile/.turbo/
 .turbo/
+
+# Generated SDKs (keep sdks/openapi.json and sdks/README.md tracked)
+sdks/python/
+sdks/js/
+sdks/swift/
+sdks/kotlin/

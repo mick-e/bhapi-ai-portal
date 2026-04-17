@@ -1,0 +1,74 @@
+name: SDK Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  generate-sdks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Export OpenAPI spec
+        env:
+          DATABASE_URL: "sqlite+aiosqlite://"
+          SECRET_KEY: "ci-sdk-generation-key-not-for-production"
+          ENVIRONMENT: "development"
+        run: python scripts/generate_sdk.py
+
+      - name: Generate SDK clients
+        run: |
+          npx @openapitools/openapi-generator-cli generate \
+            -i sdks/openapi.json -g python -o sdks/python -p packageName=bhapi
+          npx @openapitools/openapi-generator-cli generate \
+            -i sdks/openapi.json -g typescript-fetch -o sdks/js
+          npx @openapitools/openapi-generator-cli generate \
+            -i sdks/openapi.json -g swift5 -o sdks/swift
+          npx @openapitools/openapi-generator-cli generate \
+            -i sdks/openapi.json -g kotlin -o sdks/kotlin
+
+      - name: Upload OpenAPI spec
+        uses: actions/upload-artifact@v4
+        with:
+          name: openapi-spec
+          path: sdks/openapi.json
+
+      - name: Upload Python SDK
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdk-python
+          path: sdks/python/
+
+      - name: Upload JS SDK
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdk-js
+          path: sdks/js/
+
+      - name: Upload Swift SDK
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdk-swift
+          path: sdks/swift/
+
+      - name: Upload Kotlin SDK
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdk-kotlin
+          path: sdks/kotlin/
