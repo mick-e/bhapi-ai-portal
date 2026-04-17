@@ -699,3 +699,93 @@ async def list_thresholds_endpoint(
     """List budget thresholds for a group."""
     thresholds = await list_thresholds(db, await _gid_verified(group_id, auth, db))
     return thresholds
+
+
+# ─── Identity Protection (Family+ partnership — Phase 4 Task 22) ─────────────
+
+
+@router.post("/identity-protection/activate", status_code=201)
+async def activate_identity_protection_endpoint(
+    payload: dict,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Activate bundled identity protection for a Family+ subscriber.
+
+    Requires the Family+ feature gate (``identity_protection_partner``) and
+    explicit consent via ``agreed: true`` + the current consent text version.
+    Provisions an account at the configured partner and persists a link record.
+    """
+    from src.auth.service import get_user_by_id
+    from src.billing.feature_gate import require_feature
+    from src.billing.partnerships import (
+        CURRENT_CONSENT_TEXT_VERSION,
+        activate_identity_protection,
+    )
+
+    gid = _gid(None, auth)
+    await require_feature(db, gid, "identity_protection_partner")
+
+    user = await get_user_by_id(db, auth.user_id)
+    if user is None:
+        raise BhapiValidationError("User account not found.")
+
+    consent_text_version = payload.get("consent_text_version", CURRENT_CONSENT_TEXT_VERSION)
+    agreed = bool(payload.get("agreed", False))
+    dependents = payload.get("dependents") or []
+
+    link = await activate_identity_protection(
+        db,
+        user_id=auth.user_id,
+        email=user.email,
+        consent_text_version=consent_text_version,
+        agreed=agreed,
+        dependents=dependents,
+    )
+    return {
+        "id": str(link.id),
+        "partner_name": link.partner_name,
+        "partner_account_id": link.partner_account_id,
+        "status": link.status,
+        "consent_given_at": link.consent_given_at.isoformat(),
+        "consent_text_version": link.consent_text_version,
+    }
+
+
+@router.get("/identity-protection/status")
+async def get_identity_protection_status_endpoint(
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return the current user's identity-protection link, if any."""
+    from src.billing.partnerships import (
+        CURRENT_CONSENT_TEXT_VERSION,
+        get_identity_protection_status,
+    )
+
+    link = await get_identity_protection_status(db, user_id=auth.user_id)
+    if link is None:
+        return {
+            "enrolled": False,
+            "current_consent_text_version": CURRENT_CONSENT_TEXT_VERSION,
+        }
+    return {
+        "enrolled": link.status == "active",
+        "status": link.status,
+        "partner_name": link.partner_name,
+        "consent_given_at": link.consent_given_at.isoformat(),
+        "consent_text_version": link.consent_text_version,
+        "current_consent_text_version": CURRENT_CONSENT_TEXT_VERSION,
+    }
+
+
+@router.post("/identity-protection/cancel", status_code=200)
+async def cancel_identity_protection_endpoint(
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Cancel the active identity-protection link for the current user."""
+    from src.billing.partnerships import revoke_identity_protection
+
+    revoked = await revoke_identity_protection(db, user_id=auth.user_id)
+    return {"revoked": revoked}

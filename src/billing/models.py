@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Float, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -160,3 +160,40 @@ class FeatureGate(Base, UUIDMixin, TimestampMixin):
         String(20), nullable=False
     )  # free, family, family_plus, school, enterprise
     description: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
+
+class IdentityProtectionLink(Base, UUIDMixin, TimestampMixin):
+    """Per-user link to an external identity-protection partner account.
+
+    Created when a Family+ subscriber explicitly opts in to bundled identity
+    protection. Stores the partner-side account ID and a snapshot of the
+    consent text version they accepted, for audit-trail purposes.
+
+    Cancellation on the Bhapi side flips status to ``cancelled`` and triggers
+    revoke_identity_protection() to disable the partner account.
+    """
+
+    __tablename__ = "identity_protection_links"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id"),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+    partner_name: Mapped[str] = mapped_column(
+        String(64), nullable=False
+    )  # e.g. "aura", "idx", "lifelock", "mock"
+    partner_account_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    consent_given_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    consent_text_version: Mapped[str] = mapped_column(String(32), nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="active"
+    )  # active, suspended, cancelled
+    last_alert_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    metadata_json: Mapped[dict | None] = mapped_column(JSONType, nullable=True)

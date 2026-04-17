@@ -22,7 +22,7 @@ from src.capture.summary_models import ConversationSummary  # noqa: F401
 from src.risk.models import RiskEvent, RiskConfig, ContentExcerpt  # noqa: F401
 from src.alerts.models import Alert, NotificationPreference  # noqa: F401
 from src.alerts.panic import PanicReport  # noqa: F401
-from src.billing.models import Subscription, LLMAccount, SpendRecord, BudgetThreshold, FiredThresholdAlert, FeatureGate  # noqa: F401
+from src.billing.models import Subscription, LLMAccount, SpendRecord, BudgetThreshold, FiredThresholdAlert, FeatureGate, IdentityProtectionLink  # noqa: F401
 from src.reporting.models import ScheduledReport, ReportExport  # noqa: F401
 from src.compliance.models import ConsentRecord, DataDeletionRequest, AuditEntry, ThirdPartyConsentItem, RetentionPolicy, PushNotificationConsent, VideoVerification, AuditPolicy, EvidenceCollection, ComplianceControl  # noqa: F401
 from src.compliance.eu_ai_act_models import HumanReviewRequest, AppealRecord  # noqa: F401
