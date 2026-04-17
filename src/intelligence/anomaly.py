@@ -21,9 +21,9 @@ import structlog
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.alerts.models import Alert
-from src.device_agent.models import ScreenTimeRecord
-from src.groups.models import GroupMember
+from src.alerts import Alert
+from src.device_agent import ScreenTimeRecord
+from src.groups import GroupMember
 from src.intelligence.correlation import create_enriched_alert
 from src.intelligence.models import BehavioralBaseline
 

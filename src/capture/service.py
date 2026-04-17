@@ -19,8 +19,8 @@ from src.capture.schemas import (
 )
 from src.encryption import decrypt_credential, encrypt_credential
 from src.exceptions import ForbiddenError, NotFoundError, UnauthorizedError
-from src.groups.models import Group, GroupMember
-from src.risk.models import RiskEvent
+from src.groups import Group, GroupMember
+from src.risk import RiskEvent
 
 logger = structlog.get_logger()
 

@@ -7,7 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.constants import MAX_FAMILY_MEMBERS, MAX_GROUP_MEMBERS
-from src.groups.models import Group, GroupMember
+from src.groups import Group, GroupMember
 from src.integrations.sso_models import SSOConfig
 
 logger = structlog.get_logger()

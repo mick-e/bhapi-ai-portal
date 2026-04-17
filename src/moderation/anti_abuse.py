@@ -20,10 +20,10 @@ import structlog
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.age_tier.rules import AgeTier
-from src.contacts.models import Contact
-from src.device_agent.models import DeviceSession
-from src.intelligence.models import AbuseSignal
+from src.age_tier import AgeTier
+from src.contacts import Contact
+from src.device_agent import DeviceSession
+from src.intelligence import AbuseSignal
 from src.moderation.models import ContentReport
 
 logger = structlog.get_logger()

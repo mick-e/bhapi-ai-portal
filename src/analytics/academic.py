@@ -11,7 +11,7 @@ import structlog
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.capture.models import CaptureEvent
+from src.capture import CaptureEvent
 
 logger = structlog.get_logger()
 

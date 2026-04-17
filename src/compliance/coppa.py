@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.compliance.models import ConsentRecord
 from src.exceptions import NotFoundError, ValidationError
-from src.groups.models import Group, GroupMember
+from src.groups import Group, GroupMember
 
 logger = structlog.get_logger()
 

@@ -6,7 +6,7 @@ import structlog
 from fastapi import APIRouter, Body, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.auth.middleware import get_current_user
+from src.auth import get_current_user
 from src.database import get_db
 from src.exceptions import ForbiddenError, NotFoundError
 from src.intelligence import anomaly, correlation, schemas, scoring, service

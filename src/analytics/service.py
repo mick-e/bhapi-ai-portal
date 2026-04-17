@@ -8,9 +8,9 @@ import structlog
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.capture.models import CaptureEvent
-from src.groups.models import GroupMember
-from src.risk.models import RiskEvent
+from src.capture import CaptureEvent
+from src.groups import GroupMember
+from src.risk import RiskEvent
 
 logger = structlog.get_logger()
 

@@ -6,8 +6,8 @@ from datetime import datetime, timezone
 
 from sqlalchemy import select
 
-from src.compliance.models import AuditEntry, ConsentRecord
-from src.groups.models import GroupMember
+from src.compliance import AuditEntry, ConsentRecord
+from src.groups import GroupMember
 from src.reporting.generators.base import BaseGenerator
 
 

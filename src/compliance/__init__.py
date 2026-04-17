@@ -23,3 +23,6 @@ from src.compliance.uk_aadc import (  # noqa: F401
     run_gap_analysis,
 )
 from src.compliance.uk_aadc_models import AadcAssessment, PrivacyDefault  # noqa: F401
+
+# Public interface for cross-module access
+from .models import AuditEntry, ConsentRecord

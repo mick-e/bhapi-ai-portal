@@ -18,6 +18,9 @@ from src.messaging.schemas import (
     TypingStatusResponse,
     UnreadCountResponse,
 )
+# Public interface for cross-module access
+from .models import ConversationMember, Message
+
 from src.messaging.service import (
     create_conversation,
     get_conversation,
@@ -50,4 +53,6 @@ __all__ = [
     "mark_read",
     "send_media_message",
     "send_message",
+    "ConversationMember",
+    "Message",
 ]

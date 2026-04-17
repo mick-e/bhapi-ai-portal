@@ -7,13 +7,13 @@ import structlog
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.alerts.models import Alert
-from src.billing.models import BudgetThreshold, LLMAccount, SpendRecord
-from src.capture.models import CaptureEvent
-from src.contacts.models import Contact
-from src.groups.models import Group, GroupMember
-from src.messaging.models import Message
-from src.moderation.models import ModerationQueue
+from src.alerts import Alert
+from src.billing import BudgetThreshold, LLMAccount, SpendRecord
+from src.capture import CaptureEvent
+from src.contacts import Contact
+from src.groups import Group, GroupMember
+from src.messaging import Message
+from src.moderation import ModerationQueue
 from src.portal.schemas import (
     ActivityFeedItem,
     AlertSummary,
@@ -34,9 +34,9 @@ from src.portal.schemas import (
     TrendDataPoint,
     UpdateGroupSettingsRequest,
 )
-from src.risk.models import RiskEvent
+from src.risk import RiskEvent
 from src.schemas import GroupContext
-from src.social.models import SocialPost
+from src.social import SocialPost
 
 logger = structlog.get_logger()
 

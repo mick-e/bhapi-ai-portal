@@ -34,6 +34,9 @@ from src.intelligence.scoring import (
     get_score_history,
     get_score_trend,
 )
+# Public interface for cross-module access
+from .models import AbuseSignal, BehavioralBaseline, SocialGraphEdge
+
 from src.intelligence.service import (
     compute_member_baseline,
     create_abuse_signal,
@@ -79,6 +82,10 @@ __all__ = [
     "get_score_breakdown",
     "get_score_history",
     "get_score_trend",
+    # Models
+    "AbuseSignal",
+    "BehavioralBaseline",
+    "SocialGraphEdge",
     # Service
     "compute_member_baseline",
     "create_abuse_signal",

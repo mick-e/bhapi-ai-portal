@@ -6,7 +6,7 @@ import structlog
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.groups.models import ClassGroup, ClassGroupMember, GroupMember
+from src.groups import ClassGroup, ClassGroupMember, GroupMember
 
 logger = structlog.get_logger()
 

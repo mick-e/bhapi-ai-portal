@@ -24,11 +24,11 @@ from src.alerts.service import (
     update_preferences,
 )
 from src.alerts.sse import sse_manager
-from src.auth.middleware import get_current_user
+from src.auth import get_current_user
 from src.database import get_db
 from src.dependencies import require_active_trial_or_subscription
 from src.dependencies import resolve_group_id as _gid
-from src.groups.models import GroupMember
+from src.groups import GroupMember
 from src.schemas import GroupContext
 
 router = APIRouter(dependencies=[Depends(require_active_trial_or_subscription)])

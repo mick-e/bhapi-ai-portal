@@ -62,7 +62,7 @@ from src.config import get_settings
 from src.constants import SESSION_COOKIE_NAME
 from src.database import get_db
 from src.exceptions import ForbiddenError, ValidationError
-from src.middleware.rate_limit import endpoint_rate_limit
+from src.middleware import endpoint_rate_limit
 from src.schemas import GroupContext
 
 settings = get_settings()

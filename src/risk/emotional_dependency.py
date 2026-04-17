@@ -15,8 +15,8 @@ import structlog
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.alerts.models import Alert
-from src.capture.models import CaptureEvent
+from src.alerts import Alert
+from src.capture import CaptureEvent
 from src.risk.models import RiskEvent
 
 logger = structlog.get_logger()

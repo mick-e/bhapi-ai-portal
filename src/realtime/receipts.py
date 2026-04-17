@@ -7,7 +7,7 @@ import structlog
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.messaging.models import ConversationMember, Message
+from src.messaging import ConversationMember, Message
 
 logger = structlog.get_logger()
 

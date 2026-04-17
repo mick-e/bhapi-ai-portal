@@ -13,10 +13,10 @@ import structlog
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.device_agent.models import DeviceSession
-from src.groups.models import GroupMember
-from src.intelligence.models import BehavioralBaseline
-from src.messaging.models import Message
+from src.device_agent import DeviceSession
+from src.groups import GroupMember
+from src.intelligence import BehavioralBaseline
+from src.messaging import Message
 from src.social.models import SocialPost
 
 logger = structlog.get_logger()

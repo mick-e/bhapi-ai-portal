@@ -15,11 +15,13 @@ from sqlalchemy import text as select_text
 from src.config import get_settings
 from src.database import close_db, init_db
 from src.exceptions import BhapiException, bhapi_exception_handler, generic_exception_handler
-from src.middleware.auth import AuthMiddleware
-from src.middleware.locale import LocaleMiddleware
-from src.middleware.rate_limit import RateLimitMiddleware
-from src.middleware.security_headers import add_security_headers
-from src.middleware.timing import TimingMiddleware
+from src.middleware import (
+    AuthMiddleware,
+    LocaleMiddleware,
+    RateLimitMiddleware,
+    TimingMiddleware,
+    add_security_headers,
+)
 from src.redis_client import close_redis, init_redis
 
 logger = structlog.get_logger()

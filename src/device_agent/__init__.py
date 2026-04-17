@@ -19,6 +19,9 @@ from src.device_agent.service import (
     update_screen_time,
 )
 
+# Public interface for cross-module access
+from .models import AppUsageRecord, DeviceSession, ScreenTimeRecord
+
 __all__ = [
     "PushTokenCreate",
     "PushTokenListResponse",
@@ -30,4 +33,7 @@ __all__ = [
     "record_device_session",
     "sync_device_data",
     "update_screen_time",
+    "AppUsageRecord",
+    "DeviceSession",
+    "ScreenTimeRecord",
 ]

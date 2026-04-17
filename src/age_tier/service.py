@@ -15,7 +15,7 @@ from src.age_tier.rules import (
 )
 from src.age_tier.schemas import AgeTierConfigCreate
 from src.exceptions import ForbiddenError, NotFoundError, ValidationError
-from src.groups.models import GroupMember
+from src.groups import GroupMember
 from src.schemas import GroupContext
 
 logger = structlog.get_logger()

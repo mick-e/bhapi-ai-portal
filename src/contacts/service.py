@@ -8,8 +8,8 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.age_tier import get_permissions
-from src.age_tier.rules import AgeTier
-from src.alerts.push import expo_push_service
+from src.age_tier import AgeTier
+from src.alerts import expo_push_service
 from src.contacts.models import Contact, ContactApproval
 from src.exceptions import ConflictError, ForbiddenError, NotFoundError, ValidationError
 

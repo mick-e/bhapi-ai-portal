@@ -14,7 +14,7 @@ from src.api_platform.oauth import (
     revoke_token,
 )
 from src.api_platform.webhooks import WEBHOOK_EVENTS, deliver_webhook
-from src.auth.middleware import get_current_user
+from src.auth import get_current_user
 from src.database import get_db
 from src.exceptions import ForbiddenError
 from src.schemas import GroupContext

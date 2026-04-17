@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.config import get_settings
 from src.exceptions import ForbiddenError, NotFoundError, ValidationError
-from src.moderation.models import MediaAsset
+from src.moderation import MediaAsset
 
 logger = structlog.get_logger()
 

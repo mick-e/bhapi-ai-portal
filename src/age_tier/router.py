@@ -17,7 +17,7 @@ from src.age_tier.service import (
     get_member_permissions,
     get_member_tier,
 )
-from src.auth.middleware import get_current_user
+from src.auth import get_current_user
 from src.database import get_db
 from src.schemas import GroupContext
 

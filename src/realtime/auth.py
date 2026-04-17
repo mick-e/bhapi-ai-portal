@@ -2,7 +2,7 @@
 
 import structlog
 
-from src.auth.service import decode_token
+from src.auth import decode_token
 
 logger = structlog.get_logger()
 

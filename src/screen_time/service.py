@@ -8,9 +8,9 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.age_tier import AgeTier, age_from_dob, get_tier_for_age
-from src.device_agent.models import AppUsageRecord, ScreenTimeRecord
+from src.device_agent import AppUsageRecord, ScreenTimeRecord
 from src.exceptions import NotFoundError, RateLimitError, ValidationError
-from src.groups.models import GroupMember
+from src.groups import GroupMember
 from src.screen_time.models import ExtensionRequest, ScreenTimeRule, ScreenTimeSchedule
 
 logger = structlog.get_logger()

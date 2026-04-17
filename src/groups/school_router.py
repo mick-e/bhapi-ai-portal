@@ -9,12 +9,12 @@ from pydantic import Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.auth.middleware import get_current_user
+from src.auth import get_current_user
 from src.database import get_db
 from src.dependencies import require_active_trial_or_subscription
 from src.exceptions import ForbiddenError, NotFoundError, ValidationError
 from src.groups.models import ClassGroup, ClassGroupMember, Group, GroupMember
-from src.risk.models import RiskEvent
+from src.risk import RiskEvent
 from src.schemas import BaseSchema, GroupContext
 
 logger = structlog.get_logger()

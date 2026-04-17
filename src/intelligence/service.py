@@ -10,12 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.exceptions import NotFoundError, ValidationError
 from src.intelligence.models import AbuseSignal, BehavioralBaseline, SocialGraphEdge
 from src.intelligence.schemas import AbuseSignalCreate, SocialGraphEdgeCreate
-from src.social.graph_analysis import (
-    analyze_contacts,
-    detect_age_inappropriate_pattern,
-    detect_isolation,
-    map_influence,
-)
+from src.social import analyze_contacts, detect_age_inappropriate_pattern, detect_isolation, map_influence
 
 logger = structlog.get_logger()
 

@@ -6,8 +6,8 @@ from datetime import datetime, timezone
 
 from sqlalchemy import select
 
-from src.billing.models import LLMAccount, SpendRecord
-from src.groups.models import GroupMember
+from src.billing import LLMAccount, SpendRecord
+from src.groups import GroupMember
 from src.reporting.generators.base import BaseGenerator
 
 

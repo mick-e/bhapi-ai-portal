@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.auth.middleware import get_current_user
+from src.auth import get_current_user
 from src.billing.models import BudgetThreshold, LLMAccount, SpendRecord
 from src.billing.schemas import (
     CheckoutRequest,
@@ -44,7 +44,7 @@ from src.database import get_db
 from src.dependencies import resolve_group_id as _gid
 from src.dependencies import resolve_group_id_verified as _gid_verified
 from src.exceptions import ValidationError as BhapiValidationError
-from src.groups.models import GroupMember
+from src.groups import GroupMember
 from src.schemas import GroupContext
 
 webhook_logger = structlog.get_logger()

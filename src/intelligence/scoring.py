@@ -16,11 +16,11 @@ import structlog
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.age_tier.rules import AgeTier, age_from_dob, get_tier_for_age
-from src.device_agent.models import ScreenTimeRecord
-from src.groups.models import GroupMember
+from src.age_tier import AgeTier, age_from_dob, get_tier_for_age
+from src.device_agent import ScreenTimeRecord
+from src.groups import GroupMember
 from src.intelligence.models import BehavioralBaseline
-from src.risk.models import RiskEvent
+from src.risk import RiskEvent
 
 logger = structlog.get_logger()
 

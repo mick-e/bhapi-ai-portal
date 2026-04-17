@@ -5,7 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.auth.middleware import get_current_user
+from src.auth import get_current_user
 from src.blocking.approval import (
     approve_unblock,
     deny_unblock,

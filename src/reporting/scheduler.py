@@ -8,8 +8,8 @@ import structlog
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.email.service import send_email
-from src.email.templates import report_ready
+from src.email import send_email
+from src.email import report_ready
 from src.reporting.models import ScheduledReport
 from src.reporting.schemas import ReportRequest
 from src.reporting.service import generate_report

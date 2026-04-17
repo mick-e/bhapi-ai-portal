@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.auth.middleware import get_current_user
+from src.auth import get_current_user
 from src.compliance.eu_ai_act import (
     get_algorithmic_transparency,
     list_appeals,

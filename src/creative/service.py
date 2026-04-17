@@ -17,7 +17,7 @@ from src.creative.models import (
     StoryTemplate,
 )
 from src.exceptions import NotFoundError, RateLimitError, ValidationError
-from src.groups.models import GroupMember
+from src.groups import GroupMember
 
 logger = structlog.get_logger()
 

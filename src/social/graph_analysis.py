@@ -7,8 +7,8 @@ import structlog
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.groups.models import GroupMember
-from src.intelligence.models import AbuseSignal, SocialGraphEdge
+from src.groups import GroupMember
+from src.intelligence import AbuseSignal, SocialGraphEdge
 
 logger = structlog.get_logger()
 

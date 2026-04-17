@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.billing.models import Subscription
 from src.billing.schemas import TrialStatusResponse
-from src.groups.models import Group
+from src.groups import Group
 
 FREE_TRIAL_DAYS = 14
 

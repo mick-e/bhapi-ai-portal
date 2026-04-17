@@ -18,8 +18,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.alerts.models import Alert, NotificationPreference
-from src.auth.models import User
-from src.groups.models import Group, GroupMember
+from src.auth import User
+from src.groups import Group, GroupMember
 
 logger = structlog.get_logger()
 

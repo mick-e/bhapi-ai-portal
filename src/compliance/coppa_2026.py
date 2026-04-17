@@ -17,7 +17,7 @@ from src.compliance.models import (
     VideoVerification,
 )
 from src.exceptions import NotFoundError, ValidationError
-from src.groups.models import GroupMember
+from src.groups import GroupMember
 
 logger = structlog.get_logger()
 

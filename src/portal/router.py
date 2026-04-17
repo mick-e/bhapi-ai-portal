@@ -6,11 +6,11 @@ import structlog
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.auth.middleware import get_current_user
+from src.auth import get_current_user
 from src.database import get_db
 from src.dependencies import resolve_group_id as _resolve_group_id
 from src.exceptions import BhapiException
-from src.groups.privacy import get_child_dashboard
+from src.groups import get_child_dashboard
 from src.portal.schemas import (
     ChildProfileResponse,
     DashboardResponse,

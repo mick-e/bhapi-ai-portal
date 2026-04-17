@@ -6,9 +6,9 @@ from datetime import datetime, timezone
 
 from sqlalchemy import select
 
-from src.groups.models import GroupMember
+from src.groups import GroupMember
 from src.reporting.generators.base import BaseGenerator
-from src.risk.models import RiskEvent
+from src.risk import RiskEvent
 
 
 class SafetyReportGenerator(BaseGenerator):

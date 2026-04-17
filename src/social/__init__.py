@@ -4,6 +4,10 @@ Public interface for cross-module communication.
 Other modules should import only from this file.
 """
 
+# Public interface for cross-module access
+from .graph_analysis import analyze_contacts, detect_age_inappropriate_pattern, detect_isolation, map_influence
+from .models import SocialPost
+
 from src.social.service import (
     accept_follow,
     add_comment,
@@ -50,4 +54,9 @@ __all__ = [
     "unfollow_user",
     "unlike_post",
     "update_profile",
+    "analyze_contacts",
+    "detect_age_inappropriate_pattern",
+    "detect_isolation",
+    "map_influence",
+    "SocialPost",
 ]

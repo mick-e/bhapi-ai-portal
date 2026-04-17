@@ -53,6 +53,9 @@ from src.moderation.social_risk import (
     SocialRiskResult,
     classify_social_risk,
 )
+# Public interface for cross-module access
+from .models import MediaAsset, ModerationQueue
+
 from src.moderation.video_pipeline import (
     VideoModerationPipeline,
     VideoResult,
@@ -105,4 +108,6 @@ __all__ = [
     "ESafetyPipeline",
     "TakedownStatus",
     "esafety_pipeline",
+    "MediaAsset",
+    "ModerationQueue",
 ]

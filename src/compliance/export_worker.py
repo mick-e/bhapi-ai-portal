@@ -18,13 +18,13 @@ import structlog
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.alerts.models import Alert, NotificationPreference
-from src.auth.models import User
-from src.billing.models import SpendRecord
-from src.capture.models import CaptureEvent
+from src.alerts import Alert, NotificationPreference
+from src.auth import User
+from src.billing import SpendRecord
+from src.capture import CaptureEvent
 from src.compliance.models import AuditEntry, ConsentRecord, DataDeletionRequest
-from src.groups.models import Group, GroupMember
-from src.risk.models import RiskEvent
+from src.groups import Group, GroupMember
+from src.risk import RiskEvent
 
 logger = structlog.get_logger()
 

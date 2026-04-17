@@ -10,12 +10,12 @@ import structlog
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.auth.models import User
+from src.auth import User
 from src.billing.models import Subscription
 from src.billing.trial import get_trial_status
 from src.email import templates
-from src.email.service import send_email
-from src.groups.models import Group
+from src.email import send_email
+from src.groups import Group
 
 logger = structlog.get_logger()
 

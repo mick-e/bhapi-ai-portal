@@ -13,12 +13,12 @@ import structlog
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.alerts.models import Alert
-from src.alerts.schemas import AlertCreate
-from src.alerts.service import create_alert
-from src.capture.models import CaptureEvent
+from src.alerts import Alert
+from src.alerts import AlertCreate
+from src.alerts import create_alert
+from src.capture import CaptureEvent
 from src.encryption import encrypt_credential
-from src.groups.models import GroupMember
+from src.groups import GroupMember
 from src.risk.engine import process_event as run_pipeline
 from src.risk.models import RiskConfig, RiskEvent
 from src.risk.schemas import RiskClassification

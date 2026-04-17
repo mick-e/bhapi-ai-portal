@@ -8,7 +8,7 @@ import structlog
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.compliance.models import ConsentRecord
+from src.compliance import ConsentRecord
 from src.constants import MAX_FAMILY_MEMBERS, MAX_GROUP_MEMBERS, MAX_GROUPS_PER_USER
 from src.exceptions import ForbiddenError, NotFoundError, ValidationError
 from src.groups.consent import get_consent_type, requires_consent

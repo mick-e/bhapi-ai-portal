@@ -6,8 +6,8 @@ import structlog
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.age_tier.middleware import enforce_age_tier
-from src.auth.middleware import get_current_user
+from src.age_tier import enforce_age_tier
+from src.auth import get_current_user
 from src.database import get_db
 from src.messaging import schemas, service
 from src.schemas import GroupContext

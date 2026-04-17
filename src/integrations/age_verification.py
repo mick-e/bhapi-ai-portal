@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.exceptions import NotFoundError
-from src.groups.models import GroupMember
+from src.groups import GroupMember
 
 logger = structlog.get_logger()
 

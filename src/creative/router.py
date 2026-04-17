@@ -6,8 +6,8 @@ import structlog
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.auth.middleware import get_current_user
-from src.billing.feature_gate import check_feature_gate
+from src.auth import get_current_user
+from src.billing import check_feature_gate
 from src.creative import service
 from src.creative.schemas import (
     ArtGenerationCreate,
