@@ -1,0 +1,74 @@
+# SOC 2 Type II Control Inventory — Bhapi
+# Maps each Trust Service Criteria control to evidence and owner.
+#
+# STATUS: Skeleton — populate after auditor engagement (Task 9) provides
+# the specific criteria checklist for our scope.
+#
+# Scope: Security, Availability, Confidentiality
+
+controls:
+  # --- Common Criteria (CC) ---
+  CC1.1:
+    description: "Demonstrates commitment to integrity and ethical values"
+    evidence: "TBD — code of conduct, acceptable use policy"
+    owner: "TBD"
+    status: "gap"
+
+  CC1.2:
+    description: "Board exercises oversight responsibility"
+    evidence: "TBD — board meeting minutes, security charter"
+    owner: "TBD"
+    status: "gap"
+
+  CC2.1:
+    description: "Information and communication — internal and external"
+    evidence: "TBD — incident-response-plan.md, security contact page"
+    owner: "TBD"
+    status: "partial"
+
+  CC3.1:
+    description: "Risk assessment process"
+    evidence: "TBD — annual risk assessment document"
+    owner: "TBD"
+    status: "gap"
+
+  CC5.1:
+    description: "Logical and physical access controls"
+    evidence: "JWT auth, RBAC, API key scoping, session management"
+    owner: "Engineering"
+    status: "strong"
+
+  CC6.1:
+    description: "Change management"
+    evidence: "GitHub Actions CI, PR reviews, automated test suites"
+    owner: "Engineering"
+    status: "strong"
+
+  CC7.1:
+    description: "System operations — monitoring and incident response"
+    evidence: "Structured logging, incident-response-plan.md, health endpoints"
+    owner: "Engineering"
+    status: "partial"
+
+  CC8.1:
+    description: "Logical access — encryption of data in transit and at rest"
+    evidence: "HSTS preload, Fernet/KMS encryption, TLS"
+    owner: "Engineering"
+    status: "strong"
+
+  # --- Availability ---
+  A1.1:
+    description: "System availability commitments"
+    evidence: "TBD — SLA documentation, uptime monitoring"
+    owner: "TBD"
+    status: "gap"
+
+  # --- Confidentiality ---
+  C1.1:
+    description: "Confidential information identification and protection"
+    evidence: "Content excerpt encryption, PII detection pipeline, COPPA consent"
+    owner: "Engineering"
+    status: "strong"
+
+# To populate: run auditor's readiness checklist and map each control.
+# Evidence collector at scripts/soc2/evidence_collector.py will auto-export.
