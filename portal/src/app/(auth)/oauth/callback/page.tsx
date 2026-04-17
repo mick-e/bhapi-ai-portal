@@ -27,11 +27,11 @@ function OAuthCallbackContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const token = searchParams.get("token");
+    const code = searchParams.get("code");
     const state = searchParams.get("state");
 
-    if (!token) {
-      setError("Authentication failed — no token received.");
+    if (!code) {
+      setError("Authentication failed — no authorization code received.");
       return;
     }
 
@@ -44,9 +44,27 @@ function OAuthCallbackContent() {
     }
     sessionStorage.removeItem("oauth_state");
 
-    // Store token and redirect to dashboard
-    setAuthToken(token);
-    router.push("/dashboard");
+    // Exchange the one-time auth code for a session token
+    fetch("/api/v1/auth/oauth/exchange", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ code }),
+    })
+      .then(async (r) => {
+        if (!r.ok) {
+          const body = await r.json().catch(() => ({}));
+          throw new Error(body.detail || "Code exchange failed");
+        }
+        return r.json();
+      })
+      .then((data) => {
+        if (data.token) {
+          setAuthToken(data.token);
+        }
+        router.push("/dashboard");
+      })
+      .catch((e) => setError(String(e.message || e)));
   }, [searchParams, router]);
 
   if (error) {

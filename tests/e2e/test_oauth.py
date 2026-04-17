@@ -234,11 +234,11 @@ async def test_google_callback_creates_new_user(mock_settings, oauth_client):
             follow_redirects=False,
         )
 
-    # Should redirect with token
+    # Should redirect with auth code (not token — R-16 security fix)
     assert resp.status_code == 302
     location = resp.headers["location"]
-    assert "token=" in location
-    assert "bhapi_session" in resp.headers.get("set-cookie", "")
+    assert "code=" in location
+    assert "token=" not in location  # Session token must NOT be in URL
 
     # Verify user was created
     from src.auth.models import User
