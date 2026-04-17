@@ -19,6 +19,10 @@ import {
   ChevronDown,
   BarChart3,
   Plug,
+  MapPin,
+  Clock,
+  Palette,
+  Brain,
 } from "lucide-react";
 import { BhapiLogo } from "@/components/BhapiLogo";
 import { useAuth } from "@/hooks/use-auth";
@@ -44,6 +48,10 @@ const navItems: NavItem[] = [
   { href: "/classes", label: "Classes", icon: ShieldCheck, roles: ["school"] },
   { href: "/compliance", label: "Compliance", icon: ShieldAlert, roles: ["school"] },
   { href: "/spend", label: "Spend", icon: CreditCard, roles: ["family", "school"] },
+  { href: "/location", label: "Location", icon: MapPin, roles: ["family", "school"] },
+  { href: "/screen-time", label: "Screen Time", icon: Clock, roles: ["family", "school"] },
+  { href: "/creative", label: "Creative", icon: Palette, roles: ["family"] },
+  { href: "/insights", label: "Insights", icon: Brain, roles: ["family", "school"] },
   { href: "/analytics", label: "Analytics", icon: BarChart3, roles: ["family", "school", "club"] },
   { href: "/reports", label: "Reports", icon: FileBarChart, roles: ["family", "school", "club"] },
   { href: "/integrations", label: "Integrations", icon: Plug, roles: ["school"] },
