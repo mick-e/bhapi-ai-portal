@@ -2008,5 +2008,30 @@
     "emptyAnomalies": "Aucune anomalie d\u00e9tect\u00e9e. Tout va bien !",
     "emptyBaselines": "Aucune r\u00e9f\u00e9rence comportementale \u00e9tablie.",
     "emptyCorrelations": "Aucune corr\u00e9lation d\u2019\u00e9v\u00e9nements d\u00e9tect\u00e9e."
+  },
+  "intelNetwork": {
+    "title": "R\u00e9seau de renseignements",
+    "subtitle": "Signaux de menace anonymis\u00e9s partag\u00e9s par la communaut\u00e9",
+    "tabFeed": "Flux de signaux",
+    "tabSubscription": "Abonnement",
+    "subscribe": "S'abonner",
+    "unsubscribe": "Se d\u00e9sabonner",
+    "subscribed": "Abonn\u00e9",
+    "notSubscribed": "Non abonn\u00e9",
+    "subscribeDescription": "Recevez des signaux de menace anonymis\u00e9s de la communaut\u00e9.",
+    "signalTypes": "Types de signaux",
+    "signalTypesPlaceholder": "Tous les types (laissez vide pour tout)",
+    "minimumSeverity": "S\u00e9v\u00e9rit\u00e9 minimale",
+    "severity": "S\u00e9v\u00e9rit\u00e9",
+    "confidence": "Confiance",
+    "sampleSize": "Rapports",
+    "helpful": "Utile",
+    "falsePositive": "Faux positif",
+    "feedbackSent": "Retour envoy\u00e9",
+    "emptyFeed": "Aucun signal de menace disponible pour le moment.",
+    "emptySubscription": "Vous n'\u00eates pas abonn\u00e9 au r\u00e9seau.",
+    "loading": "Chargement des signaux...",
+    "contributedBy": "Partag\u00e9 par la communaut\u00e9",
+    "region": "R\u00e9gion"
   }
 }

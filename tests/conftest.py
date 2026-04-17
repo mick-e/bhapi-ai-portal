@@ -31,6 +31,7 @@ import src.creative.models  # noqa: F401
 import src.ferpa.models  # noqa: F401
 import src.groups.models  # noqa: F401
 import src.intelligence.models  # noqa: F401
+import src.intelligence_network.models  # noqa: F401
 import src.location.models  # noqa: F401
 import src.screen_time.models  # noqa: F401
 from src.database import Base, get_db

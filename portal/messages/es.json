@@ -1995,5 +1995,30 @@
     "emptyAnomalies": "No se detectaron anomal\u00edas. \u00a1Todo bien!",
     "emptyBaselines": "No hay l\u00edneas base de comportamiento establecidas.",
     "emptyCorrelations": "No se detectaron correlaciones de eventos."
+  },
+  "intelNetwork": {
+    "title": "Red de Inteligencia",
+    "subtitle": "Se\u00f1ales de amenaza anonimizadas compartidas por la comunidad",
+    "tabFeed": "Flujo de se\u00f1ales",
+    "tabSubscription": "Suscripci\u00f3n",
+    "subscribe": "Suscribirse",
+    "unsubscribe": "Cancelar suscripci\u00f3n",
+    "subscribed": "Suscrito",
+    "notSubscribed": "No suscrito",
+    "subscribeDescription": "Reciba se\u00f1ales de amenaza anonimizadas de la comunidad.",
+    "signalTypes": "Tipos de se\u00f1ales",
+    "signalTypesPlaceholder": "Todos los tipos (deje vac\u00edo para todos)",
+    "minimumSeverity": "Severidad m\u00ednima",
+    "severity": "Severidad",
+    "confidence": "Confianza",
+    "sampleSize": "Informes",
+    "helpful": "\u00datil",
+    "falsePositive": "Falso positivo",
+    "feedbackSent": "Comentario enviado",
+    "emptyFeed": "No hay se\u00f1ales de amenaza disponibles a\u00fan.",
+    "emptySubscription": "No est\u00e1 suscrito a la red de inteligencia.",
+    "loading": "Cargando se\u00f1ales...",
+    "contributedBy": "Compartido por la comunidad",
+    "region": "Regi\u00f3n"
   }
 }

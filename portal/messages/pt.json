@@ -1990,5 +1990,30 @@
     "emptyAnomalies": "Nenhuma anomalia detectada. Tudo bem!",
     "emptyBaselines": "Nenhuma baseline comportamental estabelecida.",
     "emptyCorrelations": "Nenhuma correla\u00e7\u00e3o de eventos detectada."
+  },
+  "intelNetwork": {
+    "title": "Rede de Intelig\u00eancia",
+    "subtitle": "Sinais de amea\u00e7a anonimizados compartilhados pela comunidade",
+    "tabFeed": "Feed de sinais",
+    "tabSubscription": "Assinatura",
+    "subscribe": "Assinar",
+    "unsubscribe": "Cancelar assinatura",
+    "subscribed": "Assinado",
+    "notSubscribed": "N\u00e3o assinado",
+    "subscribeDescription": "Receba sinais de amea\u00e7a anonimizados da comunidade.",
+    "signalTypes": "Tipos de sinais",
+    "signalTypesPlaceholder": "Todos os tipos (deixe vazio para todos)",
+    "minimumSeverity": "Severidade m\u00ednima",
+    "severity": "Severidade",
+    "confidence": "Confian\u00e7a",
+    "sampleSize": "Relat\u00f3rios",
+    "helpful": "\u00datil",
+    "falsePositive": "Falso positivo",
+    "feedbackSent": "Feedback enviado",
+    "emptyFeed": "Nenhum sinal de amea\u00e7a dispon\u00edvel ainda.",
+    "emptySubscription": "Voc\u00ea n\u00e3o est\u00e1 inscrito na rede de intelig\u00eancia.",
+    "loading": "Carregando sinais...",
+    "contributedBy": "Compartilhado pela comunidade",
+    "region": "Regi\u00e3o"
   }
 }

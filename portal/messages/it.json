@@ -1990,5 +1990,30 @@
     "emptyAnomalies": "Nessuna anomalia rilevata. Tutto bene!",
     "emptyBaselines": "Nessuna baseline comportamentale stabilita.",
     "emptyCorrelations": "Nessuna correlazione di eventi rilevata."
+  },
+  "intelNetwork": {
+    "title": "Rete di Intelligence",
+    "subtitle": "Segnali di minaccia anonimizzati condivisi dalla comunit\u00e0",
+    "tabFeed": "Feed segnali",
+    "tabSubscription": "Abbonamento",
+    "subscribe": "Abbonati",
+    "unsubscribe": "Annulla abbonamento",
+    "subscribed": "Abbonato",
+    "notSubscribed": "Non abbonato",
+    "subscribeDescription": "Ricevi segnali di minaccia anonimizzati dalla comunit\u00e0.",
+    "signalTypes": "Tipi di segnali",
+    "signalTypesPlaceholder": "Tutti i tipi (lascia vuoto per tutti)",
+    "minimumSeverity": "Gravit\u00e0 minima",
+    "severity": "Gravit\u00e0",
+    "confidence": "Affidabilit\u00e0",
+    "sampleSize": "Segnalazioni",
+    "helpful": "Utile",
+    "falsePositive": "Falso positivo",
+    "feedbackSent": "Feedback inviato",
+    "emptyFeed": "Nessun segnale di minaccia disponibile al momento.",
+    "emptySubscription": "Non sei iscritto alla rete di intelligence.",
+    "loading": "Caricamento segnali...",
+    "contributedBy": "Condiviso dalla comunit\u00e0",
+    "region": "Regione"
   }
 }

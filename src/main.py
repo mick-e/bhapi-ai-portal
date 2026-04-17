@@ -355,6 +355,9 @@ def _register_routers(app: FastAPI) -> None:
     from src.creative.router import router as creative_router
     app.include_router(creative_router, prefix="/api/v1/creative", tags=["Creative"])
 
+    from src.intelligence_network.router import router as intel_network_router
+    app.include_router(intel_network_router, prefix="/api/v1/intel-network", tags=["Intelligence Network"])
+
 
 _PORTAL_CANDIDATES = [
     Path("/app/portal/out"),

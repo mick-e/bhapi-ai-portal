@@ -1990,5 +1990,30 @@
     "emptyAnomalies": "Keine Anomalien erkannt. Alles in Ordnung!",
     "emptyBaselines": "Noch keine Verhaltens-Baselines erstellt.",
     "emptyCorrelations": "Keine Ereigniskorrelationen erkannt."
+  },
+  "intelNetwork": {
+    "title": "Intelligenznetzwerk",
+    "subtitle": "Anonymisierte Bedrohungssignale aus der Gemeinschaft",
+    "tabFeed": "Signalfeed",
+    "tabSubscription": "Abonnement",
+    "subscribe": "Abonnieren",
+    "unsubscribe": "Abbestellen",
+    "subscribed": "Abonniert",
+    "notSubscribed": "Nicht abonniert",
+    "subscribeDescription": "Erhalten Sie anonymisierte Bedrohungssignale aus der Gemeinschaft.",
+    "signalTypes": "Signaltypen",
+    "signalTypesPlaceholder": "Alle Typen (leer lassen f\u00fcr alle)",
+    "minimumSeverity": "Mindestschwere",
+    "severity": "Schwere",
+    "confidence": "Vertrauen",
+    "sampleSize": "Meldungen",
+    "helpful": "Hilfreich",
+    "falsePositive": "Falschmeldung",
+    "feedbackSent": "Feedback gesendet",
+    "emptyFeed": "Noch keine Bedrohungssignale verf\u00fcgbar.",
+    "emptySubscription": "Sie sind nicht f\u00fcr das Intelligenznetzwerk angemeldet.",
+    "loading": "Signale werden geladen...",
+    "contributedBy": "Von der Gemeinschaft geteilt",
+    "region": "Region"
   }
 }

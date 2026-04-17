@@ -64,6 +64,7 @@ from src.location.models import LocationRecord, Geofence, GeofenceEvent, SchoolC
 from src.screen_time.models import ScreenTimeRule, ScreenTimeSchedule, ExtensionRequest  # noqa: F401
 from src.creative.models import ArtGeneration, StoryTemplate, StoryCreation, StickerPack, Sticker, DrawingAsset  # noqa: F401
 from src.ferpa.models import EducationalRecord, AccessLog, AnnualNotification, DataSharingAgreement  # noqa: F401
+from src.intelligence_network.models import ThreatSignal, NetworkSubscription, SignalDelivery, AnonymizationAudit  # noqa: F401
 
 config = context.config
 

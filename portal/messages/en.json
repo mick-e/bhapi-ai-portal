@@ -2028,5 +2028,30 @@
     "emptyAnomalies": "No anomalies detected. Everything looks good!",
     "emptyBaselines": "No behavioral baselines established yet.",
     "emptyCorrelations": "No event correlations detected."
+  },
+  "intelNetwork": {
+    "title": "Intelligence Network",
+    "subtitle": "Anonymized threat signals shared across the community",
+    "tabFeed": "Signal Feed",
+    "tabSubscription": "Subscription",
+    "subscribe": "Subscribe",
+    "unsubscribe": "Unsubscribe",
+    "subscribed": "Subscribed",
+    "notSubscribed": "Not subscribed",
+    "subscribeDescription": "Opt in to receive anonymized threat signals from the community.",
+    "signalTypes": "Signal Types",
+    "signalTypesPlaceholder": "All types (leave empty for all)",
+    "minimumSeverity": "Minimum Severity",
+    "severity": "Severity",
+    "confidence": "Confidence",
+    "sampleSize": "Reports",
+    "helpful": "Helpful",
+    "falsePositive": "False Positive",
+    "feedbackSent": "Feedback sent",
+    "emptyFeed": "No threat signals available yet. Check back later.",
+    "emptySubscription": "You are not subscribed to the intelligence network.",
+    "loading": "Loading signals...",
+    "contributedBy": "Shared by community",
+    "region": "Region"
   }
 }
