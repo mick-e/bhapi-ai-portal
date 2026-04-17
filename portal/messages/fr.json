@@ -1903,5 +1903,21 @@
     "contactSales": "Contact Sales",
     "renewsOn": "Renews on",
     "trialEnds": "Trial ends"
+  },
+  "ferpa": {
+    "title": "Conformit\u00e9 FERPA",
+    "subtitle": "D\u00e9signations des dossiers scolaires, journaux d\u2019acc\u00e8s et accords de partage de donn\u00e9es",
+    "tabRecords": "Dossiers scolaires",
+    "tabAccess": "Journal d\u2019acc\u00e8s",
+    "tabNotifications": "Notifications annuelles",
+    "tabAgreements": "Partage de donn\u00e9es",
+    "designate": "D\u00e9signer un type de dossier",
+    "logAccess": "Enregistrer l\u2019acc\u00e8s",
+    "sendNotification": "Envoyer la notification annuelle",
+    "loading": "Chargement des donn\u00e9es FERPA\u2026",
+    "empty": "Aucun dossier d\u00e9sign\u00e9 pour le moment.",
+    "emptyAccess": "Aucune entr\u00e9e dans le journal d\u2019acc\u00e8s.",
+    "emptyAgreements": "Aucun accord de partage de donn\u00e9es.",
+    "emptyNotifications": "Aucune notification annuelle envoy\u00e9e."
   }
 }

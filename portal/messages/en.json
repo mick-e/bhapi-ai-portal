@@ -1923,5 +1923,21 @@
     "contactSales": "Contact Sales",
     "renewsOn": "Renews on",
     "trialEnds": "Trial ends"
+  },
+  "ferpa": {
+    "title": "FERPA Compliance",
+    "subtitle": "Educational record designations, access logs, and data-sharing agreements",
+    "tabRecords": "Educational Records",
+    "tabAccess": "Access Log",
+    "tabNotifications": "Annual Notifications",
+    "tabAgreements": "Data Sharing",
+    "designate": "Designate Record Type",
+    "logAccess": "Log Access",
+    "sendNotification": "Send Annual Notification",
+    "loading": "Loading FERPA data...",
+    "empty": "No records designated yet.",
+    "emptyAccess": "No access log entries yet.",
+    "emptyAgreements": "No data sharing agreements yet.",
+    "emptyNotifications": "No annual notifications sent yet."
   }
 }

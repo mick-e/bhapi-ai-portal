@@ -1890,5 +1890,21 @@
     "contactSales": "Contact Sales",
     "renewsOn": "Renews on",
     "trialEnds": "Trial ends"
+  },
+  "ferpa": {
+    "title": "Cumplimiento FERPA",
+    "subtitle": "Designaciones de registros educativos, registros de acceso y acuerdos de intercambio de datos",
+    "tabRecords": "Registros educativos",
+    "tabAccess": "Registro de acceso",
+    "tabNotifications": "Notificaciones anuales",
+    "tabAgreements": "Intercambio de datos",
+    "designate": "Designar tipo de registro",
+    "logAccess": "Registrar acceso",
+    "sendNotification": "Enviar notificaci\u00f3n anual",
+    "loading": "Cargando datos FERPA...",
+    "empty": "No hay registros designados a\u00fan.",
+    "emptyAccess": "No hay entradas en el registro de acceso.",
+    "emptyAgreements": "No hay acuerdos de intercambio de datos.",
+    "emptyNotifications": "No se han enviado notificaciones anuales."
   }
 }

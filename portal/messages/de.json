@@ -1885,5 +1885,21 @@
     "contactSales": "Contact Sales",
     "renewsOn": "Renews on",
     "trialEnds": "Trial ends"
+  },
+  "ferpa": {
+    "title": "FERPA-Konformit\u00e4t",
+    "subtitle": "Bezeichnungen von Bildungsunterlagen, Zugriffsprotokolle und Datenweitergabevereinbarungen",
+    "tabRecords": "Bildungsunterlagen",
+    "tabAccess": "Zugriffsprotokoll",
+    "tabNotifications": "J\u00e4hrliche Benachrichtigungen",
+    "tabAgreements": "Datenweitergabe",
+    "designate": "Unterlagentyp bezeichnen",
+    "logAccess": "Zugriff protokollieren",
+    "sendNotification": "J\u00e4hrliche Benachrichtigung senden",
+    "loading": "FERPA-Daten werden geladen\u2026",
+    "empty": "Noch keine Unterlagen bezeichnet.",
+    "emptyAccess": "Noch keine Eintr\u00e4ge im Zugriffsprotokoll.",
+    "emptyAgreements": "Noch keine Datenweitergabevereinbarungen.",
+    "emptyNotifications": "Noch keine j\u00e4hrlichen Benachrichtigungen gesendet."
   }
 }

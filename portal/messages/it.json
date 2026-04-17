@@ -1885,5 +1885,21 @@
     "contactSales": "Contact Sales",
     "renewsOn": "Renews on",
     "trialEnds": "Trial ends"
+  },
+  "ferpa": {
+    "title": "Conformit\u00e0 FERPA",
+    "subtitle": "Designazioni dei registri scolastici, registri di accesso e accordi di condivisione dati",
+    "tabRecords": "Registri scolastici",
+    "tabAccess": "Registro accessi",
+    "tabNotifications": "Notifiche annuali",
+    "tabAgreements": "Condivisione dati",
+    "designate": "Designa tipo di registro",
+    "logAccess": "Registra accesso",
+    "sendNotification": "Invia notifica annuale",
+    "loading": "Caricamento dati FERPA...",
+    "empty": "Nessun registro designato ancora.",
+    "emptyAccess": "Nessuna voce nel registro accessi.",
+    "emptyAgreements": "Nessun accordo di condivisione dati.",
+    "emptyNotifications": "Nessuna notifica annuale inviata."
   }
 }
