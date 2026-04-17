@@ -380,7 +380,14 @@ class TestPlanDefinitions:
     """PLAN_TIERS definitions in plans.py."""
 
     def test_all_plans_defined(self):
-        assert set(PLAN_TIERS.keys()) == {"free", "family", "bundle", "school", "enterprise"}
+        assert set(PLAN_TIERS.keys()) == {
+            "free",
+            "family",
+            "bundle",
+            "school",
+            "school_pilot",
+            "enterprise",
+        }
 
     def test_get_plan_returns_none_for_unknown(self):
         assert get_plan("nonexistent") is None
@@ -388,10 +395,27 @@ class TestPlanDefinitions:
     def test_get_all_plans_structure(self):
         plans = get_all_plans()
         assert all("plan_type" in p for p in plans)
-        assert len(plans) == 5
+        assert len(plans) == 6
 
     def test_school_has_per_seat_pricing(self):
         school = get_plan("school")
         assert school is not None
         assert "price_unit" in school
         assert school["price_unit"] == "per student/month"
+
+    def test_school_priced_at_1_99_per_seat(self):
+        """R-22: School tier reduced from $2.99 to $1.99 to undercut GoGuardian/Gaggle."""
+        school = get_plan("school")
+        assert school["price_monthly"] == 1.99
+        assert school["price_annual"] == 19.99
+        assert school["plan_version"] == "school_v2"
+
+    def test_school_pilot_is_free_and_capped(self):
+        """R-22: School Pilot is free for 90 days, capped at 50 seats, auto-converts."""
+        pilot = get_plan("school_pilot")
+        assert pilot is not None
+        assert pilot["price_monthly"] == 0
+        assert pilot["price_annual"] == 0
+        assert pilot["member_limit"] == 50
+        assert pilot["duration_days"] == 90
+        assert pilot["auto_convert_to"] == "school"
