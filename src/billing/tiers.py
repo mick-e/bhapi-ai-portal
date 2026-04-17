@@ -30,12 +30,20 @@ TIERS = {
         "stripe_product_id": "prod_family",
     },
     "family_plus": {
-        "name": "Family+",
-        "price_monthly": 14.99,
-        "price_annual": 143.90,  # 20% discount
-        "max_children": 5,
+        "name": "Bhapi Family+",
+        "price_monthly": 19.99,
+        "price_annual": 199.99,
+        "max_children": 8,
         "max_parents": 2,
-        "features": ["*family", "location_tracking", "screen_time", "creative_tools"],
+        "features": [
+            "*family",
+            "location_tracking",
+            "screen_time",
+            "creative_tools",
+            "intel_network_signals",
+            "identity_protection_partner",
+            "priority_support",
+        ],
         "stripe_product_id": "prod_family_plus",
     },
     "school": {

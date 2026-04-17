@@ -384,6 +384,7 @@ class TestPlanDefinitions:
             "free",
             "family",
             "bundle",
+            "family_plus",
             "school",
             "school_pilot",
             "enterprise",
@@ -395,7 +396,7 @@ class TestPlanDefinitions:
     def test_get_all_plans_structure(self):
         plans = get_all_plans()
         assert all("plan_type" in p for p in plans)
-        assert len(plans) == 6
+        assert len(plans) == 7
 
     def test_school_has_per_seat_pricing(self):
         school = get_plan("school")
@@ -419,3 +420,39 @@ class TestPlanDefinitions:
         assert pilot["member_limit"] == 50
         assert pilot["duration_days"] == 90
         assert pilot["auto_convert_to"] == "school"
+
+    def test_family_plus_priced_at_19_99(self):
+        """P4-B1: Family+ bundle tier at $19.99/mo, $199.99/yr."""
+        plus = get_plan("family_plus")
+        assert plus is not None
+        assert plus["price_monthly"] == 19.99
+        assert plus["price_annual"] == 199.99
+        assert plus["member_limit"] == 8
+
+    def test_family_plus_includes_identity_protection(self):
+        """P4-B1: Family+ feature list advertises identity protection bundle."""
+        plus = get_plan("family_plus")
+        assert any("identity protection" in f.lower() for f in plus["features"])
+
+    def test_family_plus_feature_gates(self):
+        """Family+ PLAN_LIMITS includes premium Phase 4 features."""
+        limits = PLAN_LIMITS["family_plus"]
+        for feature in [
+            "location_tracking",
+            "screen_time_management",
+            "creative_tools",
+            "intel_network_signals",
+            "identity_protection_partner",
+            "priority_support",
+        ]:
+            assert limits["features"][feature] is True
+
+    def test_base_family_does_not_have_family_plus_features(self):
+        """Base Family tier does NOT include Family+ premium features."""
+        family_limits = PLAN_LIMITS["family"]
+        # These keys should be absent or False for base family
+        for feature in [
+            "identity_protection_partner",
+            "intel_network_signals",
+        ]:
+            assert family_limits["features"].get(feature, False) is False
