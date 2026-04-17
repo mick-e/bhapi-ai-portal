@@ -241,3 +241,42 @@ class APIKeyTierResponse(BaseModel):
     max_webhooks: int
     price_monthly: float | None = None
     created_at: datetime
+
+
+# ---------------------------------------------------------------------------
+# Public API GA Rate Tiers
+# ---------------------------------------------------------------------------
+
+
+class RateTierResponse(BaseModel):
+    """Public API rate tier definition."""
+
+    name: str
+    monthly_request_quota: int
+    requests_per_minute: int
+    webhooks_enabled: bool
+    sandbox_only: bool
+    price_monthly: float
+
+
+class MeteringUsageResponse(BaseModel):
+    """Usage statistics for an API key."""
+
+    api_key_id: str
+    year_month: str
+    tier: str
+    request_count: int
+    error_count: int
+    avg_response_time_ms: float
+    quota_limit: int
+    quota_remaining: int
+    requests_per_minute: int
+    webhooks_enabled: bool
+    sandbox_only: bool
+
+
+class AssignTierRequest(BaseModel):
+    """Request to assign a rate tier to an API key."""
+
+    api_key_id: UUID
+    tier_name: str = Field(..., pattern=r"^(free|developer|business|enterprise)$")

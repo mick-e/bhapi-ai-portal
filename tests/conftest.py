@@ -20,6 +20,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 import src.api_platform.models  # noqa: F401
+import src.api_platform.usage_metering  # noqa: F401
 
 # Import all models so Base.metadata.create_all creates every table.
 # Without this, lazily-imported models (e.g. AuditLog) won't have their

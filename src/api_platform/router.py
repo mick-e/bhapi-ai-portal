@@ -1,4 +1,4 @@
-"""API platform FastAPI router — OAuth 2.0 clients, tokens, usage, webhooks."""
+"""API platform FastAPI router — OAuth 2.0 clients, tokens, usage, webhooks, metering."""
 
 from uuid import UUID
 
@@ -7,16 +7,21 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api_platform import schemas, service
+from src.api_platform.metering_service import (
+    assign_tier as assign_key_tier,
+    get_usage_stats,
+)
 from src.api_platform.oauth import (
     exchange_code_for_tokens,
     generate_authorization_code,
     refresh_access_token,
     revoke_token,
 )
+from src.api_platform.tiers import TIERS, APITier
 from src.api_platform.webhooks import WEBHOOK_EVENTS, deliver_webhook
 from src.auth import get_current_user
 from src.database import get_db
-from src.exceptions import ForbiddenError
+from src.exceptions import ForbiddenError, ValidationError
 from src.schemas import GroupContext
 
 logger = structlog.get_logger()
@@ -245,6 +250,60 @@ async def list_tiers(
     """List API tier configurations."""
     tiers = await service.list_tiers(db)
     return [schemas.APIKeyTierResponse.model_validate(t) for t in tiers]
+
+
+# ---------------------------------------------------------------------------
+# Public API GA Rate Tiers & Usage Metering
+# ---------------------------------------------------------------------------
+
+
+@router.get("/rate-tiers", response_model=list[schemas.RateTierResponse])
+async def list_rate_tiers():
+    """List available public API rate tiers (no auth required)."""
+    return [
+        schemas.RateTierResponse(
+            name=t.name,
+            monthly_request_quota=t.monthly_request_quota,
+            requests_per_minute=t.requests_per_minute,
+            webhooks_enabled=t.webhooks_enabled,
+            sandbox_only=t.sandbox_only,
+            price_monthly=t.price_monthly,
+        )
+        for t in TIERS.values()
+    ]
+
+
+@router.get("/metering/usage", response_model=schemas.MeteringUsageResponse)
+async def get_metering_usage(
+    api_key_id: UUID = Query(..., description="The API key ID to check usage for"),
+    year_month: str | None = Query(default=None, description="Year-month (e.g. 2026-04)"),
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get usage statistics for an API key (authenticated)."""
+    stats = await get_usage_stats(db, api_key_id, year_month=year_month)
+    return schemas.MeteringUsageResponse(**stats)
+
+
+@router.post("/metering/assign-tier", response_model=schemas.MeteringUsageResponse)
+async def assign_metering_tier(
+    data: schemas.AssignTierRequest,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Assign a rate tier to an API key (admin only)."""
+    is_admin = auth.role in ("admin", "owner") or "admin" in (auth.permissions or [])
+    if not is_admin:
+        raise ForbiddenError("Admin access required to assign tiers")
+
+    try:
+        await assign_key_tier(db, data.api_key_id, data.tier_name)
+    except ValueError as exc:
+        raise ValidationError(str(exc))
+
+    await db.flush()
+    stats = await get_usage_stats(db, data.api_key_id)
+    return schemas.MeteringUsageResponse(**stats)
 
 
 # ---------------------------------------------------------------------------

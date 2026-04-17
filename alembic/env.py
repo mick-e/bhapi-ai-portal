@@ -59,6 +59,7 @@ from src.device_agent.models import DeviceSession, AppUsageRecord, ScreenTimeRec
 from src.intelligence.models import SocialGraphEdge, AbuseSignal, BehavioralBaseline, CorrelationRule, EnrichedAlert  # noqa: F401
 from src.moderation.parental_safeguards import TrustedAdultRequest, CustodyConfig, TeenPrivacyConfig  # noqa: F401
 from src.api_platform.models import OAuthClient, OAuthToken, APIKeyTier, PlatformWebhookEndpoint, PlatformWebhookDelivery, APIUsageRecord  # noqa: F401
+from src.api_platform.usage_metering import APIKeyRateTier, APIRequestLog, MonthlyUsageAggregate  # noqa: F401
 from src.location.models import LocationRecord, Geofence, GeofenceEvent, SchoolCheckIn, LocationSharingConsent, LocationKillSwitch, LocationAuditLog  # noqa: F401
 from src.screen_time.models import ScreenTimeRule, ScreenTimeSchedule, ExtensionRequest  # noqa: F401
 from src.creative.models import ArtGeneration, StoryTemplate, StoryCreation, StickerPack, Sticker, DrawingAsset  # noqa: F401
