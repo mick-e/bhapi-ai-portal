@@ -337,6 +337,9 @@ def _register_routers(app: FastAPI) -> None:
     from src.device_agent.router import router as device_agent_router
     app.include_router(device_agent_router, prefix="/api/v1/device", tags=["Device Agent"])
 
+    from src.ferpa.router import router as ferpa_router
+    app.include_router(ferpa_router, prefix="/api/v1/ferpa", tags=["FERPA"])
+
     from src.intelligence.router import router as intelligence_router
     app.include_router(intelligence_router, prefix="/api/v1/intelligence", tags=["Intelligence"])
 

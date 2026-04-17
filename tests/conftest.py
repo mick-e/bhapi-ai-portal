@@ -27,6 +27,7 @@ import src.api_platform.models  # noqa: F401
 import src.auth.models  # noqa: F401
 import src.compliance.audit_logger  # noqa: F401
 import src.creative.models  # noqa: F401
+import src.ferpa.models  # noqa: F401
 import src.groups.models  # noqa: F401
 import src.intelligence.models  # noqa: F401
 import src.location.models  # noqa: F401
