@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { OnboardingCard } from "@/components/ui/OnboardingCard";
 import { ActivityDetailModal } from "@/components/ActivityDetailModal";
 import { DateRangeFilter } from "@/components/DateRangeFilter";
 import { useActivity } from "@/hooks/use-activity";
@@ -114,6 +115,15 @@ export default function ActivityPage() {
           )}
         </p>
       </div>
+
+      <OnboardingCard
+        id="activity-intro"
+        icon={Activity}
+        title="See What They're Using"
+        description="This page shows your children's AI interactions across all monitored platforms. Install the browser extension to start capturing activity."
+        actionLabel="Get the Extension"
+        actionHref="/extension"
+      />
 
       {/* Date Range */}
       <div className="mb-4">

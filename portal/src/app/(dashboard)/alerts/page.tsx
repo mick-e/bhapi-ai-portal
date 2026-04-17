@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/Button";
 import { Tabs } from "@/components/ui/Tabs";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { OnboardingCard } from "@/components/ui/OnboardingCard";
 import {
   useAlerts,
   useMarkAlertActioned,
@@ -162,6 +163,13 @@ export default function AlertsPage() {
           </Button>
         )}
       </div>
+
+      <OnboardingCard
+        id="alerts-intro"
+        icon={Bell}
+        title="Your Safety Inbox"
+        description="Alerts appear here when we detect something that needs your attention. We group them by child and suggest actions — no jargon, just clear next steps."
+      />
 
       {/* Tabs */}
       <Tabs

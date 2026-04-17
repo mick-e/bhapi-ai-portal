@@ -20,6 +20,7 @@ import {
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
+import { OnboardingCard } from "@/components/ui/OnboardingCard";
 import {
   useMembers,
   useInviteMember,
@@ -224,6 +225,15 @@ export default function MembersPage() {
           {t("inviteMember")}
         </Button>
       </div>
+
+      <OnboardingCard
+        id="members-intro"
+        icon={Users}
+        title="Add Your Family"
+        description="Add each child you want to monitor. You can add up to 5 family members. Each child gets age-appropriate settings automatically."
+        actionLabel="Add a Child"
+        actionHref="/members?action=add"
+      />
 
       {/* Stats */}
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">

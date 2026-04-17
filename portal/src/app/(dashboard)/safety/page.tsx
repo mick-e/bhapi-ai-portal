@@ -15,6 +15,8 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { OnboardingCard } from "@/components/ui/OnboardingCard";
+import { ShieldCheck } from "lucide-react";
 import { useGroupSettings, useUpdateGroupSettings } from "@/hooks/use-settings";
 import {
   useEmergencyContacts,
@@ -77,6 +79,13 @@ function SafetyPageInner() {
           {t("description")}
         </p>
       </div>
+
+      <OnboardingCard
+        id="safety-intro"
+        icon={ShieldCheck}
+        title="Your Safety Rules"
+        description="Set up blocking rules, bedtime schedules, and emergency contacts here. These apply across all your children's devices."
+      />
 
       {settings && (
         <SafetyRulesSection
