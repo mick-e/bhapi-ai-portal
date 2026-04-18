@@ -207,7 +207,13 @@ async def register(
             user_id=str(user.id),
         )
 
-    return await _create_auth_response(db, str(user.id), response)
+    auth_response = await _create_auth_response(db, str(user.id), response)
+    # UK AADC re-review (Phase 4 Task 24): users registering from GB get a
+    # follow-up consent flow. Frontend reads requires_aadc_consent and shows
+    # the AADC consent screen before unlocking the dashboard.
+    if data.country_code and data.country_code.upper() == "GB":
+        auth_response.requires_aadc_consent = True
+    return auth_response
 
 
 @router.post("/login", response_model=AuthResponse)

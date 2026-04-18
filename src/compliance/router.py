@@ -124,6 +124,81 @@ async def withdraw_consent_endpoint(
     return records
 
 
+# --- UK AADC consent (Phase 4 Task 24 — P4-INT1) ---
+
+
+@router.post("/uk-aadc/consent", status_code=201)
+async def record_uk_aadc_consent_endpoint(
+    payload: dict,
+    request: Request,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Record the user's UK AADC consent decision.
+
+    Required by the UK ICO Age Appropriate Design Code re-review (2026
+    deadline). Frontend calls this after the user accepts the AADC consent
+    screen surfaced when ``requires_aadc_consent: true`` is returned by
+    /auth/register or /auth/login.
+    """
+    from sqlalchemy import select as sa_select
+
+    from src.compliance.uk_aadc import record_aadc_consent
+    from src.groups.models import GroupMember
+
+    gid = _gid(None, auth)
+    consent_version = payload.get("consent_version", "uk_aadc_2026_v1")
+    accepted = bool(payload.get("accepted", False))
+
+    member_id_str = payload.get("member_id")
+    if member_id_str:
+        member_id = UUID(member_id_str)
+    else:
+        # Resolve the parent's own GroupMember row in their auto-created group
+        result = await db.execute(
+            sa_select(GroupMember.id).where(
+                GroupMember.user_id == auth.user_id,
+                GroupMember.group_id == gid,
+            ).limit(1)
+        )
+        row = result.first()
+        if row is None:
+            raise ValidationError(
+                "No group membership found for the current user — cannot "
+                "record AADC consent without a member record."
+            )
+        member_id = row.id
+
+    ip_address = request.client.host if request.client else None
+    return await record_aadc_consent(
+        db,
+        user_id=auth.user_id,
+        group_id=gid,
+        member_id=member_id,
+        consent_version=consent_version,
+        accepted=accepted,
+        ip_address=ip_address,
+    )
+
+
+@router.get("/uk-aadc/status")
+async def uk_aadc_consent_status_endpoint(
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return whether the current user has recorded UK AADC consent."""
+    from src.compliance.uk_aadc import (
+        CURRENT_AADC_CONSENT_VERSION,
+        has_aadc_consent,
+    )
+
+    consented = await has_aadc_consent(db, auth.user_id)
+    return {
+        "consented": consented,
+        "current_consent_version": CURRENT_AADC_CONSENT_VERSION,
+    }
+
+
 @router.get("/audit-log", response_model=list[AuditEntryResponse])
 async def list_audit_log_endpoint(
     group_id: UUID | None = Query(None, description="Group ID"),

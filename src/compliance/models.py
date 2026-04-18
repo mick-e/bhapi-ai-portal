@@ -106,6 +106,9 @@ class ConsentRecord(Base, UUIDMixin, TimestampMixin):
     evidence: Mapped[str | None] = mapped_column(
         String(2000), nullable=True
     )  # Signed consent form reference, checkbox ID, etc.
+    region_specific_consent: Mapped[dict | None] = mapped_column(
+        JSONType, nullable=True
+    )  # Per-region consent metadata (UK AADC, etc.)
 
 
 class DataDeletionRequest(Base, UUIDMixin, TimestampMixin):

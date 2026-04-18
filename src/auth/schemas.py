@@ -17,6 +17,15 @@ class RegisterRequest(BaseSchema):
     account_type: str = Field(pattern="^(family|school|club)$")
     date_of_birth: datetime | None = None
     privacy_notice_accepted: bool = False
+    country_code: str | None = Field(
+        default=None,
+        min_length=2,
+        max_length=2,
+        description=(
+            "ISO 3166-1 alpha-2 country code. Triggers region-specific "
+            "compliance flows (e.g. UK AADC for GB)."
+        ),
+    )
 
     @field_validator("password")
     @classmethod
@@ -67,6 +76,7 @@ class AuthResponse(BaseSchema):
     access_token: str
     token_type: str = "bearer"
     user: UserProfile
+    requires_aadc_consent: bool = False
 
 
 class PasswordChangeRequest(BaseSchema):

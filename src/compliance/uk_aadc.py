@@ -400,6 +400,92 @@ async def get_privacy_defaults_for_user(db: AsyncSession, user_id: UUID) -> dict
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# UK AADC consent recording (Phase 4 Task 24 — P4-INT1)
+# ---------------------------------------------------------------------------
+
+
+CURRENT_AADC_CONSENT_VERSION = "uk_aadc_2026_v1"
+
+
+async def record_aadc_consent(
+    db: AsyncSession,
+    *,
+    user_id: UUID,
+    group_id: UUID,
+    member_id: UUID,
+    consent_version: str,
+    accepted: bool,
+    ip_address: str | None = None,
+) -> dict:
+    """Record a user's UK AADC consent decision against their consent record.
+
+    Stores the consent version + acceptance metadata in the
+    ``region_specific_consent`` JSON column on the consent_records table so
+    the AADC consent is independently auditable from base GDPR consent.
+    Raises ``ValidationError`` on stale consent version or refusal.
+    """
+    from src.compliance.models import ConsentRecord
+
+    if not accepted:
+        raise ValidationError(
+            "AADC consent was refused. UK users under 18 cannot use the "
+            "service without AADC consent — please contact support if this "
+            "is a mistake."
+        )
+    if consent_version != CURRENT_AADC_CONSENT_VERSION:
+        raise ValidationError(
+            f"AADC consent version mismatch — expected "
+            f"{CURRENT_AADC_CONSENT_VERSION!r}, got {consent_version!r}. "
+            "Reload the AADC consent screen and accept the current version."
+        )
+
+    record = ConsentRecord(
+        id=uuid4(),
+        group_id=group_id,
+        member_id=member_id,
+        consent_type="uk_aadc",
+        parent_user_id=user_id,
+        ip_address=ip_address,
+        evidence=f"AADC consent screen v={consent_version}",
+        region_specific_consent={
+            "region": "GB",
+            "framework": "uk_aadc",
+            "version": consent_version,
+            "accepted_at": datetime.now(timezone.utc).isoformat(),
+        },
+    )
+    db.add(record)
+    await db.flush()
+    await db.refresh(record)
+
+    logger.info(
+        "uk_aadc_consent_recorded",
+        user_id=str(user_id),
+        consent_version=consent_version,
+        consent_record_id=str(record.id),
+    )
+    return {
+        "id": str(record.id),
+        "consent_version": consent_version,
+        "accepted_at": record.region_specific_consent["accepted_at"],
+    }
+
+
+async def has_aadc_consent(db: AsyncSession, user_id: UUID) -> bool:
+    """Return True if the user has an active (not withdrawn) AADC consent."""
+    from src.compliance.models import ConsentRecord
+
+    result = await db.execute(
+        select(ConsentRecord).where(
+            ConsentRecord.parent_user_id == user_id,
+            ConsentRecord.consent_type == "uk_aadc",
+            ConsentRecord.withdrawn_at.is_(None),
+        )
+    )
+    return result.scalar_one_or_none() is not None
+
+
 async def get_assessment_history(db: AsyncSession, group_id: UUID) -> list[dict]:
     """Return all AADC gap analysis assessments for a group, newest first."""
     result = await db.execute(
