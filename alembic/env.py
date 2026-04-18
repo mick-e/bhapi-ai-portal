@@ -26,7 +26,7 @@ from src.billing.models import Subscription, LLMAccount, SpendRecord, BudgetThre
 from src.reporting.models import ScheduledReport, ReportExport  # noqa: F401
 from src.compliance.models import ConsentRecord, DataDeletionRequest, AuditEntry, ThirdPartyConsentItem, RetentionPolicy, PushNotificationConsent, VideoVerification, AuditPolicy, EvidenceCollection, ComplianceControl  # noqa: F401
 from src.compliance.eu_ai_act_models import HumanReviewRequest, AppealRecord  # noqa: F401
-from src.blocking.models import BlockRule, AutoBlockRule  # noqa: F401
+from src.blocking.models import BlockRule, AutoBlockRule, BypassAttempt  # noqa: F401
 from src.blocking.approval_models import BlockApproval  # noqa: F401
 from src.blocking.time_budget import TimeBudget, TimeBudgetUsage  # noqa: F401
 from src.integrations.models import SISConnection  # noqa: F401

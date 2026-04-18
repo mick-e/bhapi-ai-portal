@@ -188,3 +188,27 @@ class AutoBlockRuleUpdate(BaseSchema):
     platforms: list[str] | None = None
     member_id: UUID | None = None
     active: bool | None = None
+
+
+# --- Bypass attempt schemas (Phase 4 Task 23) ---
+
+
+class BypassAttemptCreate(BaseSchema):
+    """Reported by extension or device agent when a bypass technique is
+    detected client-side. ``member_id`` may be omitted if the user is signed
+    in via the extension's parent account — the server resolves the linked
+    member from device registration.
+    """
+
+    member_id: UUID
+    bypass_type: Literal["vpn", "proxy", "alt_url", "incognito", "tampering"]
+    detection_signals: dict | None = None
+
+
+class BypassAttemptResponse(BaseSchema):
+    id: UUID
+    member_id: UUID
+    bypass_type: str
+    detection_signals: dict | None
+    auto_blocked: bool
+    created_at: datetime

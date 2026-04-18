@@ -2,7 +2,7 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, Response
+from fastapi import APIRouter, Depends, Query, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth import get_current_user
@@ -22,6 +22,8 @@ from src.blocking.schemas import (
     BlockEffectivenessResponse,
     BlockRuleCreate,
     BlockRuleResponse,
+    BypassAttemptCreate,
+    BypassAttemptResponse,
 )
 from src.blocking.service import (
     check_block_status,
@@ -270,6 +272,42 @@ async def list_url_filters(
         {"id": str(r.id), "category": r.category, "action": r.action, "active": r.active}
         for r in rules
     ]}
+
+
+# --- Bypass detection (Phase 4 Task 23 — R-24) ---
+
+
+@router.post(
+    "/bypass-attempt",
+    response_model=BypassAttemptResponse,
+    status_code=201,
+)
+async def report_bypass_attempt(
+    data: BypassAttemptCreate,
+    request: Request,
+    auth: GroupContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Receive a bypass-attempt event from the extension or device agent.
+
+    Persists the event, raises a high-severity alert to group admins, and
+    auto-blocks the member when 3+ attempts occur in a 60-minute rolling
+    window. Returns the persisted attempt with ``auto_blocked`` flag.
+    """
+    from src.blocking.vpn_detection import record_bypass_attempt
+
+    gid = _gid(None, auth)
+    user_agent = request.headers.get("user-agent")
+
+    attempt = await record_bypass_attempt(
+        db,
+        group_id=gid,
+        member_id=data.member_id,
+        bypass_type=data.bypass_type,
+        detection_signals=data.detection_signals,
+        user_agent=user_agent,
+    )
+    return attempt
 
 
 @router.post("/url-filter/check")

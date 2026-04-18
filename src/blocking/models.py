@@ -37,6 +37,33 @@ class BlockRule(Base, UUIDMixin, TimestampMixin):
     )
 
 
+class BypassAttempt(Base, UUIDMixin, TimestampMixin):
+    """Detected attempt to bypass AI monitoring (VPN, proxy, alt URL, incognito,
+    extension tampering). Persisted for audit trail and auto-block escalation.
+
+    Auto-block triggers when 3+ attempts of any type are recorded for the same
+    member within a 60-minute rolling window — see
+    ``src.blocking.vpn_detection.maybe_auto_block``.
+    """
+
+    __tablename__ = "bypass_attempts"
+
+    group_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("groups.id"), nullable=False, index=True
+    )
+    member_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("group_members.id"), nullable=False, index=True
+    )
+    bypass_type: Mapped[str] = mapped_column(
+        String(32), nullable=False
+    )  # vpn, proxy, alt_url, incognito, tampering
+    detection_signals: Mapped[dict | None] = mapped_column(JSONType, nullable=True)
+    user_agent: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    auto_blocked: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False
+    )
+
+
 class AutoBlockRule(Base, UUIDMixin, TimestampMixin):
     """Configurable trigger that auto-creates BlockRules."""
 
