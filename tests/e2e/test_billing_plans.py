@@ -18,19 +18,28 @@ async def plans_client():
 
 @pytest.mark.asyncio
 async def test_get_plans_returns_all_tiers(plans_client):
-    """GET /billing/plans returns all 5 plan tiers (free, family, bundle, school, enterprise)."""
+    """GET /billing/plans returns all 7 plan tiers.
+
+    Phase 4 added family_plus ($19.99/mo Family+ bundle, Task 21) and
+    school_pilot (free 90-day School pilot, Task 20) to the original five.
+    """
     res = await plans_client.get("/api/v1/billing/plans")
     assert res.status_code == 200
     data = res.json()
     assert "plans" in data
     plans = data["plans"]
-    assert len(plans) == 5
+    assert len(plans) == 7
     plan_types = [p["plan_type"] for p in plans]
-    assert "free" in plan_types
-    assert "family" in plan_types
-    assert "bundle" in plan_types
-    assert "school" in plan_types
-    assert "enterprise" in plan_types
+    for expected in [
+        "free",
+        "family",
+        "bundle",
+        "family_plus",
+        "school",
+        "school_pilot",
+        "enterprise",
+    ]:
+        assert expected in plan_types, f"missing plan: {expected}"
 
 
 @pytest.mark.asyncio
