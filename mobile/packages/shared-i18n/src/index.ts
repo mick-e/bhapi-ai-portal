@@ -1,6 +1,6 @@
 import en from '../locales/en.json';
 
-type Locale = 'en' | 'pt-BR' | 'es' | 'fr' | 'de' | 'it';
+type Locale = 'en' | 'pt-BR' | 'es' | 'fr' | 'de' | 'it' | 'nl' | 'pl' | 'sv';
 
 const localeLoaders: Record<Locale, () => Promise<typeof en>> = {
   en: () => Promise.resolve(en),
@@ -9,6 +9,9 @@ const localeLoaders: Record<Locale, () => Promise<typeof en>> = {
   fr: () => import('../locales/fr.json') as Promise<typeof en>,
   de: () => import('../locales/de.json') as Promise<typeof en>,
   it: () => import('../locales/it.json') as Promise<typeof en>,
+  nl: () => import('../locales/nl.json') as Promise<typeof en>,
+  pl: () => import('../locales/pl.json') as Promise<typeof en>,
+  sv: () => import('../locales/sv.json') as Promise<typeof en>,
 };
 
 export async function loadLocale(locale: Locale): Promise<typeof en> {

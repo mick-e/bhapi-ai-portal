@@ -56,6 +56,12 @@ async function loadMessages(locale: Locale): Promise<Messages> {
       return (await import("../../messages/pt.json")).default;
     case "it":
       return (await import("../../messages/it.json")).default;
+    case "nl":
+      return (await import("../../messages/nl.json")).default;
+    case "pl":
+      return (await import("../../messages/pl.json")).default;
+    case "sv":
+      return (await import("../../messages/sv.json")).default;
     default:
       return (await import("../../messages/en.json")).default;
   }
