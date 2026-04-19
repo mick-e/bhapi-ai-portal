@@ -1,0 +1,17 @@
+{
+  "name": "@bhapi/shared-native",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "test": "echo \"No unit tests — native modules require physical device testing. See __tests__/ for integration specs.\" && exit 0",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "react-native": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}

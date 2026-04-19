@@ -17,6 +17,7 @@
     "typescript": "^5.4.0"
   },
   "dependencies": {
+    "@bhapi/shared-native": "*",
     "@expo/vector-icons": "~14.0.4",
     "@react-native-async-storage/async-storage": "^3.0.2",
     "expo": "~52.0.0",

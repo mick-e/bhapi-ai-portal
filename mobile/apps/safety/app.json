@@ -36,7 +36,11 @@
         "ITSAppUsesNonExemptEncryption": false,
         "NSPrivacyAccessedAPITypes": [],
         "NSUserTrackingUsageDescription": "Bhapi Safety does not track users for advertising purposes.",
-        "coppaDirectedToChildren": false
+        "coppaDirectedToChildren": false,
+        "NSPermissionKitUsageDescription": "Bhapi Safety uses iOS 26 PermissionKit to request parental approval for monitored actions (contact requests, content posting, spending) without sharing raw child data across apps."
+      },
+      "entitlements": {
+        "com.apple.developer.permissionkit.parental-controls": true
       },
       "privacyManifest": {
         "NSPrivacyCollectedDataTypes": [
