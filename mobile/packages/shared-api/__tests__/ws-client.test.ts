@@ -125,4 +125,40 @@ describe('WebSocketClient', () => {
     jest.runAllTimers();
     expect(client.isConnected).toBe(true);
   });
+
+  // Phase 4 Task 30: reconnect delay cap + jitter
+  test('reconnect delay respects maxDelay cap', () => {
+    const capped = new WebSocketClient({
+      maxReconnectAttempts: 30,
+      baseDelay: 1000,
+      maxDelay: 5000,
+    });
+    // Deterministic jitter for assertion — pin Math.random to 0.5 (mid jitter)
+    const origRandom = Math.random;
+    Math.random = () => 0.5;
+
+    // Spy setTimeout to capture scheduled delays
+    const setTimeoutSpy = jest.spyOn(global, 'setTimeout');
+
+    capped.connect('wss://api.bhapi.ai/ws', 'token');
+    jest.runAllTimers();
+
+    // Force 10 reconnection cycles
+    for (let i = 0; i < 10; i++) {
+      capped['attemptReconnect']();
+    }
+
+    // Every scheduled reconnect delay must be <= maxDelay × 1.2 (max jitter)
+    const scheduledDelays = setTimeoutSpy.mock.calls
+      .map((c) => c[1])
+      .filter((d): d is number => typeof d === 'number');
+    for (const d of scheduledDelays) {
+      // Delay must be at most maxDelay × 1.2 (20% upper jitter) + small epsilon
+      expect(d).toBeLessThanOrEqual(5000 * 1.2 + 0.001);
+    }
+
+    Math.random = origRandom;
+    setTimeoutSpy.mockRestore();
+    capped.disconnect();
+  });
 });

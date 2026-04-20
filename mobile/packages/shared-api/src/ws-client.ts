@@ -46,6 +46,7 @@ export class WebSocketClient {
   private reconnectAttempts = 0;
   private maxReconnectAttempts: number;
   private baseDelay: number;
+  private maxDelay: number;
   private listeners = new Map<string, Set<EventCallback>>();
   private url: string | null = null;
   private token: string | null = null;
@@ -53,9 +54,17 @@ export class WebSocketClient {
   private _connected = false;
   private _shouldReconnect = true;
 
-  constructor(options?: { maxReconnectAttempts?: number; baseDelay?: number }) {
+  constructor(options?: {
+    maxReconnectAttempts?: number;
+    baseDelay?: number;
+    maxDelay?: number;
+  }) {
     this.maxReconnectAttempts = options?.maxReconnectAttempts ?? 5;
     this.baseDelay = options?.baseDelay ?? 1000;
+    // Cap exponential growth so attempt #20 doesn't schedule a 12-day retry.
+    // Default 60s matches typical server restart windows; with ±20% jitter
+    // this also prevents reconnection thundering herds on server bounce.
+    this.maxDelay = options?.maxDelay ?? 60_000;
   }
 
   /**
@@ -216,12 +225,16 @@ export class WebSocketClient {
       return;
     }
 
-    const delay = this.baseDelay * Math.pow(2, this.reconnectAttempts);
+    // Exponential backoff capped at maxDelay, with ±20% jitter to
+    // spread reconnects across clients on server restart.
+    const raw = this.baseDelay * Math.pow(2, this.reconnectAttempts);
+    const capped = Math.min(raw, this.maxDelay);
+    const jitter = capped * (0.8 + Math.random() * 0.4);
     this.reconnectAttempts++;
 
     this.reconnectTimer = setTimeout(() => {
       this.createConnection();
-    }, delay);
+    }, jitter);
   }
 
   private clearReconnectTimer(): void {
