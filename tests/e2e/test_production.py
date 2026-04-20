@@ -26,10 +26,16 @@ import pytest
 PROD_BASE_URL = os.environ.get("PROD_BASE_URL", "").rstrip("/")
 PROD_API_KEY = os.environ.get("PROD_API_KEY", "")
 
-pytestmark = pytest.mark.skipif(
-    not PROD_BASE_URL,
-    reason="PROD_BASE_URL not set — skipping production E2E tests",
-)
+pytestmark = [
+    # Categorise as a `prod` test so the default pytest run (which filters
+    # `-m 'not prod'`) skips the entire file without emitting 78 "skipped"
+    # lines. Opt in with `-m prod` and the env vars below.
+    pytest.mark.prod,
+    pytest.mark.skipif(
+        not PROD_BASE_URL,
+        reason="PROD_BASE_URL not set — skipping production E2E tests",
+    ),
+]
 
 
 # ---------------------------------------------------------------------------

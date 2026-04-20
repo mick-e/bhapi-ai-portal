@@ -48,7 +48,7 @@ from src.compliance.service import (
 )
 from src.database import get_db
 from src.dependencies import resolve_group_id as _gid
-from src.exceptions import ValidationError
+from src.exceptions import NotFoundError, ValidationError
 from src.schemas import GroupContext
 
 router = APIRouter()
@@ -82,14 +82,22 @@ async def download_export(
     auth: GroupContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Download a data export as a ZIP file (GDPR Article 20)."""
+    """Download a data export as a ZIP file (GDPR Article 20).
+
+    Ownership-gated: only the user who filed the data-request can download
+    the resulting ZIP. Non-owners get 404 (not 403) to avoid leaking the
+    existence of other users' requests.
+    """
     request = await get_data_request_status(db, request_id)
+
+    if request.user_id != auth.user_id:
+        raise NotFoundError("DataRequest", str(request_id))
 
     if request.request_type != "data_export":
         raise ValidationError("Only data_export requests can be downloaded")
 
-    # Generate export on-demand
-    content = await export_user_data_bytes(db, request.user_id)
+    # Generate export on-demand — keyed to the authenticated user's own data
+    content = await export_user_data_bytes(db, auth.user_id)
     return Response(
         content=content,
         media_type="application/zip",

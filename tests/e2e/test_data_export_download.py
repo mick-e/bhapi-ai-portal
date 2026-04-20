@@ -103,20 +103,17 @@ async def test_export_download_cross_user_blocked(export_client):
     assert resp.status_code == 201, f"Expected 201, got {resp.status_code}: {resp.text}"
     request_id = resp.json()["id"]
 
-    # User B tries to download User A's export
+    # User B tries to download User A's export — must be blocked.
     dl = await export_client.get(
         f"/api/v1/compliance/data-request/{request_id}/download",
         headers=headers_b,
     )
-    # Should be blocked — either 403 or 404
-    # The current implementation calls get_data_request_status which may not
-    # check user ownership, so this test documents the behavior.
-    if dl.status_code == 200:
-        pytest.xfail(
-            "VULNERABILITY: Cross-user data export download not blocked. "
-            "get_data_request_status should verify user ownership."
-        )
-    assert dl.status_code in (403, 404)
+    # Fixed in download_export: raises NotFoundError when request.user_id
+    # doesn't match auth.user_id. 404 (not 403) to avoid leaking existence
+    # of other users' requests.
+    assert dl.status_code in (403, 404), (
+        f"Cross-user data export must be blocked — got {dl.status_code}"
+    )
 
 
 @pytest.mark.asyncio
