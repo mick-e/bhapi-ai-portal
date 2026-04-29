@@ -120,9 +120,19 @@ def create_app() -> FastAPI:
         # Portal uses redirect Checkout (not embedded Elements), but js.stripe.com
         # is still required in connect-src + frame-src. Forward-compatible if we
         # switch to embedded Elements later. Regression test: test_security_headers.py
+        #
+        # 'unsafe-inline' on script-src: Next.js App Router (`output: "export"`)
+        # embeds inline <script>__next_f.push(...)</script> blocks for RSC
+        # hydration that cannot be nonced (HTML is pre-built at deploy time).
+        # Without 'unsafe-inline' those scripts get blocked and bhapi.ai
+        # renders blank (incident 2026-04-29 — see commit history).
+        # TODO(security): replace 'unsafe-inline' with a SHA-256 hash allowlist
+        # computed at startup from portal/out/**/*.html — see follow-up branch
+        # security/csp-script-hashes. Reopens audit findings F-011/F-012/R-09
+        # until B is merged.
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
-            "script-src 'self'; "
+            "script-src 'self' 'unsafe-inline'; "
             "style-src 'self' 'unsafe-inline'; "
             "img-src 'self' data: https:; "
             "font-src 'self' https:; "

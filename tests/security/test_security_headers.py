@@ -1,23 +1,38 @@
 """Security tests for CSP and HSTS headers.
 
 Covers R-09 (Phase 4 Task 1):
-- script-src must NOT include 'unsafe-inline' (XSS defense)
 - HSTS must include 'preload' directive (HSTS preload list eligibility)
 - Stripe domains must appear in connect-src and frame-src (billing regression-proofing)
+
+Originally also enforced no 'unsafe-inline' on script-src, but Next.js App
+Router (`output: "export"`) embeds inline <script>__next_f.push(...)</script>
+hydration blocks that cannot be nonced (HTML built at deploy time). Removing
+'unsafe-inline' caused a blank-landing-page incident on 2026-04-29.
+TODO(security): replace with SHA-256 hash allowlist on follow-up branch
+security/csp-script-hashes — at that point restore the strict assertion.
 """
 
 import pytest
 
 
 @pytest.mark.asyncio
-async def test_csp_script_src_has_no_unsafe_inline(minimal_client):
-    """script-src must NOT allow 'unsafe-inline' (XSS protection)."""
+async def test_csp_script_src_allows_inline_until_hash_allowlist(minimal_client):
+    """Temporary: script-src must include 'unsafe-inline' for Next.js hydration.
+
+    Strict variant (no 'unsafe-inline') is restored once SHA-256 hash allowlist
+    lands. This assertion exists so a deploy that drops 'unsafe-inline' without
+    landing the hash allowlist fails CI loudly instead of silently shipping a
+    blank landing page.
+    """
     response = await minimal_client.get("/health/live")
     csp = response.headers.get("Content-Security-Policy", "")
     directives = {d.split()[0]: d for d in csp.split("; ") if d}
     script_src = directives.get("script-src", "")
-    assert "'unsafe-inline'" not in script_src, (
-        f"script-src still allows unsafe-inline: {script_src}"
+    assert "'unsafe-inline'" in script_src, (
+        f"script-src missing 'unsafe-inline' — Next.js inline hydration "
+        f"scripts will be blocked and the landing page will render blank. "
+        f"Either restore 'unsafe-inline' or land the SHA-256 hash allowlist "
+        f"(security/csp-script-hashes). Current: {script_src}"
     )
 
 
