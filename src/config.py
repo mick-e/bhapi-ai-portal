@@ -157,6 +157,13 @@ class Settings(BaseSettings):
         if not self.is_production:
             return
 
+        # Explicit equality check against the literal default catches rename regressions
+        if self.secret_key == "dev-secret-key-change-in-production":
+            raise ValueError(
+                "SECURITY ERROR: SECRET_KEY is the hardcoded development default. "
+                "Set a cryptographically random value (min 32 chars)."
+            )
+
         weak_patterns = ["changeme", "secret", "dev-secret", "placeholder", "default"]
         secret_lower = self.secret_key.lower()
         for pattern in weak_patterns:
@@ -182,6 +189,18 @@ class Settings(BaseSettings):
                 raise ValueError(
                     f"SECURITY ERROR: DATABASE_URL contains weak password '{pw}'."
                 )
+
+        # HMAC must be enforced and configured in production
+        # (protects /api/v1/capture/events from unsigned ingestion)
+        if not self.capture_hmac_enabled:
+            raise ValueError(
+                "SECURITY ERROR: CAPTURE_HMAC_ENABLED must be true in production. "
+                "Capture ingestion endpoints would otherwise accept unsigned payloads."
+            )
+        if not self.capture_hmac_secret or len(self.capture_hmac_secret) < 32:
+            raise ValueError(
+                "SECURITY ERROR: CAPTURE_HMAC_SECRET must be set (min 32 chars) in production."
+            )
 
 
 @lru_cache
