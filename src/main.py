@@ -1,5 +1,7 @@
 """FastAPI application factory."""
 
+import base64
+import hashlib
 import re
 import time
 from contextlib import asynccontextmanager
@@ -121,18 +123,17 @@ def create_app() -> FastAPI:
         # is still required in connect-src + frame-src. Forward-compatible if we
         # switch to embedded Elements later. Regression test: test_security_headers.py
         #
-        # 'unsafe-inline' on script-src: Next.js App Router (`output: "export"`)
-        # embeds inline <script>__next_f.push(...)</script> blocks for RSC
-        # hydration that cannot be nonced (HTML is pre-built at deploy time).
-        # Without 'unsafe-inline' those scripts get blocked and bhapi.ai
-        # renders blank (incident 2026-04-29 — see commit history).
-        # TODO(security): replace 'unsafe-inline' with a SHA-256 hash allowlist
-        # computed at startup from portal/out/**/*.html — see follow-up branch
-        # security/csp-script-hashes. Reopens audit findings F-011/F-012/R-09
-        # until B is merged.
+        # script-src: `'self'` plus a SHA-256 hash allowlist for the inline
+        # <script> blocks Next.js App Router (`output: "export"`) embeds for
+        # RSC hydration. Hashes are computed once at process start from
+        # portal/out/**/*.html — see _extract_inline_script_hashes. Empty
+        # allowlist in dev/test where no static export is present (browser
+        # never reaches that CSP — frontend is on the dev server).
+        inline_hashes = _get_inline_script_hashes()
+        script_src = f"'self' {inline_hashes}".rstrip() if inline_hashes else "'self'"
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline'; "
+            f"script-src {script_src}; "
             "style-src 'self' 'unsafe-inline'; "
             "img-src 'self' data: https:; "
             "font-src 'self' https:; "
@@ -390,6 +391,58 @@ def _get_portal_dir() -> Path:
             return p
     _portal_dir = _PORTAL_CANDIDATES[0]  # fallback
     return _portal_dir
+
+
+# Match inline <script>...</script> tags (those without a src attribute).
+# Per CSP3, the hash is computed over the byte-exact content between the
+# opening and closing tags — whitespace is significant.
+_INLINE_SCRIPT_RE = re.compile(
+    r"<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>",
+    re.DOTALL | re.IGNORECASE,
+)
+
+_inline_script_hashes_cache: str | None = None
+
+
+def _extract_inline_script_hashes(portal_dir: Path) -> set[str]:
+    """Pure: scan a directory of HTML files, return CSP `'sha256-...'` tokens.
+
+    Public for testing — pass any directory of HTML files and get back the
+    set of CSP-formatted hash tokens for every inline `<script>` they contain.
+    Scripts with a `src=` attribute are skipped (those are allowlisted via
+    `'self'` instead).
+    """
+    if not portal_dir.is_dir():
+        return set()
+
+    hashes: set[str] = set()
+    for html_file in portal_dir.rglob("*.html"):
+        try:
+            content = html_file.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        for match in _INLINE_SCRIPT_RE.finditer(content):
+            script_body = match.group(1)
+            digest = hashlib.sha256(script_body.encode("utf-8")).digest()
+            b64 = base64.b64encode(digest).decode("ascii")
+            hashes.add(f"'sha256-{b64}'")
+    return hashes
+
+
+def _get_inline_script_hashes() -> str:
+    """Return cached, CSP-ready space-separated string of inline-script hashes.
+
+    Allowlists Next.js App Router hydration scripts (`__next_f.push(...)`)
+    without `'unsafe-inline'`. Computed once per process — the static export
+    is built into the Docker image, so the hash set is stable for the
+    container's lifetime. Returns "" when the static export is missing
+    (dev mode, tests without a build); CSP then falls back to `'self'` only.
+    """
+    global _inline_script_hashes_cache
+    if _inline_script_hashes_cache is None:
+        hashes = _extract_inline_script_hashes(_get_portal_dir())
+        _inline_script_hashes_cache = " ".join(sorted(hashes))
+    return _inline_script_hashes_cache
 
 
 def _mount_frontend(app: FastAPI) -> None:
